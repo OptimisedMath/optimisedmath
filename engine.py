@@ -54,9 +54,48 @@ def add_fractions_complex(level):
         "level_display": f"Poziom {level}: Różne mianowniki"
     }
 
+def add_mixed_numbers_simple(level):
+    """Logic for Level 4: Mixed Numbers (Easy) - Identical Denominators, Fraction Sum < 1"""
+    # 1. Pick identical denominator
+    den = random.randint(3, 9)
+    
+    # 2. Pick whole numbers (typically 1-5 each)
+    w1 = random.randint(1, 5)
+    w2 = random.randint(1, 5)
+    
+    # 3. Pick numerators such that their sum < denominator (no carrying over)
+    n1 = random.randint(1, den - 2)
+    n2 = random.randint(1, den - n1 - 1)  # Ensures n1 + n2 < den
+    
+    # 4. Calculate correct answer
+    correct_whole = w1 + w2
+    correct_numerator = n1 + n2
+    
+    # 5. Generate the trap: Add whole numbers correctly, but add denominators for fractions
+    trap_whole = w1 + w2
+    trap_numerator = n1 + n2
+    trap_denominator = den + den  # Level 1 trap: add denominators
+    
+    # 6. Generate wrong answer: Convert to improper fractions but make arithmetic error
+    improper1_num = w1 * den + n1
+    improper2_num = w2 * den + n2
+    wrong_improper_sum = improper1_num + improper2_num + 1  # Arithmetic error: +1
+    
+    # LaTeX question
+    question = f"Oblicz: ${w1}\\frac{{{n1}}}{{{den}}} + {w2}\\frac{{{n2}}}{{{den}}}$"
+    
+    return {
+        "question": question,
+        "correct": f"{correct_whole} {correct_numerator}/{den}",
+        "trap": f"{trap_whole} {trap_numerator}/{trap_denominator}",
+        "wrong": f"{wrong_improper_sum}/{den}",
+        "level_display": f"Poziom {level}: Liczby mieszane (Łatwe)"
+    }
+
 MATH_MAP = {
     "add_fractions_simple": add_fractions_simple,
-    "add_fractions_complex": add_fractions_complex  # New link added
+    "add_fractions_complex": add_fractions_complex,
+    "add_mixed_numbers_simple": add_mixed_numbers_simple
 }
 
 # --- THE LIBRARIAN ---
