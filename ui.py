@@ -54,23 +54,24 @@ else:
     )
     # --------------------------
 
-    if 'shuffled_options' not in st.session_state or st.session_state.get('last_q') != problem['question']:
+    # Use problem_id to guarantee a mathematically clean reset every time
+    if 'shuffled_options' not in st.session_state or st.session_state.get('last_id') != problem['problem_id']:
         shuffled = raw_options.copy()
         random.shuffle(shuffled)
         st.session_state.shuffled_options = shuffled
-        st.session_state.last_q = problem['question']
+        st.session_state.last_id = problem['problem_id']
 
     options = st.session_state.shuffled_options
     choice = st.radio("Wybierz wynik:", options, index=None)
 
-    # 5. Check Logic
+    # 5. Check Logic - Dynamically pulls the exact message from the Engine
     if st.button("Sprawdź odpowiedź"):
         if choice == problem['correct']:
             st.success("Brawo! To poprawna odpowiedź. 🎉")
         elif choice == problem['trap']:
-            st.error("Uważaj! Dodałeś mianowniki. Pamiętaj, że w dodawaniu ułamków mianownik zostaje bez zmian.")
+            st.error(problem['trap_message'])
         else:
-            st.warning("Niezupełnie. To jest zwykły błąd obliczeniowy. Spróbuj jeszcze raz!")
+            st.warning(problem['wrong_message'])
 
     # 6. Next Problem
     if st.button("Następne zadanie ➡️"):
