@@ -21,6 +21,16 @@ with st.sidebar:
     st.title("🏆 Twój Profil")
     st.metric(label="Punkty Doświadczenia (XP)", value=st.session_state.xp)
     
+    # --- RESET BUTTON ---
+    if st.button("🔄 Zresetuj Postęp"):
+        st.session_state.xp = 0
+        st.session_state.streak = 0
+        st.session_state.unlocked_level = 1
+        st.session_state.selected_level = 1
+        st.session_state.problem_answered = False
+        st.session_state.current_problem = engine.get_problem_from_db("Addition", 1)
+        st.rerun()
+    st.markdown("---")
     st.title("Ustawienia")
     
     # Option A: The "Magical Appearance" Logic
@@ -93,7 +103,7 @@ else:
     options = st.session_state.shuffled_options
     choice = st.radio("Wybierz wynik:", options, index=None)
 
-    # --- 3. CHECK LOGIC & GAMIFICATION ---
+# --- 3. CHECK LOGIC & GAMIFICATION ---
     if st.button("Sprawdź odpowiedź", disabled=st.session_state.problem_answered):
         if not choice:
             st.warning("Najpierw wybierz odpowiedź!")
@@ -101,16 +111,26 @@ else:
             st.session_state.problem_answered = True 
             
             if choice == problem['correct']:
+                # Dynamic XP Scaling Dictionary
+                xp_rewards = {1: 5, 2: 10, 3: 20, 4: 35, 5: 60}
+                earned_xp = xp_rewards.get(st.session_state.selected_level, 15)
+                
                 st.session_state.feedback_type = "success"
-                st.session_state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉 (+15 XP)"
-                st.session_state.xp += 15
+                st.session_state.feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
+                st.session_state.xp += earned_xp
+                
                 if st.session_state.streak < 3:
                     st.session_state.streak += 1
                 
+                # Level Up Logic
                 if st.session_state.streak == 3 and st.session_state.selected_level == st.session_state.unlocked_level:
                     if st.session_state.unlocked_level < 5:
                         st.session_state.unlocked_level += 1
                         st.session_state.show_balloons = True
+                        
+                        # --- Auto-Progress Mechanism ---
+                        st.session_state.selected_level = st.session_state.unlocked_level
+                        st.session_state.streak = 0 # Reset streak for the new level
             
             elif choice == problem['trap']:
                 st.session_state.feedback_type = "error"
@@ -130,20 +150,15 @@ else:
             st.success(st.session_state.feedback_msg)
             if st.session_state.get('show_balloons'):
                 st.balloons()
-                st.success(f"🎊 Poziom {st.session_state.unlocked_level} odblokowany! 🎊")
+                # Added text to inform the user they were automatically moved
+                st.success(f"🎊 Poziom {st.session_state.unlocked_level} odblokowany! Zostałeś automatycznie przeniesiony na nowy poziom. 🎊")
                 st.session_state.show_balloons = False
         elif st.session_state.get('feedback_type') == "error":
             st.error(st.session_state.feedback_msg)
         elif st.session_state.get('feedback_type') == "warning":
             st.warning(st.session_state.feedback_msg)
 
-        if st.button("Następne zadanie ➡️"):
+        if st.button("Następne zadanie ➡️", key="next_problem_btn"):
             st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
             st.session_state.problem_answered = False
-            st.rerun()
-
-    # 5. Next Problem Logic
-    if st.session_state.problem_answered:
-        if st.button("Następne zadanie ➡️"):
-            st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
             st.rerun()
