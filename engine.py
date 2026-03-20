@@ -8,25 +8,21 @@ DATA_FILE = 'Courses_Data.csv'
 # --- HELPER FUNCTIONS ---
 def simplify_and_format(num, den, whole=0):
     """Simplifies a fraction, extracts whole numbers, and formats as LaTeX."""
-    # 1. Convert to improper fraction first to handle everything uniformly
     total_num = (whole * den) + num
     
-    # 2. Simplify using GCD
     divisor = math.gcd(total_num, den)
     simp_num = total_num // divisor
     simp_den = den // divisor
     
-    # 3. Extract whole number
     final_whole = simp_num // simp_den
     final_num = simp_num % simp_den
     
-    # 4. Format Output
     if final_num == 0:
-        return str(final_whole) # E.g., just "2"
+        return str(final_whole) 
     elif final_whole > 0:
-        return rf"{final_whole}\frac{{{final_num}}}{{{simp_den}}}" # E.g., "1\frac{1}{2}"
+        return rf"{final_whole}\frac{{{final_num}}}{{{simp_den}}}" 
     else:
-        return rf"\frac{{{final_num}}}{{{simp_den}}}" # E.g., "\frac{1}{2}"
+        return rf"\frac{{{final_num}}}{{{simp_den}}}" 
 
 def format_fraction_question(num, den, whole=None):
     """Formats the raw question elements without simplifying them."""
@@ -47,140 +43,180 @@ def add_fractions_simple(level):
         num1 = random.randint(1, den - 2)
         num2 = random.randint(1, den - num1 - 1)
         
-        # Level 1 stays strictly unsimplifiable
         if math.gcd(num1 + num2, den) == 1:
-            break
+            # Generate the simplified strings
+            c_str = simplify_and_format(num1+num2, den)
+            t_str = simplify_and_format(num1+num2, den+den)
+            w_str = simplify_and_format(num1+num2+1, den)
+            
+            # Uniqueness Filter
+            if len({c_str, t_str, w_str}) == 3:
+                break
             
     return {
         "question": f"Oblicz: {format_fraction_question(num1, den)} + {format_fraction_question(num2, den)}",
-        "correct": f"$\\displaystyle {simplify_and_format(num1+num2, den)}$",
-        "trap": f"$\\displaystyle {simplify_and_format(num1+num2, den+den)}$",
-        "wrong": f"$\\displaystyle {simplify_and_format(num1+num2+1, den)}$",
+        "correct": f"$\\displaystyle {c_str}$",
+        "trap": f"$\\displaystyle {t_str}$",
+        "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}" 
     }
 
 def add_fractions_single_conversion(level):
-    """Level 2: Single Conversion. Answers CAN be simplifiable, UI will simplify them."""
+    """Level 2: Single Conversion."""
     pairs = [(2, 4), (2, 6), (2, 8), (3, 6), (3, 9), (4, 8), (5, 10)]
-    d1, d2 = random.choice(pairs)
-    
-    if random.choice([True, False]):
-        d1, d2 = d2, d1
+    while True:
+        d1, d2 = random.choice(pairs)
         
-    smaller_d = min(d1, d2)
-    larger_d = max(d1, d2)
-    scale = larger_d // smaller_d
-    
-    n_smaller = random.randint(1, smaller_d - 1)
-    n_larger = random.randint(1, larger_d - 1)
-    
-    correct_num = (n_smaller * scale) + n_larger
-    
-    if d1 == smaller_d:
-        n1, n2 = n_smaller, n_larger
-    else:
-        n1, n2 = n_larger, n_smaller
+        if random.choice([True, False]):
+            d1, d2 = d2, d1
+            
+        smaller_d = min(d1, d2)
+        larger_d = max(d1, d2)
+        scale = larger_d // smaller_d
         
-    trap_num = n1 + n2
-    trap_den = larger_d
-    wrong_num = n1 * n2
-    wrong_den = larger_d
+        n_smaller = random.randint(1, smaller_d - 1)
+        n_larger = random.randint(1, larger_d - 1)
+        
+        correct_num = (n_smaller * scale) + n_larger
+        
+        if d1 == smaller_d:
+            n1, n2 = n_smaller, n_larger
+        else:
+            n1, n2 = n_larger, n_smaller
+            
+        trap_num = n1 + n2
+        trap_den = larger_d
+        wrong_num = n1 * n2
+        wrong_den = larger_d
+        
+        c_str = simplify_and_format(correct_num, larger_d)
+        t_str = simplify_and_format(trap_num, trap_den)
+        w_str = simplify_and_format(wrong_num, wrong_den)
+        
+        # Uniqueness Filter
+        if len({c_str, t_str, w_str}) == 3:
+            break
     
     return {
         "question": f"Oblicz: {format_fraction_question(n1, d1)} + {format_fraction_question(n2, d2)}",
-        "correct": f"$\\displaystyle {simplify_and_format(correct_num, larger_d)}$",
-        "trap": f"$\\displaystyle {simplify_and_format(trap_num, trap_den)}$",
-        "wrong": f"$\\displaystyle {simplify_and_format(wrong_num, wrong_den)}$",
+        "correct": f"$\\displaystyle {c_str}$",
+        "trap": f"$\\displaystyle {t_str}$",
+        "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Rozszerzanie jednego ułamka"
     }
 
 def add_fractions_complex(level):
-    """Level 3: Coprime denominators. Answers CAN be simplifiable."""
+    """Level 3: Coprime denominators."""
     pairs = [(2, 3), (2, 5), (3, 4), (3, 5), (4, 5)]
-    d1, d2 = random.choice(pairs)
-    
-    if random.choice([True, False]):
-        d1, d2 = d2, d1
+    while True:
+        d1, d2 = random.choice(pairs)
         
-    n1 = random.randint(1, d1 - 1)
-    n2 = random.randint(1, d2 - 1)
-    
-    common_den = d1 * d2
-    correct_num = (n1 * d2) + (n2 * d1)
-    
-    trap_num = n1 + n2
-    trap_den = d1 + d2
-    wrong_num = n1 + n2
-    wrong_den = common_den
+        if random.choice([True, False]):
+            d1, d2 = d2, d1
+            
+        n1 = random.randint(1, d1 - 1)
+        n2 = random.randint(1, d2 - 1)
+        
+        common_den = d1 * d2
+        correct_num = (n1 * d2) + (n2 * d1)
+        
+        trap_num = n1 + n2
+        trap_den = d1 + d2
+        wrong_num = n1 + n2
+        wrong_den = common_den
+        
+        c_str = simplify_and_format(correct_num, common_den)
+        t_str = simplify_and_format(trap_num, trap_den)
+        w_str = simplify_and_format(wrong_num, wrong_den)
+        
+        # Uniqueness Filter
+        if len({c_str, t_str, w_str}) == 3:
+            break
     
     return {
         "question": f"Oblicz: {format_fraction_question(n1, d1)} + {format_fraction_question(n2, d2)}",
-        "correct": f"$\\displaystyle {simplify_and_format(correct_num, common_den)}$",
-        "trap": f"$\\displaystyle {simplify_and_format(trap_num, trap_den)}$",
-        "wrong": f"$\\displaystyle {simplify_and_format(wrong_num, wrong_den)}$",
+        "correct": f"$\\displaystyle {c_str}$",
+        "trap": f"$\\displaystyle {t_str}$",
+        "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Różne mianowniki"
     }
 
 def add_mixed_numbers_simple(level):
     """Level 4: Mixed Numbers (Easy)."""
-    den = random.randint(3, 9)
-    w1 = random.randint(1, 5)
-    w2 = random.randint(1, 5)
-    n1 = random.randint(1, den - 2)
-    n2 = random.randint(1, den - n1 - 1) 
-    
-    correct_whole = w1 + w2
-    correct_numerator = n1 + n2
-    
-    trap_whole = w1 + w2
-    trap_numerator = n1 + n2
-    trap_denominator = den + den 
-    
-    improper1_num = w1 * den + n1
-    improper2_num = w2 * den + n2
-    wrong_improper_sum = improper1_num + improper2_num + 1 
-    
+    while True:
+        den = random.randint(3, 9)
+        w1 = random.randint(1, 5)
+        w2 = random.randint(1, 5)
+        n1 = random.randint(1, den - 2)
+        n2 = random.randint(1, den - n1 - 1) 
+        
+        correct_whole = w1 + w2
+        correct_numerator = n1 + n2
+        
+        trap_whole = w1 + w2
+        trap_numerator = n1 + n2
+        trap_denominator = den + den 
+        
+        improper1_num = w1 * den + n1
+        improper2_num = w2 * den + n2
+        wrong_improper_sum = improper1_num + improper2_num + 1 
+        
+        c_str = simplify_and_format(correct_numerator, den, correct_whole)
+        t_str = simplify_and_format(trap_numerator, trap_denominator, trap_whole)
+        w_str = simplify_and_format(wrong_improper_sum, den)
+        
+        # Uniqueness Filter
+        if len({c_str, t_str, w_str}) == 3:
+            break
+            
     return {
         "question": f"Oblicz: {format_fraction_question(n1, den, w1)} + {format_fraction_question(n2, den, w2)}",
-        "correct": f"$\\displaystyle {simplify_and_format(correct_numerator, den, correct_whole)}$",
-        "trap": f"$\\displaystyle {simplify_and_format(trap_numerator, trap_denominator, trap_whole)}$",
-        "wrong": f"$\\displaystyle {simplify_and_format(wrong_improper_sum, den)}$",
+        "correct": f"$\\displaystyle {c_str}$",
+        "trap": f"$\\displaystyle {t_str}$",
+        "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Liczby mieszane (Łatwe)"
     }
 
 def add_mixed_numbers_complex(level):
     """Level 5: Mixed Numbers (The Final Boss)."""
     pairs = [(2, 3), (2, 5), (3, 4), (3, 5), (4, 5)]
-    d1, d2 = random.choice(pairs)
-    w1 = random.randint(1, 3)
-    w2 = random.randint(1, 3)
-    
-    common_den = d1 * d2
     while True:
-        n1 = random.randint(1, d1 - 1)
-        n2 = random.randint(1, d2 - 1)
-        if (n1 * d2 + n2 * d1) > common_den:
+        d1, d2 = random.choice(pairs)
+        w1 = random.randint(1, 3)
+        w2 = random.randint(1, 3)
+        
+        common_den = d1 * d2
+        # Ensure fraction sum > 1
+        while True:
+            n1 = random.randint(1, d1 - 1)
+            n2 = random.randint(1, d2 - 1)
+            if (n1 * d2 + n2 * d1) > common_den:
+                break
+        
+        correct_num = (n1 * d2) + (n2 * d1)
+        correct_whole = w1 + w2
+        
+        trap_whole = w1 + w2
+        trap_num = n1 + n2
+        trap_den = common_den
+        
+        wrong_whole = w1 + w2
+        wrong_num = n1 + n2
+        wrong_den = d1 + d2
+        
+        c_str = simplify_and_format(correct_num, common_den, correct_whole)
+        t_str = simplify_and_format(trap_num, trap_den, trap_whole)
+        w_str = simplify_and_format(wrong_num, wrong_den, wrong_whole)
+        
+        # Uniqueness Filter
+        if len({c_str, t_str, w_str}) == 3:
             break
-    
-    # Correct Math
-    correct_num = (n1 * d2) + (n2 * d1)
-    correct_whole = w1 + w2
-    
-    # Adjusted Trap: Add whole numbers correctly, but fail to scale numerators (Level 3 mistake)
-    trap_whole = w1 + w2
-    trap_num = n1 + n2
-    trap_den = common_den
-    
-    # Wrong: Add whole numbers, add numerators, add denominators (Level 1 mistake)
-    wrong_whole = w1 + w2
-    wrong_num = n1 + n2
-    wrong_den = d1 + d2
-    
+            
     return {
         "question": f"Oblicz: {format_fraction_question(n1, d1, w1)} + {format_fraction_question(n2, d2, w2)}",
-        "correct": f"$\\displaystyle {simplify_and_format(correct_num, common_den, correct_whole)}$",
-        "trap": f"$\\displaystyle {simplify_and_format(trap_num, trap_den, trap_whole)}$",
-        "wrong": f"$\\displaystyle {simplify_and_format(wrong_num, wrong_den, wrong_whole)}$",
+        "correct": f"$\\displaystyle {c_str}$",
+        "trap": f"$\\displaystyle {t_str}$",
+        "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Liczby mieszane (Ostateczny boss)"
     }
 
