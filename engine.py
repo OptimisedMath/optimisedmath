@@ -190,7 +190,7 @@ MATH_MAP = {
 
 # --- THE LIBRARIAN ---
 def get_problem_from_db(topic, level):
-    df = load_csv() # Uses the optimized cached version
+    df = load_csv()
     if df is None:
         return {"error": "Missing CSV"}
     

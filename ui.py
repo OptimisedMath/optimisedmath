@@ -2,7 +2,7 @@ import streamlit as st
 import engine
 import random
 
-st.set_page_config(page_title="Optimised Math", page_icon="🧮")
+st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
 # --- 1. INITIALIZE GAME STATE (The Memory Card) ---
 if 'xp' not in st.session_state:
@@ -55,7 +55,7 @@ with st.sidebar:
         st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
         st.rerun()
 
-st.title("🧮 CKE Math Tutor")
+st.title("🧮 Najlepszy nauczyciel matematyki")
 st.subheader("Temat: Dodawanie Ułamków")
 
 # Fetch initial problem if missing
