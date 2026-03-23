@@ -2,6 +2,7 @@ import streamlit as st
 import engine
 import random
 import re
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
@@ -81,28 +82,48 @@ else:
         st.session_state.last_id = problem['problem_id']
         st.session_state.problem_answered = False 
 
-# --- THE "TRAINING WHEELS" TOGGLE ---
-    if st.session_state.current_input_mode == "radio":
-        # Phase 1: Multiple Choice (Acquisition)
-        st.markdown("<style>.stRadio label { padding-bottom: 25px; padding-top: 10px; }</style>", unsafe_allow_html=True)
-        choice = st.radio("Wybierz wynik:", st.session_state.shuffled_options, index=None)
-        is_text_mode = False
-    else:
-        # Phase 2: Empty Box (Mastery Phase)
-        st.info("Wpisz wynik samodzielnie bez podpowiedzi.")
-        st.markdown("*(Format wprowadzania: wpisz **3/4**, a dla liczb mieszanych **1 1/2**)*")
-        user_text = st.text_input("Twoja odpowiedź:", key=f"text_input_{st.session_state.last_id}")
-        is_text_mode = True
+# --- THE "TRAINING WHEELS" TOGGLE (NOW A FORM) ---
+    # We use border=False so it stays visually clean and invisible to the user
+    with st.form("answer_form", border=False):
+        if st.session_state.current_input_mode == "radio":
+            st.markdown("<style>.stRadio label { padding-bottom: 25px; padding-top: 10px; }</style>", unsafe_allow_html=True)
+            choice = st.radio("Wybierz wynik:", st.session_state.shuffled_options, index=None)
+            is_text_mode = False
+        else:
+            st.info("Wpisz wynik samodzielnie bez podpowiedzi.")
+            st.markdown("*(Format wprowadzania: wpisz **3/4**, a dla liczb mieszanych **1 1/2**)*")
+            user_text = st.text_input("Twoja odpowiedź:", key=f"text_input_{st.session_state.last_id}")
+            is_text_mode = True
+        
+        # The form natively binds the "Enter" key to this specific button!
+        submitted = st.form_submit_button("Sprawdź odpowiedź", disabled=st.session_state.problem_answered)
+        
+        # --- THE "ENTER KEY" JAVASCRIPT HACK FOR RADIO BUTTONS ---
+        if st.session_state.current_input_mode == "radio":
+            components.html(
+                """
+                <script>
+                const doc = window.parent.document;
+                doc.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        // Find the Streamlit form submit button and click it virtually
+                        const submitBtn = doc.querySelector('button[kind="formSubmit"]');
+                        if (submitBtn) {
+                            submitBtn.click();
+                        }
+                    }
+                });
+                </script>
+                """,
+                height=0, width=0
+            )
 
     # --- STRING MATCHER HELPER FUNCTION ---
     def check_text_answer(latex_answer, student_input):
-        """Scrubs the engine's LaTeX and the student's raw text to compare them safely."""
-        # 1. Clean the Engine's LaTeX (Turns "$\displaystyle 1\frac{1}{2}$" into "1 1/2")
         engine_text = latex_answer.replace("$\\displaystyle ", "").replace("$", "")
         engine_text = engine_text.replace("\\frac{", " ").replace("}{", "/").replace("}", "")
         engine_text = " ".join(engine_text.split()) 
         
-        # 2. Clean the Student's Input (Removes letters, fixes weird slash spacing)
         student_clean = re.sub(r'[a-zA-Z]', '', student_input) 
         student_clean = student_clean.replace(" / ", "/").replace("/ ", "/").replace(" /", "/")
         student_clean = " ".join(student_clean.split())
@@ -110,7 +131,7 @@ else:
         return engine_text == student_clean
 
     # --- 3. CHECK LOGIC & GAMIFICATION ---
-    if st.button("Sprawdź odpowiedź", disabled=st.session_state.problem_answered):
+    if submitted:
         if not is_text_mode and not choice:
             st.warning("Najpierw wybierz odpowiedź!")
         elif is_text_mode and not user_text:
@@ -130,7 +151,6 @@ else:
                     st.session_state.feedback_type = "warning"
                     st.session_state.feedback_msg = problem['wrong_message']
             else:
-                # Text Box Grading
                 if check_text_answer(problem['correct'], user_text):
                     is_correct = True
                 else:
