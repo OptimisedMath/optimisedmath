@@ -40,17 +40,19 @@ def format_fraction_question(num, den, whole=None):
 # --- THE MATH FUNCTIONS (The "Chefs") ---
 def add_fractions_simple(level):
     while True:
-        den = random.randint(3, 9) if level == 1 else random.randint(10, 20) 
-        num1 = random.randint(1, den - 2)
-        num2 = random.randint(1, den - num1 - 1)
+        den = random.randint(2, 9) if level == 1 else random.randint(10, 20) 
         
-        if math.gcd(num1 + num2, den) == 1:
-            c_str = simplify_and_format(num1+num2, den)
-            t_str = simplify_and_format(num1+num2, den+den)
-            w_str = simplify_and_format(num1+num2+1, den)
-            
-            if len({c_str, t_str, w_str}) == 3:
-                break
+        # We allow the numerators to be larger so they can result in mixed numbers
+        num1 = random.randint(1, den + 2)
+        num2 = random.randint(1, den + 2)
+        
+        # We ensure the correct answer is not identical to the traps
+        c_str = simplify_and_format(num1 + num2, den)
+        t_str = simplify_and_format(num1 + num2, den + den) # Common trap: adding denominators
+        w_str = simplify_and_format(num1 + num2 + 1, den) # Generic error: arithmetic slip
+        
+        if len({c_str, t_str, w_str}) == 3:
+            break
             
     return {
         "problem_id": str(uuid.uuid4()),

@@ -187,7 +187,7 @@ else:
             
             st.rerun()
 
-    # --- 4. PERSISTENT FEEDBACK DISPLAY ---
+# --- 4. PERSISTENT FEEDBACK DISPLAY ---
     if st.session_state.problem_answered:
         if st.session_state.get('feedback_type') == "success":
             st.success(st.session_state.feedback_msg)
@@ -200,11 +200,37 @@ else:
         elif st.session_state.get('feedback_type') == "warning":
             st.warning(st.session_state.feedback_msg)
 
-if st.button("Następne zadanie ➡️", key="next_problem_btn"):
+        # --- THE "ENTER KEY" HACK FOR NEXT PROBLEM ---
+        components.html(
+            """
+            <script>
+            const doc = window.parent.document;
+            
+            // We clear any old listeners first so they don't pile up when the page refreshes
+            doc.removeEventListener('keyup', doc.nextProblemListener, true);
+            
+            doc.nextProblemListener = function(e) {
+                if (e.key === 'Enter') {
+                    const allButtons = Array.from(doc.querySelectorAll('button'));
+                    const nextBtn = allButtons.find(b => b.innerText.includes('Następne zadanie'));
+                    
+                    if (nextBtn) {
+                        nextBtn.click();
+                    }
+                }
+            };
+            
+            doc.addEventListener('keyup', doc.nextProblemListener, true);
+            </script>
+            """,
+            height=0, width=0
+        )
+
+        if st.button("Następne zadanie ➡️", key="next_problem_btn"):
             st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
             st.session_state.problem_answered = False
             
-            # NEW: The ONLY time we evaluate if they get the text box is when drawing a new problem
+            # The ONLY time we evaluate if they get the text box is when drawing a new problem
             if st.session_state.streak >= 2:
                 st.session_state.current_input_mode = "text"
             else:
