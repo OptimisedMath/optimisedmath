@@ -98,21 +98,27 @@ else:
         # The form natively binds the "Enter" key to this specific button!
         submitted = st.form_submit_button("Sprawdź odpowiedź", disabled=st.session_state.problem_answered)
         
-        # --- THE "ENTER KEY" JAVASCRIPT HACK FOR RADIO BUTTONS ---
+# --- THE AGGRESSIVE "ENTER KEY" JAVASCRIPT HACK ---
         if st.session_state.current_input_mode == "radio":
             components.html(
                 """
                 <script>
                 const doc = window.parent.document;
-                doc.addEventListener('keydown', function(e) {
+                
+                // Use keyup instead of keydown to ensure the browser has finished processing the radio selection
+                doc.addEventListener('keyup', function(e) {
                     if (e.key === 'Enter') {
-                        // Find the Streamlit form submit button and click it virtually
-                        const submitBtn = doc.querySelector('button[kind="formSubmit"]');
+                        // Find ALL buttons on the page
+                        const allButtons = Array.from(doc.querySelectorAll('button'));
+                        
+                        // Find the specific button that contains our exact submit text
+                        const submitBtn = allButtons.find(b => b.innerText.includes('Sprawdź odpowiedź'));
+                        
                         if (submitBtn) {
                             submitBtn.click();
                         }
                     }
-                });
+                }, true); // The 'true' forces the listener to capture the event even if focus is trapped
                 </script>
                 """,
                 height=0, width=0
