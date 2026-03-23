@@ -40,16 +40,17 @@ def format_fraction_question(num, den, whole=None):
 # --- THE MATH FUNCTIONS (The "Chefs") ---
 def add_fractions_simple(level):
     while True:
+        # Allows 2 as a denominator, and up to 9 for Level 1
         den = random.randint(2, 9) if level == 1 else random.randint(10, 20) 
         
-        # We allow the numerators to be larger so they can result in mixed numbers
-        num1 = random.randint(1, den + 2)
-        num2 = random.randint(1, den + 2)
+        # We strictly cap the numerators at (den - 1) to guarantee proper fractions
+        num1 = random.randint(1, den - 1)
+        num2 = random.randint(1, den - 1)
         
-        # We ensure the correct answer is not identical to the traps
+        # The sum can still naturally exceed the denominator, creating mixed numbers
         c_str = simplify_and_format(num1 + num2, den)
-        t_str = simplify_and_format(num1 + num2, den + den) # Common trap: adding denominators
-        w_str = simplify_and_format(num1 + num2 + 1, den) # Generic error: arithmetic slip
+        t_str = simplify_and_format(num1 + num2, den + den) 
+        w_str = simplify_and_format(num1 + num2 + 1, den) 
         
         if len({c_str, t_str, w_str}) == 3:
             break
