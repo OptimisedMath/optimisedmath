@@ -105,20 +105,25 @@ else:
                 <script>
                 const doc = window.parent.document;
                 
-                // Use keyup instead of keydown to ensure the browser has finished processing the radio selection
-                doc.addEventListener('keyup', function(e) {
+                // 1. CLEAR THE GHOST LISTENER: Remove any old listener from previous questions
+                if (doc.submitRadioListener) {
+                    doc.removeEventListener('keyup', doc.submitRadioListener, true);
+                }
+                
+                // 2. CREATE A NAMED LISTENER: So we can find it and delete it next time
+                doc.submitRadioListener = function(e) {
                     if (e.key === 'Enter') {
-                        // Find ALL buttons on the page
                         const allButtons = Array.from(doc.querySelectorAll('button'));
-                        
-                        // Find the specific button that contains our exact submit text
                         const submitBtn = allButtons.find(b => b.innerText.includes('Sprawdź odpowiedź'));
                         
                         if (submitBtn) {
                             submitBtn.click();
                         }
                     }
-                }, true); // The 'true' forces the listener to capture the event even if focus is trapped
+                };
+                
+                // 3. ATTACH IT
+                doc.addEventListener('keyup', doc.submitRadioListener, true);
                 </script>
                 """,
                 height=0, width=0
