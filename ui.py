@@ -232,13 +232,28 @@ else:
         )
 
         if st.button("Następne zadanie ➡️", key="next_problem_btn"):
-            st.session_state.current_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
-            st.session_state.problem_answered = False
-            
-            # The ONLY time we evaluate if they get the text box is when drawing a new problem
-            if st.session_state.streak >= 2:
-                st.session_state.current_input_mode = "text"
+            # SAFETY CHECK: Ensure current_problem exists before asking for 'question'
+            if st.session_state.current_problem and 'question' in st.session_state.current_problem:
+                old_question = st.session_state.current_problem['question']
             else:
-                st.session_state.current_input_mode = "radio"
+                old_question = ""
+            
+            new_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
+            
+            # SAFETY CHECK: Ensure new_problem successfully loaded from the CSV
+            if new_problem and 'question' in new_problem:
+                while new_problem['question'] == old_question:
+                    new_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
                 
-            st.rerun()
+                st.session_state.current_problem = new_problem
+                st.session_state.problem_answered = False
+                st.session_state.feedback_type = None 
+                
+                if st.session_state.streak >= 2:
+                    st.session_state.current_input_mode = "text"
+                else:
+                    st.session_state.current_input_mode = "radio"
+                    
+                st.rerun()
+            else:
+                st.error("Błąd wczytywania nowego zadania. Upewnij się, że nazwy w pliku CSV są poprawne.")

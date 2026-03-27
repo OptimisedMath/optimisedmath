@@ -30,6 +30,18 @@ def simplify_and_format(num, den, whole=0):
         return rf"{final_whole}\frac{{{final_num}}}{{{simp_den}}}" 
     else:
         return rf"\frac{{{final_num}}}{{{simp_den}}}" 
+    
+def simplify_to_improper(num, den, whole=0):
+    """Calculates the simplified improper fraction without extracting whole numbers."""
+    total_num = (whole * den) + num
+    divisor = math.gcd(total_num, den)
+    simp_num = total_num // divisor
+    simp_den = den // divisor
+    
+    if simp_den == 1:
+        return str(simp_num)
+    else:
+        return rf"\frac{{{simp_num}}}{{{simp_den}}}"
 
 def format_fraction_question(num, den, whole=None):
     if whole is not None and whole > 0:
@@ -49,6 +61,7 @@ def add_fractions_simple(level):
         
         # The sum can still naturally exceed the denominator, creating mixed numbers
         c_str = simplify_and_format(num1 + num2, den)
+        i_str = simplify_to_improper(num1 + num2, den)
         t_str = simplify_and_format(num1 + num2, den + den) 
         w_str = simplify_and_format(num1 + num2 + 1, den) 
         
@@ -80,6 +93,7 @@ def add_fractions_single_conversion(level):
         n1, n2 = (n_smaller, n_larger) if d1 == smaller_d else (n_larger, n_smaller)
             
         c_str = simplify_and_format(correct_num, larger_d)
+        i_str = simplify_to_improper(n1 + n2, larger_d)
         t_str = simplify_and_format(n1 + n2, larger_d)
         w_str = simplify_and_format(n1 * n2, larger_d)
         
@@ -108,6 +122,7 @@ def add_fractions_complex(level):
         correct_num = (n1 * d2) + (n2 * d1)
         
         c_str = simplify_and_format(correct_num, common_den)
+        i_str = simplify_to_improper(1 + n2, common_den)
         t_str = simplify_and_format(n1 + n2, d1 + d2)
         w_str = simplify_and_format(n1 + n2, common_den)
         
@@ -138,6 +153,7 @@ def add_mixed_numbers_simple(level):
         wrong_improper_sum = improper1_num + improper2_num + 1 
         
         c_str = simplify_and_format(correct_numerator, den, correct_whole)
+        i_str = simplify_to_improper(n1 + n2, den)
         t_str = simplify_and_format(n1 + n2, den + den, w1 + w2)
         w_str = simplify_and_format(wrong_improper_sum, den)
         
@@ -168,6 +184,7 @@ def add_mixed_numbers_complex(level):
         correct_num = (n1 * d2) + (n2 * d1)
         
         c_str = simplify_and_format(correct_num, common_den, w1 + w2)
+        i_str = simplify_to_improper(n1 + n2, common_den)
         t_str = simplify_and_format(n1 + n2, common_den, w1 + w2)
         w_str = simplify_and_format(n1 + n2, d1 + d2, w1 + w2)
         
