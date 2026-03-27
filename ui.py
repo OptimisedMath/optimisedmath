@@ -33,7 +33,7 @@ with st.sidebar:
         st.session_state.selected_level = 1
         st.session_state.problem_answered = False
         st.session_state.current_input_mode = "radio" # NEW: Reset format
-        st.session_state.current_problem = engine.get_problem_from_db("Addition", 1)
+        st.session_state.current_problem = engine.get_problem_from_db("Dodawanie", 1)
         st.rerun()
 
     st.markdown("---")
@@ -50,7 +50,7 @@ with st.sidebar:
         st.session_state.streak = 0 
         st.session_state.problem_answered = False
         st.session_state.current_input_mode = "radio" # NEW: Reset format when changing levels manually
-        st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
+        st.session_state.current_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
         st.rerun()
 
 st.title("🧮 Najlepszy nauczyciel matematyki")
@@ -58,7 +58,7 @@ st.subheader("Temat: Dodawanie Ułamków")
 
 # Fetch initial problem if missing
 if 'current_problem' not in st.session_state:
-    st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
+    st.session_state.current_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
 
 problem = st.session_state.current_problem
 
@@ -232,7 +232,7 @@ else:
         )
 
         if st.button("Następne zadanie ➡️", key="next_problem_btn"):
-            st.session_state.current_problem = engine.get_problem_from_db("Addition", st.session_state.selected_level)
+            st.session_state.current_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
             st.session_state.problem_answered = False
             
             # The ONLY time we evaluate if they get the text box is when drawing a new problem
