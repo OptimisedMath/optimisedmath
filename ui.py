@@ -129,13 +129,17 @@ else:
                 height=0, width=0
             )
 
-    # --- STRING MATCHER HELPER FUNCTION ---
+# --- STRING MATCHER HELPER FUNCTION ---
     def check_text_answer(latex_answer, student_input):
         engine_text = latex_answer.replace("$\\displaystyle ", "").replace("$", "")
         engine_text = engine_text.replace("\\frac{", " ").replace("}{", "/").replace("}", "")
         engine_text = " ".join(engine_text.split()) 
         
-        student_clean = re.sub(r'[a-zA-Z]', '', student_input) 
+        # AGGRESSIVE SANITIZATION: Replace EVERYTHING that isn't a digit or a slash with a space
+        # This instantly fixes hyphens, underscores, and Polish characters (e.g., "1 cała 1/2" -> "1 1/2")
+        student_clean = re.sub(r'[^\d/]', ' ', student_input) 
+        
+        # Remove accidental spaces around the slash
         student_clean = student_clean.replace(" / ", "/").replace("/ ", "/").replace(" /", "/")
         student_clean = " ".join(student_clean.split())
         
@@ -148,11 +152,12 @@ else:
         elif is_text_mode and not user_text:
             st.warning("Wpisz swój wynik w puste pole!")
         else:
-            st.session_state.problem_answered = True 
             is_correct = False
+            is_improper_but_correct = False # The "Blue Underline" State
             
             # --- Grading Mode Split ---
             if not is_text_mode:
+                st.session_state.problem_answered = True 
                 if choice == problem['correct']:
                     is_correct = True
                 elif choice == problem['trap']:
@@ -162,9 +167,21 @@ else:
                     st.session_state.feedback_type = "warning"
                     st.session_state.feedback_msg = problem['wrong_message']
             else:
+                # 1. Check for perfect match
                 if check_text_answer(problem['correct'], user_text):
                     is_correct = True
+                    st.session_state.problem_answered = True 
+                
+                # 2. Check for correct calculations but improper format (The "Blue Underline")
+                elif 'improper' in problem and check_text_answer(problem['improper'], user_text) and problem['correct'] != problem['improper']:
+                    is_improper_but_correct = True
+                    st.session_state.problem_answered = False # Keeps the form active!
+                    st.session_state.feedback_type = "info"
+                    st.session_state.feedback_msg = "Obliczenia są świetne! Teraz wyciągnij całości (zamień na liczbę mieszaną)."
+                
+                # 3. Completely wrong answer
                 else:
+                    st.session_state.problem_answered = True 
                     st.session_state.feedback_type = "warning"
                     st.session_state.feedback_msg = "Niestety, to nie jest poprawny wynik. Spróbuj przeliczyć to jeszcze raz!"
             
@@ -187,7 +204,8 @@ else:
                         st.session_state.selected_level = st.session_state.unlocked_level
                         st.session_state.streak = 0 
             
-            elif not is_correct and st.session_state.streak > 0:
+            # Penalize only if it is entirely wrong (not if it just needs regrouping)
+            elif not is_correct and not is_improper_but_correct and st.session_state.streak > 0:
                 st.session_state.streak -= 1
             
             st.rerun()
