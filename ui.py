@@ -106,12 +106,12 @@ else:
                 <script>
                 const doc = window.parent.document;
                 
-                // 1. CLEAR THE GHOST LISTENER: Remove any old listener from previous questions
+                // 1. CLEAR THE GHOST LISTENER
                 if (doc.submitRadioListener) {
                     doc.removeEventListener('keyup', doc.submitRadioListener, true);
                 }
                 
-                // 2. CREATE A NAMED LISTENER: So we can find it and delete it next time
+                // 2. CREATE A NAMED LISTENER
                 doc.submitRadioListener = function(e) {
                     if (e.key === 'Enter') {
                         const allButtons = Array.from(doc.querySelectorAll('button'));
@@ -125,6 +125,20 @@ else:
                 
                 // 3. ATTACH IT
                 doc.addEventListener('keyup', doc.submitRadioListener, true);
+                </script>
+                """,
+                height=0, width=0
+            )
+        else:
+            # TEXT MODE: The text box natively submits on Enter. 
+            # We MUST delete the radio listener so it doesn't double-click the button!
+            components.html(
+                """
+                <script>
+                const doc = window.parent.document;
+                if (doc.submitRadioListener) {
+                    doc.removeEventListener('keyup', doc.submitRadioListener, true);
+                }
                 </script>
                 """,
                 height=0, width=0

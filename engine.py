@@ -20,17 +20,14 @@ def format_answers(num, den, whole=0):
     """Calculates the final answer, the simplified improper fraction, and the unsimplified fraction."""
     total_num = (whole * den) + num
     
-    # 1. Unsimplified Improper Format (np. 6/4)
     u_str = str(total_num) if den == 1 else rf"\frac{{{total_num}}}{{{den}}}"
 
     divisor = math.gcd(total_num, den)
     simp_num = total_num // divisor
     simp_den = den // divisor
     
-    # 2. Simplified Improper Format (np. 3/2)
     i_str = str(simp_num) if simp_den == 1 else rf"\frac{{{simp_num}}}{{{simp_den}}}"
 
-    # 3. Mixed Number Format (np. 1 1/2)
     final_whole = simp_num // simp_den
     final_num = simp_num % simp_den
     
@@ -43,37 +40,40 @@ def format_answers(num, den, whole=0):
         
     return c_str, i_str, u_str
 
-def format_fraction_question(num, den, whole=None):
-    if whole is not None and whole > 0:
-        return rf"{whole}\frac{{{num}}}{{{den}}}"
+def format_fraction_question(n, d, w=None):
+    """Formats the individual fractions for the question string."""
+    if w is not None and w > 0:
+        return rf"{w}\frac{{{n}}}{{{d}}}"
     else:
-        return rf"\frac{{{num}}}{{{den}}}"
+        return rf"\frac{{{n}}}{{{d}}}"
+
+def build_problem_dict(n1, d1, n2, d2, c_str, i_str, u_str, t_str, w_str, level_display, w1=None, w2=None):
+    """DRY Helper: Packages the variables into the standard dictionary required by the UI."""
+    return {
+        "problem_id": str(uuid.uuid4()),
+        "question": f"Oblicz: {format_fraction_question(n1, d1, w1)} + {format_fraction_question(n2, d2, w2)}",
+        "correct": f"$\\displaystyle {c_str}$",
+        "improper": f"$\\displaystyle {i_str}$",
+        "unsimplified": f"$\\displaystyle {u_str}$",
+        "trap": f"$\\displaystyle {t_str}$",
+        "wrong": f"$\\displaystyle {w_str}$",
+        "level_display": level_display 
+    }
 
 # --- THE MATH FUNCTIONS (The "Chefs") ---
 
 def add_fractions_simple(level):
     while True:
         den = random.randint(2, 9) if level == 1 else random.randint(10, 20) 
-        num1 = random.randint(1, den - 1)
-        num2 = random.randint(1, den - 1)
+        n1 = random.randint(1, den - 1)
+        n2 = random.randint(1, den - 1)
         
-        c_str, i_str, u_str = format_answers(num1 + num2, den)
-        t_str, _, _ = format_answers(num1 + num2, den + den) 
-        w_str, _, _ = format_answers(num1 + num2 + 1, den) 
+        c_str, i_str, u_str = format_answers(n1 + n2, den)
+        t_str, _, _ = format_answers(n1 + n2, den + den) 
+        w_str, _, _ = format_answers(n1 + n2 + 1, den) 
         
         if len({c_str, t_str, w_str}) == 3:
-            break
-            
-    return {
-        "problem_id": str(uuid.uuid4()),
-        "question": f"Oblicz: {format_fraction_question(num1, den)} + {format_fraction_question(num2, den)}",
-        "correct": f"$\\displaystyle {c_str}$",
-        "improper": f"$\\displaystyle {i_str}$",
-        "unsimplified": f"$\\displaystyle {u_str}$",
-        "trap": f"$\\displaystyle {t_str}$",
-        "wrong": f"$\\displaystyle {w_str}$",
-        "level_display": f"Poziom {level}" 
-    }
+            return build_problem_dict(n1, den, n2, den, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
 
 def add_fractions_single_conversion(level):
     pairs = [(2, 4), (2, 6), (2, 8), (3, 6), (3, 9), (4, 8), (5, 10)]
@@ -95,18 +95,7 @@ def add_fractions_single_conversion(level):
         w_str, _, _ = format_answers(n1 * n2, larger_d)
         
         if len({c_str, t_str, w_str}) == 3:
-            break
-    
-    return {
-        "problem_id": str(uuid.uuid4()),
-        "question": f"Oblicz: {format_fraction_question(n1, d1)} + {format_fraction_question(n2, d2)}",
-        "correct": f"$\\displaystyle {c_str}$",
-        "improper": f"$\\displaystyle {i_str}$",
-        "unsimplified": f"$\\displaystyle {u_str}$",
-        "trap": f"$\\displaystyle {t_str}$",
-        "wrong": f"$\\displaystyle {w_str}$",
-        "level_display": f"Poziom {level}: Rozszerzanie jednego ułamka"
-    }
+            return build_problem_dict(n1, d1, n2, d2, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Rozszerzanie jednego ułamka")
 
 def add_fractions_complex(level):
     pairs = [(2, 3), (2, 5), (3, 4), (3, 5), (4, 5)]
@@ -125,18 +114,7 @@ def add_fractions_complex(level):
         w_str, _, _ = format_answers(n1 + n2, common_den)
         
         if len({c_str, t_str, w_str}) == 3:
-            break
-    
-    return {
-        "problem_id": str(uuid.uuid4()),
-        "question": f"Oblicz: {format_fraction_question(n1, d1)} + {format_fraction_question(n2, d2)}",
-        "correct": f"$\\displaystyle {c_str}$",
-        "improper": f"$\\displaystyle {i_str}$",
-        "unsimplified": f"$\\displaystyle {u_str}$",
-        "trap": f"$\\displaystyle {t_str}$",
-        "wrong": f"$\\displaystyle {w_str}$",
-        "level_display": f"Poziom {level}: Różne mianowniki"
-    }
+            return build_problem_dict(n1, d1, n2, d2, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Różne mianowniki")
 
 def add_mixed_numbers_simple(level):
     while True:
@@ -157,18 +135,7 @@ def add_mixed_numbers_simple(level):
         w_str, _, _ = format_answers(wrong_improper_sum, den)
         
         if len({c_str, t_str, w_str}) == 3:
-            break
-            
-    return {
-        "problem_id": str(uuid.uuid4()),
-        "question": f"Oblicz: {format_fraction_question(n1, den, w1)} + {format_fraction_question(n2, den, w2)}",
-        "correct": f"$\\displaystyle {c_str}$",
-        "improper": f"$\\displaystyle {i_str}$",
-        "unsimplified": f"$\\displaystyle {u_str}$",
-        "trap": f"$\\displaystyle {t_str}$",
-        "wrong": f"$\\displaystyle {w_str}$",
-        "level_display": f"Poziom {level}: Liczby mieszane (Łatwe)"
-    }
+            return build_problem_dict(n1, den, n2, den, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Liczby mieszane (Łatwe)", w1, w2)
 
 def add_mixed_numbers_complex(level):
     pairs = [(2, 3), (2, 5), (3, 4), (3, 5), (4, 5)]
@@ -189,18 +156,8 @@ def add_mixed_numbers_complex(level):
         w_str, _, _ = format_answers(n1 + n2, d1 + d2, w1 + w2)
         
         if len({c_str, t_str, w_str}) == 3:
-            break
-            
-    return {
-        "problem_id": str(uuid.uuid4()),
-        "question": f"Oblicz: {format_fraction_question(n1, d1, w1)} + {format_fraction_question(n2, d2, w2)}",
-        "correct": f"$\\displaystyle {c_str}$",
-        "improper": f"$\\displaystyle {i_str}$",
-        "unsimplified": f"$\\displaystyle {u_str}$",
-        "trap": f"$\\displaystyle {t_str}$",
-        "wrong": f"$\\displaystyle {w_str}$",
-        "level_display": f"Poziom {level}: Liczby mieszane (Ostateczny boss)"
-    }
+            return build_problem_dict(n1, d1, n2, d2, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Liczby mieszane (Ostateczny boss)", w1, w2)
+
 
 MATH_MAP = {
     "add_fractions_simple": add_fractions_simple,
