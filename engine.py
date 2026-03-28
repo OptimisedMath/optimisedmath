@@ -159,14 +159,6 @@ def add_mixed_numbers_complex(level):
             return build_problem_dict(n1, d1, n2, d2, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Liczby mieszane (Ostateczny boss)", w1, w2)
 
 
-MATH_MAP = {
-    "add_fractions_simple": add_fractions_simple,
-    "add_fractions_single_conversion": add_fractions_single_conversion,
-    "add_fractions_complex": add_fractions_complex,
-    "add_mixed_numbers_simple": add_mixed_numbers_simple,
-    "add_mixed_numbers_complex": add_mixed_numbers_complex
-}
-
 # --- THE LIBRARIAN ---
 def get_problem_from_db(topic, level):
     df = load_csv()
@@ -179,8 +171,11 @@ def get_problem_from_db(topic, level):
         func_name = row.iloc[0]['Function_Name']
         current_level = int(row.iloc[0]['Level'])
         
-        if func_name in MATH_MAP:
-            problem_data = MATH_MAP[func_name](current_level)
+        # OPTIMIZATION: Auto-find the function in Python's global memory!
+        target_function = globals().get(func_name)
+        
+        if callable(target_function):
+            problem_data = target_function(current_level)
             problem_data['trap_message'] = row.iloc[0]['Trap_Message']
             problem_data['wrong_message'] = row.iloc[0]['Wrong_Message']
             return problem_data
