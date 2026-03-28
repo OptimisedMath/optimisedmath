@@ -3,6 +3,7 @@ import engine
 import random
 import re
 import streamlit.components.v1 as components
+from fractions import Fraction
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
@@ -144,6 +145,25 @@ else:
         student_clean = " ".join(student_clean.split())
         
         return engine_text == student_clean
+    
+    def parse_to_fraction(latex_or_text):
+        """Converts latex strings like '1\\frac{1}{2}' or crazy user inputs like '44/32' into pure Math."""
+        text = latex_or_text.replace("$\\displaystyle ", "").replace("$", "")
+        text = text.replace("\\frac{", " ").replace("}{", "/").replace("}", "")
+        
+        clean = re.sub(r'[^\d/]', ' ', text)
+        clean = clean.replace(" / ", "/").replace("/ ", "/").replace(" /", "/")
+        clean = " ".join(clean.split())
+        
+        try:
+            if ' ' in clean: # Mixed number e.g., "1 3/8"
+                parts = clean.split()
+                if len(parts) == 2:
+                    return int(parts[0]) + Fraction(parts[1])
+            else: # Fraction e.g., "44/32" or whole number "2"
+                return Fraction(clean)
+        except:
+            return None
 
     # --- 3. CHECK LOGIC & GAMIFICATION ---
     if submitted:
@@ -167,23 +187,29 @@ else:
                     st.session_state.feedback_type = "warning"
                     st.session_state.feedback_msg = problem['wrong_message']
             else:
-                # 1. Check for perfect match
+                # 1. PERFECT MATCH: Check if they typed the fully simplified, perfect string
                 if check_text_answer(problem['correct'], user_text):
                     is_correct = True
                     st.session_state.problem_answered = True 
                 
-                # 2. Check for correct calculations but improper format (The "Blue Underline")
-                elif 'improper' in problem and check_text_answer(problem['improper'], user_text) and problem['correct'] != problem['improper']:
-                    is_improper_but_correct = True
-                    st.session_state.problem_answered = False # Keeps the form active!
-                    st.session_state.feedback_type = "info"
-                    st.session_state.feedback_msg = "Obliczenia są świetne! Teraz wyciągnij całości (zamień na liczbę mieszaną)."
-                
-                # 3. Completely wrong answer
                 else:
-                    st.session_state.problem_answered = True 
-                    st.session_state.feedback_type = "warning"
-                    st.session_state.feedback_msg = "Niestety, to nie jest poprawny wynik. Spróbuj przeliczyć to jeszcze raz!"
+                    # Extract the pure mathematical DNA
+                    student_val = parse_to_fraction(user_text)
+                    correct_val = parse_to_fraction(problem['correct'])
+                    
+                    # 2. THE BLUE UNDERLINE: The math matches perfectly, but the string didn't!
+                    # This automatically catches 44/32, 22/16, 11/8, or any other unsimplified crazy fraction.
+                    if student_val is not None and correct_val is not None and student_val == correct_val:
+                        is_improper_but_correct = True
+                        st.session_state.problem_answered = False 
+                        st.session_state.feedback_type = "info"
+                        st.session_state.feedback_msg = "Pamiętaj, żeby skrócić ułamki i wyłączyć całości."
+                    
+                    # 3. COMPLETELY WRONG
+                    else:
+                        st.session_state.problem_answered = True 
+                        st.session_state.feedback_type = "warning"
+                        st.session_state.feedback_msg = "Niestety, to nie jest poprawny wynik. Spróbuj przeliczyć to jeszcze raz!"
             
             # --- Reward & Progression Logic ---
             if is_correct:
@@ -211,7 +237,8 @@ else:
             st.rerun()
 
 # --- 4. PERSISTENT FEEDBACK DISPLAY ---
-    if st.session_state.problem_answered:
+    # Show feedback if the problem is fully answered, OR if they triggered the "info" warning
+    if st.session_state.problem_answered or st.session_state.get('feedback_type') == "info":
         if st.session_state.get('feedback_type') == "success":
             st.success(st.session_state.feedback_msg)
             if st.session_state.get('show_balloons'):
@@ -222,7 +249,11 @@ else:
             st.error(st.session_state.feedback_msg)
         elif st.session_state.get('feedback_type') == "warning":
             st.warning(st.session_state.feedback_msg)
+        elif st.session_state.get('feedback_type') == "info":
+            st.info(st.session_state.feedback_msg) # The blue underline box!
 
+    # We indent the Next Problem button so it ONLY appears when the problem is fully finished
+    if st.session_state.problem_answered:
         # --- THE "ENTER KEY" HACK FOR NEXT PROBLEM ---
         components.html(
             """

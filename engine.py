@@ -17,16 +17,20 @@ def load_csv():
 
 # --- HELPER FUNCTIONS ---
 def format_answers(num, den, whole=0):
-    """Calculates both the proper mixed number AND the improper fraction simultaneously."""
+    """Calculates the final answer, the simplified improper fraction, and the unsimplified fraction."""
     total_num = (whole * den) + num
+    
+    # 1. Unsimplified Improper Format (np. 6/4)
+    u_str = str(total_num) if den == 1 else rf"\frac{{{total_num}}}{{{den}}}"
+
     divisor = math.gcd(total_num, den)
     simp_num = total_num // divisor
     simp_den = den // divisor
     
-    # 1. Improper Format (for the blue underline check)
+    # 2. Simplified Improper Format (np. 3/2)
     i_str = str(simp_num) if simp_den == 1 else rf"\frac{{{simp_num}}}{{{simp_den}}}"
 
-    # 2. Mixed Number Format (for the final correct answer)
+    # 3. Mixed Number Format (np. 1 1/2)
     final_whole = simp_num // simp_den
     final_num = simp_num % simp_den
     
@@ -37,7 +41,7 @@ def format_answers(num, den, whole=0):
     else:
         c_str = rf"\frac{{{final_num}}}{{{simp_den}}}" 
         
-    return c_str, i_str
+    return c_str, i_str, u_str
 
 def format_fraction_question(num, den, whole=None):
     if whole is not None and whole > 0:
@@ -46,15 +50,16 @@ def format_fraction_question(num, den, whole=None):
         return rf"\frac{{{num}}}{{{den}}}"
 
 # --- THE MATH FUNCTIONS (The "Chefs") ---
+
 def add_fractions_simple(level):
     while True:
         den = random.randint(2, 9) if level == 1 else random.randint(10, 20) 
         num1 = random.randint(1, den - 1)
         num2 = random.randint(1, den - 1)
         
-        c_str, i_str = format_answers(num1 + num2, den)
-        t_str, _ = format_answers(num1 + num2, den + den) 
-        w_str, _ = format_answers(num1 + num2 + 1, den) 
+        c_str, i_str, u_str = format_answers(num1 + num2, den)
+        t_str, _, _ = format_answers(num1 + num2, den + den) 
+        w_str, _, _ = format_answers(num1 + num2 + 1, den) 
         
         if len({c_str, t_str, w_str}) == 3:
             break
@@ -64,6 +69,7 @@ def add_fractions_simple(level):
         "question": f"Oblicz: {format_fraction_question(num1, den)} + {format_fraction_question(num2, den)}",
         "correct": f"$\\displaystyle {c_str}$",
         "improper": f"$\\displaystyle {i_str}$",
+        "unsimplified": f"$\\displaystyle {u_str}$",
         "trap": f"$\\displaystyle {t_str}$",
         "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}" 
@@ -84,9 +90,9 @@ def add_fractions_single_conversion(level):
         correct_num = (n_smaller * scale) + n_larger
         n1, n2 = (n_smaller, n_larger) if d1 == smaller_d else (n_larger, n_smaller)
             
-        c_str, i_str = format_answers(correct_num, larger_d)
-        t_str, _ = format_answers(n1 + n2, larger_d)
-        w_str, _ = format_answers(n1 * n2, larger_d)
+        c_str, i_str, u_str = format_answers(correct_num, larger_d)
+        t_str, _, _ = format_answers(n1 + n2, larger_d)
+        w_str, _, _ = format_answers(n1 * n2, larger_d)
         
         if len({c_str, t_str, w_str}) == 3:
             break
@@ -96,6 +102,7 @@ def add_fractions_single_conversion(level):
         "question": f"Oblicz: {format_fraction_question(n1, d1)} + {format_fraction_question(n2, d2)}",
         "correct": f"$\\displaystyle {c_str}$",
         "improper": f"$\\displaystyle {i_str}$",
+        "unsimplified": f"$\\displaystyle {u_str}$",
         "trap": f"$\\displaystyle {t_str}$",
         "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Rozszerzanie jednego ułamka"
@@ -113,9 +120,9 @@ def add_fractions_complex(level):
         common_den = d1 * d2
         correct_num = (n1 * d2) + (n2 * d1)
         
-        c_str, i_str = format_answers(correct_num, common_den)
-        t_str, _ = format_answers(n1 + n2, d1 + d2)
-        w_str, _ = format_answers(n1 + n2, common_den)
+        c_str, i_str, u_str = format_answers(correct_num, common_den)
+        t_str, _, _ = format_answers(n1 + n2, d1 + d2)
+        w_str, _, _ = format_answers(n1 + n2, common_den)
         
         if len({c_str, t_str, w_str}) == 3:
             break
@@ -125,6 +132,7 @@ def add_fractions_complex(level):
         "question": f"Oblicz: {format_fraction_question(n1, d1)} + {format_fraction_question(n2, d2)}",
         "correct": f"$\\displaystyle {c_str}$",
         "improper": f"$\\displaystyle {i_str}$",
+        "unsimplified": f"$\\displaystyle {u_str}$",
         "trap": f"$\\displaystyle {t_str}$",
         "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Różne mianowniki"
@@ -144,9 +152,9 @@ def add_mixed_numbers_simple(level):
         improper2_num = w2 * den + n2
         wrong_improper_sum = improper1_num + improper2_num + 1 
         
-        c_str, i_str = format_answers(correct_numerator, den, correct_whole)
-        t_str, _ = format_answers(n1 + n2, den + den, w1 + w2)
-        w_str, _ = format_answers(wrong_improper_sum, den)
+        c_str, i_str, u_str = format_answers(correct_numerator, den, correct_whole)
+        t_str, _, _ = format_answers(n1 + n2, den + den, w1 + w2)
+        w_str, _, _ = format_answers(wrong_improper_sum, den)
         
         if len({c_str, t_str, w_str}) == 3:
             break
@@ -156,6 +164,7 @@ def add_mixed_numbers_simple(level):
         "question": f"Oblicz: {format_fraction_question(n1, den, w1)} + {format_fraction_question(n2, den, w2)}",
         "correct": f"$\\displaystyle {c_str}$",
         "improper": f"$\\displaystyle {i_str}$",
+        "unsimplified": f"$\\displaystyle {u_str}$",
         "trap": f"$\\displaystyle {t_str}$",
         "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Liczby mieszane (Łatwe)"
@@ -175,9 +184,9 @@ def add_mixed_numbers_complex(level):
         
         correct_num = (n1 * d2) + (n2 * d1)
         
-        c_str, i_str = format_answers(correct_num, common_den, w1 + w2)
-        t_str, _ = format_answers(n1 + n2, common_den, w1 + w2)
-        w_str, _ = format_answers(n1 + n2, d1 + d2, w1 + w2)
+        c_str, i_str, u_str = format_answers(correct_num, common_den, w1 + w2)
+        t_str, _, _ = format_answers(n1 + n2, common_den, w1 + w2)
+        w_str, _, _ = format_answers(n1 + n2, d1 + d2, w1 + w2)
         
         if len({c_str, t_str, w_str}) == 3:
             break
@@ -187,6 +196,7 @@ def add_mixed_numbers_complex(level):
         "question": f"Oblicz: {format_fraction_question(n1, d1, w1)} + {format_fraction_question(n2, d2, w2)}",
         "correct": f"$\\displaystyle {c_str}$",
         "improper": f"$\\displaystyle {i_str}$",
+        "unsimplified": f"$\\displaystyle {u_str}$",
         "trap": f"$\\displaystyle {t_str}$",
         "wrong": f"$\\displaystyle {w_str}$",
         "level_display": f"Poziom {level}: Liczby mieszane (Ostateczny boss)"
