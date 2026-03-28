@@ -182,12 +182,16 @@ else:
     # --- 3. CHECK LOGIC & GAMIFICATION ---
     if submitted:
         if not is_text_mode and not choice:
-            st.warning("Najpierw wybierz odpowiedź!")
+            st.session_state.feedback_type = "warning"
+            st.session_state.feedback_msg = "Najpierw wybierz odpowiedź!"
+            st.rerun()
         elif is_text_mode and not user_text:
-            st.warning("Wpisz swój wynik w puste pole!")
+            st.session_state.feedback_type = "warning"
+            st.session_state.feedback_msg = "Wpisz swój wynik w puste pole!"
+            st.rerun()
         else:
             is_correct = False
-            is_improper_but_correct = False # The "Blue Underline" State
+            is_improper_but_correct = False
             
             # --- Grading Mode Split ---
             if not is_text_mode:
@@ -211,15 +215,20 @@ else:
                     student_val = parse_to_fraction(user_text)
                     correct_val = parse_to_fraction(problem['correct'])
                     
-                    # 2. THE BLUE UNDERLINE: The math matches perfectly, but the string didn't!
-                    # This automatically catches 44/32, 22/16, 11/8, or any other unsimplified crazy fraction.
-                    if student_val is not None and correct_val is not None and student_val == correct_val:
+                    # 2. TYPO ARMOR: The engine couldn't understand the text at all
+                    if student_val is None:
+                        st.session_state.problem_answered = False 
+                        st.session_state.feedback_type = "warning"
+                        st.session_state.feedback_msg = "Niepoprawny zapis. Użyj cyfr i ukośnika (np. 3/4 lub 1 1/2)."
+                    
+                    # 3. THE BLUE UNDERLINE: The math matches perfectly, but the string didn't!
+                    elif correct_val is not None and student_val == correct_val:
                         is_improper_but_correct = True
                         st.session_state.problem_answered = False 
                         st.session_state.feedback_type = "info"
                         st.session_state.feedback_msg = "Pamiętaj, żeby skrócić ułamki i wyłączyć całości."
                     
-                    # 3. COMPLETELY WRONG
+                    # 4. COMPLETELY WRONG
                     else:
                         st.session_state.problem_answered = True 
                         st.session_state.feedback_type = "warning"
@@ -251,8 +260,8 @@ else:
             st.rerun()
 
 # --- 4. PERSISTENT FEEDBACK DISPLAY ---
-    # Show feedback if the problem is fully answered, OR if they triggered the "info" warning
-    if st.session_state.problem_answered or st.session_state.get('feedback_type') == "info":
+    # Show feedback if the problem is fully answered, OR if they triggered an "info" or "warning" ticket
+    if st.session_state.problem_answered or st.session_state.get('feedback_type') in ["info", "warning"]:
         if st.session_state.get('feedback_type') == "success":
             st.success(st.session_state.feedback_msg)
             if st.session_state.get('show_balloons'):
