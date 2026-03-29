@@ -61,7 +61,7 @@ st.subheader("Temat: Dodawanie Ułamków")
 if 'current_problem' not in st.session_state:
     st.session_state.current_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
 
-problem = st.session_state.current_problem
+problem: dict | None = st.session_state.current_problem
 
 # --- 2. THE MASTERY SCOREBOARD ---
 stars_display = "⭐" * st.session_state.streak + "⬛" * (3 - st.session_state.streak)
@@ -304,28 +304,32 @@ else:
         )
 
         if st.button("Następne zadanie ➡️", key="next_problem_btn"):
-            # SAFETY CHECK: Ensure current_problem exists before asking for 'question'
-            if st.session_state.current_problem and 'question' in st.session_state.current_problem:
-                old_question = st.session_state.current_problem['question']
-            else:
-                old_question = ""
             
+            old_question = st.session_state.current_problem['question'] if st.session_state.current_problem else ""
+            
+            # Let Python naturally infer the type here
             new_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
             
-            # SAFETY CHECK: Ensure new_problem successfully loaded from the CSV
-            if new_problem and 'question' in new_problem:
-                while new_problem['question'] == old_question:
-                    new_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
-                
-                st.session_state.current_problem = new_problem
-                st.session_state.problem_answered = False
-                st.session_state.feedback_type = None 
-                
-                if st.session_state.streak >= 2:
-                    st.session_state.current_input_mode = "text"
-                else:
-                    st.session_state.current_input_mode = "radio"
-                    
-                st.rerun()
+            # --- THE GUARD CLAUSE (The Bouncer) ---
+            if new_problem is None or 'question' not in new_problem:
+                st.error("Błąd krytyczny: Nie można załadować bazy zadań z pliku CSV!")
+                st.stop() # Halts the script gracefully here. No crash!
+            
+            # --- SAFE ZONE ---
+            # The linter now knows 100% that new_problem is a valid dictionary.
+            while new_problem['question'] == old_question:
+                new_problem = engine.get_problem_from_db("Dodawanie", st.session_state.selected_level)
+                if new_problem is None:
+                    st.error("Błąd bazy zadań podczas losowania.")
+                    st.stop()
+            
+            st.session_state.current_problem = new_problem
+            st.session_state.problem_answered = False
+            st.session_state.feedback_type = None 
+            
+            if st.session_state.streak >= 2:
+                st.session_state.current_input_mode = "text"
             else:
-                st.error("Błąd wczytywania nowego zadania. Upewnij się, że nazwy w pliku CSV są poprawne.")
+                st.session_state.current_input_mode = "radio"
+                
+            st.rerun()

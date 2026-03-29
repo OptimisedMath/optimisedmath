@@ -160,7 +160,7 @@ def add_mixed_numbers_complex(level):
 
 
 # --- THE LIBRARIAN ---
-def get_problem_from_db(topic, level):
+def get_problem_from_db(topic, level) -> dict | None:
     df = load_csv()
     if df is None:
         return {"error": "Missing CSV"}
@@ -168,15 +168,20 @@ def get_problem_from_db(topic, level):
     row = df[(df['Micro_Topic'] == topic) & (df['Level'] == level)]
     
     if not row.empty:
-        func_name = row.iloc[0]['Function_Name']
+        func_name = str(row.iloc[0]['Function_Name'])
         current_level = int(row.iloc[0]['Level'])
         
-        # OPTIMIZATION: Auto-find the function in Python's global memory!
         target_function = globals().get(func_name)
         
         if callable(target_function):
+            # Remove the : dict label here
             problem_data = target_function(current_level)
-            problem_data['trap_message'] = row.iloc[0]['Trap_Message']
-            problem_data['wrong_message'] = row.iloc[0]['Wrong_Message']
-            return problem_data
+            
+            # --- TYPE NARROWING (The Passport Check) ---
+            if isinstance(problem_data, dict):
+                # We use str() here so the linter knows exactly what data type is going in
+                problem_data['trap_message'] = str(row.iloc[0]['Trap_Message'])
+                problem_data['wrong_message'] = str(row.iloc[0]['Wrong_Message'])
+                return problem_data
+                
     return None
