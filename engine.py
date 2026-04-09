@@ -15,6 +15,21 @@ def load_csv():
         return None
     return pd.read_csv(DATA_FILE, sep=';')
 
+def get_curriculum() -> list[dict]:
+    """Scans the CSV to build the dynamic topic menu, ignoring unfinished 'TBD' rows."""
+    df = load_csv()
+    if df is None: return []
+    
+    # Filter out topics that haven't been built yet
+    valid_df = df[df['Function_Name'] != 'TBD']
+    if valid_df.empty: return []
+    
+    # Group by Topic_Order and find the maximum level for each topic
+    curriculum = valid_df.groupby(['Topic_Order', 'Micro_Topic'])['Level'].max().reset_index()
+    curriculum = curriculum.sort_values('Topic_Order')
+    
+    return curriculum.to_dict('records')
+
 # --- HELPER FUNCTIONS ---
 def format_answers(num, den, whole=0):
     """Calculates the final answer, the simplified improper fraction, and the unsimplified fraction."""
