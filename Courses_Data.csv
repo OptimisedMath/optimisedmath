@@ -1,6 +1,9 @@
 ﻿Macro_Topic;Topic_Order;Micro_Topic;Level;Level_Name;Generative_Rules;Trap_Generation_Command;Generic_Error_Command;Function_Name;Trap_Message;Wrong_Message
 Ułamki;1;Zapisywanie dzielenia jako ułamek;1;TBD;TBD;TBD;TBD;TBD;TBD;TBD
-Ułamki;2;Rozszerzanie i skracanie ułamków;1;TBD;TBD;TBD;TBD;TBD;TBD;TBD
+Ułamki;2;Rozszerzanie i skracanie ułamków;1;Rozszerzanie przez liczbę;TBD;TBD;TBD;expand_fraction_by_factor;Rozszerzyłeś tylko licznik!;Dodałeś zamiast pomnożyć.
+Ułamki;2;Rozszerzanie i skracanie ułamków;2;Rozszerzanie do mianownika;TBD;TBD;TBD;expand_fraction_to_denominator;Zapomniałeś rozszerzyć licznik!;Użyłeś niewłaściwego mnożnika.
+Ułamki;2;Rozszerzanie i skracanie ułamków;3;Skracanie przez liczbę;TBD;TBD;TBD;simplify_fraction_by_factor;Skróciłeś tylko licznik!;Odjąłeś zamiast podzielić.
+Ułamki;2;Rozszerzanie i skracanie ułamków;4;Postać nieskracalna;TBD;TBD;TBD;simplify_fraction_fully;Ułamek nie jest jeszcze w postaci nieskracalnej!;Odwróciłeś ułamek.
 Ułamki;3;Porównywanie ułamków;1;TBD;TBD;TBD;TBD;TBD;TBD;TBD
 Ułamki;4;Liczba mieszana a ułamek niewłaściwy;1;TBD;TBD;TBD;TBD;TBD;TBD;TBD
 Ułamki;5;Dodawanie;1;Jednolite mianowniki;Mianowniki od 2 do 9. Liczniki maksymalnie o 1 mniejsze od mianownika. Suma może przekroczyć 1.;Oblicz dodając licznik A do licznika B ORAZ mianownik A do mianownika B.;Oblicz popełniając błąd arytmetyczny (+/- 1) w sumie liczników.;add_fractions_simple;Dodałeś mianowniki. W dodawaniu ułamków mianownik zostaje bez zmian.;Niezupełnie. To jest zwykły błąd obliczeniowy w liczniku. Spróbuj jeszcze raz!

@@ -9,7 +9,7 @@ from macro_topics.ulamki.micro_02_rozszerzanie import *
 
 DATA_FILE = 'Courses_Data.csv'
 
-@st.cache_data
+# @st.cache_data <- for later
 def load_csv():
     """Loads the CSV into RAM once."""
     if not os.path.exists(DATA_FILE):

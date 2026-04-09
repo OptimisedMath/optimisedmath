@@ -13,7 +13,7 @@ if 'xp' not in st.session_state:
 if 'streak' not in st.session_state:
     st.session_state.streak = 0
 if 'unlocked_topic_order' not in st.session_state:
-    st.session_state.unlocked_topic_order = 5 # Starts at 5 because 1-4 are currently TBD
+    st.session_state.unlocked_topic_order = 2
 if 'selected_topic_order' not in st.session_state:
     st.session_state.selected_topic_order = 5
 if 'unlocked_level' not in st.session_state:
@@ -39,23 +39,30 @@ with st.sidebar:
     st.title("🏆 Twój Profil")
     st.metric(label="Punkty Doświadczenia (XP)", value=st.session_state.xp)
     
-    # 1. TOPIC SELECTOR
-    available_orders = [order for order in topic_map.keys() if order <= st.session_state.unlocked_topic_order]
-
-    # [RESET BUTTON CODE HERE...]
+    # --- 🛠️ THE ADMIN FEATURE FLAG ---
+    admin_mode = st.toggle("🛠️ Tryb Admina (Odblokuj wszystko)", value=False)
+    
     if st.button("🔄 Zresetuj Postęp"):
         st.session_state.xp = 0
         st.session_state.streak = 0
+        st.session_state.unlocked_topic_order = 5 # Reset back to the first available topic
         st.session_state.unlocked_level = 1
+        st.session_state.selected_topic_order = 5
         st.session_state.selected_level = 1
         st.session_state.problem_answered = False
-        st.session_state.current_input_mode = "radio" # NEW: Reset format
-        st.session_state.current_problem = engine.get_problem_from_db(topic_map[st.session_state.selected_topic_order]['name'], 1)
+        st.session_state.current_input_mode = "radio" 
+        st.session_state.current_problem = engine.get_problem_from_db(topic_map[5]['name'], 1)
         st.rerun()
 
     st.markdown("---")
     st.title("Ustawienia")
     
+    # 1. TOPIC SELECTOR
+    if admin_mode:
+        available_orders = list(topic_map.keys()) # Admin sees everything
+    else:
+        available_orders = [order for order in topic_map.keys() if order <= st.session_state.unlocked_topic_order]
+
     # Formatting function for the selectbox so it looks nice
     def format_topic(order):
         return f"{order}. {topic_map[order]['name']}"
@@ -64,7 +71,8 @@ with st.sidebar:
         "Wybierz Temat:", 
         options=available_orders, 
         format_func=format_topic,
-        index=available_orders.index(st.session_state.selected_topic_order) if st.session_state.selected_topic_order in available_orders else 0
+        # If admin mode hides a topic we were just looking at, default back to the highest unlocked
+        index=available_orders.index(st.session_state.selected_topic_order) if st.session_state.selected_topic_order in available_orders else len(available_orders)-1
     )
     
     # If the user changes the topic, reset their level selection to 1
@@ -81,7 +89,9 @@ with st.sidebar:
     current_topic_max_level = topic_map[st.session_state.selected_topic_order]['max_level']
     
     # Determine how many levels they are allowed to see in the slider
-    if st.session_state.selected_topic_order < st.session_state.unlocked_topic_order:
+    if admin_mode:
+        allowed_max_level = current_topic_max_level # Admin can access any level
+    elif st.session_state.selected_topic_order < st.session_state.unlocked_topic_order:
         # If they went back to an older topic, all levels are unlocked
         allowed_max_level = current_topic_max_level 
     else:
@@ -95,7 +105,9 @@ with st.sidebar:
         st.info("Ten temat ma tylko jeden poziom.")
         new_level = 1
     else:
-        new_level = st.slider("Wybierz Poziom:", min_value=1, max_value=allowed_max_level, value=st.session_state.selected_level)
+        # If admin mode drops our allowed max level below our current selection, force us down safely
+        safe_selected_level = min(st.session_state.selected_level, allowed_max_level)
+        new_level = st.slider("Wybierz Poziom:", min_value=1, max_value=allowed_max_level, value=safe_selected_level)
     
     if new_level != st.session_state.selected_level:
         st.session_state.selected_level = new_level
@@ -157,12 +169,10 @@ else:
                 <script>
                 const doc = window.parent.document;
                 
-                // 1. CLEAR THE GHOST LISTENER
                 if (doc.submitRadioListener) {
                     doc.removeEventListener('keyup', doc.submitRadioListener, true);
                 }
                 
-                // 2. CREATE A NAMED LISTENER
                 doc.submitRadioListener = function(e) {
                     if (e.key === 'Enter') {
                         const allButtons = Array.from(doc.querySelectorAll('button'));
@@ -174,21 +184,25 @@ else:
                     }
                 };
                 
-                // 3. ATTACH IT
-                doc.addEventListener('keyup', doc.submitRadioListener, true);
+                // Delay attachment by 300ms so it doesn't catch lingering key releases!
+                setTimeout(() => {
+                    doc.addEventListener('keyup', doc.submitRadioListener, true);
+                }, 300);
                 </script>
                 """,
                 height=0, width=0
             )
         else:
-            # TEXT MODE: The text box natively submits on Enter. 
-            # We MUST delete the radio listener so it doesn't double-click the button!
+            # TEXT MODE: MUST completely delete both listeners so they don't ghost-click
             components.html(
                 """
                 <script>
                 const doc = window.parent.document;
                 if (doc.submitRadioListener) {
                     doc.removeEventListener('keyup', doc.submitRadioListener, true);
+                }
+                if (doc.nextProblemListener) {
+                    doc.removeEventListener('keyup', doc.nextProblemListener, true);
                 }
                 </script>
                 """,
@@ -285,7 +299,7 @@ if submitted:
                     st.session_state.feedback_type = "warning"
                     st.session_state.feedback_msg = "Niestety, to nie jest poprawny wynik. Spróbuj przeliczyć to jeszcze raz!"
         
-        # --- Reward & Progression Logic ---
+# --- Reward & Progression Logic ---
         if is_correct:
             xp_rewards = {1: 5, 2: 10, 3: 20, 4: 35, 5: 60}
             earned_xp = xp_rewards.get(st.session_state.selected_level, 15)
@@ -297,12 +311,28 @@ if submitted:
             if st.session_state.streak < 3:
                 st.session_state.streak += 1
             
+            # --- THE LEVEL UP & TOPIC UNLOCK LOGIC ---
             if st.session_state.streak == 3 and st.session_state.selected_level == st.session_state.unlocked_level:
-                if st.session_state.unlocked_level < 5:
+                current_topic_max = topic_map[st.session_state.selected_topic_order]['max_level']
+                
+                if st.session_state.unlocked_level < current_topic_max:
+                    # 1. Normal Level Up
                     st.session_state.unlocked_level += 1
                     st.session_state.show_balloons = True
                     st.session_state.selected_level = st.session_state.unlocked_level
                     st.session_state.streak = 0 
+                else:
+                    # 2. Boss Defeated! Unlock the Next Topic!
+                    next_topics = [t for t in topic_map.keys() if t > st.session_state.selected_topic_order]
+                    if next_topics:
+                        next_topic_id = min(next_topics)
+                        st.session_state.unlocked_topic_order = next_topic_id
+                        st.session_state.selected_topic_order = next_topic_id
+                        st.session_state.unlocked_level = 1
+                        st.session_state.selected_level = 1
+                        st.session_state.streak = 0
+                        st.session_state.show_balloons = True
+                        st.session_state.feedback_msg = f"🏆 Ukończyłeś temat! Zostałeś przeniesiony do: {topic_map[next_topic_id]['name']}"
         
         # Penalize only if it is entirely wrong (not if it just needs regrouping)
         elif not is_correct and not is_improper_but_correct and st.session_state.streak > 0:
@@ -326,7 +356,6 @@ if st.session_state.problem_answered or st.session_state.get('feedback_type') in
     elif st.session_state.get('feedback_type') == "info":
         st.info(st.session_state.feedback_msg) # The blue underline box!
 
-# We indent the Next Problem button so it ONLY appears when the problem is fully finished
 if st.session_state.problem_answered:
     # --- THE "ENTER KEY" HACK FOR NEXT PROBLEM ---
     components.html(
@@ -334,8 +363,9 @@ if st.session_state.problem_answered:
         <script>
         const doc = window.parent.document;
         
-        // We clear any old listeners first so they don't pile up when the page refreshes
-        doc.removeEventListener('keyup', doc.nextProblemListener, true);
+        if (doc.nextProblemListener) {
+            doc.removeEventListener('keyup', doc.nextProblemListener, true);
+        }
         
         doc.nextProblemListener = function(e) {
             if (e.key === 'Enter') {
@@ -348,7 +378,10 @@ if st.session_state.problem_answered:
             }
         };
         
-        doc.addEventListener('keyup', doc.nextProblemListener, true);
+        // Delay attachment by 300ms to avoid the race condition!
+        setTimeout(() => {
+            doc.addEventListener('keyup', doc.nextProblemListener, true);
+        }, 300);
         </script>
         """,
         height=0, width=0
