@@ -76,10 +76,10 @@ def simplify_fraction_fully(level):
         
         q_str = rf"\text{{Skróć ułamek }} {format_fraction_question(start_n, start_d)} \text{{ do postaci nieskracalnej.}}"
         
-        # --- WE USE FORMAT_ANSWERS HERE ---
-        c_str, i_str, u_str = format_answers(n, d)
-        t_str, _, _ = format_answers(n * factor2, d * factor2) 
-        w_str, _, _ = format_answers(d, n) 
+        # --- MANUAL FORMATTING (Prevents improper fractions from becoming mixed numbers) ---
+        c_str = rf"\frac{{{n}}}{{{d}}}"
+        t_str = rf"\frac{{{n * factor2}}}{{{d * factor2}}}" 
+        w_str = rf"\frac{{{d}}}{{{n}}}" 
         
         if len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Postać nieskracalna")
+            return build_problem_dict(q_str, c_str, c_str, c_str, t_str, w_str, f"Poziom {level}: Postać nieskracalna")

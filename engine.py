@@ -3,13 +3,15 @@ import os
 import streamlit as st
 
 # Import the math functions into memory so the Auto-Librarian can find them
+from macro_topics.ulamki.micro_02_rozszerzanie import *
+from macro_topics.ulamki.micro_04_porownywanie import *
 from macro_topics.ulamki.micro_05_dodawanie import *
 from macro_topics.ulamki.micro_06_odejmowanie import *
-from macro_topics.ulamki.micro_02_rozszerzanie import *
+
 
 DATA_FILE = 'Courses_Data.csv'
 
-# @st.cache_data <- for later
+# @st.cache_data -> for later
 def load_csv():
     """Loads the CSV into RAM once."""
     if not os.path.exists(DATA_FILE):
