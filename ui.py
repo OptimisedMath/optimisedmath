@@ -4,13 +4,14 @@ import random
 import re
 import streamlit.components.v1 as components
 from fractions import Fraction
+from core.utils import check_text_answer, parse_to_fraction
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
 # --- 1. INITIALIZE GAME STATE (The Memory Card) ---
 default_state = {
     'xp': 0, 'streak': 0, 
-    'unlocked_topic_order': 2, 'selected_topic_order': 5,
+    'unlocked_topic_order': 1, 'selected_topic_order': 1,
     'unlocked_level': 1, 'selected_level': 1,
     'problem_answered': False, 'current_input_mode': "radio",
     'topic_completed': False

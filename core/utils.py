@@ -1,5 +1,8 @@
 import math
 import uuid
+import re
+from fractions import Fraction
+import streamlit.components.v1 as components
 
 def format_answers(num, den, whole=0):
     total_num = (whole * den) + num
@@ -67,3 +70,40 @@ def inject_enter_hack(target_button_text, delay_ms=300):
         """,
         height=0, width=0
     )
+
+def clean_latex(latex_str):
+    """Converts the database LaTeX string into a normal text string (e.g., \frac{1}{2} -> 1/2)"""
+    s = latex_str.replace("$\\displaystyle", "").replace("$", "").strip()
+    s = re.sub(r'\\frac\{(\d+)\}\{(\d+)\}', r'\1/\2', s)
+    return s.strip()
+
+def parse_to_fraction(val_str):
+    """Safely converts either a LaTeX string or a user's text input into a mathematical Fraction object."""
+    try:
+        if "displaystyle" in val_str or "\\frac" in val_str:
+            val_str = clean_latex(val_str)
+        
+        val_str = val_str.strip()
+        
+        # Handle mixed numbers (e.g., "1 1/2")
+        if " " in val_str:
+            parts = val_str.split(" ")
+            if len(parts) == 2 and "/" in parts[1]:
+                whole = int(parts[0])
+                frac = Fraction(parts[1])
+                # Convert to improper fraction math
+                if whole >= 0:
+                    return Fraction(whole * frac.denominator + frac.numerator, frac.denominator)
+                else:
+                    return Fraction(whole * frac.denominator - frac.numerator, frac.denominator)
+        
+        # Handle standard fractions or whole numbers
+        return Fraction(val_str)
+    except Exception:
+        return None
+
+def check_text_answer(correct_latex, user_text):
+    """Checks if the user's text perfectly matches the correct answer string (ignoring spaces)."""
+    clean_correct = clean_latex(correct_latex).replace(" ", "")
+    clean_user = user_text.replace(" ", "")
+    return clean_correct == clean_user

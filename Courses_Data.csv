@@ -19,22 +19,22 @@ Ułamki;6;Odejmowanie;2;Pojedyncze rozszerzenie;Mianowniki się różnią.;Odejm
 Ułamki;6;Odejmowanie;3;Podwójne rozszerzenie;Mianowniki są względnie pierwsze.;Odejmij liczniki i mianowniki bezpośrednio.;Wspólny mianownik bez rozszerzania liczników.;subtract_fractions_complex;Odjąłeś od siebie liczniki i mianowniki!;Znalazłeś wspólny mianownik, ale zapomniałeś rozszerzyć liczniki!
 Ułamki;6;Odejmowanie;4;Liczby mieszane (Bez pożyczania);Część ułamkowa 1 > 2.;Zastosuj pułapkę z Poziomu 1 do ułamków.;Zamień na niewłaściwe z błędem.;subtract_mixed_numbers_easy;Całości odjęte poprawnie, ale odjąłeś od siebie mianowniki ułamków!;Pojawił się mały błąd obliczeniowy w liczniku.
 Ułamki;6;Odejmowanie;5;Ostateczny Boss (Pożyczanie);Część ułamkowa 1 < 2.;Odejmij mniejszy licznik od większego ignorując kolejność.;Pożycz 1 ale dodaj 10 do licznika.;subtract_mixed_numbers_boss;Odjąłeś mniejszy licznik od większego ignorując kolejność!;Kiedy pożyczasz z całości, musisz dodać wartość mianownika do licznika, a nie 10!
-Ułamki;7;Mnożenie przez liczbę naturalną;1;Bez skracania;TBD;TBD;TBD;TBD;Pomnożyłeś zarówno licznik, jak i mianownik przez tę liczbę!;Zwykły błąd obliczeniowy w mnożeniu.
-Ułamki;7;Mnożenie przez liczbę naturalną;2;Skracanie na krzyż;TBD;TBD;TBD;TBD;Wynik poprawny matematycznie, ale nie skróciłeś ułamka!;Błąd obliczeniowy.
-Ułamki;7;Mnożenie przez liczbę naturalną;3;Z liczbą mieszaną;TBD;TBD;TBD;TBD;Pomnożyłeś tylko część ułamkową, ignorując całości!;Pamiętaj, aby najpierw zamienić na ułamek niewłaściwy.
-Ułamki;8;Mnożenie ułamków;1;Proste mnożenie (bez skracania);TBD;TBD;TBD;TBD;Dodałeś liczniki i mianowniki zamiast je pomnożyć!;Sprawdź tabliczkę mnożenia.
-Ułamki;8;Mnożenie ułamków;2;Skracanie na krzyż;TBD;TBD;TBD;TBD;"Zapomniałeś skrócić ułamek ""na krzyż"" przed pomnożeniem!";Błąd obliczeniowy.
-Ułamki;8;Mnożenie ułamków;3;Ułamek i liczba mieszana;TBD;TBD;TBD;TBD;Pomnożyłeś ułamek tylko przez część ułamkową!;Zamień liczbę mieszaną na ułamek niewłaściwy przed mnożeniem.
-Ułamki;8;Mnożenie ułamków;4;Ostateczny Boss (Dwie liczby mieszane);TBD;TBD;TBD;TBD;Pomnożyłeś całości przez całości, a ułamki przez ułamki. To częsty błąd!;Najpierw zamień obie liczby na ułamki niewłaściwe.
-Ułamki;9;Dzielenie przez liczbę naturalną;1;Ułamek przez liczbę (bez skracania);TBD;TBD;TBD;TBD;Podzieliłeś mianownik zamiast go pomnożyć przez odwrotność!;Przy dzieleniu ułamka przez liczbę naturalną, mianownik mnożymy przez tę liczbę.
-Ułamki;9;Dzielenie przez liczbę naturalną;2;Liczba przez ułamek;TBD;TBD;TBD;TBD;Pomnożyłeś liczbę przez mianownik, zamiast przez odwrotność całego ułamka!;Pamiętaj, by odwrócić drugi ułamek.
-Ułamki;9;Dzielenie przez liczbę naturalną;3;Liczba mieszana przez liczbę;TBD;TBD;TBD;TBD;Podzieliłeś tylko całości, zapominając o ułamku!;Najpierw zamień na ułamek niewłaściwy.
-Ułamki;10;Dzielenie ułamków;1;Proste dzielenie (bez skracania);TBD;TBD;TBD;TBD;Pomnożyłeś ułamki zamiast odwrócić drugi z nich!;Zawsze odwracaj DRUGI ułamek przed mnożeniem.
-Ułamki;10;Dzielenie ułamków;2;Dzielenie ze skracaniem;TBD;TBD;TBD;TBD;Skróciłeś ułamki PRZED ich odwróceniem!;Skracać można dopiero, gdy zamienisz dzielenie na mnożenie.
-Ułamki;10;Dzielenie ułamków;3;Ostateczny Boss (Liczby mieszane);TBD;TBD;TBD;TBD;Odwróciłeś tylko ułamek, zostawiając całości na miejscu!;Zamień obie liczby na ułamki niewłaściwe przed odwróceniem drugiej.
-Ułamki;11;Potęgowanie ułamków;1;Ułamki właściwe;TBD;TBD;TBD;TBD;Podniosłeś do potęgi tylko licznik, zapominając o mianowniku!;Ułamek w nawiasie potęgujemy w całości.
-Ułamki;11;Potęgowanie ułamków;2;Liczby mieszane;TBD;TBD;TBD;TBD;Podniosłeś do potęgi oddzielnie całości i oddzielnie ułamek!;Najpierw zamień na ułamek niewłaściwy.
-Ułamki;12;Obliczanie ułamka danej liczby;1;Wynik naturalny;TBD;TBD;TBD;TBD;Dodałeś ułamek do liczby zamiast pomnożyć!;"Słowo ""z"" w matematyce oznacza mnożenie (np. 2/3 z 60)."
-Ułamki;12;Obliczanie ułamka danej liczby;2;Wynik ułamkowy;TBD;TBD;TBD;TBD;Podzieliłeś przez ułamek zamiast pomnożyć!;Błąd obliczeniowy przy mnożeniu.
-Ułamki;13;Kolejność wykonywania działań;1;Dwa działania (bez nawiasów);TBD;TBD;TBD;TBD;Wykonałeś dodawanie przed mnożeniem/dzieleniem!;Pamiętaj: mnożenie i dzielenie ma pierwszeństwo.
-Ułamki;13;Kolejność wykonywania działań;2;Zadania z nawiasami (Ostateczny Boss);TBD;TBD;TBD;TBD;Pominąłeś nawiasy i wykonałeś działania od lewej do prawej!;Nawiasy zawsze wykonujemy jako pierwsze.
+Ułamki;7;Mnożenie przez liczbę naturalną;1;Bez skracania;TBD;TBD;TBD;mult_frac_int_simple;Pomnożyłeś zarówno licznik, jak i mianownik przez tę liczbę!;Zwykły błąd obliczeniowy w mnożeniu.
+Ułamki;7;Mnożenie przez liczbę naturalną;2;Skracanie na krzyż;TBD;TBD;TBD;mult_frac_int_cross;Wynik poprawny matematycznie, ale nie skróciłeś ułamka!;Błąd obliczeniowy.
+Ułamki;7;Mnożenie przez liczbę naturalną;3;Z liczbą mieszaną;TBD;TBD;TBD;mult_mixed_int;Pomnożyłeś tylko część ułamkową, ignorując całości!;Pamiętaj, aby najpierw zamienić na ułamek niewłaściwy.
+Ułamki;8;Mnożenie ułamków;1;Proste mnożenie (bez skracania);TBD;TBD;TBD;mult_frac_simple;Dodałeś liczniki i mianowniki zamiast je pomnożyć!;Sprawdź tabliczkę mnożenia.
+Ułamki;8;Mnożenie ułamków;2;Skracanie na krzyż;TBD;TBD;TBD;mult_frac_cross;Zapomniałeś skrócić ułamek "na krzyż" przed pomnożeniem!;Błąd obliczeniowy.
+Ułamki;8;Mnożenie ułamków;3;Ułamek i liczba mieszana;TBD;TBD;TBD;mult_frac_mixed;Pomnożyłeś ułamek tylko przez część ułamkową!;Zamień liczbę mieszaną na ułamek niewłaściwy przed mnożeniem.
+Ułamki;8;Mnożenie ułamków;4;Ostateczny Boss (Dwie liczby mieszane);TBD;TBD;TBD;mult_mixed_mixed;Pomnożyłeś całości przez całości, a ułamki przez ułamki. To częsty błąd!;Najpierw zamień obie liczby na ułamki niewłaściwe.
+Ułamki;9;Dzielenie przez liczbę naturalną;1;Ułamek przez liczbę (bez skracania);TBD;TBD;TBD;div_frac_int;Pomnożyłeś licznik zamiast pomnożyć mianownik przez tę liczbę!;Przy dzieleniu ułamka przez liczbę naturalną, mianownik mnożymy przez tę liczbę.
+Ułamki;9;Dzielenie przez liczbę naturalną;2;Liczba przez ułamek;TBD;TBD;TBD;div_int_frac;Pomnożyłeś liczbę przez licznik, zamiast przez mianownik!;Pamiętaj, by odwrócić drugi ułamek.
+Ułamki;9;Dzielenie przez liczbę naturalną;3;Liczba mieszana przez liczbę;TBD;TBD;TBD;div_mixed_int;Podzieliłeś tylko całości, zapominając o ułamku!;Najpierw zamień na ułamek niewłaściwy.
+Ułamki;10;Dzielenie ułamków;1;Proste dzielenie (bez skracania);TBD;TBD;TBD;div_frac_simple;Pomnożyłeś ułamki zamiast odwrócić drugi z nich!;Zawsze odwracaj DRUGI ułamek przed mnożeniem.
+Ułamki;10;Dzielenie ułamków;2;Dzielenie ze skracaniem;TBD;TBD;TBD;div_frac_cross;Skróciłeś ułamki PRZED ich odwróceniem!;Skracać można dopiero, gdy zamienisz dzielenie na mnożenie.
+Ułamki;10;Dzielenie ułamków;3;Ostateczny Boss (Liczby mieszane);TBD;TBD;TBD;div_mixed_mixed;Odwróciłeś tylko ułamek, zostawiając całości na miejscu!;Zamień obie liczby na ułamki niewłaściwe przed odwróceniem drugiej.
+Ułamki;11;Potęgowanie ułamków;1;Ułamki właściwe;TBD;TBD;TBD;pow_frac;Podniosłeś do potęgi tylko licznik, zapominając o mianowniku!;Ułamek w nawiasie potęgujemy w całości.
+Ułamki;11;Potęgowanie ułamków;2;Liczby mieszane;TBD;TBD;TBD;pow_mixed;Podniosłeś do potęgi oddzielnie całości i oddzielnie ułamek!;Najpierw zamień na ułamek niewłaściwy.
+Ułamki;12;Obliczanie ułamka danej liczby;1;Wynik naturalny;TBD;TBD;TBD;frac_of_int_natural;Dodałeś ułamek do liczby zamiast pomnożyć!;Słowo "z" w matematyce oznacza mnożenie (np. 2/3 z 60).
+Ułamki;12;Obliczanie ułamka danej liczby;2;Wynik ułamkowy;TBD;TBD;TBD;frac_of_int_frac;Podzieliłeś przez ułamek zamiast pomnożyć!;Błąd obliczeniowy przy mnożeniu.
+Ułamki;13;Kolejność wykonywania działań;1;Dwa działania (bez nawiasów);TBD;TBD;TBD;order_no_brackets;Wykonałeś dodawanie przed mnożeniem/dzieleniem!;Pamiętaj: mnożenie i dzielenie ma pierwszeństwo.
+Ułamki;13;Kolejność wykonywania działań;2;Zadania z nawiasami (Ostateczny Boss);TBD;TBD;TBD;order_brackets;Pominąłeś nawiasy i wykonałeś działania od lewej do prawej!;Nawiasy zawsze wykonujemy jako pierwsze.
