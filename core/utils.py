@@ -44,33 +44,6 @@ def build_problem_dict(question_str, c_str, i_str, u_str, t_str, w_str, level_di
         "level_display": level_display 
     }
 
-def inject_enter_hack(target_button_text, delay_ms=300):
-    """DRY Helper: Injects JS to click a specific button when Enter is pressed."""
-    components.html(
-        f"""
-        <script>
-        const doc = window.parent.document;
-        if (doc.customKeyListener) {{
-            doc.removeEventListener('keyup', doc.customKeyListener, true);
-        }}
-        
-        if ("{target_button_text}" !== "NONE") {{
-            doc.customKeyListener = function(e) {{
-                if (e.key === 'Enter') {{
-                    const allButtons = Array.from(doc.querySelectorAll('button'));
-                    const targetBtn = allButtons.find(b => b.innerText.includes('{target_button_text}'));
-                    if (targetBtn) targetBtn.click();
-                }}
-            }};
-            setTimeout(() => {{
-                doc.addEventListener('keyup', doc.customKeyListener, true);
-            }}, {delay_ms});
-        }}
-        </script>
-        """,
-        height=0, width=0
-    )
-
 def clean_latex(latex_str):
     """Converts the database LaTeX string into a normal text string (e.g., \frac{1}{2} -> 1/2)"""
     s = latex_str.replace("$\\displaystyle", "").replace("$", "").strip()

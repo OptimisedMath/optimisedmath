@@ -8,7 +8,7 @@ from core.utils import check_text_answer, parse_to_fraction
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
-# --- 1. INITIALIZE GAME STATE (The Memory Card) ---
+# --- 1. INITIALIZE GAME STATE ---
 default_state = {
     'xp': 0, 'streak': 0, 
     'unlocked_topic_order': 1, 'selected_topic_order': 1,
@@ -21,17 +21,27 @@ for key, value in default_state.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-def inject_enter_hack(target_button_text, delay_ms=300):
+def inject_enter_hack(target_button_text=None, delay_ms=300):
     """DRY Helper: Injects JS to click a specific button when Enter is pressed."""
-    components.html(
-        f"""
-        <script>
-        const doc = window.parent.document;
-        if (doc.customKeyListener) {{
-            doc.removeEventListener('keyup', doc.customKeyListener, true);
-        }}
-        
-        if ("{target_button_text}" !== "NONE") {{
+    if target_button_text is None:
+        components.html(
+            """
+            <script>
+            const doc = window.parent.document;
+            if (doc.customKeyListener) {
+                doc.removeEventListener('keyup', doc.customKeyListener, true);
+            }
+            </script>
+            """, height=0, width=0
+        )
+    else:
+        components.html(
+            f"""
+            <script>
+            const doc = window.parent.document;
+            if (doc.customKeyListener) {{
+                doc.removeEventListener('keyup', doc.customKeyListener, true);
+            }}
             doc.customKeyListener = function(e) {{
                 if (e.key === 'Enter') {{
                     const allButtons = Array.from(doc.querySelectorAll('button'));
@@ -42,11 +52,9 @@ def inject_enter_hack(target_button_text, delay_ms=300):
             setTimeout(() => {{
                 doc.addEventListener('keyup', doc.customKeyListener, true);
             }}, {delay_ms});
-        }}
-        </script>
-        """,
-        height=0, width=0
-    )
+            </script>
+            """, height=0, width=0
+        )
 
 # --- DYNAMIC CURRICULUM BUILDER ---
 curriculum = engine.get_curriculum()
@@ -195,10 +203,15 @@ else:
         with cols[1]:
             # Always available for testing!
             admin_solve = st.form_submit_button("🪄 Auto-Solve", disabled=st.session_state.problem_answered)
-        
-        # --- THE AGGRESSIVE "ENTER KEY" JAVASCRIPT HACK ---
-        if st.session_state.current_input_mode == "radio":
-            inject_enter_hack("Sprawdź odpowiedź" if st.session_state.current_input_mode == "radio" else "NONE")
+            
+        # --- THE FIX: Re-enable the Enter key for Radio Buttons! ---
+        # We only inject this if the problem hasn't been answered yet.
+        if not st.session_state.problem_answered:
+            if not is_text_mode:
+                inject_enter_hack("Sprawdź odpowiedź")
+            else:
+                # Text inputs natively trigger form submits on Enter, so we disable the hack here to prevent double-submits
+                inject_enter_hack("NONE")
 
 # --- 3. CHECK LOGIC & GAMIFICATION ---
 if admin_solve or submitted:
