@@ -3,6 +3,7 @@ import uuid
 import re
 from fractions import Fraction
 import streamlit.components.v1 as components
+import random
 
 def format_answers(num, den, whole=0):
     total_num = (whole * den) + num
@@ -32,16 +33,27 @@ def format_fraction_question(n, d, w=None):
     else:
         return rf"\frac{{{n}}}{{{d}}}"
 
-def build_problem_dict(question_str, c_str, i_str, u_str, t_str, w_str, level_display):
+def build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str=None, w2_str=None, level_name=""):
+    """
+    Packages the generated strings into a dictionary for the UI.
+    Dynamically supports 2, 3, or 4 options by filtering out None values.
+    """
+    raw_options = [c_str, t_str, w_str, w2_str]
+    # Filter out None and remove duplicates, then shuffle
+    options = list(set([opt for opt in raw_options if opt is not None]))
+    random.shuffle(options)
+    
     return {
-        "problem_id": str(uuid.uuid4()),
-        "question": question_str,
-        "correct": f"$\\displaystyle {c_str}$",
-        "improper": f"$\\displaystyle {i_str}$",
-        "unsimplified": f"$\\displaystyle {u_str}$",
-        "trap": f"$\\displaystyle {t_str}$",
-        "wrong": f"$\\displaystyle {w_str}$",
-        "level_display": level_display 
+        'problem_id': str(uuid.uuid4()),
+        'question': q_str,
+        'correct': c_str,
+        'improper': i_str,     
+        'unsimplified': u_str, 
+        'trap': t_str,         
+        'wrong': w_str if w_str else "N/A",  
+        'wrong2': w2_str if w2_str else "N/A", 
+        'options': options,
+        'level_name': level_name
     }
 
 def clean_latex(latex_str):

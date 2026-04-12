@@ -152,7 +152,9 @@ with st.sidebar:
         st.rerun()
 
 st.title("🧮 Najlepszy nauczyciel matematyki")
-st.subheader("Temat: Dodawanie Ułamków")
+
+# --- FIX 1: DYNAMIC TOPIC TITLE ---
+st.subheader(f"Temat: {topic_map[st.session_state.selected_topic_order]['name']}")
 
 # Fetch initial problem if missing
 if 'current_problem' not in st.session_state:
@@ -164,7 +166,6 @@ problem: dict | None = st.session_state.current_problem
 stars_display = "⭐" * st.session_state.streak + "⬛" * (3 - st.session_state.streak)
 st.markdown(f"### Postęp do kolejnego poziomu: {stars_display}")
 
-# --- THE CRASH FIX ---
 # Default these to False so the engine doesn't crash if the problem fails to load!
 submitted = False
 admin_solve = False
@@ -174,14 +175,14 @@ if problem is None or "error" in problem:
 else:
     st.write("---")
     st.info(f"📍 {problem.get('level_display', 'Level ' + str(st.session_state.selected_level))}") 
+    
+    # --- FIX 2: ONLY ONE MATH PROBLEM RENDERED ---
     st.header("Zadanie:")
     st.latex(problem['question'].replace("Oblicz: ", "")) 
 
-    raw_options = [problem['correct'], problem['trap'], problem['wrong']]
+    # --- FIX 3: THE KEYERROR CRASH FIX ---
     if 'shuffled_options' not in st.session_state or st.session_state.get('last_id') != problem['problem_id']:
-        shuffled = raw_options.copy()
-        random.shuffle(shuffled)
-        st.session_state.shuffled_options = shuffled
+        st.session_state.shuffled_options = problem['options']
         st.session_state.last_id = problem['problem_id']
         st.session_state.problem_answered = False 
 
@@ -189,7 +190,9 @@ else:
     with st.form("answer_form", border=False):
         if st.session_state.current_input_mode == "radio":
             st.markdown("<style>.stRadio label { padding-bottom: 25px; padding-top: 10px; }</style>", unsafe_allow_html=True)
-            choice = st.radio("Wybierz wynik:", st.session_state.shuffled_options, index=None)
+            
+            # --- FIX 4: RAW STRING FIX (format_func makes the radio buttons render beautiful math) ---
+            choice = st.radio("Wybierz wynik:", st.session_state.shuffled_options, index=None, format_func=lambda x: f"${x}$")
             is_text_mode = False
         else:
             st.info("Wpisz wynik samodzielnie bez podpowiedzi.")
