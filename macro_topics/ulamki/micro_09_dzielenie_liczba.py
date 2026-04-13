@@ -8,11 +8,15 @@ def div_frac_int(level):
         k = random.randint(2, 5)
         
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} : {k}"
-        c_str, i_str, u_str = format_answers(n, d * k)
-        t_str, _, _ = format_answers(n * k, d) # Trap: Multiplied instead of divided
-        w_str, _, _ = format_answers(n + k, d * k)
         
-        if len({c_str, t_str, w_str}) == 3: return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
+        c_str, _, _ = format_answers(n, d * k)
+        t1, _, _ = format_answers(n * k, d) # Trap 1: Numerator multiplied
+        t2, _, _ = format_answers(n, d)     # Trap 2: Divided denominator (fails math but good distractor)
+        if d % k == 0: t2, _, _ = format_answers(n, d // k)
+        w1, _, _ = format_answers(n + k, d * k)
+        
+        if len({c_str, t1, t2, w1}) == 4: 
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
 
 def div_int_frac(level):
     while True:
@@ -21,11 +25,14 @@ def div_int_frac(level):
         n = random.randint(1, d - 1)
         
         q_str = rf"\text{{Oblicz: }} {k} : {format_fraction_question(n, d)}"
-        c_str, i_str, u_str = format_answers(k * d, n)
-        t_str, _, _ = format_answers(k * n, d) # Trap: Multiplied by top
-        w_str, _, _ = format_answers((k * d) + 1, n)
         
-        if len({c_str, t_str, w_str}) == 3: return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
+        c_str, _, _ = format_answers(k * d, n)
+        t1, _, _ = format_answers(k * n, d) # Trap 1: Num only, no invert
+        t2, _, _ = format_answers(n, k * d) # Trap 2: Denom straight, num bottom
+        w1, _, _ = format_answers((k * d) + 1, n)
+        
+        if len({c_str, t1, t2, w1}) == 4: 
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
 
 def div_mixed_int(level):
     while True:
@@ -33,12 +40,15 @@ def div_mixed_int(level):
         d = random.randint(2, 5)
         n = random.randint(1, d - 1)
         k = random.randint(2, 3)
-        if w % k != 0: continue # Make sure trap looks believable
+        if w % k != 0: continue 
         
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d, w)} : {k}"
-        correct_num = (w * d) + n
-        c_str, i_str, u_str = format_answers(correct_num, d * k)
-        t_str, _, _ = format_answers(n, d, w // k) # Trap: Divided only whole number
-        w_str, _, _ = format_answers(correct_num, d)
         
-        if len({c_str, t_str, w_str}) == 3: return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
+        correct_num = (w * d) + n
+        c_str, _, _ = format_answers(correct_num, d * k)
+        t1, _, _ = format_answers(n, d, w // k) # Trap 1: Wholes only
+        t2, _, _ = format_answers(correct_num * k, d) # Trap 2: Improper but straight across
+        w1, _, _ = format_answers(correct_num + 1, d * k)
+        
+        if len({c_str, t1, t2, w1}) == 4: 
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")

@@ -46,20 +46,38 @@ def get_problem_from_db(topic, level) -> dict | None:
     if df is None:
         return {"error": "Missing CSV"}
     
-    row = df[(df['Micro_Topic'] == topic) & (df['Level'] == level)]
+    # This filters the database and returns a DataFrame
+    filtered_df = df[(df['Micro_Topic'] == topic) & (df['Level'] == level)]
     
-    if not row.empty:
-        func_name = str(row.iloc[0]['Function_Name'])
-        current_level = int(row.iloc[0]['Level'])
+    if not filtered_df.empty:
+        # FIX: Explicitly grab the first row as a 1D object so we can read its strings!
+        row = filtered_df.iloc[0]
         
-        target_function = globals().get(func_name)
+        func_name = str(row['Function_Name']).strip()
+        problem_func = globals().get(func_name)
         
-        if callable(target_function):
-            problem_data = target_function(current_level)
-            
-            if isinstance(problem_data, dict):
-                problem_data['trap_message'] = str(row.iloc[0]['Trap_Message'])
-                problem_data['wrong_message'] = str(row.iloc[0]['Wrong_Message'])
-                return problem_data
-                
+        if not problem_func:
+            return {"error": f"Function {func_name} not found"}
+        
+        problem_dict = problem_func(level)
+        
+        # Helper to grab the message from CSV or fallback to the generic Wrong_Message
+        def get_msg(col_name):
+            val = row.get(col_name)
+            if pd.isna(val) or str(val).strip() in ["N/A", ""]:
+                return str(row['Wrong_Message']).strip()
+            return str(val).strip()
+
+        # Attach the CSV messages dynamically
+        problem_dict['messages'] = {
+            't1': get_msg('Trap1_Message'),
+            't2': get_msg('Trap2_Message'),
+            't3': get_msg('Trap3_Message'),
+            'w1': get_msg('Wrong_Message'),
+            'w2': get_msg('Wrong_Message')
+        }
+        
+        problem_dict['level_display'] = f"{row['Level_Name']} (Lvl {level})"
+        return problem_dict
+        
     return None

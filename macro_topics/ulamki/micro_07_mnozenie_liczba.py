@@ -7,15 +7,17 @@ def mult_frac_int_simple(level):
         d = random.randint(3, 9)
         n = random.randint(1, d - 1)
         k = random.randint(2, 5)
-        if math.gcd(d, k) > 1: continue # No cross-simplify
+        if math.gcd(d, k) > 1: continue 
         
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \cdot {k}"
-        c_str, i_str, u_str = format_answers(n * k, d)
-        t_str, _, _ = format_answers(n * k, d * k) # Trap: Multiply both
-        w_str, _, _ = format_answers(n * k + 1, d)
         
-        if len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
+        c_str, _, _ = format_answers(n * k, d)
+        t1, _, _ = format_answers(n * k, d * k) # Trap 1: Both
+        t2, _, _ = format_answers(n, d * k) # Trap 2: Denominator only
+        w1, _, _ = format_answers(n * k + 1, d)
+        
+        if len({c_str, t1, t2, w1}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
 
 def mult_frac_int_cross(level):
     while True:
@@ -26,12 +28,14 @@ def mult_frac_int_cross(level):
         if math.gcd(n, d) > 1: continue
         
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \cdot {k}"
-        c_str, i_str, u_str = format_answers(n * k, d)
-        t_str = rf"\frac{{{n * k}}}{{{d}}}" # Trap: Mathematically correct but unsimplified string
-        w_str, _, _ = format_answers(n * k, d + k)
         
-        if c_str != t_str and len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
+        c_str, _, _ = format_answers(n * k, d)
+        t1 = rf"\frac{{{n * k}}}{{{d}}}" # Trap 1: Mathematically correct but unsimplified string
+        t2, _, _ = format_answers(1, factor) # Trap 2: Horizontal simplify
+        w1, _, _ = format_answers(n * k + 1, d)
+        
+        if c_str != t1 and len({c_str, t1, t2, w1}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
 
 def mult_mixed_int(level):
     while True:
@@ -41,10 +45,11 @@ def mult_mixed_int(level):
         k = random.randint(2, 4)
         
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d, w)} \cdot {k}"
-        correct_num = ((w * d) + n) * k
-        c_str, i_str, u_str = format_answers(correct_num, d)
-        t_str, _, _ = format_answers(n * k, d, w) # Trap: Multiply only fraction
-        w_str, _, _ = format_answers(correct_num + 1, d)
         
-        if len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}")
+        c_str, _, _ = format_answers(((w * d) + n) * k, d)
+        t1, _, _ = format_answers(n * k, d, w) # Trap 1: Only fraction
+        t2, _, _ = format_answers(((w * d) + n) * k, d * k) # Trap 2: Everything
+        w1, _, _ = format_answers(((w * d) + n) * k + 1, d)
+        
+        if len({c_str, t1, t2, w1}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")

@@ -33,14 +33,31 @@ def format_fraction_question(n, d, w=None):
     else:
         return rf"\frac{{{n}}}{{{d}}}"
 
-def build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str=None, w2_str=None, level_name=""):
+def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t3=None, w1=None, w2=None, level_name=""):
     """
-    Packages the generated strings into a dictionary for the UI.
-    Dynamically supports 2, 3, or 4 options by filtering out None values.
+    Packages strings into a UI dictionary while mapping them to specific message IDs.
     """
-    raw_options = [c_str, t_str, w_str, w2_str]
-    # Filter out None and remove duplicates, then shuffle
-    options = list(set([opt for opt in raw_options if opt is not None]))
+    # Defensive fix: If old functions passed 'Poziom...' into one of the wrong answer slots positionally, shift it.
+    opts = [t1, t2, t3, w1, w2]
+    real_opts = []
+    for opt in opts:
+        if isinstance(opt, str) and opt.startswith("Poziom"):
+            level_name = opt
+        else:
+            real_opts.append(opt)
+            
+    t1, t2, t3, w1, w2 = (real_opts + [None]*5)[:5]
+
+    # Map the generated strings to their internal ID
+    options_map = {}
+    if c_str is not None: options_map[c_str] = "correct"
+    if t1 is not None: options_map[t1] = "t1"
+    if t2 is not None: options_map[t2] = "t2"
+    if t3 is not None: options_map[t3] = "t3"
+    if w1 is not None: options_map[w1] = "w1"
+    if w2 is not None: options_map[w2] = "w2"
+    
+    options = list(options_map.keys())
     random.shuffle(options)
     
     return {
@@ -49,10 +66,8 @@ def build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str=None, w2_str=Non
         'correct': c_str,
         'improper': i_str,     
         'unsimplified': u_str, 
-        'trap': t_str,         
-        'wrong': w_str if w_str else "N/A",  
-        'wrong2': w2_str if w2_str else "N/A", 
         'options': options,
+        'options_map': options_map, # Contains the exact ID mapping for the UI
         'level_name': level_name
     }
 

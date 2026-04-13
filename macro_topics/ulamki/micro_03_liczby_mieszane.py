@@ -9,23 +9,13 @@ def mixed_to_improper(level):
         
         q_str = rf"\text{{Zamień na ułamek niewłaściwy: }} {format_fraction_question(n, d, w)}"
         
-        # Correct: (Whole * Denominator) + Numerator
-        correct_num = (w * d) + n
-        c_str = rf"\frac{{{correct_num}}}{{{d}}}"
+        c_str = rf"\frac{{{(w * d) + n}}}{{{d}}}"
+        t1 = rf"\frac{{{(w * d) * n}}}{{{d}}}"     # Trap 1: Multiplied numerator
+        t2 = rf"\frac{{{w + n}}}{{{d}}}"           # Trap 2: Added whole directly
+        t3 = rf"\frac{{{(w * d) + n}}}{{{d * w}}}" # Trap 3: Multiplied denominator too
         
-        # TRAP: Multiplied the numerator instead of adding it -> (w * d) * n
-        trap_num = (w * d) * n
-        t_str = rf"\frac{{{trap_num}}}{{{d}}}"
-        
-        # WRONG: Simple math error in the addition
-        wrong_num = correct_num + random.choice([-1, 1])
-        if wrong_num == trap_num:
-            wrong_num += 1
-        w_str = rf"\frac{{{wrong_num}}}{{{d}}}"
-        
-        if len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, c_str, c_str, t_str, w_str, f"Poziom {level}: Zamiana na ułamek niewłaściwy")
-
+        if len({c_str, t1, t2, t3}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
 
 def improper_to_mixed(level):
     while True:
@@ -33,21 +23,16 @@ def improper_to_mixed(level):
         d = random.randint(2, 9)
         n = random.randint(1, d - 1)
         
-        # Build the starting improper fraction
         start_n = (w * d) + n
         q_str = rf"\text{{Wyłącz całości z ułamka: }} \frac{{{start_n}}}{{{d}}}"
         
-        # Correct: Proper mixed number
         c_str = format_fraction_question(n, d, w)
+        t1 = str(w)                                # Trap 1: Forgot remainder entirely
+        t2 = format_fraction_question(d, n, w)     # Trap 2: Swapped remainder & den
         
-        # TRAP: Forgot the remainder entirely, just outputs the whole number
-        t_str = str(w) 
+        w_wrong = w + random.choice([-1, 1])
+        if w_wrong < 1: w_wrong = w + 2
+        w1 = format_fraction_question(n, d, w_wrong) # Wrong 1: Math error
         
-        # WRONG: Miscalculated the whole number by 1
-        wrong_w = w + random.choice([-1, 1])
-        if wrong_w < 1: 
-            wrong_w = w + 2
-        w_str = format_fraction_question(n, d, wrong_w)
-        
-        if len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, c_str, c_str, t_str, w_str, f"Poziom {level}: Wyłączanie całości")
+        if len({c_str, t1, t2, w1}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")

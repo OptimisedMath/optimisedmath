@@ -9,14 +9,10 @@ def fraction_as_division(level):
 
         q_str = rf"\text{{Zapisz dzielenie jako ułamek: }} {n} : {d}"
         
-        # Correct: First number is top, second is bottom
         c_str = rf"\frac{{{n}}}{{{d}}}"
+        t1 = rf"\frac{{{d}}}{{{n}}}"                  # Trap 1: Reversed
+        t2 = rf"\frac{{{n}}}{{{n+d}}}"                # Trap 2: Added to denominator
+        w1 = rf"\frac{{{n}}}{{{d + random.choice([-1, 1])}}}" # Wrong 1: Math error
         
-        # TRAP: Reversed the numbers (e.g., d / n)
-        t_str = rf"\frac{{{d}}}{{{n}}}" 
-        
-        # WRONG: Just a random wrong denominator
-        w_str = rf"\frac{{{n}}}{{{d + 1}}}"
-        
-        if len({c_str, t_str, w_str}) == 3:
-            return build_problem_dict(q_str, c_str, c_str, c_str, t_str, w_str, f"Poziom {level}: Dzielenie jako ułamek")
+        if len({c_str, t1, t2, w1}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")

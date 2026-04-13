@@ -1,60 +1,91 @@
 import random
+import math
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
 def subtract_fractions_simple(level):
     while True:
-        den = random.randint(3, 9) if level == 1 else random.randint(10, 20) 
-        n1 = random.randint(2, den - 1)
-        n2 = random.randint(1, n1 - 1) 
+        d = random.randint(3, 9)
+        n1 = random.randint(2, d - 1)
+        n2 = random.randint(1, n1 - 1)
         
-        c_str, i_str, u_str = format_answers(n1 - n2, den)
+        q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d}}} - \frac{{{n2}}}{{{d}}}"
         
-        trap_num = n1 - n2
-        t_str = rf"\frac{{{trap_num}}}{{0}}" 
+        c_str, _, _ = format_answers(n1 - n2, d)
+        t1 = "0" # Trap 1: Subtracted denominators
+        w1, _, _ = format_answers(max(1, n1 - n2 - 1), d)
+        w2, _, _ = format_answers(n1 - n2 + 1, d)
         
-        error = random.choice([-1, 1])
-        wrong_num = (n1 - n2) + error
-        if wrong_num <= 0: 
-            wrong_num = (n1 - n2) + 1 
-            
-        w_str, _, _ = format_answers(wrong_num, den) 
-        
-        if len({c_str, t_str, w_str}) == 3:
-            q_str = f"Oblicz: {format_fraction_question(n1, den)} - {format_fraction_question(n2, den)}"
-            return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Odejmowanie")
+        if len({c_str, t1, w1, w2}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, w1=w1, w2=w2, level_name=f"Poziom {level}")
 
 def subtract_fractions_single_conversion(level):
-    pairs = [(2, 4), (2, 6), (2, 8), (3, 6), (3, 9), (4, 8), (5, 10)]
     while True:
-        d1, d2 = random.choice(pairs)
+        d1 = random.randint(2, 5)
+        factor = random.randint(2, 4)
+        d2 = d1 * factor
+        n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
+        if (n1 * factor) <= n2: continue
         
-        smaller_d, larger_d = min(d1, d2), max(d1, d2)
-        n_smaller = random.randint(1, smaller_d - 1)
-        n_larger = random.randint(1, larger_d - 1)
+        q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
         
-        val_small = n_smaller / smaller_d
-        val_large = n_larger / larger_d
+        c_str, _, _ = format_answers((n1 * factor) - n2, d2)
+        t1, _, _ = format_answers(abs(n1 - n2), d2) # Trap 1: Unexpanded
+        t2, _, _ = format_answers(abs(n1 - n2), abs(d1 - d2) if d1 != d2 else 1) # Trap 2: Straight across
+        w1, _, _ = format_answers((n1 * factor) - n2 + 1, d2)
         
-        if val_small == val_large: 
-            continue 
-            
-        if val_small > val_large:
-            n1, d1 = n_smaller, smaller_d
-            n2, d2 = n_larger, larger_d
-        else:
-            n1, d1 = n_larger, larger_d
-            n2, d2 = n_smaller, smaller_d
-            
-        num1_scaled = n1 * (larger_d // d1)
-        num2_scaled = n2 * (larger_d // d2)
+        if len({c_str, t1, t2, w1}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+
+def subtract_fractions_complex(level):
+    while True:
+        d1, d2 = random.randint(3, 7), random.randint(3, 7)
+        if math.gcd(d1, d2) > 1 or d1 == d2: continue
+        n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
+        if (n1 * d2) <= (n2 * d1): continue
         
-        c_str, i_str, u_str = format_answers(num1_scaled - num2_scaled, larger_d)
+        q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
         
-        trap_num = abs(n1 - n2) or 1 
-        t_str, _, _ = format_answers(trap_num, larger_d)
+        c_str, _, _ = format_answers((n1 * d2) - (n2 * d1), d1 * d2)
+        t1, _, _ = format_answers(abs(n1 - n2), abs(d1 - d2)) # Trap 1: Straight across
+        t2, _, _ = format_answers(abs(n1 - n2), d1 * d2) # Trap 2: Unexpanded
+        t3, _, _ = format_answers((n1 * d2) + (n2 * d1), d1 * d2) # Trap 3: Added
         
-        w_str, _, _ = format_answers(n1 * n2, larger_d)
+        if len({c_str, t1, t2, t3}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+
+def subtract_mixed_numbers_easy(level):
+    while True:
+        w1, w2 = random.randint(2, 4), random.randint(1, 2)
+        if w1 <= w2: continue
+        d = random.randint(3, 7)
+        n1, n2 = random.randint(2, d - 1), random.randint(1, d - 2)
+        if n1 <= n2: continue
         
-        if len({c_str, t_str, w_str}) == 3:
-            q_str = f"Oblicz: {format_fraction_question(n1, d1)} - {format_fraction_question(n2, d2)}"
-            return build_problem_dict(q_str, c_str, i_str, u_str, t_str, w_str, f"Poziom {level}: Pojedyncze rozszerzenie")
+        q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, w1)} - {format_fraction_question(n2, d, w2)}"
+        
+        c_str, _, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
+        t1, _, _ = format_answers(n1 - n2, 1, w1 - w2) # Trap 1: Subtracted dens -> 0, basically making it a whole number
+        t2, _, _ = format_answers(n1 - n2, d) # Trap 2: Ignored wholes
+        w1_str, _, _ = format_answers((w1 * d + n1) - (w2 * d + n2) + d, d) 
+        
+        if len({c_str, t1, t2, w1_str}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1_str, level_name=f"Poziom {level}")
+
+def subtract_mixed_numbers_boss(level):
+    while True:
+        w1, w2 = random.randint(2, 4), random.randint(1, 2)
+        if w1 <= w2: continue
+        d = random.randint(3, 7)
+        n1, n2 = random.randint(1, d - 2), random.randint(2, d - 1)
+        if n1 >= n2: continue
+        
+        q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, w1)} - {format_fraction_question(n2, d, w2)}"
+        
+        # Proper borrowing math
+        c_str, _, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
+        t1, _, _ = format_answers(n2 - n1, d, w1 - w2) # Trap 1: Backwards
+        t2, _, _ = format_answers((n1 + 10) - n2, d, (w1 - 1) - w2) # Trap 2: Added 10
+        t3, _, _ = format_answers((d + n1) - n2, d, w1 - w2) # Trap 3: Forgot to decrease whole
+        
+        if len({c_str, t1, t2, t3}) == 4:
+            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")

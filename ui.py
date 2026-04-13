@@ -239,23 +239,30 @@ if admin_solve or submitted:
         else:
             if not is_text_mode:
                 st.session_state.problem_answered = True 
-                if choice == problem['correct']:
+                # Grab the ID (e.g., 't1', 't2', 'w1') of the chosen option
+                answer_type = problem['options_map'].get(choice, "w1")
+                
+                if answer_type == "correct":
                     is_correct = True
-                elif choice == problem['trap']:
-                    st.session_state.feedback_type = "error"
-                    st.session_state.feedback_msg = problem['trap_message']
                 else:
-                    st.session_state.feedback_type = "warning"
-                    st.session_state.feedback_msg = problem['wrong_message']
+                    st.session_state.feedback_type = "error" if answer_type.startswith("t") else "warning"
+                    st.session_state.feedback_msg = problem['messages'].get(answer_type, problem['messages']['w1'])
             else:
-                if check_text_answer(problem['correct'], user_text):
+                # Text Mode: Check the user's string against all available options mathematically
+                answer_type = None
+                for opt_str, opt_id in problem['options_map'].items():
+                    if check_text_answer(opt_str, user_text):
+                        answer_type = opt_id
+                        break
+                
+                if answer_type == "correct":
                     is_correct = True
                     st.session_state.problem_answered = True 
                 
-                elif check_text_answer(problem['trap'], user_text):
+                elif answer_type is not None:
                     st.session_state.problem_answered = True
-                    st.session_state.feedback_type = "error"
-                    st.session_state.feedback_msg = problem['trap_message']
+                    st.session_state.feedback_type = "error" if answer_type.startswith("t") else "warning"
+                    st.session_state.feedback_msg = problem['messages'].get(answer_type, problem['messages']['w1'])
                     
                 else:
                     student_val = parse_to_fraction(user_text)
@@ -267,7 +274,7 @@ if admin_solve or submitted:
                         st.session_state.feedback_msg = "Niepoprawny zapis. Użyj cyfr i ukośnika (np. 3/4 lub 1 1/2)."
                     
                     elif correct_val is not None and student_val == correct_val:
-                        # TOPIC 2 EXCEPTION: Prevent the "simplify" warning if they are in the expansion/simplification topic
+                        # TOPIC 2 EXCEPTION
                         if st.session_state.selected_topic_order == 2:
                             st.session_state.problem_answered = True 
                             st.session_state.feedback_type = "warning"
@@ -281,7 +288,7 @@ if admin_solve or submitted:
                     else:
                         st.session_state.problem_answered = True 
                         st.session_state.feedback_type = "warning"
-                        st.session_state.feedback_msg = "Niestety, to nie jest poprawny wynik. Spróbuj przeliczyć to jeszcze raz!"
+                        st.session_state.feedback_msg = problem['messages']['w1']
         
     # --- 3. REWARD & PROGRESSION LOGIC (Runs for BOTH Auto-Solve and Normal) ---
     if is_correct:
