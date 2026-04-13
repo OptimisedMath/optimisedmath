@@ -5,7 +5,8 @@ import streamlit as st
 # UŁAMKI ZWYKŁE
 from macro_topics.ulamki_zwykle.micro_01_zapisywanie import *
 from macro_topics.ulamki_zwykle.micro_02_rozszerzanie import *
-from macro_topics.ulamki_zwykle.micro_03_liczby_mieszane import * from macro_topics.ulamki_zwykle.micro_04_porownywanie import *
+from macro_topics.ulamki_zwykle.micro_03_liczby_mieszane import * 
+from macro_topics.ulamki_zwykle.micro_04_porownywanie import *
 from macro_topics.ulamki_zwykle.micro_05_dodawanie import *
 from macro_topics.ulamki_zwykle.micro_06_odejmowanie import *
 from macro_topics.ulamki_zwykle.micro_07_mnozenie_liczba import *
