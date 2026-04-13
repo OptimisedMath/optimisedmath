@@ -2,55 +2,66 @@ import pandas as pd
 import os
 import streamlit as st
 
-# Import the math functions into memory so the Auto-Librarian can find them
-from macro_topics.ulamki.micro_01_zapisywanie import *
-from macro_topics.ulamki.micro_02_rozszerzanie import *
-from macro_topics.ulamki.micro_03_liczby_mieszane import * 
-from macro_topics.ulamki.micro_04_porownywanie import *
-from macro_topics.ulamki.micro_05_dodawanie import *
-from macro_topics.ulamki.micro_06_odejmowanie import *
-from macro_topics.ulamki.micro_07_mnozenie_liczba import *
-from macro_topics.ulamki.micro_08_mnozenie_ulamkow import *
-from macro_topics.ulamki.micro_09_dzielenie_liczba import *
-from macro_topics.ulamki.micro_10_dzielenie_ulamkow import *
-from macro_topics.ulamki.micro_11_potegowanie import *
-from macro_topics.ulamki.micro_12_ulamek_liczby import *
-from macro_topics.ulamki.micro_13_kolejnosc import *
+# UŁAMKI ZWYKŁE
+from macro_topics.ulamki_zwykle.micro_01_zapisywanie import *
+from macro_topics.ulamki_zwykle.micro_02_rozszerzanie import *
+from macro_topics.ulamki_zwykle.micro_03_liczby_mieszane import * from macro_topics.ulamki_zwykle.micro_04_porownywanie import *
+from macro_topics.ulamki_zwykle.micro_05_dodawanie import *
+from macro_topics.ulamki_zwykle.micro_06_odejmowanie import *
+from macro_topics.ulamki_zwykle.micro_07_mnozenie_liczba import *
+from macro_topics.ulamki_zwykle.micro_08_mnozenie_ulamkow import *
+from macro_topics.ulamki_zwykle.micro_09_dzielenie_liczba import *
+from macro_topics.ulamki_zwykle.micro_10_dzielenie_ulamkow import *
+from macro_topics.ulamki_zwykle.micro_11_potegowanie import *
+from macro_topics.ulamki_zwykle.micro_12_ulamek_liczby import *
+from macro_topics.ulamki_zwykle.micro_13_kolejnosc import *
 
+# UŁAMKI DZIESIĘTNE
+from macro_topics.ulamki_dziesietne.micro_01_zamiana import *
+from macro_topics.ulamki_dziesietne.micro_02_porownywanie import *
+from macro_topics.ulamki_dziesietne.micro_03_dodawanie import *
+from macro_topics.ulamki_dziesietne.micro_04_odejmowanie import *
+from macro_topics.ulamki_dziesietne.micro_05_przesuwanie import *
+from macro_topics.ulamki_dziesietne.micro_06_mnozenie import *
+from macro_topics.ulamki_dziesietne.micro_07_dzielenie import *
+from macro_topics.ulamki_dziesietne.micro_08_kolejnosc import *
+from macro_topics.ulamki_dziesietne.micro_09_jednostki import *
 
 DATA_FILE = 'Courses_Data.csv'
 
-# @st.cache_data -> for later
 def load_csv():
     """Loads the CSV into RAM once."""
     if not os.path.exists(DATA_FILE):
         return None
     return pd.read_csv(DATA_FILE, sep=';')
 
-def get_curriculum() -> list[dict]:
-    """Scans the CSV to build the dynamic topic menu."""
+def get_curriculum() -> dict:
+    """Returns a nested dictionary: { 'Macro_Topic_1': [ {Topic_Order, Micro_Topic, max_level}, ... ], ... }"""
     df = load_csv()
-    if df is None: return []
+    if df is None: return {}
     
     valid_df = df[df['Function_Name'] != 'TBD']
-    if valid_df.empty: return []
+    if valid_df.empty: return {}
     
-    curriculum = valid_df.groupby(['Topic_Order', 'Micro_Topic'])['Level'].max().reset_index()
-    curriculum = curriculum.sort_values('Topic_Order')
-    
-    return curriculum.to_dict('records')
+    curriculum_dict = {}
+    # Group by Macro_Topic, keeping the original order they appear in the CSV
+    for macro, group in valid_df.groupby('Macro_Topic', sort=False):
+        micro_group = group.groupby(['Topic_Order', 'Micro_Topic'], sort=False)['Level'].max().reset_index()
+        micro_group = micro_group.sort_values('Topic_Order')
+        curriculum_dict[macro] = micro_group.to_dict('records')
+        
+    return curriculum_dict
 
-def get_problem_from_db(topic, level) -> dict | None:
-    """The Auto-Librarian: Finds the right problem based on the CSV."""
+def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
+    """The Auto-Librarian: Finds the right problem based on the CSV. Now requires Macro Topic."""
     df = load_csv()
     if df is None:
         return {"error": "Missing CSV"}
     
-    # This filters the database and returns a DataFrame
-    filtered_df = df[(df['Micro_Topic'] == topic) & (df['Level'] == level)]
+    # Filter by Macro_Topic, Micro_Topic, and Level
+    filtered_df = df[(df['Macro_Topic'] == macro_topic) & (df['Micro_Topic'] == micro_topic) & (df['Level'] == level)]
     
     if not filtered_df.empty:
-        # FIX: Explicitly grab the first row as a 1D object so we can read its strings!
         row = filtered_df.iloc[0]
         
         func_name = str(row['Function_Name']).strip()

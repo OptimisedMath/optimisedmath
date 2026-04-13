@@ -107,3 +107,9 @@ def check_text_answer(correct_latex, user_text):
     clean_correct = clean_latex(correct_latex).replace(" ", "")
     clean_user = user_text.replace(" ", "")
     return clean_correct == clean_user
+
+def fmt_dec(val):
+    """Formats a Python float/decimal into a Polish string (e.g., 2.5 -> 2,5)"""
+    # Remove unnecessary trailing zeros and decimal points for whole numbers
+    s = f"{val:g}" 
+    return s.replace(".", ",")
