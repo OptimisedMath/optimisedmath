@@ -4,7 +4,6 @@ import random
 import re
 import streamlit.components.v1 as components
 from fractions import Fraction
-from core.utils import check_text_answer, parse_to_fraction
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
@@ -237,92 +236,24 @@ else:
 # --- 3. CHECK LOGIC & GAMIFICATION ---
 if admin_solve or submitted:
     is_correct = False
-    is_improper_but_correct = False
 
     if admin_solve:
         is_correct = True
         st.session_state.problem_answered = True
         
     else:
-        if not is_text_mode and not choice:
-            st.session_state.feedback_type = "warning"
-            st.session_state.feedback_msg = "Najpierw wybierz odpowiedź!"
+        # THE UI IS DUMB: It just asks the Engine to grade the answer!
+        user_input = user_text if is_text_mode else choice
+        eval_result = engine.evaluate_answer(problem, user_input, is_text_mode)
+        
+        is_correct = eval_result["is_correct"]
+        st.session_state.problem_answered = eval_result["lock_answer"]
+        st.session_state.feedback_type = eval_result["feedback_type"]
+        st.session_state.feedback_msg = eval_result["feedback_msg"]
+        
+        # If the input was empty, stop executing and show the warning
+        if not user_input:
             st.rerun()
-        elif is_text_mode and not user_text:
-            st.session_state.feedback_type = "warning"
-            st.session_state.feedback_msg = "Wpisz swój wynik w puste pole!"
-            st.rerun()
-        else:
-            correct_val = parse_to_fraction(problem['correct'])
-            
-            if not is_text_mode:
-                answer_type = problem['options_map'].get(choice, "w1")
-                student_val = parse_to_fraction(choice)
-                
-                if answer_type == "correct":
-                    is_correct = True
-                    st.session_state.problem_answered = True
-                    
-                elif student_val is not None and correct_val is not None and student_val == correct_val:
-                    if st.session_state.selected_macro == "Ułamki zwykłe" and st.session_state.selected_topic_order == 2:
-                        st.session_state.problem_answered = True 
-                        st.session_state.feedback_type = "warning"
-                        st.session_state.feedback_msg = problem['messages'].get(answer_type, "W tym temacie wartość matematyczna to nie wszystko. Musisz zapisać ułamek w żądanej postaci!")
-                    else:
-                        st.session_state.problem_answered = False 
-                        st.session_state.feedback_type = "info"
-                        custom_msg = problem['messages'].get(answer_type, problem['messages']['w1'])
-                        if custom_msg == problem['messages']['w1']: 
-                            custom_msg = "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!"
-                        st.session_state.feedback_msg = custom_msg
-                else:
-                    st.session_state.problem_answered = True 
-                    st.session_state.feedback_type = "error" if answer_type.startswith("t") else "warning"
-                    st.session_state.feedback_msg = problem['messages'].get(answer_type, problem['messages']['w1'])
-                    
-            else:
-                answer_type = None
-                for opt_str, opt_id in problem['options_map'].items():
-                    if check_text_answer(opt_str, user_text):
-                        answer_type = opt_id
-                        break
-                
-                student_val = parse_to_fraction(user_text)
-                
-                if answer_type == "correct":
-                    is_correct = True
-                    st.session_state.problem_answered = True 
-                
-                elif answer_type is not None:
-                    if student_val is not None and correct_val is not None and student_val == correct_val and not (st.session_state.selected_macro == "Ułamki zwykłe" and st.session_state.selected_topic_order == 2):
-                        st.session_state.problem_answered = False 
-                        st.session_state.feedback_type = "info"
-                        st.session_state.feedback_msg = problem['messages'].get(answer_type, "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!")
-                    else:
-                        st.session_state.problem_answered = True
-                        st.session_state.feedback_type = "error" if answer_type.startswith("t") else "warning"
-                        st.session_state.feedback_msg = problem['messages'].get(answer_type, problem['messages']['w1'])
-                    
-                else:
-                    if student_val is None:
-                        st.session_state.problem_answered = False 
-                        st.session_state.feedback_type = "warning"
-                        st.session_state.feedback_msg = "Niepoprawny zapis matematyczny."
-                    
-                    elif correct_val is not None and student_val == correct_val:
-                        if st.session_state.selected_macro == "Ułamki zwykłe" and st.session_state.selected_topic_order == 2:
-                            st.session_state.problem_answered = True 
-                            st.session_state.feedback_type = "warning"
-                            st.session_state.feedback_msg = "W tym temacie wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!"
-                        else:
-                            st.session_state.problem_answered = False 
-                            st.session_state.feedback_type = "info"
-                            st.session_state.feedback_msg = "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!"
-                    
-                    else:
-                        st.session_state.problem_answered = True 
-                        st.session_state.feedback_type = "warning"
-                        st.session_state.feedback_msg = problem['messages']['w1']
         
     # --- 3. REWARD & PROGRESSION LOGIC ---
     if is_correct:
@@ -350,7 +281,8 @@ if admin_solve or submitted:
                 st.session_state.show_balloons = "topic"
                 st.session_state.streak = 0
     
-    elif not is_correct and not is_improper_but_correct and st.session_state.streak > 0:
+    # Penalize streak ONLY if it's a hard error, not a soft "info" warning
+    elif not is_correct and st.session_state.streak > 0:
         if st.session_state.feedback_type != "info":
             st.session_state.streak -= 1
     
@@ -432,6 +364,7 @@ if st.session_state.problem_answered:
             st.session_state.problem_answered = False
             st.session_state.feedback_type = None 
             
+            # Decimals have commas, so "text" mode relies on check_text_answer supporting it
             if st.session_state.streak >= 2 and "Porównywanie" not in topic_map[st.session_state.selected_topic_order]['name']:
                 st.session_state.current_input_mode = "text"
             else:

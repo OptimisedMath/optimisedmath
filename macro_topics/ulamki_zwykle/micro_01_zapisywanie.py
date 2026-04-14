@@ -15,4 +15,4 @@ def fraction_as_division(level):
         w1 = rf"\frac{{{n}}}{{{d + random.choice([-1, 1])}}}" # Wrong 1: Math error
         
         if len({c_str, t1, t2, w1}) == 4:
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+                    return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", grading_policy="equivalent_accepted")

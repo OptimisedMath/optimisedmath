@@ -2,7 +2,6 @@ import math
 import uuid
 import re
 from fractions import Fraction
-import streamlit.components.v1 as components
 import random
 
 def format_answers(num, den, whole=0):
@@ -33,9 +32,10 @@ def format_fraction_question(n, d, w=None):
     else:
         return rf"\frac{{{n}}}{{{d}}}"
 
-def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t3=None, w1=None, w2=None, level_name=""):
+def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t3=None, w1=None, w2=None, level_name="", grading_policy="standard"):
     """
     Packages strings into a UI dictionary while mapping them to specific message IDs.
+    grading_policy options: "standard", "exact_match_only", "equivalent_accepted"
     """
     # Defensive fix: If old functions passed 'Poziom...' into one of the wrong answer slots positionally, shift it.
     opts = [t1, t2, t3, w1, w2]
@@ -68,7 +68,8 @@ def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t
         'unsimplified': u_str, 
         'options': options,
         'options_map': options_map, # Contains the exact ID mapping for the UI
-        'level_name': level_name
+        'level_name': level_name,
+        'grading_policy': grading_policy # <-- The Engine reads this!
     }
 
 def clean_latex(latex_str):
@@ -80,6 +81,11 @@ def clean_latex(latex_str):
 def parse_to_fraction(val_str):
     """Safely converts either a LaTeX string or a user's text input into a mathematical Fraction object."""
     try:
+        # Convert decimal strings like "0,6" or "0.6" into a fraction so Decimals engine can grade them properly
+        if "," in val_str or "." in val_str:
+            clean_val = val_str.replace(",", ".").strip()
+            return Fraction(clean_val)
+
         if "displaystyle" in val_str or "\\frac" in val_str:
             val_str = clean_latex(val_str)
         
