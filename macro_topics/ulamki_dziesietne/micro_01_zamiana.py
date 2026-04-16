@@ -61,3 +61,21 @@ def mixed_to_dec(level):
         
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
         if result: return result
+
+def frac_to_dec_infinite(level):
+    while True:
+        d = random.choice([3, 9])
+        n = random.randint(1, d - 1)
+        
+        q_str = rf"\text{{Rozwiń ułamek (zapisz w okresie): }} \frac{{{n}}}{{{d}}}"
+        
+        # 1/3 = 0,(3) and 1/9 = 0,(1)
+        val = int((n/d) * 10)
+        c_str = f"0,({val})"
+        
+        t1 = f"0,{val}" # Student forgets the period brackets
+        t2 = f"0,0({val})"
+        w1 = f"0,({val + 1})"
+        
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result

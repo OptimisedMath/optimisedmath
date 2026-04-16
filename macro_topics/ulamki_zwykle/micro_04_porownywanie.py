@@ -52,11 +52,11 @@ def compare_fractions_diff_den(level):
         v1, v2 = n1 / d1, n2 / d2
         
         if v1 < v2:
-            c_str, t1, w1 = "<", ">", "="
+            result = build_problem_dict(q_str, "<", t1=">", t2="=", level_name=f"Poziom {level}")
+            if result: return result
         elif v1 > v2:
-            c_str, t1, w1 = ">", "<", "="
+            result = build_problem_dict(q_str, ">", t1="<", t2="=", level_name=f"Poziom {level}")
+            if result: return result
         else:
-            c_str, t1, w1 = "=", "<", ">"
-            
-        result = build_problem_dict(q_str, c_str, t1=t1, w1=w1, level_name=f"Poziom {level}")
-        if result: return result
+            result = build_problem_dict(q_str, "=", t3="<", w1=">", level_name=f"Poziom {level}")
+            if result: return result

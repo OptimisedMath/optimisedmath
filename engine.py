@@ -19,7 +19,8 @@ for file_path in macro_path.rglob("*.py"):
 
 def load_csv():
     if not os.path.exists(DATA_FILE): return None
-    return pd.read_csv(DATA_FILE, sep=';')
+    # FIX: Force UTF-8 encoding so the app doesn't crash on Windows machines
+    return pd.read_csv(DATA_FILE, sep=';', encoding='utf-8')
 
 def get_curriculum() -> dict:
     df = load_csv()

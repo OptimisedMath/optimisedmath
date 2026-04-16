@@ -32,3 +32,18 @@ def unit_mass(level):
         
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
         if result: return result
+
+def unit_money(level):
+    while True:
+        zl = random.randint(2, 15)
+        gr = random.randint(1, 9) # Single digit grosze forces the "0" trap (e.g. 5.08)
+        
+        q_str = rf"\text{{Zamień na złote: }} {zl} \text{{ zł }} {gr} \text{{ gr}}"
+        c_str = fmt_dec(zl + (gr / 100))
+        
+        t1 = fmt_dec(zl + (gr / 10)) # Trap: 5.8 instead of 5.08
+        t2 = f"{zl},{gr}0"
+        w1 = fmt_dec(zl + ((gr + 1) / 100))
+        
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
