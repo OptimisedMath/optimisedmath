@@ -10,13 +10,13 @@ def div_frac_int(level):
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} : {k}"
         
         c_str, _, _ = format_answers(n, d * k)
-        t1, _, _ = format_answers(n * k, d) # Trap 1: Numerator multiplied
-        t2, _, _ = format_answers(n, d)     # Trap 2: Divided denominator (fails math but good distractor)
+        t1, _, _ = format_answers(n * k, d) 
+        t2, _, _ = format_answers(n, d)     
         if d % k == 0: t2, _, _ = format_answers(n, d // k)
         w1, _, _ = format_answers(n + k, d * k)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def div_int_frac(level):
     while True:
@@ -27,12 +27,12 @@ def div_int_frac(level):
         q_str = rf"\text{{Oblicz: }} {k} : {format_fraction_question(n, d)}"
         
         c_str, _, _ = format_answers(k * d, n)
-        t1, _, _ = format_answers(k * n, d) # Trap 1: Num only, no invert
-        t2, _, _ = format_answers(n, k * d) # Trap 2: Denom straight, num bottom
+        t1, _, _ = format_answers(k * n, d) 
+        t2, _, _ = format_answers(n, k * d) 
         w1, _, _ = format_answers((k * d) + 1, n)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def div_mixed_int(level):
     while True:
@@ -46,9 +46,9 @@ def div_mixed_int(level):
         
         correct_num = (w * d) + n
         c_str, _, _ = format_answers(correct_num, d * k)
-        t1, _, _ = format_answers(n, d, w // k) # Trap 1: Wholes only
-        t2, _, _ = format_answers(correct_num * k, d) # Trap 2: Improper but straight across
+        t1, _, _ = format_answers(n, d, w // k) 
+        t2, _, _ = format_answers(correct_num * k, d) 
         w1, _, _ = format_answers(correct_num + 1, d * k)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result

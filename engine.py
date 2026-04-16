@@ -1,35 +1,21 @@
 import pandas as pd
 import os
+import importlib
+from pathlib import Path
 import streamlit as st
+
+# --- MISSING IMPORT FIX ---
 from core.utils import check_text_answer, parse_to_fraction
 
-# UŁAMKI ZWYKŁE
-from macro_topics.ulamki_zwykle.micro_01_zapisywanie import *
-from macro_topics.ulamki_zwykle.micro_02_rozszerzanie import *
-from macro_topics.ulamki_zwykle.micro_03_liczby_mieszane import *
-from macro_topics.ulamki_zwykle.micro_04_porownywanie import *
-from macro_topics.ulamki_zwykle.micro_05_dodawanie import *
-from macro_topics.ulamki_zwykle.micro_06_odejmowanie import *
-from macro_topics.ulamki_zwykle.micro_07_mnozenie_liczba import *
-from macro_topics.ulamki_zwykle.micro_08_mnozenie_ulamkow import *
-from macro_topics.ulamki_zwykle.micro_09_dzielenie_liczba import *
-from macro_topics.ulamki_zwykle.micro_10_dzielenie_ulamkow import *
-from macro_topics.ulamki_zwykle.micro_11_potegowanie import *
-from macro_topics.ulamki_zwykle.micro_12_ulamek_liczby import *
-from macro_topics.ulamki_zwykle.micro_13_kolejnosc import *
-
-# UŁAMKI DZIESIĘTNE
-from macro_topics.ulamki_dziesietne.micro_01_zamiana import *
-from macro_topics.ulamki_dziesietne.micro_02_porownywanie import *
-from macro_topics.ulamki_dziesietne.micro_03_dodawanie import *
-from macro_topics.ulamki_dziesietne.micro_04_odejmowanie import *
-from macro_topics.ulamki_dziesietne.micro_05_przesuwanie import *
-from macro_topics.ulamki_dziesietne.micro_06_mnozenie import *
-from macro_topics.ulamki_dziesietne.micro_07_dzielenie import *
-from macro_topics.ulamki_dziesietne.micro_08_kolejnosc import *
-from macro_topics.ulamki_dziesietne.micro_09_jednostki import *
-
 DATA_FILE = 'Courses_Data.csv'
+
+# --- THE AUTOLOADER ---
+macro_path = Path(__file__).parent / "macro_topics"
+for file_path in macro_path.rglob("*.py"):
+    if file_path.name.startswith("__"): continue
+    module_path = ".".join(file_path.relative_to(Path(__file__).parent).parts)[:-3]
+    module = importlib.import_module(module_path)
+    globals().update({k: v for k, v in module.__dict__.items() if not k.startswith("_")})
 
 def load_csv():
     if not os.path.exists(DATA_FILE): return None

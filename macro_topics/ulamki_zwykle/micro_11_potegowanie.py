@@ -10,12 +10,12 @@ def pow_frac(level):
         q_str = rf"\text{{Oblicz: }} \left( {format_fraction_question(n, d)} \right)^{p}"
         
         c_str, _, _ = format_answers(n**p, d**p)
-        t1, _, _ = format_answers(n**p, d) # Trap 1: Only num
-        t2, _, _ = format_answers(n * p, d * p) # Trap 2: Multiplied by exp
+        t1, _, _ = format_answers(n**p, d) 
+        t2, _, _ = format_answers(n * p, d * p) 
         w1, _, _ = format_answers((n**p) + 1, d**p)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def pow_mixed(level):
     while True:
@@ -27,9 +27,9 @@ def pow_mixed(level):
         
         num = (w * d) + n
         c_str, _, _ = format_answers(num**2, d**2)
-        t1, _, _ = format_answers(n**2, d**2, w**2) # Trap 1: Wholes separately
-        t2, _, _ = format_answers(num**2, d) # Trap 2: Forgot denominator
+        t1, _, _ = format_answers(n**2, d**2, w**2) 
+        t2, _, _ = format_answers(num**2, d) 
         w1, _, _ = format_answers(num**2 + 1, d**2)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result

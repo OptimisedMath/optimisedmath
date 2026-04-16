@@ -11,12 +11,12 @@ def mult_frac_simple(level):
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2)}"
         
         c_str, _, _ = format_answers(n1 * n2, d1 * d2)
-        t1, _, _ = format_answers(n1 + n2, d1 + d2) # Trap 1: Added
-        t2, _, _ = format_answers(n1 * d2, d1 * n2) # Trap 2: Cross-multiplied
+        t1, _, _ = format_answers(n1 + n2, d1 + d2) 
+        t2, _, _ = format_answers(n1 * d2, d1 * n2) 
         w1, _, _ = format_answers((n1 * n2) + 1, d1 * d2)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def mult_frac_cross(level):
     while True:
@@ -28,12 +28,12 @@ def mult_frac_cross(level):
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2)}"
         
         c_str, _, _ = format_answers(n1 * n2, d1 * d2)
-        t1 = rf"\frac{{{n1 * n2}}}{{{d1 * d2}}}" # Trap 1: Unsimplified
-        t2, _, _ = format_answers(1, d1 * d2) # Trap 2: Horizontal simplify
+        t1 = rf"\frac{{{n1 * n2}}}{{{d1 * d2}}}" 
+        t2, _, _ = format_answers(1, d1 * d2) 
         w1, _, _ = format_answers(n1 * n2, d1 * d2 + 1)
         
-        if c_str != t1 and len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def mult_frac_mixed(level):
     while True:
@@ -44,12 +44,12 @@ def mult_frac_mixed(level):
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2, w)}"
         
         c_str, _, _ = format_answers(n1 * ((w * d2) + n2), d1 * d2)
-        t1, _, _ = format_answers(n1 * n2, d1 * d2, w) # Trap 1: Fraction only
-        t2, _, _ = format_answers(n1 + ((w * d2) + n2), d1 + d2) # Trap 2: Added
+        t1, _, _ = format_answers(n1 * n2, d1 * d2, w) 
+        t2, _, _ = format_answers(n1 + ((w * d2) + n2), d1 + d2) 
         w1, _, _ = format_answers(n1 * ((w * d2) + n2) + 1, d1 * d2)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def mult_mixed_mixed(level):
     while True:
@@ -61,9 +61,9 @@ def mult_mixed_mixed(level):
         
         num1, num2 = (w1 * d1) + n1, (w2 * d2) + n2
         c_str, _, _ = format_answers(num1 * num2, d1 * d2)
-        t1, _, _ = format_answers(n1 * n2, d1 * d2, w1 * w2) # Trap 1: Wholes by wholes
-        t2, _, _ = format_answers(n1 * n2, d1 * d2, w1 + w2) # Trap 2: Added wholes
+        t1, _, _ = format_answers(n1 * n2, d1 * d2, w1 * w2) 
+        t2, _, _ = format_answers(n1 * n2, d1 * d2, w1 + w2) 
         w1_str, _, _ = format_answers(num1 * num2 + 1, d1 * d2)
         
-        if len({c_str, t1, t2, w1_str}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1_str, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1_str, level_name=f"Poziom {level}")
+        if result: return result

@@ -57,6 +57,12 @@ def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t
     if w1 is not None: options_map[w1] = "w1"
     if w2 is not None: options_map[w2] = "w2"
     
+    # NEW OPTIMIZATION: Auto-Uniqueness Check
+    # We expect 1 correct answer + the number of trap/wrong answers provided
+    expected_count = 1 + sum(1 for x in [t1, t2, t3, w1, w2] if x is not None)
+    if len(options_map) != expected_count:
+        return None # Returns None if duplicate answers exist, forcing the engine to reroll!
+    
     options = list(options_map.keys())
     random.shuffle(options)
     
@@ -67,9 +73,9 @@ def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t
         'improper': i_str,     
         'unsimplified': u_str, 
         'options': options,
-        'options_map': options_map, # Contains the exact ID mapping for the UI
+        'options_map': options_map, 
         'level_name': level_name,
-        'grading_policy': grading_policy # <-- The Engine reads this!
+        'grading_policy': grading_policy
     }
 
 def clean_latex(latex_str):

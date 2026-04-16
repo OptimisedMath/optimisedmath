@@ -42,6 +42,17 @@ def inject_enter_hack(target_button_text=None, delay_ms=300):
             """, height=0, width=0
         )
 
+def reset_turn_state(rerun=True):
+    """DRY Helper: Clears the current problem state when navigating."""
+    st.session_state.streak = 0
+    st.session_state.problem_answered = False
+    st.session_state.current_input_mode = "radio"
+    st.session_state.topic_completed = False
+    if 'current_problem' in st.session_state: 
+        del st.session_state['current_problem']
+    if rerun:
+        st.rerun()
+
 # --- DYNAMIC CURRICULUM BUILDER ---
 curriculum = engine.get_curriculum()
 if not curriculum:
@@ -132,12 +143,7 @@ with st.sidebar:
     if new_topic_order != st.session_state.selected_topic_order:
         st.session_state.selected_topic_order = new_topic_order
         st.session_state.selected_level = 1
-        st.session_state.streak = 0
-        st.session_state.problem_answered = False
-        st.session_state.current_input_mode = "radio"
-        st.session_state.topic_completed = False
-        if 'current_problem' in st.session_state: del st.session_state['current_problem']
-        st.rerun()
+        reset_turn_state()
 
     # 3. LEVEL SELECTOR
     current_topic_max_level = topic_map[st.session_state.selected_topic_order]['max_level']

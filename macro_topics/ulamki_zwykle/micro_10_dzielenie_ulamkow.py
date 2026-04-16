@@ -10,12 +10,12 @@ def div_frac_simple(level):
         q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} : {format_fraction_question(n2, d2)}"
         
         c_str, _, _ = format_answers(n1 * d2, d1 * n2)
-        t1, _, _ = format_answers(n1 * n2, d1 * d2) # Trap 1: Straight across
-        t2, _, _ = format_answers(d1 * n2, n1 * d2) # Trap 2: Inverted first
+        t1, _, _ = format_answers(n1 * n2, d1 * d2) 
+        t2, _, _ = format_answers(d1 * n2, n1 * d2) 
         w1, _, _ = format_answers((n1 * d2) + 1, d1 * n2)
         
-        if len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def div_frac_cross(level):
     while True:
@@ -30,12 +30,12 @@ def div_frac_cross(level):
         
         g = math.gcd(n1, n2)
         trap_n1, trap_n2 = n1 // g, n2 // g
-        t1, _, _ = format_answers(trap_n1 * d2, d1 * trap_n2) # Trap 1: Simplify BEFORE flip
-        t2 = rf"\frac{{{n1 * d2}}}{{{d1 * n2}}}" # Trap 2: No simplify after flip
+        t1, _, _ = format_answers(trap_n1 * d2, d1 * trap_n2) 
+        t2 = rf"\frac{{{n1 * d2}}}{{{d1 * n2}}}" 
         w1, _, _ = format_answers((n1 * d2) + 1, d1 * n2)
         
-        if c_str != t2 and len({c_str, t1, t2, w1}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+        if result: return result
 
 def div_mixed_mixed(level):
     while True:
@@ -47,9 +47,9 @@ def div_mixed_mixed(level):
         
         num1, num2 = (w1 * d1) + n1, (w2 * d2) + n2
         c_str, _, _ = format_answers(num1 * d2, d1 * num2)
-        t1, _, _ = format_answers(num1 * n2, d1 * d2) # Trap 1: Inverted fraction part only (approximate simulation)
-        t2, _, _ = format_answers(num1 * num2, d1 * d2) # Trap 2: Forgot to invert second
+        t1, _, _ = format_answers(num1 * n2, d1 * d2) 
+        t2, _, _ = format_answers(num1 * num2, d1 * d2) 
         w1_str, _, _ = format_answers(num1 * d2 + 1, d1 * num2)
         
-        if len({c_str, t1, t2, w1_str}) == 4: 
-            return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1_str, level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1_str, level_name=f"Poziom {level}")
+        if result: return result
