@@ -64,6 +64,14 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
         return problem_dict
     return None
 
+def generate_problem(topic_function):
+    MAX_RETRIES = 50
+    for _ in range(MAX_RETRIES):
+        problem = topic_function() 
+        if problem is not None:
+            return problem
+    raise RuntimeError(f"Failed to generate unique problem for {topic_function.__name__}")
+
 def evaluate_answer(problem: dict, user_input: str, is_text_mode: bool) -> dict:
     """
     THE BLACK BOX GRADER: Processes the answer and returns a strictly formatted dictionary to the UI.
@@ -135,6 +143,17 @@ def evaluate_answer(problem: dict, user_input: str, is_text_mode: bool) -> dict:
         return result
 
     if correct_val is not None and student_val == correct_val:
+        
+        # --- NEW: Smart Format Interceptors ---
+        if "/" in str(user_input) and "," in problem['correct']:
+            result.update({"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Wynik poprawny matematycznie, ale to jest zadanie z ułamków dziesiętnych! Zapisz odpowiedź używając przecinka, a nie ułamka zwykłego."})
+            return result
+            
+        if ("," in str(user_input) or "." in str(user_input)) and "\\frac" in problem['correct']:
+            result.update({"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"})
+            return result
+        # --------------------------------------
+
         if policy == "exact_match_only":
             result.update({"lock_answer": True, "feedback_type": "warning", "feedback_msg": "W tym zadaniu wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!"})
         elif policy == "equivalent_accepted":

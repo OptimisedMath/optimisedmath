@@ -203,7 +203,11 @@ else:
     st.info(f"📍 {problem.get('level_display', 'Level ' + str(st.session_state.selected_level))}") 
     
     st.header("Zadanie:")
-    st.latex(problem['question'].replace("Oblicz: ", "")) 
+    st.markdown(f"<div id='{problem['problem_id']}'></div>", unsafe_allow_html=True)
+    st.latex(problem['question'])
+    
+    if problem.get('image_html'):
+        st.markdown(problem['image_html'], unsafe_allow_html=True)
 
     if 'shuffled_options' not in st.session_state or st.session_state.get('last_id') != problem['problem_id']:
         st.session_state.shuffled_options = problem['options']

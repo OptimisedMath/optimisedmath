@@ -32,7 +32,7 @@ def format_fraction_question(n, d, w=None):
     else:
         return rf"\frac{{{n}}}{{{d}}}"
 
-def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t3=None, w1=None, w2=None, level_name="", grading_policy="standard"):
+def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t3=None, w1=None, w2=None, level_name="", grading_policy="standard", image_html=None):
     opts = [t1, t2, t3, w1, w2]
     real_opts = []
     for opt in opts:
@@ -66,6 +66,7 @@ def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t
     return {
         'problem_id': str(uuid.uuid4()),
         'question': q_str,
+        'image_html': image_html, # <--- NEW FIELD FOR GRAPHICS
         'correct': c_str,
         'improper': i_str,     
         'unsimplified': u_str, 
@@ -75,10 +76,87 @@ def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t
         'grading_policy': grading_policy
     }
 
+def generate_fraction_svg(n, d, start_val=0):
+    """Draws a mathematical number line for fractions with white lines."""
+    width = 600
+    height = 140
+    svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">'
+    svg += '<line x1="40" y1="80" x2="560" y2="80" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
+    svg += '<polygon points="555,72 570,80 555,88" fill="#ffffff" />'
+    
+    start_x = 80
+    end_x = 520
+    spacing = (end_x - start_x) / d
+    
+    for i in range(d + 1):
+        x = start_x + i * spacing
+        svg += f'<line x1="{x}" y1="70" x2="{x}" y2="90" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>'
+        if i == 0:
+            svg += f'<text x="{x}" y="125" font-family="sans-serif" font-size="26" font-weight="bold" fill="#ffffff" text-anchor="middle">{start_val}</text>'
+        elif i == d:
+            svg += f'<text x="{x}" y="125" font-family="sans-serif" font-size="26" font-weight="bold" fill="#ffffff" text-anchor="middle">{start_val + 1}</text>'
+            
+        if i == n:
+            svg += f'<line x1="{x}" y1="20" x2="{x}" y2="55" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>'
+            svg += f'<polygon points="{x-8},50 {x+8},50 {x},65" fill="#e74c3c" />'
+            svg += f'<text x="{x}" y="15" font-family="sans-serif" font-size="32" font-weight="bold" fill="#e74c3c" text-anchor="middle">?</text>'
+    svg += '</svg>'
+    return svg
+
+def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
+    """Draws a mathematical number line with custom intervals and labels."""
+    width = 600
+    height = 140
+    svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">'
+    svg += '<line x1="40" y1="80" x2="560" y2="80" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
+    svg += '<polygon points="45,72 30,80 45,88" fill="#ffffff" />'
+    svg += '<polygon points="555,72 570,80 555,88" fill="#ffffff" />'
+
+    start_x = 80
+    end_x = 520
+    spacing = (end_x - start_x) / ticks_count
+
+    for i in range(ticks_count + 1):
+        x = start_x + i * spacing
+        # Labeled ticks are slightly longer for readability
+        tick_len = 20 if i in labeled_ticks else 10
+        y1 = 80 - tick_len / 2
+        y2 = 80 + tick_len / 2
+
+        svg += f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>'
+
+        if i in labeled_ticks:
+            svg += f'<text x="{x}" y="125" font-family="sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">{labeled_ticks[i]}</text>'
+
+        if i == target_tick:
+            svg += f'<line x1="{x}" y1="20" x2="{x}" y2="55" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>'
+            svg += f'<polygon points="{x-8},50 {x+8},50 {x},65" fill="#e74c3c" />'
+            svg += f'<text x="{x}" y="15" font-family="sans-serif" font-size="32" font-weight="bold" fill="#e74c3c" text-anchor="middle">?</text>'
+
+    svg += '</svg>'
+    return svg
+
 def clean_latex(latex_str):
     s = latex_str.replace("$\\displaystyle", "").replace("$", "").strip()
+    
+    # FIX: Injects a space between a whole number and a fraction so 1\frac{3}{4} doesn't become 13/4
+    s = re.sub(r'(\d)\\frac', r'\1 \\frac', s)
+    
     s = re.sub(r'\\frac\{(\d+)\}\{(\d+)\}', r'\1/\2', s)
     return s.strip()
+
+def check_text_answer(correct_latex, user_text):
+    """Checks if the user's text matches the correct answer string, preserving crucial spaces."""
+    clean_correct = clean_latex(correct_latex)
+    
+    # Remove spaces around slashes and commas, but KEEP spaces between numbers!
+    clean_correct = re.sub(r'\s*([/,])\s*', r'\1', clean_correct)
+    clean_correct = " ".join(clean_correct.split())
+    
+    clean_user = re.sub(r'\s*([/,])\s*', r'\1', str(user_text))
+    clean_user = " ".join(clean_user.split())
+    
+    return clean_correct == clean_user
 
 def parse_to_fraction(val_str):
     try:
@@ -104,12 +182,6 @@ def parse_to_fraction(val_str):
         return Fraction(val_str)
     except Exception:
         return None
-
-def check_text_answer(correct_latex, user_text):
-    """Checks if the user's text perfectly matches the correct answer string (ignoring spaces)."""
-    clean_correct = clean_latex(correct_latex).replace(" ", "")
-    clean_user = user_text.replace(" ", "")
-    return clean_correct == clean_user
 
 def fmt_dec(val):
     s = f"{float(val):.10f}"

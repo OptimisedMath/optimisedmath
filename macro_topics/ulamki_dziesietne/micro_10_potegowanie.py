@@ -8,8 +8,11 @@ def pow_dec_square(level):
         
         c_str = fmt_dec(round(v**2, 2))
         
-        t1 = fmt_dec(round(v * 2, 1)) # Multiplied by 2 instead of squaring
-        t2 = fmt_dec(round(v**2 * 10, 1)) # Wrong decimal places (e.g. 0.2^2 = 0.4)
+        t1 = fmt_dec(round(v * 2, 1)) 
+        
+        # TRAP 2: Student squares the number but forgets decimal places entirely (e.g., 0.2^2 = 4)
+        t2 = fmt_dec(round(v * 10)**2) 
+        
         w1 = fmt_dec(round(v**2 + 0.01, 2))
         
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
