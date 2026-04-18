@@ -7,16 +7,15 @@ from fractions import Fraction
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
-def inject_enter_hack(target_button_text=None, delay_ms=300):
-    """DRY Helper: Injects JS to click a specific button when Enter is pressed."""
-    if target_button_text is None:
+def inject_enter_hack(target_button_text=None):
+    """DRY Helper: Injects JS to click a specific button ONLY on a fresh Enter press."""
+    if target_button_text is None or target_button_text == "NONE":
         components.html(
             """
             <script>
             const doc = window.parent.document;
-            if (doc.customKeyListener) {
-                doc.removeEventListener('keyup', doc.customKeyListener, true);
-            }
+            if (doc.customKeyDown) doc.removeEventListener('keydown', doc.customKeyDown, true);
+            if (doc.customKeyUp) doc.removeEventListener('keyup', doc.customKeyUp, true);
             </script>
             """, height=0, width=0
         )
@@ -25,19 +24,32 @@ def inject_enter_hack(target_button_text=None, delay_ms=300):
             f"""
             <script>
             const doc = window.parent.document;
-            if (doc.customKeyListener) {{
-                doc.removeEventListener('keyup', doc.customKeyListener, true);
-            }}
-            doc.customKeyListener = function(e) {{
-                if (e.key === 'Enter') {{
+            
+            // 1. Clear old listeners to prevent double-firing
+            if (doc.customKeyDown) doc.removeEventListener('keydown', doc.customKeyDown, true);
+            if (doc.customKeyUp) doc.removeEventListener('keyup', doc.customKeyUp, true);
+            
+            let freshPress = false;
+            
+            // 2. Track when the key is explicitly pressed DOWN on this new screen
+            doc.customKeyDown = function(e) {{
+                if (e.key === 'Enter' && !e.repeat) {{
+                    freshPress = true; 
+                }}
+            }};
+            
+            // 3. Only click the button if the key goes UP after being pressed DOWN
+            doc.customKeyUp = function(e) {{
+                if (e.key === 'Enter' && freshPress) {{
                     const allButtons = Array.from(doc.querySelectorAll('button'));
                     const targetBtn = allButtons.find(b => b.innerText.includes('{target_button_text}'));
                     if (targetBtn) targetBtn.click();
+                    freshPress = false; // Reset for safety
                 }}
             }};
-            setTimeout(() => {{
-                doc.addEventListener('keyup', doc.customKeyListener, true);
-            }}, {delay_ms});
+            
+            doc.addEventListener('keydown', doc.customKeyDown, true);
+            doc.addEventListener('keyup', doc.customKeyUp, true);
             </script>
             """, height=0, width=0
         )
@@ -254,16 +266,19 @@ if admin_solve or submitted:
     else:
         # THE UI IS DUMB: It just asks the Engine to grade the answer!
         user_input = user_text if is_text_mode else choice
+        
+        # --- THE FIX: Catch empty answers BEFORE they reach the engine! ---
+        if user_input is None or str(user_input).strip() == "":
+            st.warning("⚠️ Najpierw podaj odpowiedź!")
+            st.stop() # Stops the script immediately so it doesn't grade or penalize you
+        # ------------------------------------------------------------------
+
         eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
         
         is_correct = eval_result.get("is_correct", False)
         st.session_state.problem_answered = eval_result.get("lock_answer", False)
         st.session_state.feedback_type = eval_result.get("feedback_type", None)
         st.session_state.feedback_msg = eval_result.get("feedback_msg", "")
-        
-        # If the input was empty, stop executing and show the warning
-        if not user_input:
-            st.rerun()
         
     # --- 3. REWARD & PROGRESSION LOGIC ---
     if is_correct:
