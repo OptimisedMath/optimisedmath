@@ -33,15 +33,6 @@ def format_fraction_question(n, d, w=None):
         return rf"\frac{{{n}}}{{{d}}}"
 
 def build_problem_dict(q_str, c_str, i_str=None, u_str=None, t1=None, t2=None, t3=None, w1=None, w2=None, level_name="", grading_policy="standard", image_html=None):
-    opts = [t1, t2, t3, w1, w2]
-    real_opts = []
-    for opt in opts:
-        if isinstance(opt, str) and opt.startswith("Poziom"):
-            level_name = opt
-        else:
-            real_opts.append(opt)
-            
-    t1, t2, t3, w1, w2 = (real_opts + [None]*5)[:5]
 
     options_map = {}
     if c_str is not None: options_map[c_str] = "correct"

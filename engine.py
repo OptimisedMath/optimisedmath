@@ -8,12 +8,16 @@ from core.utils import check_text_answer, parse_to_fraction
 DATA_FILE = 'Courses_Data.csv'
 
 # --- THE AUTOLOADER ---
+FUNCTION_REGISTRY = {}
 macro_path = Path(__file__).parent / "macro_topics"
 for file_path in macro_path.rglob("*.py"):
     if file_path.name.startswith("__"): continue
     module_path = ".".join(file_path.relative_to(Path(__file__).parent).parts)[:-3]
     module = importlib.import_module(module_path)
-    globals().update({k: v for k, v in module.__dict__.items() if not k.startswith("_")})
+    # Safely store functions in a specific dictionary
+    for k, v in module.__dict__.items():
+         if callable(v) and not k.startswith("_"):
+             FUNCTION_REGISTRY[k] = v
 
 # @st.cache_data <- for cache
 def load_csv(file_path=DATA_FILE):
@@ -42,7 +46,7 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
     if not filtered_df.empty:
             row = filtered_df.iloc[0]
             func_name = str(row['Function_Name']).strip()
-            problem_func = globals().get(func_name)
+            problem_func = FUNCTION_REGISTRY.get(func_name)
             
             if not problem_func: return {"error": f"Function {func_name} not found"}
             
