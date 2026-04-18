@@ -73,7 +73,7 @@ if not curriculum:
 
 macro_topics = list(curriculum.keys())
 
-# --- 1. INITIALIZE GAME STATE --- jajo
+# --- 1. INITIALIZE GAME STATE
 default_state = {
     'xp': 0, 'streak': 0, 
     'selected_macro': macro_topics[0],
