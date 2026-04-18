@@ -397,7 +397,7 @@ if st.session_state.problem_answered:
             st.session_state.problem_answered = False
             st.session_state.feedback_type = None 
             
-            if st.session_state.streak >= 2 and "Porównywanie" not in topic_map[st.session_state.selected_topic_order]['name']:
+            if st.session_state.streak >= 1 and "Porównywanie" not in topic_map[st.session_state.selected_topic_order]['name']:
                 st.session_state.current_input_mode = "text"
             else:
                 st.session_state.current_input_mode = "radio"
