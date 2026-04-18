@@ -73,7 +73,7 @@ if not curriculum:
 
 macro_topics = list(curriculum.keys())
 
-# --- 1. INITIALIZE GAME STATE ---
+# --- 1. INITIALIZE GAME STATE --- jajo
 default_state = {
     'xp': 0, 'streak': 0, 
     'selected_macro': macro_topics[0],
@@ -264,7 +264,7 @@ if admin_solve or submitted:
         st.session_state.problem_answered = True
         
     else:
-        # THE UI IS DUMB: It just asks the Engine to grade the answer!
+        # THE UI IS DUMB: It just asks the Engine to grade the answer! test
         user_input = user_text if is_text_mode else choice
         
         # --- THE FIX: Catch empty answers BEFORE they reach the engine! ---
