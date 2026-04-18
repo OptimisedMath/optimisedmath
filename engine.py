@@ -113,29 +113,33 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
     correct_val = parse_to_fraction(problem['correct'])
 
     if student_val is None:
-        return {"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Niepoprawny zapis matematyczny."}
+        # SHIFT: Gibberish math format is a soft error (Blue)
+        return {"lock_answer": False, "feedback_type": "info", "feedback_msg": "Niepoprawny zapis matematyczny."}
 
     if student_val == correct_val:
         format_warning = check_format_mismatch(user_input, problem['correct'])
         if format_warning:
-            return {"lock_answer": False, "feedback_type": "warning", "feedback_msg": format_warning}
+            # SHIFT: Wrong notation system is a soft error (Blue)
+            return {"lock_answer": False, "feedback_type": "info", "feedback_msg": format_warning}
             
         if policy == "exact_match_only":
             return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": "W tym zadaniu wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!"}
         elif policy == "equivalent_accepted":
             return {"is_correct": True, "lock_answer": True}
         else:
+            # SHIFT: Unsimplified fraction is a soft error (Blue)
             return {"lock_answer": False, "feedback_type": "info", "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!"}
 
     # --- 3. TEXT MODE TRAP SCANNER ---
-    # Secretly calculates the traps to see if the student mathematically fell for one
     for opt_str, opt_type in problem['options_map'].items():
         if opt_type in ["t1", "t2", "t3", "w1", "w2"]:
             opt_val = parse_to_fraction(opt_str)
             if check_text_answer(opt_str, user_input) or (opt_val is not None and student_val == opt_val):
-                msg_text = problem['messages'].get(opt_type, "Zła odpowiedź.")
+                msg_text = problem['messages'].get(opt_type, "Nieprawidłowa odpowiedź.")
+                # Hard Trap (Yellow)
                 return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
 
     # If math is entirely wrong and misses all traps
-    msg_text = problem['messages'].get('w1', "Zła odpowiedź.")
+    msg_text = problem['messages'].get('w1', "Nieprawidłowa odpowiedź.")
+    # Hard Error (Yellow)
     return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
