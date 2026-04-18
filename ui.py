@@ -269,7 +269,7 @@ if admin_solve or submitted:
         
         # --- THE FIX: Catch empty answers BEFORE they reach the engine! ---
         if user_input is None or str(user_input).strip() == "":
-            st.warning("⚠️ Najpierw podaj odpowiedź!")
+            st.info("Najpierw podaj odpowiedź!")
             st.stop() # Stops the script immediately so it doesn't grade or penalize you
         # ------------------------------------------------------------------
 
