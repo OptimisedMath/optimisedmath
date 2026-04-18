@@ -3,8 +3,6 @@ import os
 import importlib
 from pathlib import Path
 import streamlit as st
-
-# --- MISSING IMPORT FIX ---
 from core.utils import check_text_answer, parse_to_fraction
 
 DATA_FILE = 'Courses_Data.csv'
@@ -17,10 +15,9 @@ for file_path in macro_path.rglob("*.py"):
     module = importlib.import_module(module_path)
     globals().update({k: v for k, v in module.__dict__.items() if not k.startswith("_")})
 
-def load_csv():
-    if not os.path.exists(DATA_FILE): return None
-    # FIX: Force UTF-8 encoding so the app doesn't crash on Windows machines
-    return pd.read_csv(DATA_FILE, sep=';', encoding='utf-8')
+# @st.cache_data <- for cache
+def load_csv(file_path=DATA_FILE):
+    return pd.read_csv(file_path, sep=';', encoding='utf-8')
 
 def get_curriculum() -> dict:
     df = load_csv()
@@ -43,25 +40,31 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
     filtered_df = df[(df['Macro_Topic'] == macro_topic) & (df['Micro_Topic'] == micro_topic) & (df['Level'] == level)]
     
     if not filtered_df.empty:
-        row = filtered_df.iloc[0]
-        func_name = str(row['Function_Name']).strip()
-        problem_func = globals().get(func_name)
-        
-        if not problem_func: return {"error": f"Function {func_name} not found"}
-        problem_dict = problem_func(level)
-        
-        def get_msg(col_name):
-            val = row.get(col_name)
-            if pd.isna(val) or str(val).strip() in ["N/A", ""]: return str(row['Wrong_Message']).strip()
-            return str(val).strip()
+            row = filtered_df.iloc[0]
+            func_name = str(row['Function_Name']).strip()
+            problem_func = globals().get(func_name)
+            
+            if not problem_func: return {"error": f"Function {func_name} not found"}
+            
+            try:
+                problem_dict = generate_problem(lambda: problem_func(level))
+            except RuntimeError as e:
+                return {"error": str(e)}
+            
+            # THE FIX: Added 'return' and a safety check for empty CSV cells (N/A, NaN)
+            def get_msg(col_name):
+                val = row.get(col_name)
+                if pd.isna(val) or str(val).strip() in ["N/A", "None", "nan", ""]:
+                    return "Zła odpowiedź."
+                return str(val)
 
-        problem_dict['messages'] = {
-            't1': get_msg('Trap1_Message'), 't2': get_msg('Trap2_Message'),
-            't3': get_msg('Trap3_Message'), 'w1': get_msg('Wrong_Message'),
-            'w2': get_msg('Wrong_Message')
-        }
-        problem_dict['level_display'] = f"{row['Level_Name']} (Lvl {level})"
-        return problem_dict
+            problem_dict['messages'] = {
+                't1': get_msg('Trap1_Message'), 't2': get_msg('Trap2_Message'),
+                't3': get_msg('Trap3_Message'), 'w1': get_msg('Wrong_Message'),
+                'w2': get_msg('Wrong_Message')
+            }
+            problem_dict['level_display'] = f"{row['Level_Name']} (Lvl {level})"
+            return problem_dict
     return None
 
 def generate_problem(topic_function):
@@ -72,95 +75,63 @@ def generate_problem(topic_function):
             return problem
     raise RuntimeError(f"Failed to generate unique problem for {topic_function.__name__}")
 
-def evaluate_answer(problem: dict, user_input: str, is_text_mode: bool) -> dict:
-    """
-    THE BLACK BOX GRADER: Processes the answer and returns a strictly formatted dictionary to the UI.
-    """
-    result = {
-        "is_correct": False,
-        "lock_answer": False, 
-        "feedback_type": "warning",
-        "feedback_msg": problem['messages'].get('w1', "Błędna odpowiedź.")
-    }
+def check_format_mismatch(user_text, correct_latex):
+    """Intercepts answers that are mathematically correct but use the wrong notation system."""
+    user_str = str(user_text)
+    if "/" in user_str and "," in correct_latex:
+        return "Wynik poprawny matematycznie, ale to jest zadanie z ułamków dziesiętnych! Zapisz odpowiedź używając przecinka, a nie ułamka zwykłego."
+    if ("," in user_str or "." in user_str) and "\\frac" in correct_latex:
+        return "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"
+    return None
 
-    if not user_input:
-        result['feedback_msg'] = "Wpisz swój wynik w puste pole!" if is_text_mode else "Najpierw wybierz odpowiedź!"
-        return result
-
-    correct_val = parse_to_fraction(problem['correct'])
-    policy = problem.get('grading_policy', 'standard')
-
+def evaluate_answer(user_input, problem, is_text_mode=False):
+    from core.utils import check_text_answer, parse_to_fraction
+    
     # --- 1. MULTIPLE CHOICE MODE ---
-    if not is_text_mode:
-        answer_type = problem['options_map'].get(user_input, "w1")
-        student_val = parse_to_fraction(user_input)
-
-        if answer_type == "correct":
-            result.update({"is_correct": True, "lock_answer": True})
-            return result
-
-        if student_val is not None and correct_val is not None and student_val == correct_val:
-            if policy == "exact_match_only":
-                result.update({"lock_answer": True, "feedback_type": "warning", "feedback_msg": problem['messages'].get(answer_type, "W tym zadaniu wartość to nie wszystko. Zapisz wynik w dokładnie takiej postaci, o jaką prosi polecenie!")})
-            elif policy == "equivalent_accepted":
-                result.update({"is_correct": True, "lock_answer": True})
-            else:
-                custom_msg = problem['messages'].get(answer_type, problem['messages']['w1'])
-                if custom_msg == problem['messages']['w1']: custom_msg = "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!"
-                result.update({"lock_answer": False, "feedback_type": "info", "feedback_msg": custom_msg})
-            return result
-
-        result.update({"lock_answer": True, "feedback_type": "error" if answer_type.startswith("t") else "warning", "feedback_msg": problem['messages'].get(answer_type, problem['messages']['w1'])})
-        return result
+    if not is_text_mode and 'options' in problem and len(problem['options']) > 0:
+        is_correct = (problem['options_map'].get(user_input) == "correct")
+        if is_correct:
+            return {"is_correct": True, "lock_answer": True}
+        else:
+            msg_key = problem['options_map'].get(user_input, "w1")
+            msg_text = problem['messages'].get(msg_key, "Zła odpowiedź.")
+            return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
 
     # --- 2. TEXT INPUT MODE ---
-    answer_type = None
-    for opt_str, opt_id in problem['options_map'].items():
-        if check_text_answer(opt_str, user_input):
-            answer_type = opt_id
-            break
+    policy = problem.get('grading_policy', 'standard')
+    
+    # Exact Match Check
+    if check_text_answer(problem['correct'], user_input):
+        return {"is_correct": True, "lock_answer": True}
 
-    student_val = parse_to_fraction(user_input)
-
-    if answer_type == "correct":
-        result.update({"is_correct": True, "lock_answer": True})
-        return result
-
-    if answer_type is not None:
-        if student_val is not None and correct_val is not None and student_val == correct_val:
-            if policy == "exact_match_only":
-                result.update({"lock_answer": True, "feedback_type": "error" if answer_type.startswith("t") else "warning", "feedback_msg": problem['messages'].get(answer_type, problem['messages']['w1'])})
-            elif policy == "equivalent_accepted":
-                result.update({"is_correct": True, "lock_answer": True})
-            else:
-                result.update({"lock_answer": False, "feedback_type": "info", "feedback_msg": problem['messages'].get(answer_type, "Wynik poprawny matematycznie, ale zapisz go w najprostszej postaci!")})
-        else:
-            result.update({"lock_answer": True, "feedback_type": "error" if answer_type.startswith("t") else "warning", "feedback_msg": problem['messages'].get(answer_type, problem['messages']['w1'])})
-        return result
+    # Mathematical Evaluation
+    student_val = parse_to_fraction(str(user_input))
+    correct_val = parse_to_fraction(problem['correct'])
 
     if student_val is None:
-        result.update({"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Niepoprawny zapis matematyczny."})
-        return result
+        return {"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Niepoprawny zapis matematyczny."}
 
-    if correct_val is not None and student_val == correct_val:
-        
-        # --- NEW: Smart Format Interceptors ---
-        if "/" in str(user_input) and "," in problem['correct']:
-            result.update({"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Wynik poprawny matematycznie, ale to jest zadanie z ułamków dziesiętnych! Zapisz odpowiedź używając przecinka, a nie ułamka zwykłego."})
-            return result
+    if student_val == correct_val:
+        format_warning = check_format_mismatch(user_input, problem['correct'])
+        if format_warning:
+            return {"lock_answer": False, "feedback_type": "warning", "feedback_msg": format_warning}
             
-        if ("," in str(user_input) or "." in str(user_input)) and "\\frac" in problem['correct']:
-            result.update({"lock_answer": False, "feedback_type": "warning", "feedback_msg": "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"})
-            return result
-        # --------------------------------------
-
         if policy == "exact_match_only":
-            result.update({"lock_answer": True, "feedback_type": "warning", "feedback_msg": "W tym zadaniu wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!"})
+            return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": "W tym zadaniu wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!"}
         elif policy == "equivalent_accepted":
-            result.update({"is_correct": True, "lock_answer": True})
+            return {"is_correct": True, "lock_answer": True}
         else:
-            result.update({"lock_answer": False, "feedback_type": "info", "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!"})
-        return result
+            return {"lock_answer": False, "feedback_type": "info", "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!"}
 
-    result.update({"lock_answer": True, "feedback_type": "warning", "feedback_msg": problem['messages']['w1']})
-    return result
+    # --- 3. TEXT MODE TRAP SCANNER ---
+    # Secretly calculates the traps to see if the student mathematically fell for one
+    for opt_str, opt_type in problem['options_map'].items():
+        if opt_type in ["t1", "t2", "t3", "w1", "w2"]:
+            opt_val = parse_to_fraction(opt_str)
+            if check_text_answer(opt_str, user_input) or (opt_val is not None and student_val == opt_val):
+                msg_text = problem['messages'].get(opt_type, "Zła odpowiedź.")
+                return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
+
+    # If math is entirely wrong and misses all traps
+    msg_text = problem['messages'].get('w1', "Zła odpowiedź.")
+    return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}

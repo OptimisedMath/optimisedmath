@@ -254,12 +254,12 @@ if admin_solve or submitted:
     else:
         # THE UI IS DUMB: It just asks the Engine to grade the answer!
         user_input = user_text if is_text_mode else choice
-        eval_result = engine.evaluate_answer(problem, user_input, is_text_mode)
+        eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
         
-        is_correct = eval_result["is_correct"]
-        st.session_state.problem_answered = eval_result["lock_answer"]
-        st.session_state.feedback_type = eval_result["feedback_type"]
-        st.session_state.feedback_msg = eval_result["feedback_msg"]
+        is_correct = eval_result.get("is_correct", False)
+        st.session_state.problem_answered = eval_result.get("lock_answer", False)
+        st.session_state.feedback_type = eval_result.get("feedback_type", None)
+        st.session_state.feedback_msg = eval_result.get("feedback_msg", "")
         
         # If the input was empty, stop executing and show the warning
         if not user_input:
@@ -349,32 +349,39 @@ if st.session_state.problem_answered:
             
         # --- NORMAL NEXT PROBLEM LOGIC ---
         else:
-            old_question = st.session_state.current_problem['question'] if st.session_state.current_problem else ""
+            old_prob = st.session_state.current_problem
+            
             new_problem = engine.get_problem_from_db(
                 st.session_state.selected_macro,
                 topic_map[st.session_state.selected_topic_order]['name'], 
                 st.session_state.selected_level
             )
             
-            if new_problem is None or 'question' not in new_problem:
+            if new_problem is None or 'error' in new_problem:
                 st.error("Błąd krytyczny: Nie można załadować bazy zadań z pliku CSV!")
                 st.stop() 
             
-            while new_problem['question'] == old_question:
+            # FIX: Smart Duplicate Checker (Checks math and images, not just static text)
+            def is_duplicate(old, new):
+                if not old: return False
+                return (old.get('question') == new.get('question') and 
+                        old.get('correct') == new.get('correct') and 
+                        old.get('image_html') == new.get('image_html'))
+
+            # We also add a max-attempt limit of 10 so the UI can NEVER freeze the server
+            attempts = 0
+            while is_duplicate(old_prob, new_problem) and attempts < 10:
                 new_problem = engine.get_problem_from_db(
                     st.session_state.selected_macro,
                     topic_map[st.session_state.selected_topic_order]['name'], 
                     st.session_state.selected_level
                 )
-                if new_problem is None:
-                    st.error("Błąd bazy zadań podczas losowania.")
-                    st.stop()
+                attempts += 1
             
             st.session_state.current_problem = new_problem
             st.session_state.problem_answered = False
             st.session_state.feedback_type = None 
             
-            # Decimals have commas, so "text" mode relies on check_text_answer supporting it
             if st.session_state.streak >= 2 and "Porównywanie" not in topic_map[st.session_state.selected_topic_order]['name']:
                 st.session_state.current_input_mode = "text"
             else:
