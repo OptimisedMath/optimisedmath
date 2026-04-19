@@ -1,9 +1,6 @@
 import streamlit as st
 import engine
-import random
-import re
 import streamlit.components.v1 as components
-from fractions import Fraction
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
@@ -336,10 +333,11 @@ if st.session_state.problem_answered or st.session_state.get('feedback_type') in
         st.info(st.session_state.feedback_msg) 
 
 if st.session_state.problem_answered:
-    if not st.session_state.get('topic_completed'):
-        inject_enter_hack("Następne zadanie" if not st.session_state.get('topic_completed') else "NONE")
-
+    # 1. Definiujemy tekst przycisku w zależności od tego, czy temat jest skończony
     button_label = "Przejdź do kolejnego tematu ➡️" if st.session_state.get('topic_completed') else "Następne zadanie ➡️"
+    
+    # 2. Dynamicznie podpinamy hack pod odpowiedni przycisk!
+    inject_enter_hack(button_label)
 
     if st.button(button_label, key="next_problem_btn"):
         

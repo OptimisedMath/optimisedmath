@@ -1,8 +1,6 @@
 import pandas as pd
-import os
 import importlib
 from pathlib import Path
-import streamlit as st
 from core.utils import check_text_answer, parse_to_fraction
 
 DATA_FILE = 'Courses_Data.csv'
@@ -89,7 +87,6 @@ def check_format_mismatch(user_text, correct_latex):
     return None
 
 def evaluate_answer(user_input, problem, is_text_mode=False):
-    from core.utils import check_text_answer, parse_to_fraction
     
     # --- 1. MULTIPLE CHOICE MODE ---
     if not is_text_mode and 'options' in problem and len(problem['options']) > 0:
