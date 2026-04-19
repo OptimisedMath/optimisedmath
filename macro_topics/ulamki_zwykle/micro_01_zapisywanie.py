@@ -13,5 +13,8 @@ def frac_write_1(level):
     t2 = rf"\frac{{{n}}}{{{n+d}}}"                
     w1 = rf"\frac{{{n}}}{{{d + random.choice([-1, 1])}}}" 
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", grading_policy="equivalent_accepted")
+    result = build_problem_dict(
+        q_str, c_str, t1=t1, t2=t2, w1=w1,
+        level_name=f"Poziom {level}",
+        grading_policy="equivalent_accepted")
     if result: return result

@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec, generate_universal_number_line
 
-def dec_numer_line_1(level):
+def dec_number_line_1(level):
     # Level 1: Absolute basics. 10 ticks, whole numbers. Step is always 0.1.
     base = random.randint(0, 20)
     target = random.randint(1, 9)
