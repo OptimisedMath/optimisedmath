@@ -2,7 +2,7 @@ import random
 from fractions import Fraction
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_to_frac(level):
+def dec_to_frac_1(level):
     denominators = [4, 5, 20, 25, 50]
     d = random.choice(denominators)
     n = random.randint(1, d - 1)
@@ -26,7 +26,7 @@ def dec_to_frac(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def frac_to_dec(level):
+def dec_to_frac_2(level):
     d = random.choice([4, 5, 20, 25])
     n = random.randint(1, d - 1)
     if Fraction(n, d).denominator != d: return None
@@ -42,7 +42,7 @@ def frac_to_dec(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def mixed_to_dec(level):
+def dec_to_frac_3(level):
     w = random.randint(1, 5)
     d = random.choice([2, 4, 5, 20])
     n = random.randint(1, d - 1)
@@ -59,7 +59,7 @@ def mixed_to_dec(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def frac_to_dec_infinite(level):
+def dec_to_frac_4(level):
     d = random.choice([3, 9])
     n = random.randint(1, d - 1)
     

@@ -1,7 +1,7 @@
 import random
 from core.utils import format_fraction_question, build_problem_dict
 
-def compare_fractions_same_den(level):
+def frac_comp_1(level):
     d = random.randint(3, 12)
     n1 = random.randint(1, d + 5)
     n2 = n1
@@ -14,7 +14,7 @@ def compare_fractions_same_den(level):
     result = build_problem_dict(q_str, c_str, t1=t1, level_name=f"Poziom {level}")
     if result: return result
 
-def compare_fractions_same_num(level):
+def frac_comp_2(level):
     n = random.randint(1, 9)
     d1 = random.randint(2, 12)
     d2 = d1
@@ -29,7 +29,7 @@ def compare_fractions_same_num(level):
     result = build_problem_dict(q_str, c_str, t1=t1, level_name=f"Poziom {level}")
     if result: return result
 
-def compare_fractions_diff_den(level):
+def frac_comp_3(level):
     if random.random() < 0.25:
         d1 = random.randint(2, 6)
         n1 = random.randint(1, d1 * 2)

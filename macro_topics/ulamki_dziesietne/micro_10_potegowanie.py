@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def pow_dec_square(level):
+def dec_pow_1(level):
     v = random.randint(2, 9) / 10
     q_str = rf"\text{{Oblicz: }} ({fmt_dec(v)})^2"
     

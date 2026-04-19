@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def sub_dec_same(level):
+def dec_sub_1(level):
     v1 = random.randint(31, 99) / 10
     v2 = random.randint(11, int(v1*10) - 1) / 10
     if str(v1).endswith('.0') or str(v2).endswith('.0'): return None
@@ -20,7 +20,7 @@ def sub_dec_same(level):
     result = build_problem_dict(q_str, c_str, t1=t1, w1=w1, w2=w2, level_name=f"Poziom {level}")
     if result: return result
 
-def sub_dec_diff_easy(level):
+def dec_sub_2(level):
     v1 = random.randint(311, 999) / 100
     v2 = random.randint(11, int(v1/10)*10 - 1) / 10
     
@@ -34,7 +34,7 @@ def sub_dec_diff_easy(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def sub_dec_diff_boss(level):
+def dec_sub_3(level):
     v1 = random.randint(31, 99) / 10
     v2 = random.randint(111, int(v1*100) - 1) / 100
     if str(v1).endswith('.0') or str(v2).endswith('.0'): return None

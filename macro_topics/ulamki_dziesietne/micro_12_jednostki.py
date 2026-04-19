@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def unit_len(level):
+def dec_unit_1(level):
     v = random.randint(2, 99)
     pairs = [("mm", "cm", 10), ("cm", "m", 100), ("m", "km", 1000)]
     unit_in, unit_out, factor = random.choice(pairs)
@@ -16,7 +16,7 @@ def unit_len(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def unit_mass(level):
+def dec_unit_2(level):
     v = random.randint(2, 99)
     pairs = [("g", "dag", 10), ("dag", "kg", 100), ("g", "kg", 1000)]
     unit_in, unit_out, factor = random.choice(pairs)
@@ -31,7 +31,7 @@ def unit_mass(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def unit_money(level):
+def dec_unit_3(level):
     zl = random.randint(2, 15)
     gr = random.randint(1, 9) # Single digit grosze forces the "0" trap (e.g. 5.08)
     

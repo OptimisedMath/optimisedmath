@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec, format_answers
 
-def mixed_easy(level):
+def dec_mix_1(level):
     d = random.choice([2, 4, 5, 10])
     n = random.randint(1, d - 1)
     
@@ -22,7 +22,7 @@ def mixed_easy(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def mixed_forced_frac(level):
+def dec_mix_2(level):
     # Denominators that create infinite decimals (1/3, 1/6) forcing fraction math
     d1 = random.choice([3, 6, 7, 9])
     n1 = random.randint(1, d1 - 1)
@@ -44,7 +44,7 @@ def mixed_forced_frac(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def mixed_mult_div(level):
+def dec_mix_3(level):
     d1 = random.choice([3, 4, 5, 6, 7])
     n1 = random.randint(1, d1 - 1)
     

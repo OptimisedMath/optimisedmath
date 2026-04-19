@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def pow_frac_l1(level):
+def frac_pow_1(level):
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     p = 2
@@ -19,7 +19,7 @@ def pow_frac_l1(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def pow_frac_l2(level):
+def frac_pow_2(level):
     # Keeping denominator up to 5 so cubes don't get absurdly large
     d = random.randint(2, 5) 
     n = random.randint(1, d - 1)
@@ -38,7 +38,7 @@ def pow_frac_l2(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def pow_mixed_l3(level):
+def frac_pow_3(level):
     w = random.randint(1, 2)
     p = random.randint(2, 3)
     # Cap denominator if p=3 to prevent math from becoming tedious

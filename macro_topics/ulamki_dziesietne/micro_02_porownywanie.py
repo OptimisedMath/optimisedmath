@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def compare_dec_same(level):
+def dec_compare_1(level):
     n1 = random.randint(11, 99)
     n2 = random.randint(11, 99)
     if n1 == n2 or n1 % 10 == 0 or n2 % 10 == 0: return None
@@ -14,7 +14,7 @@ def compare_dec_same(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2="=", level_name=f"Poziom {level}")
     if result: return result
 
-def compare_dec_diff(level):
+def dec_compare_2(level):
     if random.random() < 0.2:
         base = random.randint(1, 9)
         s1 = f"0,{base}"
@@ -38,7 +38,7 @@ def compare_dec_diff(level):
         result = build_problem_dict(q_str, c_str, t1=t1, t2="=", level_name=f"Poziom {level}")
         if result: return result
 
-def compare_dec_zeros(level):
+def dec_compare_3(level):
     if random.random() < 0.2:
         whole = random.randint(1, 5)
         digit = random.randint(1, 9)

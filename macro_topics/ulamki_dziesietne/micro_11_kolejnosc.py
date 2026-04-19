@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def order_dec_simple(level):
+def dec_order_1(level):
     v1 = random.randint(11, 29) / 10
     v2 = random.randint(2, 9) / 10
     v3 = random.randint(2, 5)
@@ -16,7 +16,7 @@ def order_dec_simple(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def order_dec_brackets(level):
+def dec_order_2(level):
     v1 = random.randint(21, 49) / 10
     v2 = random.randint(11, 19) / 10
     v3 = random.randint(2, 9) / 10

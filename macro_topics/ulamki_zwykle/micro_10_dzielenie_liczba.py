@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def div_frac_int(level):
+def frac_div_num_1(level):
     d = random.randint(2, 7)
     n = random.randint(1, d - 1)
     k = random.randint(2, 5)
@@ -17,7 +17,7 @@ def div_frac_int(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def div_int_frac(level):
+def frac_div_num_2(level):
     k = random.randint(2, 5)
     d = random.randint(2, 7)
     n = random.randint(1, d - 1)
@@ -32,7 +32,7 @@ def div_int_frac(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def div_mixed_int(level):
+def frac_div_num_3(level):
     w = random.randint(2, 4)
     d = random.randint(2, 5)
     n = random.randint(1, d - 1)

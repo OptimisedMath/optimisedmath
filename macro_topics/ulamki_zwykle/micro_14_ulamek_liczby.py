@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def frac_of_int_natural(level):
+def frac_frac_of_int_1(level):
     d = random.randint(2, 8)
     n = random.randint(1, d - 1)
     k = d * random.randint(2, 6)
@@ -16,7 +16,7 @@ def frac_of_int_natural(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def frac_of_int_frac(level):
+def frac_frac_of_int_2(level):
     d = random.randint(3, 9)
     n = random.randint(1, d - 1)
     k = random.randint(4, 15)
@@ -32,7 +32,7 @@ def frac_of_int_frac(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def find_whole_from_frac(level):
+def frac_frac_of_int_3(level):
     d = random.randint(3, 8)
     n = random.randint(2, d - 1)
     whole = d * random.randint(2, 6)
@@ -48,7 +48,7 @@ def find_whole_from_frac(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def increase_by_frac(level):
+def frac_frac_of_int_4(level):
     d = random.randint(3, 6)
     n = random.randint(1, d - 1)
     base = d * random.randint(2, 5)

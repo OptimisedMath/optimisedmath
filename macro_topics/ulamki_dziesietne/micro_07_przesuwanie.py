@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def move_comma_mult(level):
+def dec_comma_1(level):
     v = random.randint(111, 999) / 100
     zeros = random.choice([10, 100, 1000])
     
@@ -16,7 +16,7 @@ def move_comma_mult(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def move_comma_div(level):
+def dec_comma_2(level):
     v = random.randint(111, 999) / 10
     zeros = random.choice([10, 100, 1000])
     

@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict
 
-def fraction_as_division(level):
+def frac_write_1(level):
     n = random.randint(1, 9)
     d = random.randint(2, 9)
     if n == d: return None

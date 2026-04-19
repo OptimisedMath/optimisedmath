@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def add_dec_same(level):
+def dec_add_1(level):
     w1, w2 = random.randint(1, 4), random.randint(1, 4)
     d1, d2 = random.randint(1, 8), random.randint(1, 8)
     if d1 + d2 >= 10: return None
@@ -19,7 +19,7 @@ def add_dec_same(level):
     result = build_problem_dict(q_str, c_str, t1=t1, w1=w1_ans, w2=w2_ans, level_name=f"Poziom {level}")
     if result: return result
 
-def add_dec_carry(level):
+def dec_add_2(level):
     d1 = random.randint(5, 9)
     d2 = random.randint(15 - d1, 9)
     v1, v2 = d1 / 10, d2 / 10
@@ -34,7 +34,7 @@ def add_dec_carry(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def add_dec_diff(level):
+def dec_add_3(level):
     v1 = random.randint(11, 49) / 10
     v2 = random.randint(11, 99) / 100
     if str(v1).endswith('.0') or str(v2).endswith('.0'): return None

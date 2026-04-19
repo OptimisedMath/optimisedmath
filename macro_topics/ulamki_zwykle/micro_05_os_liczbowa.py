@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, generate_universal_number_line
 
-def fraction_number_line_l1(level):
+def frac_number_line_1(level):
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)        
     q_str = rf"\text{{Jaki ułamek zaznaczono na osi?}}"
@@ -22,7 +22,7 @@ def fraction_number_line_l1(level):
     )
     if result: return result
 
-def fraction_number_line_l2(level):
+def frac_number_line_2(level):
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     W = random.randint(1, 5)        
@@ -44,7 +44,7 @@ def fraction_number_line_l2(level):
     )
     if result: return result
 
-def fraction_number_line_l3(level):
+def frac_number_line_3(level):
     # Level 3: Decrypt the Axis (Gap > 1)
     d = random.choice([2, 3, 4])
     D = random.choice([2, 3]) # Difference between integer labels (e.g., 2 means labels are 1 and 3)
@@ -101,7 +101,7 @@ def fraction_number_line_l3(level):
         )
         if result: return result
 
-def fraction_number_line_l4(level):
+def frac_number_line_4(level):
     # Level 4: Extrapolation (Target is outside the labeled bounds)
     d = random.choice([3, 4, 5])
     W = random.randint(1, 5)

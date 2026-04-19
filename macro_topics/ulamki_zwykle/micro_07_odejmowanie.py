@@ -2,7 +2,7 @@ import random
 import math
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def subtract_fractions_simple(level):
+def frac_sub_1(level):
     d = random.randint(3, 9)
     n1 = random.randint(2, d - 1)
     n2 = random.randint(1, n1 - 1)
@@ -17,7 +17,7 @@ def subtract_fractions_simple(level):
     result = build_problem_dict(q_str, c_str, t1=t1, w1=w1, w2=w2, level_name=f"Poziom {level}")
     if result: return result
 
-def subtract_fractions_single_conversion(level):
+def frac_sub_2(level):
     d1 = random.randint(2, 5)
     factor = random.randint(2, 4)
     d2 = d1 * factor
@@ -34,7 +34,7 @@ def subtract_fractions_single_conversion(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def subtract_fractions_complex(level):
+def frac_sub_3(level):
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     if math.gcd(d1, d2) > 1 or d1 == d2: return None
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
@@ -50,7 +50,7 @@ def subtract_fractions_complex(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def subtract_mixed_numbers_easy(level):
+def frac_sub_4(level):
     w1, w2 = random.randint(2, 4), random.randint(1, 2)
     if w1 <= w2: return None
     d = random.randint(3, 7)
@@ -67,7 +67,7 @@ def subtract_mixed_numbers_easy(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1_str, level_name=f"Poziom {level}")
     if result: return result
 
-def subtract_mixed_numbers_boss(level):
+def frac_sub_5(level):
     w1, w2 = random.randint(2, 4), random.randint(1, 2)
     if w1 <= w2: return None
     d = random.randint(3, 7)

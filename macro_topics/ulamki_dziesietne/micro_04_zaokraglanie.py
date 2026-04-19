@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def round_whole(level):
+def dec_round_1(level):
     v = random.randint(11, 99) / 10
     if v % 1 == 0: return None
     q_str = rf"\text{{Zaokrąglij do całości: }} {fmt_dec(v)}"
@@ -14,7 +14,7 @@ def round_whole(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def round_tenths(level):
+def dec_round_2(level):
     v = random.randint(101, 999) / 100
     if (v * 10) % 1 == 0: return None
     q_str = rf"\text{{Zaokrąglij do części dziesiątych: }} {fmt_dec(v)}"
@@ -29,7 +29,7 @@ def round_tenths(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def round_domino(level):
+def dec_round_3(level):
     whole = random.randint(1, 8)
     # Force a number like 2.96, 2.97, 2.98
     v = whole + random.choice([95, 96, 97, 98, 99]) / 100

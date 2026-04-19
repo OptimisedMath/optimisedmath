@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec, generate_universal_number_line
 
-def number_line_l1(level):
+def dec_numer_line_1(level):
     # Level 1: Absolute basics. 10 ticks, whole numbers. Step is always 0.1.
     base = random.randint(0, 20)
     target = random.randint(1, 9)
@@ -23,7 +23,7 @@ def number_line_l1(level):
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
         if result: return result
 
-def number_line_l2(level):
+def dec_number_line_2(level):
     # Level 2: 10 ticks, but with decimals (hundredths and thousandths). Step 0.01 or 0.001.
     step = random.choice([0.01, 0.001])
     base_mult = random.randint(1, 99)
@@ -47,7 +47,7 @@ def number_line_l2(level):
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
         if result: return result
 
-def number_line_l3(level):
+def dec_number_line_3(level):
     # Level 3: Easy Scale Intro. 5 ticks, whole numbers. Step is 0.2.
     ticks = 5
     step = 0.2
@@ -70,7 +70,7 @@ def number_line_l3(level):
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
         if result: return result
 
-def number_line_l4(level):
+def dec_number_line_4(level):
     # Level 4: Advanced Scale. 4 or 5 ticks, decimal numbers.
     ticks = random.choice([4, 5])
     step = 0.02 if ticks == 5 else 0.025
@@ -93,7 +93,7 @@ def number_line_l4(level):
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
         if result: return result
 
-def number_line_l5(level):
+def dec_number_line_5(level):
     # Level 5: Extrapolation. 10 ticks, target is outside bounds.
     ticks = 10
     step = random.choice([0.1, 0.01])
@@ -117,7 +117,7 @@ def number_line_l5(level):
         result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
         if result: return result
 
-def number_line_l6(level):
+def dec_number_line_6(level):
     # Level 6: Exam Boss. Scattered labels, calculate the step.
     ticks = 10
     step = random.choice([0.1, 0.2, 0.05])

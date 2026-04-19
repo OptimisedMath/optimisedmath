@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def mult_dec_int(level):
+def dec_mult_1(level):
     v1 = random.randint(2, 9) / 10
     v2 = random.randint(2, 9)
     
@@ -15,7 +15,7 @@ def mult_dec_int(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def mult_dec_dec(level):
+def dec_mult_2(level):
     v1 = random.randint(2, 9) / 10
     v2 = random.randint(2, 9) / 10
     
@@ -29,7 +29,7 @@ def mult_dec_dec(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def mult_dec_trim(level):
+def dec_mult_3(level):
     v1 = random.choice([1.5, 2.5, 3.5, 4.5])
     v2 = random.choice([0.2, 0.4, 0.6, 0.8])
     

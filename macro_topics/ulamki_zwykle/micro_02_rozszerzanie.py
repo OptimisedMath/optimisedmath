@@ -2,7 +2,7 @@ import random
 import math
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def expand_fraction_by_factor(level):
+def frac_exp_1(level):
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d: return None
@@ -18,7 +18,7 @@ def expand_fraction_by_factor(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}", grading_policy="exact_match_only")
     if result: return result
 
-def expand_fraction_to_denominator(level):
+def frac_exp_2(level):
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d: return None
@@ -39,7 +39,7 @@ def expand_fraction_to_denominator(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", grading_policy="exact_match_only")
     if result: return result
 
-def simplify_fraction_by_factor(level):
+def frac_exp_3(level):
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d: return None
@@ -58,7 +58,7 @@ def simplify_fraction_by_factor(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}", grading_policy="exact_match_only")
     if result: return result
 
-def simplify_fraction_fully(level):
+def frac_exp_4(level):
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d or math.gcd(n, d) > 1: return None 

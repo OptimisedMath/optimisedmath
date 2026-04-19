@@ -2,7 +2,7 @@ import random
 import math
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def div_frac_simple(level):
+def frac_div_1(level):
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     n1, n2 = random.randint(1, d1-1), random.randint(1, d2-1)
     
@@ -16,7 +16,7 @@ def div_frac_simple(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def div_frac_cross(level):
+def frac_div_2(level):
     n1, n2 = 2, 4
     while math.gcd(n1, n2) == 1:
         n1, n2 = random.randint(2, 8), random.randint(2, 8)
@@ -35,7 +35,7 @@ def div_frac_cross(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def div_mixed_mixed(level):
+def frac_div_3(level):
     w1, w2 = random.randint(1, 2), random.randint(1, 2)
     d1, d2 = random.randint(2, 4), random.randint(2, 4)
     n1, n2 = random.randint(1, d1-1), random.randint(1, d2-1)

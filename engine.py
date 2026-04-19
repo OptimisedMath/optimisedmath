@@ -12,7 +12,8 @@ for file_path in macro_path.rglob("*.py"):
     if file_path.name.startswith("__"): continue
     module_path = ".".join(file_path.relative_to(Path(__file__).parent).parts)[:-3]
     module = importlib.import_module(module_path)
-    # Safely store functions in a specific dictionary
+    
+    # Safely store functions in a specific dictionary instead of global memory
     for k, v in module.__dict__.items():
          if callable(v) and not k.startswith("_"):
              FUNCTION_REGISTRY[k] = v

@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def order_no_brackets(level):
+def frac_ord_1(level):
     d = random.randint(3, 6)
     n1, n2, n3 = random.randint(1, d-1), random.randint(1, d-1), random.randint(1, d-1)
     
@@ -15,7 +15,7 @@ def order_no_brackets(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def order_brackets(level):
+def frac_ord_1(level):
     d = random.randint(3, 6)
     n1, n2, n3 = random.randint(1, d-1), random.randint(1, d-1), random.randint(1, d-1)
     

@@ -2,7 +2,7 @@ import random
 import math
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def mult_frac_int_simple(level):
+def frac_mult_num_1(level):
     d = random.randint(3, 9)
     n = random.randint(1, d - 1)
     k = random.randint(2, 5)
@@ -18,7 +18,7 @@ def mult_frac_int_simple(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def mult_frac_int_cross(level):
+def frac_mult_num_2(level):
     k = random.randint(2, 6)
     factor = random.randint(2, 4)
     d = k * factor
@@ -35,7 +35,7 @@ def mult_frac_int_cross(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def mult_mixed_int(level):
+def frac_mult_num_3(level):
     w = random.randint(1, 3)
     d = random.randint(2, 5)
     n = random.randint(1, d - 1)

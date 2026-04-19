@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def div_dec_int(level):
+def dec_div_1(level):
     c = random.randint(2, 9)
     d = random.randint(2, 5)
     v1 = (c * d) / 10
@@ -16,7 +16,7 @@ def div_dec_int(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def div_dec_dec(level):
+def dec_div_2(level):
     c = random.randint(2, 9)
     d = random.randint(2, 5)
     v1 = (c * d) / 100
@@ -33,7 +33,7 @@ def div_dec_dec(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def div_dec_expand(level):
+def dec_div_3(level):
     c = random.randint(2, 9)
     d = random.randint(2, 5)
     v1 = (c * d) / 10
@@ -49,7 +49,7 @@ def div_dec_expand(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
     if result: return result
 
-def div_dec_phantom_zero(level):
+def dec_div_4(level):
     # Generate divisions like 0.3 : 2 = 0.15 where student must append a 0
     v1 = random.choice([1, 3, 5, 7, 9]) / 10
     d = random.choice([2, 4, 5])

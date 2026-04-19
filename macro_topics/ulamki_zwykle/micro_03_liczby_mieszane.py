@@ -1,7 +1,7 @@
 import random
 from core.utils import format_fraction_question, build_problem_dict
 
-def mixed_to_improper(level):
+def frac_imp_1(level):
     w = random.randint(1, 5)
     d = random.randint(2, 9)
     n = random.randint(1, d - 1)
@@ -16,7 +16,7 @@ def mixed_to_improper(level):
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
     if result: return result
 
-def improper_to_mixed(level):
+def frac_imp_2(level):
     w = random.randint(1, 5)
     d = random.randint(2, 9)
     n = random.randint(1, d - 1)
