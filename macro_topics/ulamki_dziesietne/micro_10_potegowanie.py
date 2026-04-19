@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_pow_1(level):
+def dec_pow_1():
     v = random.randint(2, 9) / 10
     q_str = rf"\text{{Oblicz: }} ({fmt_dec(v)})^2"
     
@@ -14,5 +14,5 @@ def dec_pow_1(level):
     
     w1 = fmt_dec(round(v**2 + 0.01, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

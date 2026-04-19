@@ -1,7 +1,7 @@
 import random
 from core.utils import format_fraction_question, build_problem_dict
 
-def frac_imp_1(level):
+def frac_imp_1():
     w = random.randint(1, 5)
     d = random.randint(2, 9)
     n = random.randint(1, d - 1)
@@ -13,10 +13,10 @@ def frac_imp_1(level):
     t2 = rf"\frac{{{w + n}}}{{{d}}}"           
     t3 = rf"\frac{{{(w * d) + n}}}{{{d * w}}}" 
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def frac_imp_2(level):
+def frac_imp_2():
     w = random.randint(1, 5)
     d = random.randint(2, 9)
     n = random.randint(1, d - 1)
@@ -32,5 +32,5 @@ def frac_imp_2(level):
     if w_wrong < 1: w_wrong = w + 2
     w1 = format_fraction_question(n, d, w_wrong) 
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

@@ -2,7 +2,7 @@ import random
 import math
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def frac_exp_1(level):
+def frac_exp_1():
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d: return None
@@ -15,10 +15,10 @@ def frac_exp_1(level):
     t2 = rf"\frac{{{n}}}{{{d * factor}}}"        
     t3 = rf"\frac{{{n + factor}}}{{{d + factor}}}" 
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}", grading_policy="exact_match_only")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3,  grading_policy="exact_match_only")
     if result: return result
 
-def frac_exp_2(level):
+def frac_exp_2():
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d: return None
@@ -36,10 +36,10 @@ def frac_exp_2(level):
     
     w1 = rf"\frac{{{n * factor + random.choice([-1, 1])}}}{{{target_d}}}" 
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", grading_policy="exact_match_only")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  grading_policy="exact_match_only")
     if result: return result
 
-def frac_exp_3(level):
+def frac_exp_3():
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d: return None
@@ -55,10 +55,10 @@ def frac_exp_3(level):
     t2 = rf"\frac{{{start_n}}}{{{d}}}" 
     t3 = rf"\frac{{{max(1, start_n - factor)}}}{{{max(2, start_d - factor)}}}"
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}", grading_policy="exact_match_only")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3,  grading_policy="exact_match_only")
     if result: return result
 
-def frac_exp_4(level):
+def frac_exp_4():
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d or math.gcd(n, d) > 1: return None 
@@ -77,5 +77,5 @@ def frac_exp_4(level):
     t2 = rf"\frac{{{n}}}{{{d * factor2}}}" 
     t3 = rf"\frac{{{n * factor2}}}{{{d}}}" 
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}", grading_policy="exact_match_only")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3,  grading_policy="exact_match_only")
     if result: return result

@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_round_1(level):
+def dec_round_1():
     v = random.randint(11, 99) / 10
     if v % 1 == 0: return None
     q_str = rf"\text{{Zaokrąglij do całości: }} {fmt_dec(v)}"
@@ -11,10 +11,10 @@ def dec_round_1(level):
     t2 = fmt_dec(v) 
     w1 = str(int(v) + 2) if round(v) > v else str(max(0, int(v) - 1))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def dec_round_2(level):
+def dec_round_2():
     v = random.randint(101, 999) / 100
     if (v * 10) % 1 == 0: return None
     q_str = rf"\text{{Zaokrąglij do części dziesiątych: }} {fmt_dec(v)}"
@@ -26,10 +26,10 @@ def dec_round_2(level):
     t2 = str(round(v))
     w1 = fmt_dec(round(v + 0.1, 1))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def dec_round_3(level):
+def dec_round_3():
     whole = random.randint(1, 8)
     # Force a number like 2.96, 2.97, 2.98
     v = whole + random.choice([95, 96, 97, 98, 99]) / 100
@@ -42,5 +42,5 @@ def dec_round_3(level):
     w1 = f"{whole},10"
     
     # Enforce exact match so they don't omit the trailing zero
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", grading_policy="exact_match_only")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  grading_policy="exact_match_only")
     if result: return result

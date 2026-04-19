@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec, generate_universal_number_line
 
-def dec_number_line_1(level):
+def dec_number_line_1():
     # Level 1: Absolute basics. 10 ticks, whole numbers. Step is always 0.1.
     base = random.randint(0, 20)
     target = random.randint(1, 9)
@@ -20,10 +20,10 @@ def dec_number_line_1(level):
     w1 = fmt_dec(round(base + w1_target * step, 1)) # Trap: Counted from the right
     
     if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  image_html=svg_graphic)
         if result: return result
 
-def dec_number_line_2(level):
+def dec_number_line_2():
     # Level 2: 10 ticks, but with decimals (hundredths and thousandths). Step 0.01 or 0.001.
     step = random.choice([0.01, 0.001])
     base_mult = random.randint(1, 99)
@@ -44,10 +44,10 @@ def dec_number_line_2(level):
     w1 = fmt_dec(round(base + w1_target * step, 4))
     
     if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  image_html=svg_graphic)
         if result: return result
 
-def dec_number_line_3(level):
+def dec_number_line_3():
     # Level 3: Easy Scale Intro. 5 ticks, whole numbers. Step is 0.2.
     ticks = 5
     step = 0.2
@@ -67,10 +67,10 @@ def dec_number_line_3(level):
     w1 = fmt_dec(round(base + w1_target * step, 1))
     
     if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  image_html=svg_graphic)
         if result: return result
 
-def dec_number_line_4(level):
+def dec_number_line_4():
     # Level 4: Advanced Scale. 4 or 5 ticks, decimal numbers.
     ticks = random.choice([4, 5])
     step = 0.02 if ticks == 5 else 0.025
@@ -90,10 +90,10 @@ def dec_number_line_4(level):
     w1 = fmt_dec(round(base + w1_target * step, 3))
     
     if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  image_html=svg_graphic)
         if result: return result
 
-def dec_number_line_5(level):
+def dec_number_line_5():
     # Level 5: Extrapolation. 10 ticks, target is outside bounds.
     ticks = 10
     step = random.choice([0.1, 0.01])
@@ -114,10 +114,10 @@ def dec_number_line_5(level):
     w1 = fmt_dec(round(base + target * step * 2, 3)) # Added distance from 0 instead of idx1
     
     if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  image_html=svg_graphic)
         if result: return result
 
-def dec_number_line_6(level):
+def dec_number_line_6():
     # Level 6: Exam Boss. Scattered labels, calculate the step.
     ticks = 10
     step = random.choice([0.1, 0.2, 0.05])
@@ -138,5 +138,5 @@ def dec_number_line_6(level):
     w1 = fmt_dec(round(c_val - step, 3))
     
     if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}", image_html=svg_graphic)
+        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1,  image_html=svg_graphic)
         if result: return result

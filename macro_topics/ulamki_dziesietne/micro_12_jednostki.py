@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_unit_1(level):
+def dec_unit_1():
     v = random.randint(2, 99)
     pairs = [("mm", "cm", 10), ("cm", "m", 100), ("m", "km", 1000)]
     unit_in, unit_out, factor = random.choice(pairs)
@@ -13,10 +13,10 @@ def dec_unit_1(level):
     t2 = fmt_dec(round(v * factor, 2))
     t3 = f"{v}00"
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def dec_unit_2(level):
+def dec_unit_2():
     v = random.randint(2, 99)
     pairs = [("g", "dag", 10), ("dag", "kg", 100), ("g", "kg", 1000)]
     unit_in, unit_out, factor = random.choice(pairs)
@@ -28,10 +28,10 @@ def dec_unit_2(level):
     t2 = fmt_dec(round(v / 10, 4)) if factor == 100 else fmt_dec(round(v / 100, 4))
     t3 = fmt_dec(round(v / 10, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def dec_unit_3(level):
+def dec_unit_3():
     zl = random.randint(2, 15)
     gr = random.randint(1, 9) # Single digit grosze forces the "0" trap (e.g. 5.08)
     
@@ -42,5 +42,5 @@ def dec_unit_3(level):
     t2 = f"{zl},{gr}0"
     w1 = fmt_dec(zl + ((gr + 1) / 100))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

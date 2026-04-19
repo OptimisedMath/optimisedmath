@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_add_1(level):
+def dec_add_1():
     w1, w2 = random.randint(1, 4), random.randint(1, 4)
     d1, d2 = random.randint(1, 8), random.randint(1, 8)
     if d1 + d2 >= 10: return None
@@ -16,10 +16,10 @@ def dec_add_1(level):
     w1_ans = fmt_dec(v1 + v2 + 0.1)
     w2_ans = fmt_dec(v1 + v2 + 1)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, w1=w1_ans, w2=w2_ans, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, w1=w1_ans, w2=w2_ans, )
     if result: return result
 
-def dec_add_2(level):
+def dec_add_2():
     d1 = random.randint(5, 9)
     d2 = random.randint(15 - d1, 9)
     v1, v2 = d1 / 10, d2 / 10
@@ -31,10 +31,10 @@ def dec_add_2(level):
     t2 = str(d1 + d2)
     w1 = fmt_dec(v1 + v2 + 0.1)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def dec_add_3(level):
+def dec_add_3():
     v1 = random.randint(11, 49) / 10
     v2 = random.randint(11, 99) / 100
     if str(v1).endswith('.0') or str(v2).endswith('.0'): return None
@@ -52,5 +52,5 @@ def dec_add_3(level):
     t2 = fmt_dec(round((w1_whole + w2_whole)/10 + (d1_tenth + d2_tenth)/100, 2))
     t3 = fmt_dec(round(v1 + int(v2*10)/10, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result

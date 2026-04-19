@@ -2,6 +2,7 @@ import pandas as pd
 import importlib
 from pathlib import Path
 from core.utils import check_text_answer, parse_to_fraction
+import uuid
 
 DATA_FILE = 'Courses_Data.csv'
 
@@ -50,7 +51,15 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
             if not problem_func: return {"error": f"Function {func_name} not found"}
             
             try:
-                problem_dict = generate_problem(lambda: problem_func(level))
+                # Generate the raw problem dict (no lambda, no level parameter!)
+                problem_dict = generate_problem(problem_func)
+        
+                # The Engine explicitly injects the metadata here
+                problem_dict['level'] = int(level)
+                problem_dict['level_name'] = f"Poziom {level}"
+                
+                problem_dict['problem_id'] = str(uuid.uuid4())
+                # ... (rest of the code)
             except RuntimeError as e:
                 return {"error": str(e)}
             

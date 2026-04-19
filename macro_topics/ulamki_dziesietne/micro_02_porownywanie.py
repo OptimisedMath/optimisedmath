@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_compare_1(level):
+def dec_compare_1():
     n1 = random.randint(11, 99)
     n2 = random.randint(11, 99)
     if n1 == n2 or n1 % 10 == 0 or n2 % 10 == 0: return None
@@ -11,10 +11,10 @@ def dec_compare_1(level):
     c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
     
     # t2 is strictly reserved for the "=" trap here
-    result = build_problem_dict(q_str, c_str, t1=t1, t2="=", level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2="=", )
     if result: return result
 
-def dec_compare_2(level):
+def dec_compare_2():
     if random.random() < 0.2:
         base = random.randint(1, 9)
         s1 = f"0,{base}"
@@ -23,7 +23,7 @@ def dec_compare_2(level):
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
         
         # Equal scenario: We use t3 and w1 for the < and > traps
-        result = build_problem_dict(q_str, "=", t3="<", w1=">", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, "=", t3="<", w1=">", )
         if result: return result
     else:
         v1 = random.randint(2, 9) / 10
@@ -35,10 +35,10 @@ def dec_compare_2(level):
         c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
         
         # Normal scenario: We use t1 for the wrong inequality, t2 for the "=" trap
-        result = build_problem_dict(q_str, c_str, t1=t1, t2="=", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2="=", )
         if result: return result
 
-def dec_compare_3(level):
+def dec_compare_3():
     if random.random() < 0.2:
         whole = random.randint(1, 5)
         digit = random.randint(1, 9)
@@ -48,7 +48,7 @@ def dec_compare_3(level):
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
         
         # Equal scenario: We use t3 and w1 for the < and > traps
-        result = build_problem_dict(q_str, "=", t3="<", w1=">", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, "=", t3="<", w1=">", )
         if result: return result
     else:
         whole = random.randint(1, 5)
@@ -61,5 +61,5 @@ def dec_compare_3(level):
         c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
         
         # Normal scenario: We use t1 for the wrong inequality, t2 for the "=" trap
-        result = build_problem_dict(q_str, c_str, t1=t1, t2="=", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, c_str, t1=t1, t2="=", )
         if result: return result

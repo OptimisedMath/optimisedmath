@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_comma_1(level):
+def dec_comma_1():
     v = random.randint(111, 999) / 100
     zeros = random.choice([10, 100, 1000])
     
@@ -13,10 +13,10 @@ def dec_comma_1(level):
     t2 = fmt_dec(round(v * wrong_zeros, 2))
     t3 = fmt_dec(v) + "0"
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def dec_comma_2(level):
+def dec_comma_2():
     v = random.randint(111, 999) / 10
     zeros = random.choice([10, 100, 1000])
     
@@ -28,5 +28,5 @@ def dec_comma_2(level):
     t2 = fmt_dec(round(v / wrong_zeros, 4))
     t3 = fmt_dec(round(v / (zeros * 10), 6))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result

@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def frac_div_num_1(level):
+def frac_div_num_1():
     d = random.randint(2, 7)
     n = random.randint(1, d - 1)
     k = random.randint(2, 5)
@@ -14,10 +14,10 @@ def frac_div_num_1(level):
     if d % k == 0: t2, _, _ = format_answers(n, d // k)
     w1, _, _ = format_answers(n + k, d * k)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_div_num_2(level):
+def frac_div_num_2():
     k = random.randint(2, 5)
     d = random.randint(2, 7)
     n = random.randint(1, d - 1)
@@ -29,10 +29,10 @@ def frac_div_num_2(level):
     t2, _, _ = format_answers(n, k * d) 
     w1, _, _ = format_answers((k * d) + 1, n)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_div_num_3(level):
+def frac_div_num_3():
     w = random.randint(2, 4)
     d = random.randint(2, 5)
     n = random.randint(1, d - 1)
@@ -47,5 +47,5 @@ def frac_div_num_3(level):
     t2, _, _ = format_answers(correct_num * k, d) 
     w1, _, _ = format_answers(correct_num + 1, d * k)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

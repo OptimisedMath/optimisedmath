@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, generate_universal_number_line
 
-def frac_number_line_1(level):
+def frac_number_line_1():
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)        
     q_str = rf"\text{{Jaki ułamek zaznaczono na osi?}}"
@@ -16,13 +16,13 @@ def frac_number_line_1(level):
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, w1=w1, 
-        level_name=f"Poziom {level}", 
+         
         image_html=svg_graphic, 
         grading_policy="equivalent_accepted"
     )
     if result: return result
 
-def frac_number_line_2(level):
+def frac_number_line_2():
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     W = random.randint(1, 5)        
@@ -38,13 +38,13 @@ def frac_number_line_2(level):
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, w1=w1, 
-        level_name=f"Poziom {level}", 
+         
         image_html=svg_graphic, 
         grading_policy="equivalent_accepted"
     )
     if result: return result
 
-def frac_number_line_3(level):
+def frac_number_line_3():
     # Level 3: Decrypt the Axis (Gap > 1)
     d = random.choice([2, 3, 4])
     D = random.choice([2, 3]) # Difference between integer labels (e.g., 2 means labels are 1 and 3)
@@ -95,13 +95,13 @@ def frac_number_line_3(level):
     if len({c_str, t1, t2, w1}) == 4:
         result = build_problem_dict(
             q_str, c_str, t1=t1, t2=t2, w1=w1, 
-            level_name=f"Poziom {level}", 
+             
             image_html=svg_graphic, 
             grading_policy="equivalent_accepted"
         )
         if result: return result
 
-def frac_number_line_4(level):
+def frac_number_line_4():
     # Level 4: Extrapolation (Target is outside the labeled bounds)
     d = random.choice([3, 4, 5])
     W = random.randint(1, 5)
@@ -151,7 +151,7 @@ def frac_number_line_4(level):
     if len({c_str, t1, t2, w1}) == 4:
         result = build_problem_dict(
             q_str, c_str, t1=t1, t2=t2, w1=w1, 
-            level_name=f"Poziom {level}", 
+             
             image_html=svg_graphic, 
             grading_policy="equivalent_accepted"
         )

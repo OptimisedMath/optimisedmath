@@ -2,7 +2,7 @@ import random
 from fractions import Fraction
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_to_frac_1(level):
+def dec_to_frac_1():
     denominators = [4, 5, 20, 25, 50]
     d = random.choice(denominators)
     n = random.randint(1, d - 1)
@@ -23,10 +23,10 @@ def dec_to_frac_1(level):
     if wrong_d < 2: wrong_d = d + 2
     t3 = rf"\frac{{{n}}}{{{wrong_d}}}"
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def dec_to_frac_2(level):
+def dec_to_frac_2():
     d = random.choice([4, 5, 20, 25])
     n = random.randint(1, d - 1)
     if Fraction(n, d).denominator != d: return None
@@ -39,10 +39,10 @@ def dec_to_frac_2(level):
     t2 = fmt_dec(val / 10)
     t3 = fmt_dec(n + (d / 10))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def dec_to_frac_3(level):
+def dec_to_frac_3():
     w = random.randint(1, 5)
     d = random.choice([2, 4, 5, 20])
     n = random.randint(1, d - 1)
@@ -56,10 +56,10 @@ def dec_to_frac_3(level):
     t2 = fmt_dec(val / 10)
     t3 = f"{w},{d}"
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
 
-def dec_to_frac_4(level):
+def dec_to_frac_4():
     d = random.choice([3, 9])
     n = random.randint(1, d - 1)
     
@@ -73,5 +73,5 @@ def dec_to_frac_4(level):
     t2 = f"0,0({val})"
     w1 = f"0,({val + 1})"
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

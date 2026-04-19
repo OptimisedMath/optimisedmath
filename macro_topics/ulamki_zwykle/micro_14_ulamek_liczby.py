@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def frac_frac_of_int_1(level):
+def frac_frac_of_int_1():
     d = random.randint(2, 8)
     n = random.randint(1, d - 1)
     k = d * random.randint(2, 6)
@@ -13,10 +13,10 @@ def frac_frac_of_int_1(level):
     t2, _, _ = format_answers(k // n * d, 1) 
     w1, _, _ = format_answers((k // d) * n + 1, 1)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_frac_of_int_2(level):
+def frac_frac_of_int_2():
     d = random.randint(3, 9)
     n = random.randint(1, d - 1)
     k = random.randint(4, 15)
@@ -29,10 +29,10 @@ def frac_frac_of_int_2(level):
     t2, _, _ = format_answers(n * k, d * k) 
     w1, _, _ = format_answers(n * k + 1, d)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_frac_of_int_3(level):
+def frac_frac_of_int_3():
     d = random.randint(3, 8)
     n = random.randint(2, d - 1)
     whole = d * random.randint(2, 6)
@@ -45,10 +45,10 @@ def frac_frac_of_int_3(level):
     t2 = str(int(part * n // d)) # TRAP: Calculated the fraction OF the number instead of finding the whole
     w1 = str(whole + d)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_frac_of_int_4(level):
+def frac_frac_of_int_4():
     d = random.randint(3, 6)
     n = random.randint(1, d - 1)
     base = d * random.randint(2, 5)
@@ -66,5 +66,5 @@ def frac_frac_of_int_4(level):
     t2 = str(base + n) if is_increase else str(base - n) # TRAP: Just added the numerator
     w1 = str(c_val + 1)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

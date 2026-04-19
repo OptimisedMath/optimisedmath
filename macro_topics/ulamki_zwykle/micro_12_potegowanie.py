@@ -1,7 +1,7 @@
 import random
 from core.utils import format_answers, format_fraction_question, build_problem_dict
 
-def frac_pow_1(level):
+def frac_pow_1():
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     p = 2
@@ -16,10 +16,10 @@ def frac_pow_1(level):
     t2, _, _ = format_answers(n * p, d * p) 
     w1, _, _ = format_answers((n**p) + 1, d**p)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_pow_2(level):
+def frac_pow_2():
     # Keeping denominator up to 5 so cubes don't get absurdly large
     d = random.randint(2, 5) 
     n = random.randint(1, d - 1)
@@ -35,10 +35,10 @@ def frac_pow_2(level):
     t2, _, _ = format_answers(n * p, d * p) 
     w1, _, _ = format_answers((n**p) + 1, d**p)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def frac_pow_3(level):
+def frac_pow_3():
     w = random.randint(1, 2)
     p = random.randint(2, 3)
     # Cap denominator if p=3 to prevent math from becoming tedious
@@ -56,5 +56,5 @@ def frac_pow_3(level):
     t2, _, _ = format_answers(num**p, d) 
     w1, _, _ = format_answers(num**p + 1, d**p)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result

@@ -1,7 +1,7 @@
 import random
 from core.utils import format_fraction_question, build_problem_dict
 
-def frac_comp_1(level):
+def frac_comp_1():
     d = random.randint(3, 12)
     n1 = random.randint(1, d + 5)
     n2 = n1
@@ -11,10 +11,10 @@ def frac_comp_1(level):
     
     c_str, t1 = ("<", ">") if n1 < n2 else (">", "<")
         
-    result = build_problem_dict(q_str, c_str, t1=t1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, )
     if result: return result
 
-def frac_comp_2(level):
+def frac_comp_2():
     n = random.randint(1, 9)
     d1 = random.randint(2, 12)
     d2 = d1
@@ -26,10 +26,10 @@ def frac_comp_2(level):
     
     c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
         
-    result = build_problem_dict(q_str, c_str, t1=t1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, )
     if result: return result
 
-def frac_comp_3(level):
+def frac_comp_3():
     if random.random() < 0.25:
         d1 = random.randint(2, 6)
         n1 = random.randint(1, d1 * 2)
@@ -48,11 +48,11 @@ def frac_comp_3(level):
     v1, v2 = n1 / d1, n2 / d2
     
     if v1 < v2:
-        result = build_problem_dict(q_str, "<", t1=">", t2="=", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, "<", t1=">", t2="=", )
         if result: return result
     elif v1 > v2:
-        result = build_problem_dict(q_str, ">", t1="<", t2="=", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, ">", t1="<", t2="=", )
         if result: return result
     else:
-        result = build_problem_dict(q_str, "=", t3="<", w1=">", level_name=f"Poziom {level}")
+        result = build_problem_dict(q_str, "=", t3="<", w1=">", )
         if result: return result

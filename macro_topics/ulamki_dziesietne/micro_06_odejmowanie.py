@@ -1,7 +1,7 @@
 import random
 from core.utils import build_problem_dict, fmt_dec
 
-def dec_sub_1(level):
+def dec_sub_1():
     v1 = random.randint(31, 99) / 10
     v2 = random.randint(11, int(v1*10) - 1) / 10
     if str(v1).endswith('.0') or str(v2).endswith('.0'): return None
@@ -17,10 +17,10 @@ def dec_sub_1(level):
     w1 = fmt_dec(round(v1 - v2 + 0.1, 2))
     w2 = fmt_dec(round(v1 - v2 - 0.1, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, w1=w1, w2=w2, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, w1=w1, w2=w2, )
     if result: return result
 
-def dec_sub_2(level):
+def dec_sub_2():
     v1 = random.randint(311, 999) / 100
     v2 = random.randint(11, int(v1/10)*10 - 1) / 10
     
@@ -31,10 +31,10 @@ def dec_sub_2(level):
     t2 = fmt_dec(round(v1 - v2 + 0.09, 2))
     w1 = fmt_dec(round(v1 - v2 + 1, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
     if result: return result
 
-def dec_sub_3(level):
+def dec_sub_3():
     v1 = random.randint(31, 99) / 10
     v2 = random.randint(111, int(v1*100) - 1) / 100
     if str(v1).endswith('.0') or str(v2).endswith('.0'): return None
@@ -50,5 +50,5 @@ def dec_sub_3(level):
     t2 = fmt_dec(round(v1 - v2 - 0.4, 2))
     t3 = fmt_dec(round(v1 - v2 + 0.1, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, level_name=f"Poziom {level}")
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
     if result: return result
