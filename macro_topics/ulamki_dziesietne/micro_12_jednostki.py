@@ -42,5 +42,5 @@ def dec_unit_3():
     t2 = f"{zl},{gr}0"
     w1 = fmt_dec(zl + ((gr + 1) / 100))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
     if result: return result

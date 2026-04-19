@@ -14,5 +14,5 @@ def dec_pow_1():
     
     w1 = fmt_dec(round(v**2 + 0.01, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
     if result: return result
