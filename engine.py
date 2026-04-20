@@ -4,7 +4,14 @@ from pathlib import Path
 from core.utils import check_text_answer, parse_to_fraction
 import uuid
 
-DATA_FILE = 'Courses_Data.csv'
+# 1. Dynamically find the root folder of your project
+BASE_DIR = Path(__file__).resolve().parent
+
+# 2. Point exactly to the new data folder
+DATA_FILE = BASE_DIR / "data" / "Courses_Data.csv"
+
+# 3. Load the dataframe safely
+df = pd.read_csv(DATA_FILE, sep=';', encoding='utf-8')
 
 # --- THE AUTOLOADER ---
 FUNCTION_REGISTRY = {}
