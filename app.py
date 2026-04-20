@@ -74,7 +74,7 @@ macro_topics = list(curriculum.keys())
 default_state = {
     'xp': 0, 'streak': 0, 
     'selected_macro': macro_topics[0],
-    'selected_topic_order': 1,
+    'selected_topic_order': curriculum[macro_topics[0]][0]['Topic_Order'] if curriculum[macro_topics[0]] else 1,
     'selected_level': 1,
     'problem_answered': False, 'current_input_mode': "radio",
     'topic_completed': False,
@@ -85,10 +85,17 @@ for key, value in default_state.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-# Ensure progress dict catches any new macro topics added to the CSV
+# Ensure progress dict catches any new macro topics AND heals old broken saves
 for mt in macro_topics:
-    if mt not in st.session_state.progress:
-        st.session_state.progress[mt] = {'unlocked_order': 1, 'unlocked_level': 1}
+    first_order = curriculum[mt][0]['Topic_Order'] if curriculum[mt] else 1
+    if mt not in st.session_state.progress or st.session_state.progress[mt]['unlocked_order'] < first_order:
+        st.session_state.progress[mt] = {'unlocked_order': first_order, 'unlocked_level': 1}
+
+# Heal the selected topic order if it's currently broken (None or 1)
+curr_macro = st.session_state.selected_macro
+first_curr = curriculum[curr_macro][0]['Topic_Order'] if curriculum[curr_macro] else 1
+if st.session_state.selected_topic_order is None or st.session_state.selected_topic_order < first_curr:
+    st.session_state.selected_topic_order = first_curr
 
 # Build map for CURRENT macro topic
 macro_curr = curriculum[st.session_state.selected_macro]
@@ -104,9 +111,9 @@ with st.sidebar:
     if st.button("🔄 Zresetuj Postęp"):
         st.session_state.xp = 0
         st.session_state.streak = 0
-        st.session_state.progress = {mt: {'unlocked_order': 1, 'unlocked_level': 1} for mt in macro_topics}
+        st.session_state.progress = {mt: {'unlocked_order': curriculum[mt][0]['Topic_Order'] if curriculum[mt] else 1, 'unlocked_level': 1} for mt in macro_topics}
         st.session_state.selected_macro = macro_topics[0]
-        st.session_state.selected_topic_order = 1
+        st.session_state.selected_topic_order = curriculum[macro_topics[0]][0]['Topic_Order'] if curriculum[macro_topics[0]] else 1
         st.session_state.selected_level = 1
         st.session_state.problem_answered = False
         st.session_state.current_input_mode = "radio" 
@@ -117,52 +124,61 @@ with st.sidebar:
     st.markdown("---")
     st.title("Ustawienia")
     
-    # 1. MACRO TOPIC SELECTOR
-    new_macro = st.selectbox("Wybierz Dział:", macro_topics, index=macro_topics.index(st.session_state.selected_macro))
-    
-    if new_macro != st.session_state.selected_macro:
-        st.session_state.selected_macro = new_macro
-        prog = st.session_state.progress[new_macro]
-        st.session_state.selected_topic_order = prog['unlocked_order']
-        st.session_state.selected_level = prog['unlocked_level']
-        st.session_state.streak = 0
-        st.session_state.problem_answered = False
-        st.session_state.current_input_mode = "radio"
-        st.session_state.topic_completed = False
-        if 'current_problem' in st.session_state: del st.session_state['current_problem']
-        st.rerun()
-    
     # 2. MICRO TOPIC SELECTOR
     prog = st.session_state.progress[st.session_state.selected_macro]
+    
+    # SAFELY calculate unlocked order (fallback to first key if broken)
+    first_key = list(topic_map.keys())[0] if topic_map else 1
+    unlocked_order = prog.get('unlocked_order', first_key)
+    if unlocked_order is None or (topic_map and unlocked_order < first_key):
+        unlocked_order = first_key
+        prog['unlocked_order'] = first_key
+    
     if admin_mode:
         available_orders = list(topic_map.keys())
     else:
-        available_orders = [order for order in topic_map.keys() if order <= prog['unlocked_order']]
+        available_orders = [order for order in topic_map.keys() if order <= unlocked_order]
+        
+    # Failsafe if available orders is empty
+    if not available_orders:
+        available_orders = [first_key]
 
     def format_topic(order):
-        return f"{order}. {topic_map[order]['name']}"
+        return f"{order}. {topic_map.get(order, {'name': 'Nieznany'})['name']}"
         
+    safe_index = available_orders.index(st.session_state.selected_topic_order) if st.session_state.selected_topic_order in available_orders else len(available_orders)-1
+    
     new_topic_order = st.selectbox(
         "Wybierz Temat:", 
         options=available_orders, 
         format_func=format_topic,
-        index=available_orders.index(st.session_state.selected_topic_order) if st.session_state.selected_topic_order in available_orders else len(available_orders)-1
+        index=safe_index
     )
     
-    if new_topic_order != st.session_state.selected_topic_order:
+    if new_topic_order is not None and new_topic_order != st.session_state.selected_topic_order:
         st.session_state.selected_topic_order = new_topic_order
         st.session_state.selected_level = 1
         reset_turn_state()
 
     # 3. LEVEL SELECTOR
-    current_topic_max_level = topic_map[st.session_state.selected_topic_order]['max_level']
+    safe_order = st.session_state.selected_topic_order
+    if safe_order is None or safe_order not in topic_map:
+        safe_order = first_key
+        st.session_state.selected_topic_order = safe_order
+
+    current_topic_max_level = topic_map.get(safe_order, {'max_level': 1}).get('max_level', 1)
     
+    unlocked_lvl = prog.get('unlocked_level', 1)
+    if unlocked_lvl is None:
+        unlocked_lvl = 1
+        prog['unlocked_level'] = 1
+
     if admin_mode:
         allowed_max_level = current_topic_max_level
-    elif st.session_state.selected_topic_order < prog['unlocked_order']:
+    elif safe_order < unlocked_order:
         allowed_max_level = current_topic_max_level 
     else:
-        allowed_max_level = min(prog['unlocked_level'], current_topic_max_level)
+        allowed_max_level = min(unlocked_lvl, current_topic_max_level)
     
     if allowed_max_level == 1 and current_topic_max_level > 1:
         st.info(f"🔒 Aktywny: Poziom 1\n\n*(Zdobądź 3 gwiazdki, aby odblokować kolejne poziomy!)*")

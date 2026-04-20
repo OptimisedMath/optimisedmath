@@ -4,14 +4,7 @@ from pathlib import Path
 from core.utils import check_text_answer, parse_to_fraction
 import uuid
 
-# 1. Dynamically find the root folder of your project
 BASE_DIR = Path(__file__).resolve().parent
-
-# 2. Point exactly to the new data folder
-DATA_FILE = BASE_DIR / "data" / "Courses_Data.csv"
-
-# 3. Load the dataframe safely
-df = pd.read_csv(DATA_FILE, sep=';', encoding='utf-8')
 
 # --- THE AUTOLOADER ---
 FUNCTION_REGISTRY = {}
@@ -26,64 +19,81 @@ for file_path in macro_path.rglob("*.py"):
          if callable(v) and not k.startswith("_"):
              FUNCTION_REGISTRY[k] = v
 
-# @st.cache_data <- for cache
-def load_csv(file_path=DATA_FILE):
-    return pd.read_csv(file_path, sep=';', encoding='utf-8')
-
 def get_curriculum() -> dict:
-    df = load_csv()
-    if df is None: return {}
-    valid_df = df[df['Function_Name'] != 'TBD']
-    if valid_df.empty: return {}
-    
     curriculum_dict = {}
-    for macro, group in valid_df.groupby('Macro_Topic', sort=False):
-        micro_group = group.groupby(['Topic_Order', 'Micro_Topic'], sort=False)['Level'].max().reset_index()
-        micro_group = micro_group.sort_values('Topic_Order')
-        curriculum_dict[macro] = micro_group.to_dict('records')
+    data_dir = BASE_DIR / "data"
+    
+    if not data_dir.exists():
+        return curriculum_dict
         
+    # 1. Dynamically scan for every CSV file in the data folder
+    for file_path in data_dir.glob("*.csv"):
+        # 2. Convert the file name to the Macro Topic (e.g., "Ułamki_dziesiętne.csv" -> "Ułamki dziesiętne")
+        macro_topic = file_path.stem.replace("_", " ")
+        
+        try:
+            # 3. Load the specific topic database
+            df = pd.read_csv(file_path, sep=';', encoding='utf-8')
+            
+            # Filter out any rows you haven't finished building yet
+            valid_df = df[df['Function_Name'] != 'TBD']
+            
+            if not valid_df.empty:
+                # 4. Group by Topic_Order to build the sidebar menu correctly
+                micro_group = valid_df.groupby(['Topic_Order', 'Micro_Topic'], sort=False)['Level'].max().reset_index()
+                micro_group = micro_group.sort_values('Topic_Order')
+                curriculum_dict[macro_topic] = micro_group.to_dict('records')
+                
+        except Exception as e:
+            print(f"Error loading {file_path.name}: {e}")
+            
     return curriculum_dict
 
 def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
-    df = load_csv()
-    if df is None: return {"error": "Missing CSV"}
+    # 1. Convert the UI topic name to a file name (e.g., "Ułamki dziesiętne" -> "Ułamki_dziesiętne.csv")
+    safe_filename = macro_topic.replace(" ", "_") + ".csv"
+    csv_path = BASE_DIR / "data" / safe_filename
     
-    filtered_df = df[(df['Macro_Topic'] == macro_topic) & (df['Micro_Topic'] == micro_topic) & (df['Level'] == level)]
+    # 2. Check if the specific database exists
+    if not csv_path.exists(): 
+        return {"error": f"Missing database file: {safe_filename}"}
+        
+    # 3. Load ONLY the relevant macro topic data
+    df = pd.read_csv(csv_path, sep=';', encoding='utf-8')
+    
+    # 4. Filter by Micro Topic and Level
+    filtered_df = df[(df['Micro_Topic'] == micro_topic) & (df['Level'] == level)]
     
     if not filtered_df.empty:
-            row = filtered_df.iloc[0]
-            func_name = str(row['Function_Name']).strip()
-            problem_func = FUNCTION_REGISTRY.get(func_name)
-            
-            if not problem_func: return {"error": f"Function {func_name} not found"}
-            
-            try:
-                # Generate the raw problem dict (no lambda, no level parameter!)
-                problem_dict = generate_problem(problem_func)
+        row = filtered_df.iloc[0]
+        func_name = str(row['Function_Name']).strip()
+        problem_func = FUNCTION_REGISTRY.get(func_name)
         
-                # The Engine explicitly injects the metadata here
-                problem_dict['level'] = int(level)
-                problem_dict['level_name'] = f"Poziom {level}"
-                
-                problem_dict['problem_id'] = str(uuid.uuid4())
-                # ... (rest of the code)
-            except RuntimeError as e:
-                return {"error": str(e)}
-            
-            # THE FIX: Added 'return' and a safety check for empty CSV cells (N/A, NaN)
-            def get_msg(col_name):
-                val = row.get(col_name)
-                if pd.isna(val) or str(val).strip() in ["N/A", "None", "nan", ""]:
-                    return "Zła odpowiedź."
-                return str(val)
+        if not problem_func: return {"error": f"Function {func_name} not found"}
+        
+        try:
+            problem_dict = generate_problem(problem_func)
+            problem_dict['level'] = int(level)
+            problem_dict['level_name'] = f"Poziom {level}"
+            problem_dict['problem_id'] = str(uuid.uuid4())
+        except RuntimeError as e:
+            return {"error": str(e)}
+        
+        # Pull messages cleanly
+        def get_msg(col_name):
+            val = row.get(col_name)
+            if pd.isna(val) or str(val).strip() in ["N/A", "None", "nan", ""]:
+                return "Niepoprawna odpowiedź, spróbuj ponownie."
+            return str(val)
 
-            problem_dict['messages'] = {
-                't1': get_msg('Trap1_Message'), 't2': get_msg('Trap2_Message'),
-                't3': get_msg('Trap3_Message'), 'w1': get_msg('Wrong_Message'),
-                'w2': get_msg('Wrong_Message')
-            }
-            problem_dict['level_display'] = f"{row['Level_Name']} (Lvl {level})"
-            return problem_dict
+        problem_dict['messages'] = {
+            't1': get_msg('Trap1_Message'), 
+            't2': get_msg('Trap2_Message'),
+            't3': get_msg('Trap3_Message')
+        }
+        problem_dict['level_display'] = f"{row['Level_Name']} (Lvl {level})"
+        return problem_dict
+        
     return None
 
 def generate_problem(topic_function):
@@ -111,8 +121,12 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
         else:
+            # Check what kind of option was clicked
             msg_key = problem['options_map'].get(user_input, "w1")
-            msg_text = problem['messages'].get(msg_key, "Zła odpowiedź.")
+            
+            # THE FIX: Safely try to fetch the dictionary. If it's missing, default gracefully.
+            msg_text = problem.get('messages', {}).get(msg_key, "Niepoprawna odpowiedź, spróbuj ponownie.")
+            
             return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
 
     # --- 2. TEXT INPUT MODE ---
@@ -149,11 +163,11 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
         if opt_type in ["t1", "t2", "t3", "w1", "w2"]:
             opt_val = parse_to_fraction(opt_str)
             if check_text_answer(opt_str, user_input) or (opt_val is not None and student_val == opt_val):
-                msg_text = problem['messages'].get(opt_type, "Nieprawidłowa odpowiedź.")
+                msg_text = problem.get('messages', {}).get(opt_type, "Niepoprawna odpowiedź, spróbuj ponownie.")
                 # Hard Trap (Yellow)
                 return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
 
     # If math is entirely wrong and misses all traps
-    msg_text = problem['messages'].get('w1', "Nieprawidłowa odpowiedź.")
+    msg_text = problem.get('messages', {}).get('w1', "Niepoprawna odpowiedź, spróbuj ponownie.")
     # Hard Error (Yellow)
     return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
