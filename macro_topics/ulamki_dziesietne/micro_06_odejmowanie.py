@@ -22,7 +22,7 @@ def dec_sub_1():
 
 def dec_sub_2():
     v1 = random.randint(311, 999) / 100
-    v2 = random.randint(11, int(v1/10)*10 - 1) / 10
+    v2 = random.randint(11, int(v1 * 10) - 1) / 10 
     
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
@@ -31,8 +31,7 @@ def dec_sub_2():
     t2 = fmt_dec(round(v1 - v2 + 0.09, 2))
     w1 = fmt_dec(round(v1 - v2 + 1, 2))
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
-    if result: return result
+    return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
 
 def dec_sub_3():
     v1 = random.randint(31, 99) / 10

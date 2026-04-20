@@ -24,12 +24,12 @@ def dec_unit_2():
     q_str = rf"\text{{Zamień: }} {v} \text{{ }} {unit_in} = \_\_\_ \text{{ }} {unit_out}"
     c_str = fmt_dec(round(v / factor, 4))
     
-    t1 = fmt_dec(round(v / (factor * 10 if factor == 100 else 100), 4))
-    t2 = fmt_dec(round(v / 10, 4)) if factor == 100 else fmt_dec(round(v / 100, 4))
-    t3 = fmt_dec(round(v / 10, 2))
+    # FIX: Mathematically distinct traps that will never equal each other
+    t1 = fmt_dec(round(v * factor, 4))         # Trap: Multiplied instead of divided
+    t2 = fmt_dec(round(v / (factor * 10), 4))  # Trap: One zero too many
+    t3 = fmt_dec(round(v / (factor / 10), 4))  # Trap: One zero too few
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3, )
-    if result: return result
+    return build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
 
 def dec_unit_3():
     zl = random.randint(2, 15)

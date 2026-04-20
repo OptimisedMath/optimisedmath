@@ -23,17 +23,19 @@ def frac_div_2():
     d1, d2 = random.randint(3, 9), random.randint(3, 9)
     
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} : {format_fraction_question(n2, d2)}"
-    
     c_str, _, _ = format_answers(n1 * d2, d1 * n2)
     
     g = math.gcd(n1, n2)
-    trap_n1, trap_n2 = n1 // g, n2 // g
-    t1, _, _ = format_answers(trap_n1 * d2, d1 * trap_n2) 
-    t2 = rf"\frac{{{n1 * d2}}}{{{d1 * n2}}}" 
+    trap_n1 = n1 // g
+    
+    t1, _, _ = format_answers(trap_n1 * d2, d1 * n2) 
+    
+    # FIX: A safe, mathematically distinct trap (Forgot to flip the fraction!)
+    t2, _, _ = format_answers(n1 * n2, d1 * d2) 
+    
     w1, _, _ = format_answers((n1 * d2) + 1, d1 * n2)
     
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1, )
-    if result: return result
+    return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
 
 def frac_div_3():
     w1, w2 = random.randint(1, 2), random.randint(1, 2)
