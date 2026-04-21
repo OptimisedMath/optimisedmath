@@ -62,6 +62,17 @@ def reset_turn_state(rerun=True):
     if rerun:
         st.rerun()
 
+def full_hard_reset():
+    """Resets ALL progress and points."""
+    st.session_state.xp = 0
+    st.session_state.streak = 0
+    st.session_state.progress = {mt: {'unlocked_order': curriculum[mt][0]['Topic_Order'] if curriculum[mt] else 1, 'unlocked_level': 1} for mt in macro_topics}
+    st.session_state.selected_macro = macro_topics[0]
+    st.session_state.selected_topic_order = curriculum[macro_topics[0]][0]['Topic_Order'] if curriculum[macro_topics[0]] else 1
+    st.session_state.selected_level = 1
+    reset_turn_state(rerun=False)
+    st.rerun()
+
 # --- DYNAMIC CURRICULUM BUILDER ---
 curriculum = engine.get_curriculum()
 if not curriculum:
@@ -109,20 +120,30 @@ with st.sidebar:
     admin_mode = st.toggle("🛠️ Tryb Admina (Odblokuj wszystko)", value=False)
     
     if st.button("🔄 Zresetuj Postęp"):
-        st.session_state.xp = 0
-        st.session_state.streak = 0
-        st.session_state.progress = {mt: {'unlocked_order': curriculum[mt][0]['Topic_Order'] if curriculum[mt] else 1, 'unlocked_level': 1} for mt in macro_topics}
-        st.session_state.selected_macro = macro_topics[0]
-        st.session_state.selected_topic_order = curriculum[macro_topics[0]][0]['Topic_Order'] if curriculum[macro_topics[0]] else 1
-        st.session_state.selected_level = 1
-        st.session_state.problem_answered = False
-        st.session_state.current_input_mode = "radio" 
-        st.session_state.topic_completed = False
-        if 'current_problem' in st.session_state: del st.session_state['current_problem']
-        st.rerun()
+        full_hard_reset()
 
     st.markdown("---")
     st.title("Ustawienia")
+    
+    # 1. MACRO TOPIC SELECTOR (This was accidentally deleted!)
+    new_macro = st.selectbox(
+        "Wybierz Dział:", 
+        macro_topics, 
+        index=macro_topics.index(st.session_state.selected_macro) if st.session_state.selected_macro in macro_topics else 0
+    )
+    
+    if new_macro != st.session_state.selected_macro:
+        st.session_state.selected_macro = new_macro
+        prog = st.session_state.progress[new_macro]
+        st.session_state.selected_topic_order = prog['unlocked_order']
+        st.session_state.selected_level = prog['unlocked_level']
+        st.session_state.streak = 0
+        st.session_state.problem_answered = False
+        st.session_state.current_input_mode = "radio"
+        st.session_state.topic_completed = False
+        if 'current_problem' in st.session_state: 
+            del st.session_state['current_problem']
+        st.rerun()
     
     # 2. MICRO TOPIC SELECTOR
     prog = st.session_state.progress[st.session_state.selected_macro]
@@ -144,7 +165,14 @@ with st.sidebar:
         available_orders = [first_key]
 
     def format_topic(order):
-        return f"{order}. {topic_map.get(order, {'name': 'Nieznany'})['name']}"
+        # UX FIX: Translates backend "10, 20" into clean frontend "1, 2"
+        if order in topic_map:
+            visual_number = list(topic_map.keys()).index(order) + 1
+        else:
+            visual_number = 1
+            
+        topic_name = topic_map.get(order, {'name': 'Nieznany'})['name']
+        return f"{visual_number}. {topic_name}"
         
     safe_index = available_orders.index(st.session_state.selected_topic_order) if st.session_state.selected_topic_order in available_orders else len(available_orders)-1
     
