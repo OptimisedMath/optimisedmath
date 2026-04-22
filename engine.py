@@ -3,6 +3,7 @@ import importlib
 from pathlib import Path
 from core.utils import check_text_answer, parse_to_fraction
 import uuid
+import streamlit as st
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -19,6 +20,7 @@ for file_path in macro_path.rglob("*.py"):
          if callable(v) and not k.startswith("_"):
              FUNCTION_REGISTRY[k] = v
 
+@st.cache_data
 def get_curriculum() -> dict:
     curriculum_dict = {}
     data_dir = BASE_DIR / "data"
@@ -49,17 +51,20 @@ def get_curriculum() -> dict:
             
     return curriculum_dict
 
-def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
-    # 1. Convert the UI topic name to a file name (e.g., "Ułamki dziesiętne" -> "Ułamki_dziesiętne.csv")
+@st.cache_data
+def load_topic_database(macro_topic: str) -> pd.DataFrame:
+    """Helper function to load and cache the CSV once per topic."""
     safe_filename = macro_topic.replace(" ", "_") + ".csv"
     csv_path = BASE_DIR / "data" / safe_filename
-    
-    # 2. Check if the specific database exists
     if not csv_path.exists(): 
-        return {"error": f"Missing database file: {safe_filename}"}
-        
-    # 3. Load ONLY the relevant macro topic data
-    df = pd.read_csv(csv_path, sep=';', encoding='utf-8')
+        return pd.DataFrame()
+    return pd.read_csv(csv_path, sep=';', encoding='utf-8')
+
+def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
+    # Use the cached dataframe instead of reading the CSV here
+    df = load_topic_database(macro_topic)
+    if df.empty:
+        return {"error": f"Missing database file for: {macro_topic}"}
     
     # 4. Filter by Micro Topic and Level
     filtered_df = df[(df['Micro_Topic'] == micro_topic) & (df['Level'] == level)]
