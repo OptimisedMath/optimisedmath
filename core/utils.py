@@ -47,6 +47,7 @@ def build_problem_dict(
     w2=None,
     grading_policy="standard",
     image_html=None,
+    deconstruction = None
 ):
 
     options_map = {}
@@ -78,13 +79,14 @@ def build_problem_dict(
     return {
         "problem_id": str(uuid.uuid4()),
         "question": q_str,
-        "image_html": image_html,  # <--- NEW FIELD FOR GRAPHICS
+        "image_html": image_html,
         "correct": c_str,
         "improper": i_str,
         "unsimplified": u_str,
         "options": options,
         "options_map": options_map,
         "grading_policy": grading_policy,
+        "desconstruction": deconstruction
     }
 
 

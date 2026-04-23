@@ -1,9 +1,11 @@
-# app.py
 import streamlit as st
 import engine
 import streamlit.components.v1 as components
+from core import db
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
+
+db.init_db()
 
 # --- 1. UTILITIES & HACKS ---
 def inject_enter_hack(target_button_text=None):
@@ -111,6 +113,30 @@ class StateManager:
             del st.session_state["current_problem"]
 
     @staticmethod
+    def load_profile(username, macro_topics, curriculum):
+        """Loads user data from DB or initializes a fresh profile."""
+        st.session_state.username = username
+        user_data = db.load_user(username)
+
+        if user_data:
+            st.session_state.xp = user_data["xp"]
+            st.session_state.streak = user_data["streak"]
+            st.session_state.selected_macro = user_data["selected_macro"]
+            st.session_state.selected_topic_order = user_data["selected_topic_order"]
+            st.session_state.selected_level = user_data["selected_level"]
+            st.session_state.progress = user_data["progress"]
+            StateManager.reset_turn()
+        else:
+            # If it's a new user, reset to level 1 and save immediately
+            StateManager.hard_reset(macro_topics, curriculum)
+
+    @staticmethod
+    def sync_to_db():
+        """Pushes current session state to the database."""
+        if st.session_state.get("username"):
+            db.save_user(st.session_state.username, st.session_state)
+
+    @staticmethod
     def hard_reset(macro_topics, curriculum):
         """Wipes all progress."""
         st.session_state.xp = 0
@@ -122,6 +148,7 @@ class StateManager:
         st.session_state.selected_topic_order = curriculum[macro_topics[0]][0]["Topic_Order"] if macro_topics and curriculum[macro_topics[0]] else 1
         st.session_state.selected_level = 1
         StateManager.reset_turn()
+        StateManager.sync_to_db()
 
     @staticmethod
     def navigate_to(macro=None, topic_order=None, level=None):
@@ -129,6 +156,7 @@ class StateManager:
         if topic_order is not None: st.session_state.selected_topic_order = topic_order
         if level is not None: st.session_state.selected_level = level
         StateManager.reset_turn()
+        StateManager.sync_to_db()
 
 
 # --- 3. DYNAMIC CURRICULUM SETUP ---
@@ -147,6 +175,19 @@ topic_map = {row["Topic_Order"]: {"name": row["Micro_Topic"], "max_level": row["
 
 # --- 4. SIDEBAR: NAVIGATION & PROFILE ---
 with st.sidebar:
+    st.title("👤 Zaloguj się")
+    username_input = st.text_input("Wpisz swoje imię (np. Janek):", key="login_input")
+    
+    if username_input and username_input != st.session_state.get("username"):
+        StateManager.load_profile(username_input, macro_topics, curriculum)
+        st.rerun()
+
+    # THE GATE: Stop the app if nobody is logged in
+    if not st.session_state.get("username"):
+        st.warning("Zaloguj się, aby zapisywać postępy i rozpocząć naukę!")
+        st.stop()
+
+    st.markdown("---")
     st.title("🏆 Twój Profil")
     st.metric(label="Punkty Doświadczenia (XP)", value=st.session_state.xp)
     admin_mode = st.toggle("🛠️ Tryb Admina (Odblokuj wszystko)", value=False)
@@ -317,6 +358,7 @@ else:
             if st.session_state.feedback_type != "info": 
                 st.session_state.streak -= 1
 
+        StateManager.sync_to_db() 
         st.rerun()
 
 # --- 7. PERSISTENT FEEDBACK & NEXT STEPS ---
@@ -349,6 +391,7 @@ if st.session_state.problem_answered:
                 st.session_state.progress[st.session_state.selected_macro]["unlocked_order"] = next_topic_id
                 st.session_state.progress[st.session_state.selected_macro]["unlocked_level"] = 1
                 StateManager.navigate_to(topic_order=next_topic_id, level=1)
+                StateManager.sync_to_db()
                 st.rerun()
             else:
                 st.success("🎉 Gratulacje! Ukończyłeś cały ten dział. Wybierz nowy dział z menu po lewej stronie.")
