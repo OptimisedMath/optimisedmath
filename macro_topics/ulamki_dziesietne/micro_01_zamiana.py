@@ -11,7 +11,7 @@ def dec_to_frac_1():
         return None
 
     val = n / d
-    q_str = rf"\text{{Zamień na ułamek nieskracalny: }} {fmt_dec(val)}"
+    q_str = rf"\text{{Zamień na ułamek zwykły: }} {fmt_dec(val)}"
     c_str = rf"\frac{{{n}}}{{{d}}}"
 
     decimals = len(str(val).split(".")[1])

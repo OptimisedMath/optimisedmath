@@ -59,6 +59,30 @@ def inject_enter_hack(target_button_text=None):
             width=0,
         )
 
+def inject_decimal_keyboard():
+    """Forces mobile devices to open the Number/Decimal pad instead of the Alphabet."""
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        // Find the Streamlit text input box
+        const inputNodes = doc.querySelectorAll('input[type="text"]');
+        
+        inputNodes.forEach(input => {
+            // Only target inputs that are actually for math answers
+            if (!input.hasAttribute('data-keyboard-hacked')) {
+                input.setAttribute('inputmode', 'decimal');
+                // pattern="\d*" is an iOS specific hack to trigger the tall numpad
+                input.setAttribute('pattern', '[0-9]*'); 
+                input.setAttribute('data-keyboard-hacked', 'true');
+            }
+        });
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
 
 # --- 2. STATE MANAGEMENT ---
 class StateManager:
@@ -158,6 +182,25 @@ class StateManager:
         StateManager.reset_turn()
         StateManager.sync_to_db()
 
+def render_login_gate():
+    """Renders a clean, main-screen login UI for mobile accessibility."""
+    st.markdown("## 🧮 Optymalna nauka matematyki :D")
+    
+    # Center the login box
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        with st.form("login_form"):
+            st.subheader("Zaloguj się")
+            username_input = st.text_input("Twoje imię:", placeholder="np. Janek")
+            submit = st.form_submit_button("Rozpocznij naukę", use_container_width=True)
+            
+            if submit:
+                if username_input.strip():
+                    # Load from SQLite
+                    StateManager.load_profile(username_input.strip(), macro_topics, curriculum)
+                    st.rerun()
+                else:
+                    st.error("Proszę podać imię!")
 
 # --- 3. DYNAMIC CURRICULUM SETUP ---
 curriculum = engine.get_curriculum()
@@ -166,6 +209,12 @@ if not curriculum:
     st.stop()
 
 macro_topics = list(curriculum.keys())
+
+# Check if a user is logged in. If not, show the gate and STOP.
+if "username" not in st.session_state:
+    render_login_gate()
+    st.stop()
+
 StateManager.init_defaults(macro_topics, curriculum)
 
 # Build map for CURRENT macro topic
@@ -175,17 +224,7 @@ topic_map = {row["Topic_Order"]: {"name": row["Micro_Topic"], "max_level": row["
 
 # --- 4. SIDEBAR: NAVIGATION & PROFILE ---
 with st.sidebar:
-    st.title("👤 Zaloguj się")
-    username_input = st.text_input("Wpisz swoje imię (np. Janek):", key="login_input")
-    
-    if username_input and username_input != st.session_state.get("username"):
-        StateManager.load_profile(username_input, macro_topics, curriculum)
-        st.rerun()
-
-    # THE GATE: Stop the app if nobody is logged in
-    if not st.session_state.get("username"):
-        st.warning("Zaloguj się, aby zapisywać postępy i rozpocząć naukę!")
-        st.stop()
+    st.write(f"Witaj, **{st.session_state.username}**!")
 
     st.markdown("---")
     st.title("🏆 Twój Profil")
