@@ -338,6 +338,11 @@ else:
             user_text = st.text_input("Twoja odpowiedź:", key=f"text_input_{st.session_state.last_id}")
             is_text_mode = True
 
+        # --- CONTEXT AWARE KEYBOARD INJECTION ---
+            # Only force the numpad if the topic safely supports it
+            if st.session_state.selected_macro == "Ułamki dziesiętne":
+                inject_decimal_keyboard()
+
         cols = st.columns([1, 1])
         with cols[0]: submitted = st.form_submit_button("Sprawdź odpowiedź", disabled=st.session_state.problem_answered)
         with cols[1]: admin_solve = st.form_submit_button("🪄 Auto-Solve", disabled=st.session_state.problem_answered)
