@@ -2,6 +2,7 @@ import streamlit as st
 import engine
 import streamlit.components.v1 as components
 from core import db
+from core.utils import clean_mobile_input
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
@@ -368,7 +369,7 @@ else:
                 st.stop()
             
             if is_text_mode and isinstance(user_input, str):
-                    user_input = user_input.replace(".", ",")
+                    user_input = clean_mobile_input(user_input)
 
             eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
             is_correct = eval_result.get("is_correct", False)

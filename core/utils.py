@@ -163,17 +163,17 @@ def clean_latex(latex_str):
 
 
 def check_text_answer(correct_latex, user_text):
-    """Checks if the user's text matches the correct answer string, preserving crucial spaces."""
+    """Checks if the user's text matches the correct answer string."""
     clean_correct = clean_latex(correct_latex)
 
-    # Remove spaces around slashes and commas, but KEEP spaces between numbers!
-    clean_correct = re.sub(r"\s*([/,])\s*", r"\1", clean_correct)
-    clean_correct = " ".join(clean_correct.split())
+    # DRY Helper: Standardize spacing for BOTH strings to ensure a fair match
+    def standardize_spacing(s):
+        # Remove spaces around slashes and commas, but KEEP spaces between numbers!
+        s = re.sub(r"\s*([/,])\s*", r"\1", str(s))
+        # Squash all other whitespace to a single space
+        return " ".join(s.split())
 
-    clean_user = re.sub(r"\s*([/,])\s*", r"\1", str(user_text))
-    clean_user = " ".join(clean_user.split())
-
-    return clean_correct == clean_user
+    return standardize_spacing(clean_correct) == standardize_spacing(user_text)
 
 
 def parse_to_fraction(val_str):
@@ -212,3 +212,22 @@ def fmt_dec(val):
     if not s:
         s = "0"
     return s.replace(".", ",")
+
+def clean_mobile_input(user_string):
+    """Sanitizes user input to match engine expectations and fix hardware laziness."""
+    if not user_string:
+        return ""
+        
+    s = str(user_string).strip().lower()
+    
+    # 1. Normalize to Polish decimals
+    s = s.replace(".", ",")
+    
+    # 2. Fix mobile fraction shortcuts (e.g., 1-1/2 or 1,1/2 -> 1 1/2)
+    # The regex looks for a dash OR comma followed by digits and a slash.
+    s = re.sub(r'(\d)[-\,](\d+/)', r'\1 \2', s)
+    
+    # 3. Squash aggressive autocorrect spaces
+    s = re.sub(r'\s+', ' ', s)
+    
+    return s.strip()
