@@ -366,6 +366,9 @@ else:
             if user_input is None or str(user_input).strip() == "":
                 st.info("Najpierw podaj odpowiedź!")
                 st.stop()
+            
+            if is_text_mode and isinstance(user_input, str):
+                    user_input = user_input.replace(".", ",")
 
             eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
             is_correct = eval_result.get("is_correct", False)
