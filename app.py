@@ -361,6 +361,8 @@ else:
         if admin_solve:
             is_correct = True
             st.session_state.problem_answered = True
+            trap_id_hit = None 
+            user_input = "ADMIN_SOLVE" # Prevents NameError
         else:
             user_input = user_text if is_text_mode else choice
 
@@ -376,24 +378,31 @@ else:
             st.session_state.problem_answered = eval_result.get("lock_answer", False)
             st.session_state.feedback_type = eval_result.get("feedback_type", None)
             st.session_state.feedback_msg = eval_result.get("feedback_msg", "")
-
+            
             trap_id_hit = eval_result.get("trap_id")
 
+        # --- FIRE TELEMETRY ---
         current_micro_topic = topic_map[st.session_state.selected_topic_order].get("name", "Unknown")
-
-        # Serialize the problem to capture the exact numbers generated
+        
         import json
-        problem_state = json.dumps(problem)
+        keys_to_remove = [
+            "image_html", "messages", "options", "options_map", 
+            "level", "level_name", "level_display", "problem_id" 
+        ]
+        clean_problem_state = {k: v for k, v in problem.items() if k not in keys_to_remove}
+        problem_state = json.dumps(clean_problem_state)
 
         db.log_telemetry(
             username=st.session_state.username,
             macro_topic=st.session_state.selected_macro,
             micro_topic=current_micro_topic,
             level_number=st.session_state.selected_level,
+            is_text_mode=is_text_mode,              
             is_correct=is_correct,
+            user_input=user_input,                  
             trap_id=trap_id_hit,
-            time_spent_seconds=None, # We can add a timer implementation later
-            equation_state=problem_state
+            time_spent_seconds=None, 
+            equation_state=problem_state 
         )
         
         # Gamification & Rewards
