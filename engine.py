@@ -133,7 +133,6 @@ def check_format_mismatch(user_text, correct_latex):
         return "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"
     return None
 
-
 def evaluate_answer(user_input, problem, is_text_mode=False):
 
     # --- 1. MULTIPLE CHOICE MODE ---
@@ -142,10 +141,8 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
         else:
-            # Check what kind of option was clicked
+            # The option clicked resolves to 't1', 't2', 'w1', etc.
             msg_key = problem["options_map"].get(user_input, "w1")
-
-            # THE FIX: Safely try to fetch the dictionary. If it's missing, default gracefully.
             msg_text = problem.get("messages", {}).get(
                 msg_key, "Niepoprawna odpowiedź, spróbuj ponownie."
             )
@@ -154,6 +151,7 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
                 "lock_answer": True,
                 "feedback_type": "warning",
                 "feedback_msg": msg_text,
+                "trap_id": msg_key  # <-- INJECTED FOR TELEMETRY
             }
 
     # --- 2. TEXT INPUT MODE ---
@@ -173,6 +171,7 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
             "lock_answer": False,
             "feedback_type": "info",
             "feedback_msg": "Niepoprawny zapis matematyczny.",
+            "trap_id": "syntax_error"  # <-- INJECTED FOR TELEMETRY
         }
 
     if student_val == correct_val:
@@ -183,6 +182,7 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
                 "lock_answer": False,
                 "feedback_type": "info",
                 "feedback_msg": format_warning,
+                "trap_id": "format_mismatch"  # <-- INJECTED FOR TELEMETRY
             }
 
         if policy == "exact_match_only":
@@ -190,6 +190,7 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
                 "lock_answer": True,
                 "feedback_type": "warning",
                 "feedback_msg": "W tym zadaniu wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!",
+                "trap_id": "exact_match_violation"  # <-- INJECTED FOR TELEMETRY
             }
         elif policy == "equivalent_accepted":
             return {"is_correct": True, "lock_answer": True}
@@ -199,6 +200,7 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
                 "lock_answer": False,
                 "feedback_type": "info",
                 "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
+                "trap_id": "unsimplified"  # <-- INJECTED FOR TELEMETRY
             }
 
     # --- 3. TEXT MODE TRAP SCANNER ---
@@ -216,11 +218,17 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
                     "lock_answer": True,
                     "feedback_type": "warning",
                     "feedback_msg": msg_text,
+                    "trap_id": opt_type  # <-- INJECTED FOR TELEMETRY
                 }
 
-    # If math is entirely wrong and misses all traps
+    # If math is entirely wrong and misses all explicit traps
     msg_text = problem.get("messages", {}).get(
         "w1", "Niepoprawna odpowiedź, spróbuj ponownie."
     )
     # Hard Error (Yellow)
-    return {"lock_answer": True, "feedback_type": "warning", "feedback_msg": msg_text}
+    return {
+        "lock_answer": True, 
+        "feedback_type": "warning", 
+        "feedback_msg": msg_text,
+        "trap_id": "w1"  # <-- INJECTED FOR TELEMETRY
+    }

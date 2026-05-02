@@ -377,6 +377,25 @@ else:
             st.session_state.feedback_type = eval_result.get("feedback_type", None)
             st.session_state.feedback_msg = eval_result.get("feedback_msg", "")
 
+            trap_id_hit = eval_result.get("trap_id")
+
+        current_micro_topic = topic_map[st.session_state.selected_topic_order].get("name", "Unknown")
+
+        # Serialize the problem to capture the exact numbers generated
+        import json
+        problem_state = json.dumps(problem)
+
+        db.log_telemetry(
+            username=st.session_state.username,
+            macro_topic=st.session_state.selected_macro,
+            micro_topic=current_micro_topic,
+            level_number=st.session_state.selected_level,
+            is_correct=is_correct,
+            trap_id=trap_id_hit,
+            time_spent_seconds=None, # We can add a timer implementation later
+            equation_state=problem_state
+        )
+        
         # Gamification & Rewards
         if is_correct:
             xp_rewards = {1: 5, 2: 10, 3: 20, 4: 35, 5: 60}

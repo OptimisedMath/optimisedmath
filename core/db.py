@@ -26,6 +26,23 @@ def init_db():
                 progress_json TEXT
             )
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS telemetry_logs (
+                log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,            
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                macro_topic TEXT NOT NULL,           
+                micro_topic TEXT NOT NULL,           
+                level_number INTEGER NOT NULL,       
+                trap_id TEXT,                        
+                is_correct BOOLEAN NOT NULL,         
+                time_spent_seconds INTEGER,          
+                equation_state TEXT,                 
+                FOREIGN KEY (username) REFERENCES users(username)
+            )
+        ''')
+
         conn.commit()
 
 def load_user(username):
@@ -70,5 +87,30 @@ def save_user(username, state_dict):
             state_dict.get("selected_topic_order"),
             state_dict.get("selected_level"),
             progress_str
+        ))
+        conn.commit()
+
+def log_telemetry(username, macro_topic, micro_topic, level_number, is_correct, trap_id=None, time_spent_seconds=None, equation_state=None):
+    """
+    Logs a single problem attempt to the telemetry table.
+    - trap_id: string (e.g., 'T1') if they hit a trap, None if they got it right or made a generic error.
+    - is_correct: boolean True/False.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO telemetry_logs (
+                username, macro_topic, micro_topic, level_number, 
+                trap_id, is_correct, time_spent_seconds, equation_state
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            username, 
+            macro_topic, 
+            micro_topic, 
+            level_number, 
+            trap_id, 
+            is_correct, 
+            time_spent_seconds, 
+            equation_state
         ))
         conn.commit()
