@@ -1,4 +1,3 @@
-# core/db.py
 import sqlite3
 import json
 from config import DB_PATH
