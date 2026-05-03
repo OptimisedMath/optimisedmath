@@ -26,10 +26,10 @@ def init_db():
                 progress_json TEXT
             )
         ''')
-
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,            -- NEW: Groups events by session
                 username TEXT NOT NULL,            
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 macro_topic TEXT NOT NULL,           
@@ -44,7 +44,6 @@ def init_db():
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         ''')
-
         conn.commit()
 
 def load_user(username):
@@ -92,25 +91,17 @@ def save_user(username, state_dict):
         ))
         conn.commit()
 
-def log_telemetry(username, macro_topic, micro_topic, level_number, is_text_mode, is_correct, user_input=None, trap_id=None, time_spent_seconds=None, equation_state=None):
-    """Logs a single problem attempt to the telemetry table."""
+def log_telemetry(session_id, username, macro_topic, micro_topic, level_number, is_text_mode, is_correct, user_input=None, trap_id=None, time_spent_seconds=None, equation_state=None):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO telemetry_logs (
-                username, macro_topic, micro_topic, level_number, is_text_mode,
+                session_id, username, macro_topic, micro_topic, level_number, is_text_mode,
                 trap_id, is_correct, user_input, time_spent_seconds, equation_state
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            username, 
-            macro_topic, 
-            micro_topic, 
-            level_number, 
-            is_text_mode,
-            trap_id, 
-            is_correct, 
-            str(user_input) if user_input is not None else None, 
-            time_spent_seconds, 
-            equation_state
+            session_id, username, macro_topic, micro_topic, level_number, is_text_mode,
+            trap_id, is_correct, str(user_input) if user_input is not None else None, 
+            time_spent_seconds, equation_state
         ))
         conn.commit()

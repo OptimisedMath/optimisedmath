@@ -3,6 +3,9 @@ import engine
 import streamlit.components.v1 as components
 from core import db
 from core.utils import clean_mobile_input
+import time
+import json
+import uuid
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
@@ -92,6 +95,7 @@ class StateManager:
     @staticmethod
     def init_defaults(macro_topics, curriculum):
         default_state = {
+            "session_id": str(uuid.uuid4()),
             "xp": 0,
             "streak": 0,
             "selected_macro": macro_topics[0] if macro_topics else None,
@@ -298,6 +302,7 @@ if "current_problem" not in st.session_state:
         topic_map[st.session_state.selected_topic_order]["name"],
         st.session_state.selected_level,
     )
+    st.session_state.problem_start_time = time.time()
 
 problem = st.session_state.current_problem
 
@@ -381,29 +386,37 @@ else:
             
             trap_id_hit = eval_result.get("trap_id")
 
-        # --- FIRE TELEMETRY ---
-        current_micro_topic = topic_map[st.session_state.selected_topic_order].get("name", "Unknown")
-        
-        import json
-        keys_to_remove = [
-            "image_html", "messages", "options", "options_map", 
-            "level", "level_name", "level_display", "problem_id" 
-        ]
-        clean_problem_state = {k: v for k, v in problem.items() if k not in keys_to_remove}
-        problem_state = json.dumps(clean_problem_state)
+            # --- CALCULATE TIME SPENT ---
+            # Default to None if for some reason the start time wasn't set
+            time_spent = None
+            if "problem_start_time" in st.session_state:
+                # Calculate difference and round to nearest second
+                time_spent = int(time.time() - st.session_state.problem_start_time)
+            
+            current_micro_topic = topic_map[st.session_state.selected_topic_order]["name"]
 
-        db.log_telemetry(
-            username=st.session_state.username,
-            macro_topic=st.session_state.selected_macro,
-            micro_topic=current_micro_topic,
-            level_number=st.session_state.selected_level,
-            is_text_mode=is_text_mode,              
-            is_correct=is_correct,
-            user_input=user_input,                  
-            trap_id=trap_id_hit,
-            time_spent_seconds=None, 
-            equation_state=problem_state 
-        )
+            # --- CLEAN EQUATION STATE ---
+            keys_to_remove = [
+                "image_html", "messages", "options", "options_map", 
+                "level", "level_name", "level_display", "problem_id" 
+            ]
+            clean_problem_state = {k: v for k, v in problem.items() if k not in keys_to_remove}
+            problem_state = json.dumps(clean_problem_state)
+
+            # --- FIRE TELEMETRY ---
+            db.log_telemetry(
+                session_id=st.session_state.session_id,
+                username=st.session_state.username,
+                macro_topic=st.session_state.selected_macro,
+                micro_topic=current_micro_topic,
+                level_number=st.session_state.selected_level,
+                is_text_mode=is_text_mode,              
+                is_correct=is_correct,
+                user_input=user_input,                  
+                trap_id=trap_id_hit,
+                time_spent_seconds=time_spent,
+                equation_state=problem_state 
+            )
         
         # Gamification & Rewards
         if is_correct:
@@ -486,6 +499,7 @@ if st.session_state.problem_answered:
                     st.session_state.selected_level,
                 )
                 if not is_duplicate(old_prob, new_problem):
+                    st.session_state.problem_start_time = time.time()
                     break
                 attempts += 1
             
