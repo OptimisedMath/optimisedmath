@@ -3,6 +3,7 @@ import engine
 import streamlit.components.v1 as components
 from core import db
 from core.utils import clean_mobile_input
+import config
 import time
 import json
 import uuid
@@ -307,7 +308,7 @@ if "current_problem" not in st.session_state:
 problem = st.session_state.current_problem
 
 # Mastery Scoreboard
-stars_display = "⭐" * st.session_state.streak + "⬛" * (3 - st.session_state.streak)
+stars_display = "⭐" * st.session_state.streak + "⬛" * (config.MAX_STREAK - st.session_state.streak)
 st.markdown(f"### Postęp do kolejnego poziomu: {stars_display}")
 
 submitted = False
@@ -420,17 +421,16 @@ else:
         
         # Gamification & Rewards
         if is_correct:
-            xp_rewards = {1: 5, 2: 10, 3: 20, 4: 35, 5: 60}
-            earned_xp = xp_rewards.get(st.session_state.selected_level, 15)
+            earned_xp = config.XP_REWARDS.get(st.session_state.selected_level, config.DEFAULT_XP_REWARD)
             
             st.session_state.feedback_type = "success"
             st.session_state.feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
             st.session_state.xp += earned_xp
 
-            if st.session_state.streak < 3: st.session_state.streak += 1
+            if st.session_state.streak < config.MAX_STREAK: st.session_state.streak += 1
 
             prog = st.session_state.progress[st.session_state.selected_macro]
-            if st.session_state.streak == 3 and st.session_state.selected_level == prog["unlocked_level"]:
+            if st.session_state.streak == config.STARS_FOR_UNLOCK and st.session_state.selected_level == prog["unlocked_level"]:
                 current_topic_max = topic_map[st.session_state.selected_topic_order]["max_level"]
 
                 if prog["unlocked_level"] < current_topic_max:
@@ -492,7 +492,7 @@ if st.session_state.problem_answered:
                 return old.get("question") == new.get("question") and old.get("correct") == new.get("correct") and old.get("image_html") == new.get("image_html")
 
             attempts = 0
-            while attempts < 10:
+            while attempts < config.MAX_RETRIES_DUPLICATE_CHECK:
                 new_problem = engine.get_problem_from_db(
                     st.session_state.selected_macro,
                     topic_map[st.session_state.selected_topic_order]["name"],
@@ -507,7 +507,7 @@ if st.session_state.problem_answered:
             st.session_state.problem_answered = False
             st.session_state.feedback_type = None
             
-            if st.session_state.streak >= 1 and "Porównywanie" not in topic_map[st.session_state.selected_topic_order]["name"]:
+            if st.session_state.streak >= config.STREAK_THRESHOLD_FOR_TEXT_MODE and "Porównywanie" not in topic_map[st.session_state.selected_topic_order]["name"]:
                 st.session_state.current_input_mode = "text"
             else:
                 st.session_state.current_input_mode = "radio"

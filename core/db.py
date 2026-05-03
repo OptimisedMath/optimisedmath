@@ -1,10 +1,7 @@
 # core/db.py
 import sqlite3
 import json
-from pathlib import Path
-
-# Save the database in your existing data folder
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "users.db"
+from config import DB_PATH
 
 def get_connection():
     # Create the data directory if it doesn't exist

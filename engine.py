@@ -2,6 +2,7 @@ import pandas as pd
 import importlib
 from pathlib import Path
 from core.utils import check_text_answer, parse_to_fraction
+import config
 import uuid
 import streamlit as st
 
@@ -37,7 +38,7 @@ def get_curriculum() -> dict:
 
         try:
             # 3. Load the specific topic database
-            df = pd.read_csv(file_path, sep=";", encoding="utf-8")
+            df = pd.read_csv(file_path, sep=config.CSV_SEPARATOR, encoding=config.CSV_ENCODING)
 
             # Filter out any rows you haven't finished building yet
             valid_df = df[df["Function_Name"] != "TBD"]
@@ -67,7 +68,7 @@ def load_topic_database(macro_topic: str) -> pd.DataFrame:
     csv_path = BASE_DIR / "data" / safe_filename
     if not csv_path.exists():
         return pd.DataFrame()
-    return pd.read_csv(csv_path, sep=";", encoding="utf-8")
+    return pd.read_csv(csv_path, sep=config.CSV_SEPARATOR, encoding=config.CSV_ENCODING)
 
 
 def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
@@ -114,8 +115,7 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
 
 
 def generate_problem(topic_function):
-    MAX_RETRIES = 50
-    for _ in range(MAX_RETRIES):
+    for _ in range(config.MAX_RETRIES_GENERATE):
         problem = topic_function()
         if problem is not None:
             return problem
