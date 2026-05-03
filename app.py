@@ -3,6 +3,7 @@ import engine
 import streamlit.components.v1 as components
 from core import db
 from core.utils import clean_mobile_input
+from state_manager import StateManager
 import config
 import time
 import json
@@ -88,106 +89,7 @@ def inject_decimal_keyboard():
         width=0,
     )
 
-
-# --- 2. STATE MANAGEMENT ---
-class StateManager:
-    """Centralizes all state mutations to prevent race conditions during Streamlit reruns."""
-    
-    @staticmethod
-    def init_defaults(macro_topics, curriculum):
-        default_state = {
-            "session_id": str(uuid.uuid4()),
-            "xp": 0,
-            "streak": 0,
-            "selected_macro": macro_topics[0] if macro_topics else None,
-            "selected_topic_order": curriculum[macro_topics[0]][0]["Topic_Order"] if macro_topics and curriculum[macro_topics[0]] else 1,
-            "selected_level": 1,
-            "problem_answered": False,
-            "current_input_mode": "radio",
-            "topic_completed": False,
-            "progress": {},
-            "feedback_type": None,
-            "feedback_msg": "",
-            "show_balloons": False
-        }
-        
-        for key, value in default_state.items():
-            if key not in st.session_state:
-                st.session_state[key] = value
-
-        # Ensure progress dictionary catches new macro topics AND heals old broken saves
-        for mt in macro_topics:
-            first_order = curriculum[mt][0]["Topic_Order"] if curriculum[mt] else 1
-            if mt not in st.session_state.progress or st.session_state.progress[mt]["unlocked_order"] < first_order:
-                st.session_state.progress[mt] = {
-                    "unlocked_order": first_order,
-                    "unlocked_level": 1,
-                }
-
-        # Heal the selected topic order if it's currently broken (None or 1)
-        curr_macro = st.session_state.selected_macro
-        first_curr = curriculum[curr_macro][0]["Topic_Order"] if curr_macro and curriculum[curr_macro] else 1
-        if st.session_state.selected_topic_order is None or st.session_state.selected_topic_order < first_curr:
-            st.session_state.selected_topic_order = first_curr
-
-    @staticmethod
-    def reset_turn():
-        """Clears the current problem state when navigating or advancing."""
-        st.session_state.streak = 0
-        st.session_state.problem_answered = False
-        st.session_state.topic_completed = False
-        st.session_state.feedback_type = None
-        st.session_state.feedback_msg = ""
-        st.session_state.current_input_mode = "radio"
-        if "current_problem" in st.session_state:
-            del st.session_state["current_problem"]
-
-    @staticmethod
-    def load_profile(username, macro_topics, curriculum):
-        """Loads user data from DB or initializes a fresh profile."""
-        st.session_state.username = username
-        user_data = db.load_user(username)
-
-        if user_data:
-            st.session_state.xp = user_data["xp"]
-            st.session_state.streak = user_data["streak"]
-            st.session_state.selected_macro = user_data["selected_macro"]
-            st.session_state.selected_topic_order = user_data["selected_topic_order"]
-            st.session_state.selected_level = user_data["selected_level"]
-            st.session_state.progress = user_data["progress"]
-            StateManager.reset_turn()
-        else:
-            # If it's a new user, reset to level 1 and save immediately
-            StateManager.hard_reset(macro_topics, curriculum)
-
-    @staticmethod
-    def sync_to_db():
-        """Pushes current session state to the database."""
-        if st.session_state.get("username"):
-            db.save_user(st.session_state.username, st.session_state)
-
-    @staticmethod
-    def hard_reset(macro_topics, curriculum):
-        """Wipes all progress."""
-        st.session_state.xp = 0
-        st.session_state.progress = {
-            mt: {"unlocked_order": curriculum[mt][0]["Topic_Order"] if curriculum[mt] else 1, "unlocked_level": 1}
-            for mt in macro_topics
-        }
-        st.session_state.selected_macro = macro_topics[0] if macro_topics else None
-        st.session_state.selected_topic_order = curriculum[macro_topics[0]][0]["Topic_Order"] if macro_topics and curriculum[macro_topics[0]] else 1
-        st.session_state.selected_level = 1
-        StateManager.reset_turn()
-        StateManager.sync_to_db()
-
-    @staticmethod
-    def navigate_to(macro=None, topic_order=None, level=None):
-        if macro is not None: st.session_state.selected_macro = macro
-        if topic_order is not None: st.session_state.selected_topic_order = topic_order
-        if level is not None: st.session_state.selected_level = level
-        StateManager.reset_turn()
-        StateManager.sync_to_db()
-
+# --- 2. LOGIN UI ---
 def render_login_gate():
     """Renders a clean, main-screen login UI for mobile accessibility."""
     st.markdown("## 🧮 Optymalna nauka matematyki :D")
@@ -203,7 +105,7 @@ def render_login_gate():
             if submit:
                 if username_input.strip():
                     # Load from SQLite
-                    StateManager.load_profile(username_input.strip(), macro_topics, curriculum)
+                    StateManager.load_profile(st.session_state, username_input.strip(), macro_topics, curriculum)
                     st.rerun()
                 else:
                     st.error("Proszę podać imię!")
@@ -221,7 +123,7 @@ if "username" not in st.session_state:
     render_login_gate()
     st.stop()
 
-StateManager.init_defaults(macro_topics, curriculum)
+StateManager.init_defaults(st.session_state, macro_topics, curriculum)
 
 # Build map for CURRENT macro topic
 macro_curr = curriculum[st.session_state.selected_macro]
@@ -238,7 +140,7 @@ with st.sidebar:
     admin_mode = st.toggle("🛠️ Tryb Admina (Odblokuj wszystko)", value=False)
 
     if st.button("🔄 Zresetuj Postęp"):
-        StateManager.hard_reset(macro_topics, curriculum)
+        StateManager.hard_reset(st.session_state, macro_topics, curriculum)
         st.rerun()
 
     st.markdown("---")
@@ -248,7 +150,7 @@ with st.sidebar:
     new_macro = st.selectbox("Wybierz Dział:", macro_topics, index=macro_topics.index(st.session_state.selected_macro))
     if new_macro != st.session_state.selected_macro:
         prog = st.session_state.progress[new_macro]
-        StateManager.navigate_to(macro=new_macro, topic_order=prog["unlocked_order"], level=prog["unlocked_level"])
+        StateManager.navigate_to(st.session_state, macro=new_macro, topic_order=prog["unlocked_order"], level=prog["unlocked_level"])
         st.rerun()
 
     # Micro Topic Selector
@@ -268,7 +170,7 @@ with st.sidebar:
     new_topic_order = st.selectbox("Wybierz Temat:", options=available_orders, format_func=format_topic, index=safe_index)
 
     if new_topic_order and new_topic_order != st.session_state.selected_topic_order:
-        StateManager.navigate_to(topic_order=new_topic_order, level=1)
+        StateManager.navigate_to(st.session_state, topic_order=new_topic_order, level=1)
         st.rerun()
 
     # Level Selector
@@ -287,7 +189,7 @@ with st.sidebar:
         new_level = st.slider("Wybierz Poziom:", min_value=1, max_value=allowed_max_level, value=min(st.session_state.selected_level, allowed_max_level))
 
     if new_level != st.session_state.selected_level:
-        StateManager.navigate_to(level=new_level)
+        StateManager.navigate_to(st.session_state, level=new_level)
         st.rerun()
 
 
@@ -447,7 +349,7 @@ else:
             if st.session_state.feedback_type != "info": 
                 st.session_state.streak -= 1
 
-        StateManager.sync_to_db() 
+        StateManager.sync_to_db(st.session_state) 
         st.rerun()
 
 # --- 7. PERSISTENT FEEDBACK & NEXT STEPS ---
@@ -479,8 +381,8 @@ if st.session_state.problem_answered:
                 next_topic_id = min(next_topics)
                 st.session_state.progress[st.session_state.selected_macro]["unlocked_order"] = next_topic_id
                 st.session_state.progress[st.session_state.selected_macro]["unlocked_level"] = 1
-                StateManager.navigate_to(topic_order=next_topic_id, level=1)
-                StateManager.sync_to_db()
+                StateManager.navigate_to(st.session_state, topic_order=next_topic_id, level=1)
+                StateManager.sync_to_db(st.session_state)
                 st.rerun()
             else:
                 st.success("🎉 Gratulacje! Ukończyłeś cały ten dział. Wybierz nowy dział z menu po lewej stronie.")
