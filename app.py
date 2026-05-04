@@ -1,116 +1,19 @@
 import streamlit as st
 import engine
-import streamlit.components.v1 as components
 from core import db
 from core.utils import clean_mobile_input
 from state_manager import StateManager
 import config
 import time
-import json
-import uuid
+from ui.components import inject_enter_hack, inject_decimal_keyboard
+from ui.login import render_login_gate
+from ui.sidebar import render_sidebar
 
 st.set_page_config(page_title="Najszybsza nauka matematyki", page_icon="🧮")
 
 db.init_db()
 
-# --- 1. UTILITIES & HACKS ---
-def inject_enter_hack(target_button_text=None):
-    """DRY Helper: Injects JS to click a specific button ONLY on a fresh Enter press."""
-    if target_button_text is None or target_button_text == "NONE":
-        components.html(
-            """
-            <script>
-            const doc = window.parent.document;
-            if (doc.customKeyDown) doc.removeEventListener('keydown', doc.customKeyDown, true);
-            if (doc.customKeyUp) doc.removeEventListener('keyup', doc.customKeyUp, true);
-            </script>
-            """,
-            height=0,
-            width=0,
-        )
-    else:
-        components.html(
-            f"""
-            <script>
-            const doc = window.parent.document;
-            
-            // 1. Clear old listeners to prevent double-firing
-            if (doc.customKeyDown) doc.removeEventListener('keydown', doc.customKeyDown, true);
-            if (doc.customKeyUp) doc.removeEventListener('keyup', doc.customKeyUp, true);
-            
-            let freshPress = false;
-            
-            // 2. Track when the key is explicitly pressed DOWN on this new screen
-            doc.customKeyDown = function(e) {{
-                if (e.key === 'Enter' && !e.repeat) {{
-                    freshPress = true; 
-                }}
-            }};
-            
-            // 3. Only click the button if the key goes UP after being pressed DOWN
-            doc.customKeyUp = function(e) {{
-                if (e.key === 'Enter' && freshPress) {{
-                    const allButtons = Array.from(doc.querySelectorAll('button'));
-                    const targetBtn = allButtons.find(b => b.innerText.includes('{target_button_text}'));
-                    if (targetBtn) targetBtn.click();
-                    freshPress = false; // Reset for safety
-                }}
-            }};
-            
-            doc.addEventListener('keydown', doc.customKeyDown, true);
-            doc.addEventListener('keyup', doc.customKeyUp, true);
-            </script>
-            """,
-            height=0,
-            width=0,
-        )
-
-def inject_decimal_keyboard():
-    """Forces mobile devices to open the Number/Decimal pad instead of the Alphabet."""
-    components.html(
-        """
-        <script>
-        const doc = window.parent.document;
-        // Find the Streamlit text input box
-        const inputNodes = doc.querySelectorAll('input[type="text"]');
-        
-        inputNodes.forEach(input => {
-            // Only target inputs that are actually for math answers
-            if (!input.hasAttribute('data-keyboard-hacked')) {
-                input.setAttribute('inputmode', 'decimal');
-                // pattern="\d*" is an iOS specific hack to trigger the tall numpad
-                input.setAttribute('pattern', '[0-9]*'); 
-                input.setAttribute('data-keyboard-hacked', 'true');
-            }
-        });
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-
-# --- 2. LOGIN UI ---
-def render_login_gate():
-    """Renders a clean, main-screen login UI for mobile accessibility."""
-    st.markdown("## 🧮 Optymalna nauka matematyki :D")
-    
-    # Center the login box
-    _, col, _ = st.columns([1, 2, 1])
-    with col:
-        with st.form("login_form"):
-            st.subheader("Zaloguj się")
-            username_input = st.text_input("Twoje imię:", placeholder="np. Janek")
-            submit = st.form_submit_button("Rozpocznij naukę", use_container_width=True)
-            
-            if submit:
-                if username_input.strip():
-                    # Load from SQLite
-                    StateManager.load_profile(st.session_state, username_input.strip(), macro_topics, curriculum)
-                    st.rerun()
-                else:
-                    st.error("Proszę podać imię!")
-
-# --- 3. DYNAMIC CURRICULUM SETUP ---
+# --- 1. DYNAMIC CURRICULUM SETUP ---
 curriculum = engine.get_curriculum()
 if not curriculum:
     st.error("Brak dostępnych zadań w bazie.")
@@ -120,7 +23,7 @@ macro_topics = list(curriculum.keys())
 
 # Check if a user is logged in. If not, show the gate and STOP.
 if "username" not in st.session_state:
-    render_login_gate()
+    render_login_gate(macro_topics, curriculum)
     st.stop()
 
 StateManager.init_defaults(st.session_state, macro_topics, curriculum)
@@ -130,70 +33,12 @@ macro_curr = curriculum[st.session_state.selected_macro]
 topic_map = {row["Topic_Order"]: {"name": row["Micro_Topic"], "max_level": row["Level"]} for row in macro_curr}
 
 
-# --- 4. SIDEBAR: NAVIGATION & PROFILE ---
-with st.sidebar:
-    st.write(f"Witaj, **{st.session_state.username}**!")
-
-    st.markdown("---")
-    st.title("🏆 Twój Profil")
-    st.metric(label="Punkty Doświadczenia (XP)", value=st.session_state.xp)
-    admin_mode = st.toggle("🛠️ Tryb Admina (Odblokuj wszystko)", value=False)
-
-    if st.button("🔄 Zresetuj Postęp"):
-        StateManager.hard_reset(st.session_state, macro_topics, curriculum)
-        st.rerun()
-
-    st.markdown("---")
-    st.title("Ustawienia")
-
-    # Macro Topic Selector
-    new_macro = st.selectbox("Wybierz Dział:", macro_topics, index=macro_topics.index(st.session_state.selected_macro))
-    if new_macro != st.session_state.selected_macro:
-        prog = st.session_state.progress[new_macro]
-        StateManager.navigate_to(st.session_state, macro=new_macro, topic_order=prog["unlocked_order"], level=prog["unlocked_level"])
-        st.rerun()
-
-    # Micro Topic Selector
-    prog = st.session_state.progress[st.session_state.selected_macro]
-    first_key = list(topic_map.keys())[0] if topic_map else 1
-    unlocked_order = prog.get("unlocked_order", first_key)
-
-    available_orders = list(topic_map.keys()) if admin_mode else [order for order in topic_map.keys() if order <= unlocked_order]
-    if not available_orders: available_orders = [first_key]
-
-    def format_topic(order):
-        visual_number = list(topic_map.keys()).index(order) + 1 if order in topic_map else 1
-        topic_name = topic_map.get(order, {"name": "Nieznany"})["name"]
-        return f"{visual_number}. {topic_name}"
-
-    safe_index = available_orders.index(st.session_state.selected_topic_order) if st.session_state.selected_topic_order in available_orders else len(available_orders) - 1
-    new_topic_order = st.selectbox("Wybierz Temat:", options=available_orders, format_func=format_topic, index=safe_index)
-
-    if new_topic_order and new_topic_order != st.session_state.selected_topic_order:
-        StateManager.navigate_to(st.session_state, topic_order=new_topic_order, level=1)
-        st.rerun()
-
-    # Level Selector
-    current_topic_max_level = topic_map.get(st.session_state.selected_topic_order, {"max_level": 1}).get("max_level", 1)
-    unlocked_lvl = prog.get("unlocked_level", 1)
-
-    allowed_max_level = current_topic_max_level if admin_mode else (current_topic_max_level if st.session_state.selected_topic_order < unlocked_order else min(unlocked_lvl, current_topic_max_level))
-
-    if allowed_max_level == 1 and current_topic_max_level > 1:
-        st.info(f"🔒 Aktywny: Poziom 1\n\n*(Zdobądź 3 gwiazdki, aby odblokować kolejne poziomy!)*")
-        new_level = 1
-    elif current_topic_max_level == 1:
-        st.info("Ten temat ma tylko jeden poziom.")
-        new_level = 1
-    else:
-        new_level = st.slider("Wybierz Poziom:", min_value=1, max_value=allowed_max_level, value=min(st.session_state.selected_level, allowed_max_level))
-
-    if new_level != st.session_state.selected_level:
-        StateManager.navigate_to(st.session_state, level=new_level)
-        st.rerun()
+# --- 2. SIDEBAR: NAVIGATION & PROFILE ---
+render_sidebar(st.session_state, macro_topics, curriculum, topic_map, admin_mode=False)
 
 
-# --- 5. MAIN UI: THE LEARNING LAYER ---
+
+# --- 3. MAIN UI: THE LEARNING LAYER ---
 st.title("🧮 Najlepszy nauczyciel matematyki")
 st.subheader(f"Dział: {st.session_state.selected_macro}")
 st.markdown(f"**Temat: {topic_map[st.session_state.selected_topic_order]['name']}**")
@@ -262,15 +107,13 @@ else:
             else:
                 inject_enter_hack("NONE")
 
-    # --- 6. LOGIC EVALUATION ---
+    # --- 4. LOGIC EVALUATION ---
     if admin_solve or submitted:
-        is_correct = False
-
         if admin_solve:
             is_correct = True
             st.session_state.problem_answered = True
-            trap_id_hit = None 
-            user_input = "ADMIN_SOLVE" # Prevents NameError
+            st.session_state.feedback_type = "success"
+            st.session_state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉 (+0 XP)"
         else:
             user_input = user_text if is_text_mode else choice
 
@@ -279,80 +122,14 @@ else:
                 st.stop()
             
             if is_text_mode and isinstance(user_input, str):
-                    user_input = clean_mobile_input(user_input)
+                user_input = clean_mobile_input(user_input)
 
-            eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
-            is_correct = eval_result.get("is_correct", False)
-            st.session_state.problem_answered = eval_result.get("lock_answer", False)
-            st.session_state.feedback_type = eval_result.get("feedback_type", None)
-            st.session_state.feedback_msg = eval_result.get("feedback_msg", "")
-            
-            trap_id_hit = eval_result.get("trap_id")
-
-            # --- CALCULATE TIME SPENT ---
-            # Default to None if for some reason the start time wasn't set
-            time_spent = None
-            if "problem_start_time" in st.session_state:
-                # Calculate difference and round to nearest second
-                time_spent = int(time.time() - st.session_state.problem_start_time)
-            
-            current_micro_topic = topic_map[st.session_state.selected_topic_order]["name"]
-
-            # --- CLEAN EQUATION STATE ---
-            keys_to_remove = [
-                "image_html", "messages", "options", "options_map", 
-                "level", "level_name", "level_display", "problem_id" 
-            ]
-            clean_problem_state = {k: v for k, v in problem.items() if k not in keys_to_remove}
-            problem_state = json.dumps(clean_problem_state)
-
-            # --- FIRE TELEMETRY ---
-            db.log_telemetry(
-                session_id=st.session_state.session_id,
-                username=st.session_state.username,
-                macro_topic=st.session_state.selected_macro,
-                micro_topic=current_micro_topic,
-                level_number=st.session_state.selected_level,
-                is_text_mode=is_text_mode,              
-                is_correct=is_correct,
-                user_input=user_input,                  
-                trap_id=trap_id_hit,
-                time_spent_seconds=time_spent,
-                equation_state=problem_state 
-            )
-        
-        # Gamification & Rewards
-        if is_correct:
-            earned_xp = config.XP_REWARDS.get(st.session_state.selected_level, config.DEFAULT_XP_REWARD)
-            
-            st.session_state.feedback_type = "success"
-            st.session_state.feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
-            st.session_state.xp += earned_xp
-
-            if st.session_state.streak < config.MAX_STREAK: st.session_state.streak += 1
-
-            prog = st.session_state.progress[st.session_state.selected_macro]
-            if st.session_state.streak == config.STARS_FOR_UNLOCK and st.session_state.selected_level == prog["unlocked_level"]:
-                current_topic_max = topic_map[st.session_state.selected_topic_order]["max_level"]
-
-                if prog["unlocked_level"] < current_topic_max:
-                    prog["unlocked_level"] += 1
-                    st.session_state.show_balloons = "level"
-                    st.session_state.selected_level = prog["unlocked_level"]
-                    st.session_state.streak = 0
-                else:
-                    st.session_state.topic_completed = True
-                    st.session_state.show_balloons = "topic"
-                    st.session_state.streak = 0
-
-        elif not is_correct and st.session_state.streak > 0:
-            if st.session_state.feedback_type != "info": 
-                st.session_state.streak -= 1
+            StateManager.process_submission(st.session_state, problem, user_input, is_text_mode, topic_map)
 
         StateManager.sync_to_db(st.session_state) 
         st.rerun()
 
-# --- 7. PERSISTENT FEEDBACK & NEXT STEPS ---
+# --- 5. PERSISTENT FEEDBACK & NEXT STEPS ---
 if st.session_state.problem_answered or st.session_state.get("feedback_type") in ["info", "warning"]:
     fb_type = st.session_state.get("feedback_type")
     if fb_type == "success":

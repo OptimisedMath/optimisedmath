@@ -1,9 +1,11 @@
-# state_manager.py
 # Pure Python state management - NO Streamlit imports
 # This enables unit testing and framework-agnostic state handling
 
 import uuid
+import json
+import time
 import config
+import engine
 from core import db
 
 
@@ -114,3 +116,84 @@ class StateManager:
             state["selected_level"] = level
         StateManager.reset_turn(state)
         StateManager.sync_to_db(state)
+
+    @classmethod
+    def process_submission(cls, state, problem, user_input, is_text_mode, topic_map):
+        """Process user submission: evaluate, log telemetry, handle rewards and progression.
+        
+        Args:
+            state: Session state object (dict or Streamlit session_state proxy)
+            problem: Current problem dict from engine
+            user_input: User's answer (string or radio choice)
+            is_text_mode: Boolean indicating if input was text-based
+            topic_map: Mapping of topic orders to topic details
+        """
+        # Evaluate the answer
+        eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
+        is_correct = eval_result.get("is_correct", False)
+        state["problem_answered"] = eval_result.get("lock_answer", False)
+        state["feedback_type"] = eval_result.get("feedback_type", None)
+        state["feedback_msg"] = eval_result.get("feedback_msg", "")
+        trap_id_hit = eval_result.get("trap_id")
+
+        # Calculate time spent
+        time_spent = None
+        if "problem_start_time" in state:
+            time_spent = int(time.time() - state["problem_start_time"])
+        
+        current_micro_topic = topic_map[state["selected_topic_order"]]["name"]
+
+        # Clean equation state for telemetry
+        keys_to_remove = [
+            "image_html", "messages", "options", "options_map", 
+            "level", "level_name", "level_display", "problem_id" 
+        ]
+        clean_problem_state = {k: v for k, v in problem.items() if k not in keys_to_remove}
+        problem_state = json.dumps(clean_problem_state)
+
+        # Log telemetry
+        db.log_telemetry(
+            session_id=state["session_id"],
+            username=state["username"],
+            macro_topic=state["selected_macro"],
+            micro_topic=current_micro_topic,
+            level_number=state["selected_level"],
+            is_text_mode=is_text_mode,              
+            is_correct=is_correct,
+            user_input=user_input,                  
+            trap_id=trap_id_hit,
+            time_spent_seconds=time_spent,
+            equation_state=problem_state 
+        )
+        
+        # Handle gamification & rewards
+        if is_correct:
+            earned_xp = config.XP_REWARDS.get(state["selected_level"], config.DEFAULT_XP_REWARD)
+            
+            state["feedback_type"] = "success"
+            state["feedback_msg"] = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
+            state["xp"] += earned_xp
+
+            if state["streak"] < config.MAX_STREAK:
+                state["streak"] += 1
+
+            prog = state["progress"][state["selected_macro"]]
+            if state["streak"] == config.STARS_FOR_UNLOCK and state["selected_level"] == prog["unlocked_level"]:
+                current_topic_max = topic_map[state["selected_topic_order"]]["max_level"]
+
+                if prog["unlocked_level"] < current_topic_max:
+                    prog["unlocked_level"] += 1
+                    state["show_balloons"] = "level"
+                    state["selected_level"] = prog["unlocked_level"]
+                    state["streak"] = 0
+                else:
+                    state["topic_completed"] = True
+                    state["show_balloons"] = "topic"
+                    state["streak"] = 0
+
+        elif not is_correct and state["streak"] > 0:
+            if state["feedback_type"] != "info": 
+                state["streak"] -= 1
+
+        # Sync to database
+        cls.sync_to_db(state)
