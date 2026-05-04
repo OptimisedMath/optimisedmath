@@ -1,4 +1,3 @@
-# config.py
 # Central configuration file for the Math Learning App
 # Pure Python - no UI framework imports
 

@@ -2,7 +2,6 @@ import streamlit as st
 import engine
 from core import db
 from state_manager import StateManager
-import config
 import time
 from ui.login import render_login_gate
 from ui.sidebar import render_sidebar
