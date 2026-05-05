@@ -62,7 +62,7 @@ def render_learning_screen(state, problem, topic_map):
 
             # --- CONTEXT AWARE KEYBOARD INJECTION ---
                 # Only force the numpad if the topic safely supports it
-                if state.selected_macro == "Ułamki dziesiętne":
+                if state.selected_macro == "Ułamki Dziesiętne":
                     inject_decimal_keyboard()
 
             cols = st.columns([1, 1])
