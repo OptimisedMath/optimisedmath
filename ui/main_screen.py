@@ -75,13 +75,26 @@ def render_learning_screen(state, problem, topic_map):
                 else:
                     inject_enter_hack("NONE")
 
-        # --- 4. LOGIC EVALUATION ---
+        # --- LOGIC EVALUATION ---
         if admin_solve or submitted:
             if admin_solve:
-                is_correct = True
-                state.problem_answered = True
-                state.feedback_type = "success"
-                state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉 (+0 XP)"
+                correct_val = problem["correct"]
+                
+                # Convert to string, handling pandas float→int conversions (5.0 → 5)
+                if isinstance(correct_val, float):
+                    raw_input = str(int(correct_val) if correct_val.is_integer() else correct_val)
+                else:
+                    raw_input = str(correct_val)
+                
+                # If LaTeX format detected, convert to readable format first
+                if "\\" in raw_input:
+                    from core.utils import clean_latex
+                    raw_input = clean_latex(raw_input)
+                
+                # Sanitize as if a user typed it: normalize spaces, decimals, etc.
+                user_input = clean_mobile_input(raw_input)
+                # Auto-solve always uses text mode evaluation
+                eval_mode = True
             else:
                 user_input = user_text if is_text_mode else choice
 
@@ -91,9 +104,10 @@ def render_learning_screen(state, problem, topic_map):
                 
                 if is_text_mode and isinstance(user_input, str):
                     user_input = clean_mobile_input(user_input)
+                
+                eval_mode = is_text_mode
 
-                StateManager.process_submission(state, problem, user_input, is_text_mode, topic_map)
-
+            StateManager.process_submission(state, problem, user_input, eval_mode, topic_map)
             StateManager.sync_to_db(state) 
             st.rerun()
 
