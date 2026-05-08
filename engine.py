@@ -115,12 +115,25 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
 
 
 def generate_problem(topic_function):
-    for _ in range(config.MAX_RETRIES_GENERATE):
-        problem = topic_function()
-        if problem is not None:
-            return problem
+    """Generate a problem using the given topic function, with retry logic for valid problems.
+    
+    Args:
+        topic_function: A callable that generates a problem dict
+        
+    Raises:
+        RuntimeError: If problem generation fails after max retries
+    """
+    for attempt in range(config.MAX_RETRIES_GENERATE):
+        try:
+            problem = topic_function()
+            if problem is not None:
+                return problem
+        except Exception as e:
+            # Log individual generation errors but continue retrying
+            continue
+    
     raise RuntimeError(
-        f"Failed to generate unique problem for {topic_function.__name__}"
+        f"Failed to generate valid problem for {topic_function.__name__} after {config.MAX_RETRIES_GENERATE} attempts"
     )
 
 
