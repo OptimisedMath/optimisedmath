@@ -3,8 +3,26 @@ import time
 import engine
 from state_manager import StateManager
 import config
-from core.utils import clean_mobile_input
+from core.utils import clean_mobile_input, clean_latex
 from ui.components import inject_enter_hack, inject_decimal_keyboard
+
+# Module-level helper functions (avoid recreating on every render)
+
+def format_radio_option(opt):
+    """Format radio option: wrap LaTeX in $ delimiters for proper rendering."""
+    return f"${opt}$" if "\\" in opt else opt
+
+
+def is_duplicate(old, new):
+    """Check if two problems are identical (same question, answer, and image)."""
+    if not old:
+        return False
+    return (
+        old.get("question") == new.get("question")
+        and old.get("correct") == new.get("correct")
+        and old.get("image_html") == new.get("image_html")
+    )
+
 
 def render_learning_screen(state, problem, topic_map):
     st.title("🧮 Najlepszy nauczyciel matematyki")
@@ -51,8 +69,7 @@ def render_learning_screen(state, problem, topic_map):
         with st.form("answer_form", border=False):
             if state.current_input_mode == "radio":
                 st.markdown("<style>.stRadio label { padding-bottom: 25px; padding-top: 10px; }</style>", unsafe_allow_html=True)
-                render_ui_option = lambda opt: f"${opt}$" if "\\" in opt else opt
-                choice = st.radio("Wybierz wynik:", state.shuffled_options, index=None, format_func=render_ui_option)
+                choice = st.radio("Wybierz wynik:", state.shuffled_options, index=None, format_func=format_radio_option)
                 is_text_mode = False
             else:
                 st.info("Wpisz wynik samodzielnie bez podpowiedzi.")
@@ -88,7 +105,6 @@ def render_learning_screen(state, problem, topic_map):
                 
                 # If LaTeX format detected, convert to readable format first
                 if "\\" in raw_input:
-                    from core.utils import clean_latex
                     raw_input = clean_latex(raw_input)
                 
                 # Sanitize as if a user typed it: normalize spaces, decimals, etc.
@@ -147,11 +163,6 @@ def render_learning_screen(state, problem, topic_map):
                     st.success("🎉 Gratulacje! Ukończyłeś cały ten dział. Wybierz nowy dział z menu po lewej stronie.")
             else:
                 old_prob = state.current_problem
-                
-                def is_duplicate(old, new):
-                    if not old: return False
-                    return old.get("question") == new.get("question") and old.get("correct") == new.get("correct") and old.get("image_html") == new.get("image_html")
-
                 attempts = 0
                 while attempts < config.MAX_RETRIES_DUPLICATE_CHECK:
                     new_problem = engine.get_problem_from_db(
