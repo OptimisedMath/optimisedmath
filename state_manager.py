@@ -17,6 +17,13 @@ class StateManager:
     """
 
     @staticmethod
+    def _get_first_topic_order(curriculum, macro_topic):
+        """Extract the first topic order for a given macro topic, with safe fallback."""
+        if macro_topic and curriculum.get(macro_topic):
+            return curriculum[macro_topic][0]["Topic_Order"]
+        return 1
+
+    @staticmethod
     def init_defaults(state, macro_topics, curriculum):
         """Initialize session state with defaults. Heals broken saves from old versions."""
         default_state = {
@@ -24,7 +31,7 @@ class StateManager:
             "xp": 0,
             "streak": 0,
             "selected_macro": macro_topics[0] if macro_topics else None,
-            "selected_topic_order": curriculum[macro_topics[0]][0]["Topic_Order"] if macro_topics and curriculum[macro_topics[0]] else 1,
+            "selected_topic_order": StateManager._get_first_topic_order(curriculum, macro_topics[0] if macro_topics else None),
             "selected_level": 1,
             "problem_answered": False,
             "current_input_mode": "radio",
@@ -42,7 +49,7 @@ class StateManager:
 
         # Ensure progress dictionary catches new macro topics AND heals old broken saves
         for mt in macro_topics:
-            first_order = curriculum[mt][0]["Topic_Order"] if curriculum[mt] else 1
+            first_order = StateManager._get_first_topic_order(curriculum, mt)
             if mt not in state["progress"] or state["progress"][mt]["unlocked_order"] < first_order:
                 state["progress"][mt] = {
                     "unlocked_order": first_order,
@@ -51,7 +58,7 @@ class StateManager:
 
         # Heal the selected topic order if it's currently broken (None or < first_order)
         curr_macro = state["selected_macro"]
-        first_curr = curriculum[curr_macro][0]["Topic_Order"] if curr_macro and curriculum[curr_macro] else 1
+        first_curr = StateManager._get_first_topic_order(curriculum, curr_macro)
         if state["selected_topic_order"] is None or state["selected_topic_order"] < first_curr:
             state["selected_topic_order"] = first_curr
 
@@ -96,11 +103,11 @@ class StateManager:
         """Wipes all progress and resets to initial state."""
         state["xp"] = 0
         state["progress"] = {
-            mt: {"unlocked_order": curriculum[mt][0]["Topic_Order"] if curriculum[mt] else 1, "unlocked_level": 1}
+            mt: {"unlocked_order": StateManager._get_first_topic_order(curriculum, mt), "unlocked_level": 1}
             for mt in macro_topics
         }
         state["selected_macro"] = macro_topics[0] if macro_topics else None
-        state["selected_topic_order"] = curriculum[macro_topics[0]][0]["Topic_Order"] if macro_topics and curriculum[macro_topics[0]] else 1
+        state["selected_topic_order"] = StateManager._get_first_topic_order(curriculum, macro_topics[0] if macro_topics else None)
         state["selected_level"] = 1
         StateManager.reset_turn(state)
         StateManager.sync_to_db(state)
