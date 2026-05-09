@@ -53,6 +53,15 @@ def render_learning_screen(state, problem, topic_map):
         st.write("---")
         st.info(f"📍 {problem.get('level_display', 'Level ' + str(state.selected_level))}")
 
+        # Anticipation Bar - Macro Topic Progress
+        macro_topic = state.selected_macro
+        curriculum_map_for_progress = {macro_topic: list(topic_map.values())} if macro_topic and topic_map else {}
+        if macro_topic:
+            percentage, completed, total = StateManager.get_macro_progress(state, macro_topic, curriculum_map_for_progress)
+            st.markdown(f"### 🏆 {macro_topic}: {completed}/{total} ukończonych tematów")
+            st.progress(percentage)
+            st.markdown("---")
+
         # Render Task
         st.header("Zadanie:")
         st.markdown(f"<div id='{problem['problem_id']}'></div>", unsafe_allow_html=True)

@@ -126,45 +126,47 @@ class StateManager:
 
     @staticmethod
     def get_macro_progress(state, macro_topic, curriculum_map):
-        """Calculate the completion progress of a macro topic.
+        """Calculate the completion progress of a macro topic based on unlocked_level.
         
         Args:
-            state: Session state object containing topic_stats
+            state: Session state object containing progress dictionary
             macro_topic: The macro topic to check progress for
             curriculum_map: Mapping of macro topics to their micro-topics/topics
             
         Returns:
-            tuple: (completion_percentage (0.0-1.0), completed_count, total_count)
-            Returns (0.0, 0, 0) if macro_topic not found or no micro-topics exist
+            tuple: (completion_percentage (0.0-1.0), completed_micro, total_micro)
+            Returns (0.0, 0, 1) if macro_topic not found or no micro-topics exist
         """
         # Handle edge cases
         if not macro_topic or macro_topic not in curriculum_map:
-            return 0.0, 0, 0
+            return 0.0, 0, 1
         
         topics_list = curriculum_map.get(macro_topic, [])
-        total_count = len(topics_list)
+        total_micro = len(topics_list)
         
-        if total_count == 0:
-            return 0.0, 0, 0
+        if total_micro == 0:
+            return 0.0, 0, 1
         
-        # Get topic_stats from state, default to empty dict if not present
-        topic_stats = state.get("topic_stats", {})
-        completed_count = 0
+        # Retrieve the unlocked_level for this macro topic from progress
+        progress = state.get("progress", {})
+        macro_progress = progress.get(macro_topic, {})
+        unlocked_level = macro_progress.get("unlocked_level", 1)
         
-        # Check each topic for mastery (text_mode_streak >= 3)
-        for topic in topics_list:
-            # Extract topic name/identifier
-            topic_name = topic.get("name") if isinstance(topic, dict) else str(topic)
-            
-            if topic_name in topic_stats:
-                streak = topic_stats[topic_name].get("text_mode_streak", 0)
-                if streak >= 3:
-                    completed_count += 1
+        # Calculate completed_micro as unlocked_level - 1
+        completed_micro = unlocked_level - 1
         
-        # Calculate completion percentage
-        completion_percentage = completed_count / total_count if total_count > 0 else 0.0
+        # Ensure bounds safety
+        completed_micro = max(0, completed_micro)
+        completed_micro = min(completed_micro, total_micro)
         
-        return completion_percentage, completed_count, total_count
+        # If topic is fully completed, override to total_micro
+        if state.get("topic_completed") == True:
+            completed_micro = total_micro
+        
+        # Calculate percentage
+        percentage = completed_micro / total_micro
+        
+        return percentage, completed_micro, total_micro
 
     @classmethod
     def process_submission(cls, state, problem, user_input, is_text_mode, topic_map):
