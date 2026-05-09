@@ -37,6 +37,9 @@ XP_REWARDS = {
 # Default XP for correct answers at levels not explicitly defined in XP_REWARDS
 DEFAULT_XP_REWARD = 15
 
+# Bonus XP awarded for completing a level flawlessly (0 mistakes from streak 0 to 3)
+FLAWLESS_LEVEL_BONUS = 50
+
 # --- PROBLEM GENERATION ---
 # Maximum attempts to generate a mathematically valid, unique problem
 MAX_RETRIES_GENERATE = 50

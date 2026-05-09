@@ -39,7 +39,8 @@ class StateManager:
             "progress": {},
             "feedback_type": None,
             "feedback_msg": "",
-            "show_balloons": False
+            "show_balloons": False,
+            "flawless_eligible": True
         }
 
         # Set defaults for any missing keys
@@ -66,6 +67,7 @@ class StateManager:
     def reset_turn(state):
         """Clears the current problem state when navigating or advancing."""
         state["streak"] = 0
+        state["flawless_eligible"] = True  # Reset flawless eligibility when streak hits 0
         state["problem_answered"] = False
         state["topic_completed"] = False
         state["feedback_type"] = None
@@ -202,6 +204,10 @@ class StateManager:
         state["feedback_msg"] = eval_result.get("feedback_msg", "")
         trap_id_hit = eval_result.get("trap_id")
 
+        # Mark flawless as False if answer is incorrect or trap is hit
+        if not is_correct or trap_id_hit:
+            state["flawless_eligible"] = False
+
         # Calculate time spent
         time_spent = None
         if "problem_start_time" in state:
@@ -248,14 +254,28 @@ class StateManager:
                 current_topic_max = topic_map[state["selected_topic_order"]]["max_level"]
 
                 if prog["unlocked_level"] < current_topic_max:
+                    # Check for flawless bonus when leveling up
+                    if state.get("flawless_eligible", False):
+                        flawless_bonus = config.FLAWLESS_LEVEL_BONUS
+                        state["xp"] += flawless_bonus
+                        state["feedback_msg"] += f" ✨ +{flawless_bonus} Flawless Bonus!"
+                    
                     prog["unlocked_level"] += 1
                     state["show_balloons"] = "level"
                     state["selected_level"] = prog["unlocked_level"]
                     state["streak"] = 0
+                    state["flawless_eligible"] = True  # Reset for new level
                 else:
+                    # Check for flawless bonus when completing topic
+                    if state.get("flawless_eligible", False):
+                        flawless_bonus = config.FLAWLESS_LEVEL_BONUS
+                        state["xp"] += flawless_bonus
+                        state["feedback_msg"] += f" ✨ +{flawless_bonus} Flawless Bonus!"
+                    
                     state["topic_completed"] = True
                     state["show_balloons"] = "topic"
                     state["streak"] = 0
+                    state["flawless_eligible"] = True  # Reset for new level/topic
 
         elif not is_correct and state["streak"] > 0:
             if state["feedback_type"] != "info": 
