@@ -124,6 +124,48 @@ class StateManager:
         StateManager.reset_turn(state)
         StateManager.sync_to_db(state)
 
+    @staticmethod
+    def get_macro_progress(state, macro_topic, curriculum_map):
+        """Calculate the completion progress of a macro topic.
+        
+        Args:
+            state: Session state object containing topic_stats
+            macro_topic: The macro topic to check progress for
+            curriculum_map: Mapping of macro topics to their micro-topics/topics
+            
+        Returns:
+            tuple: (completion_percentage (0.0-1.0), completed_count, total_count)
+            Returns (0.0, 0, 0) if macro_topic not found or no micro-topics exist
+        """
+        # Handle edge cases
+        if not macro_topic or macro_topic not in curriculum_map:
+            return 0.0, 0, 0
+        
+        topics_list = curriculum_map.get(macro_topic, [])
+        total_count = len(topics_list)
+        
+        if total_count == 0:
+            return 0.0, 0, 0
+        
+        # Get topic_stats from state, default to empty dict if not present
+        topic_stats = state.get("topic_stats", {})
+        completed_count = 0
+        
+        # Check each topic for mastery (text_mode_streak >= 3)
+        for topic in topics_list:
+            # Extract topic name/identifier
+            topic_name = topic.get("name") if isinstance(topic, dict) else str(topic)
+            
+            if topic_name in topic_stats:
+                streak = topic_stats[topic_name].get("text_mode_streak", 0)
+                if streak >= 3:
+                    completed_count += 1
+        
+        # Calculate completion percentage
+        completion_percentage = completed_count / total_count if total_count > 0 else 0.0
+        
+        return completion_percentage, completed_count, total_count
+
     @classmethod
     def process_submission(cls, state, problem, user_input, is_text_mode, topic_map):
         """Process user submission: evaluate, log telemetry, handle rewards and progression.
