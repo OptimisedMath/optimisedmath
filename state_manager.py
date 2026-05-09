@@ -126,12 +126,14 @@ class StateManager:
 
     @staticmethod
     def get_macro_progress(state, macro_topic, curriculum_map):
-        """Calculate the completion progress of a macro topic based on unlocked_level.
+        """Calculate the completion progress of a macro topic based on unlocked_order.
+        
+        Counts completed micro-topics: a micro-topic is completed if its order < unlocked_order.
         
         Args:
             state: Session state object containing progress dictionary
             macro_topic: The macro topic to check progress for
-            curriculum_map: Mapping of macro topics to their micro-topics/topics
+            curriculum_map: Mapping of macro_topic -> {order: {topic_info}} (order-keyed dict)
             
         Returns:
             tuple: (completion_percentage (0.0-1.0), completed_micro, total_micro)
@@ -141,23 +143,36 @@ class StateManager:
         if not macro_topic or macro_topic not in curriculum_map:
             return 0.0, 0, 1
         
-        topics_list = curriculum_map.get(macro_topic, [])
-        total_micro = len(topics_list)
+        topics_dict = curriculum_map.get(macro_topic, {})
+        
+        # Handle legacy list format gracefully
+        if isinstance(topics_dict, list):
+            total_micro = len(topics_dict)
+            if total_micro == 0:
+                return 0.0, 0, 1
+            # Fall back to simple counting if structure is unexpected
+            return 0.0, 0, total_micro
+        
+        # Extract topic orders from the dictionary
+        if not isinstance(topics_dict, dict):
+            return 0.0, 0, 1
+        
+        topic_orders = sorted([order for order in topics_dict.keys() if isinstance(order, int)])
+        total_micro = len(topic_orders)
         
         if total_micro == 0:
             return 0.0, 0, 1
         
-        # Retrieve the unlocked_level for this macro topic from progress
+        # Get unlocked_order from progress dictionary
         progress = state.get("progress", {})
         macro_progress = progress.get(macro_topic, {})
-        unlocked_level = macro_progress.get("unlocked_level", 1)
+        unlocked_order = macro_progress.get("unlocked_order", 1)
         
-        # Calculate completed_micro as unlocked_level - 1
-        completed_micro = unlocked_level - 1
+        # Count completed micro-topics: those with order < unlocked_order
+        completed_micro = sum(1 for order in topic_orders if order < unlocked_order)
         
         # Ensure bounds safety
-        completed_micro = max(0, completed_micro)
-        completed_micro = min(completed_micro, total_micro)
+        completed_micro = max(0, min(completed_micro, total_micro))
         
         # If topic is fully completed, override to total_micro
         if state.get("topic_completed") == True:
