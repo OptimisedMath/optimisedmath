@@ -62,6 +62,22 @@ def render_learning_screen(state, problem, topic_map):
             st.progress(percentage)
             st.markdown("---")
 
+        # Anticipation Bar - Micro Topic Progress
+        micro_topic = topic_map[state.selected_topic_order]['name']
+        current_level = state.selected_level
+        total_levels = topic_map[state.selected_topic_order]['max_level']
+        
+        # Calculate completed levels: current_level - 1 (e.g., on Level 1 = 0 completed)
+        completed_levels = current_level - 1
+        completed_levels = min(completed_levels, total_levels)  # Ensure doesn't exceed total
+        
+        # Calculate progress percentage with division by zero safety
+        micro_progress_pct = completed_levels / total_levels if total_levels > 0 else 0.0
+        
+        st.markdown(f"### 📚 {micro_topic}: Poziom {current_level}/{total_levels}")
+        st.progress(micro_progress_pct)
+        st.markdown("---")
+
         # Render Task
         st.header("Zadanie:")
         st.markdown(f"<div id='{problem['problem_id']}'></div>", unsafe_allow_html=True)
