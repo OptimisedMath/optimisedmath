@@ -1,27 +1,36 @@
 import { useState, useEffect } from 'react';
+import { BlockMath } from 'react-katex';
 import api from './api';
+import 'katex/dist/katex.min.css';
 
 function App() {
   const [gameState, setGameState] = useState(null);
   const [problem, setProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [feedback, setFeedback] = useState(null);
+  const [error, setError] = useState(null);
 
   // 1. Start the Session on load
   useEffect(() => {
     api.post('/session/start', { username: "Player1", selected_macro: "ulamki_zwykle" })
       .then(response => {
         setGameState(response.data);
+        setError(null);
         // Python just gave us the coat check ticket! Let's pass it immediately to the next function.
         fetchNextProblem(response.data.session_id); 
       })
-      .catch(error => console.error("Error starting session:", error));
+      .catch(err => {
+        const errorMsg = err.response?.data?.detail || err.message || "Failed to start session";
+        setError(errorMsg);
+        console.error("Error starting session:", err);
+      });
   }, []);
 
   // 2. Function to fetch the next problem (Now it expects a ticket!)
   const fetchNextProblem = (currentSessionId) => {
     setFeedback(null);
     setUserAnswer("");
+    setError(null);
     
     // We hand the ticket back to Python using params
     api.get('/problem/next', {
@@ -33,7 +42,11 @@ function App() {
         setProblem(response.data.problem);
         setGameState(response.data.state);
       })
-      .catch(error => console.error("Error fetching problem:", error));
+      .catch(err => {
+        const errorMsg = err.response?.data?.detail || err.message || "Failed to fetch problem";
+        setError(errorMsg);
+        console.error("Error fetching problem:", err);
+      });
   };
 
   // 3. Function to submit the answer
@@ -52,9 +65,35 @@ function App() {
           correct: response.data.is_correct,
           message: response.data.feedback
         });
+        setError(null);
       })
-      .catch(error => console.error("Error submitting answer:", error));
+      .catch(err => {
+        const errorMsg = err.response?.data?.detail || err.message || "Failed to submit answer";
+        setError(errorMsg);
+        console.error("Error submitting answer:", err);
+      });
   };
+
+  // Error state display
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-900 text-white p-8">
+        <div className="max-w-md bg-red-900 border-2 border-red-600 rounded-lg p-6 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-red-200">Error</h2>
+          <p className="text-lg mb-6">{error}</p>
+          <button 
+            onClick={() => {
+              setError(null);
+              window.location.reload();
+            }}
+            className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg font-bold"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!gameState) return <div className="flex h-screen items-center justify-center bg-slate-900 text-white">Connecting to Python Brain...</div>;
 
@@ -78,8 +117,8 @@ function App() {
         {problem ? (
           <>
             <h2 className="text-3xl font-medium text-slate-300 mb-6">Solve this:</h2>
-            <div className="text-6xl font-bold mb-8 tracking-wider">
-              {problem.text}
+            <div className="text-5xl font-bold mb-8 p-4 bg-slate-700 rounded-lg">
+              <BlockMath math={problem.question} />
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
