@@ -186,6 +186,7 @@ app.add_middleware(
         "http://localhost:3000",      # React development server
         "http://localhost:8000",      # Local testing
         "https://localhost:3000",     # HTTPS variant
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],              # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
