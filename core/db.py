@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from config import DB_PATH
+from fastapi.encoders import jsonable_encoder
 
 def get_connection():
     # Create the data directory if it doesn't exist
@@ -64,7 +65,7 @@ def save_user(username, state_dict):
     """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        progress_str = json.dumps(state_dict.get("progress", {}))
+        progress_str = json.dumps(jsonable_encoder(state_dict.get("progress", {})))
         
         cursor.execute('''
             INSERT INTO users (username, xp, streak, selected_macro, selected_topic_order, selected_level, progress_json)
