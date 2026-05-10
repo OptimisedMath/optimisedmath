@@ -41,12 +41,16 @@ function App() {
     e.preventDefault(); // Prevents the page from refreshing
     
     // We send the answer to Python!
-    api.post('/problem/submit', { answer: userAnswer })
+    api.post('/problem/submit', { 
+      session_id: gameState.session_id,
+      user_input: userAnswer,
+      is_text_mode: true
+    })
       .then(response => {
         setGameState(response.data.state);
         setFeedback({
-          correct: response.data.correct,
-          message: response.data.feedback_msg
+          correct: response.data.is_correct,
+          message: response.data.feedback
         });
       })
       .catch(error => console.error("Error submitting answer:", error));
