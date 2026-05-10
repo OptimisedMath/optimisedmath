@@ -2,3 +2,6 @@ streamlit
 pandas
 pytest
 black
+fastapi
+pydantic
+uvicorn
