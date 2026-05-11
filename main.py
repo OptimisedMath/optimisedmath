@@ -10,6 +10,7 @@ import time
 import config
 import engine
 import state_manager
+from core import db
 
 
 # ============================================================================
@@ -159,6 +160,7 @@ async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
     # Startup
     print("🚀 Math Learning API started")
+    db.init_db()
     yield
     # Shutdown
     print("🛑 Math Learning API shutting down")

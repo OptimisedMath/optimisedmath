@@ -10,23 +10,7 @@ function App() {
   const [feedback, setFeedback] = useState(null);
   const [error, setError] = useState(null);
 
-  // 1. Start the Session on load
-  useEffect(() => {
-    api.post('/session/start', { username: "Player1", selected_macro: "ulamki_zwykle" })
-      .then(response => {
-        setGameState(response.data);
-        setError(null);
-        // Python just gave us the coat check ticket! Let's pass it immediately to the next function.
-        fetchNextProblem(response.data.session_id); 
-      })
-      .catch(err => {
-        const errorMsg = err.response?.data?.detail || err.message || "Failed to start session";
-        setError(errorMsg);
-        console.error("Error starting session:", err);
-      });
-  }, []);
-
-  // 2. Function to fetch the next problem (Now it expects a ticket!)
+  // 1. Function to fetch the next problem (Now it expects a ticket!)
   const fetchNextProblem = (currentSessionId) => {
     setFeedback(null);
     setUserAnswer("");
@@ -47,6 +31,24 @@ function App() {
         setError(errorMsg);
         console.error("Error fetching problem:", err);
       });
+  
+  // 2. Start the Session on load
+  useEffect(() => {
+    api.post('/session/start', { username: "Player1", selected_macro: "ulamki_zwykle" })
+      .then(response => {
+        setGameState(response.data);
+        setError(null);
+        // Python just gave us the coat check ticket! Let's pass it immediately to the next function.
+        fetchNextProblem(response.data.session_id); 
+      })
+      .catch(err => {
+        const errorMsg = err.response?.data?.detail || err.message || "Failed to start session";
+        setError(errorMsg);
+        console.error("Error starting session:", err);
+      });
+  }, []);
+
+  
   };
 
   // 3. Function to submit the answer
