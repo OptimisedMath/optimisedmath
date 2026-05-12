@@ -67,7 +67,7 @@ class GameState(BaseModel):
                 "xp": 1500,
                 "streak": 3,
                 "flawless_eligible": True,
-                "selected_macro": "ulamki zwykle",
+                "selected_macro": "Ułamki Zwykłe",
                 "selected_topic_order": 2,
                 "selected_level": 2,
                 "problem_answered": False,
@@ -77,11 +77,11 @@ class GameState(BaseModel):
                 "feedback_msg": "",
                 "show_balloons": False,
                 "progress": {
-                    "ulamki zwykle": {
+                    "Ułamki Zwykłe": {
                         "unlocked_order": 3,
                         "unlocked_level": 2
                     },
-                    "ulamki dziesietne": {
+                    "Ułamki Dziesiętne": {
                         "unlocked_order": 1,
                         "unlocked_level": 1
                     }
@@ -106,6 +106,20 @@ class ProblemSubmissionRequest(BaseModel):
     session_id: str = Field(description="Session ID for the submission")
     user_input: str = Field(description="User's answer to the problem")
     is_text_mode: bool = Field(default=False, description="Whether the answer was in text mode")
+    problem_id: Optional[str] = Field(default=None, description="Current problem ID for stale-submit protection")
+
+
+class CurriculumTopic(BaseModel):
+    """A micro-topic entry exposed to frontend clients."""
+    order: int = Field(description="Topic order used for progression")
+    name: str = Field(description="Display name for the micro-topic")
+    max_level: int = Field(description="Highest level available for this topic")
+
+
+class CurriculumResponse(BaseModel):
+    """Response model for available curriculum metadata."""
+    macro_topics: list[str] = Field(description="Available macro topic display names")
+    topics: Dict[str, list[CurriculumTopic]] = Field(description="Topics grouped by macro topic")
 
 
 # ============================================================================
@@ -133,7 +147,7 @@ ACTIVE_SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 
 def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
-    """Convert a state dictionary to a GameState Pydantic model."""
+    """Convert a state dictionary to a GameState Pydantic model without mutating session state."""
     # Ensure progress items are TopicProgress objects
     progress = {}
     for macro, prog_data in state_dict.get("progress", {}).items():
@@ -141,9 +155,10 @@ def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
             progress[macro] = TopicProgress(**prog_data)
         else:
             progress[macro] = prog_data
-    
-    state_dict["progress"] = progress
-    return GameState(**state_dict)
+
+    state_copy = dict(state_dict)
+    state_copy["progress"] = progress
+    return GameState(**state_copy)
 
 
 def _gamestate_to_dict(game_state: GameState) -> Dict[str, Any]:
@@ -216,6 +231,26 @@ async def root():
     }
 
 
+@app.get("/curriculum", response_model=CurriculumResponse, tags=["Curriculum"])
+async def curriculum_index():
+    """Return available macro topics and their micro-topic metadata."""
+    curriculum = engine.get_curriculum()
+    return {
+        "macro_topics": list(curriculum.keys()),
+        "topics": {
+            macro_topic: [
+                {
+                    "order": int(topic["Topic_Order"]),
+                    "name": topic["Micro_Topic"],
+                    "max_level": int(topic["Level"]),
+                }
+                for topic in topic_list
+            ]
+            for macro_topic, topic_list in curriculum.items()
+        },
+    }
+
+
 # ============================================================================
 # SESSION ENDPOINTS
 # ============================================================================
@@ -236,6 +271,12 @@ async def session_start(request: SessionStartRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="No curriculum data available"
         )
+
+    if request.selected_macro and request.selected_macro not in macro_topics:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Macro topic '{request.selected_macro}' not found in curriculum"
+        )
     
     # Create or load state
     state = {}
@@ -243,7 +284,7 @@ async def session_start(request: SessionStartRequest):
     state_manager.StateManager.load_profile(state, request.username, macro_topics, curriculum)
     
     # Override selected_macro if provided
-    if request.selected_macro and request.selected_macro in macro_topics:
+    if request.selected_macro:
         state["selected_macro"] = request.selected_macro
         first_order = state_manager.StateManager._get_first_topic_order(curriculum, request.selected_macro)
         state["selected_topic_order"] = first_order
@@ -367,8 +408,20 @@ async def problem_submit(request: ProblemSubmissionRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No active problem in this session"
         )
+
+    if state.get("problem_answered"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current problem has already been answered"
+        )
     
     problem = state["current_problem"]
+
+    if request.problem_id and request.problem_id != problem.get("problem_id"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Submitted problem_id does not match the active problem"
+        )
     
     # Get curriculum for topic mapping
     curriculum = engine.get_curriculum()
