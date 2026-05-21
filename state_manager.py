@@ -275,7 +275,7 @@ class StateManager:
                     state["topic_completed"] = True
                     state["show_balloons"] = "topic"
                     state["streak"] = 0
-                    state["flawless_eligible"] = True  # Reset for new level/topic
+                    state["flawless_eligible"] = True
 
         elif not is_correct and state["streak"] > 0:
             if state["feedback_type"] != "info": 

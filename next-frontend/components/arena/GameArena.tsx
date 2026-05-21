@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import XPBar from './XPBar';
+import TopicToolbar from './TopicToolbar';
 import ProblemDisplay from './ProblemDisplay';
 import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
-import { getCurriculum, startSession, getNextProblem, submitAnswer } from '@/lib/api';
-import type { GameState, Problem, Feedback } from '@/lib/types';
+import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer } from '@/lib/api';
+import type { CurriculumResponse, GameState, Problem, Feedback } from '@/lib/types';
 
 const DEFAULT_USERNAME = 'Player1';
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
@@ -19,7 +20,8 @@ export default function GameArena() {
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMacro, setSelectedMacro] = useState<string | null>(null);
+  const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const fetchNextProblem = useCallback(async (currentSessionId: string) => {
     setFeedback(null);
@@ -54,7 +56,7 @@ export default function GameArena() {
           ? PREFERRED_MACRO
           : availableMacros[0];
 
-        setSelectedMacro(initialMacro);
+        setCurriculum(curriculumResponse);
 
         const sessionResponse = await startSession({
           username: DEFAULT_USERNAME,
@@ -92,16 +94,69 @@ export default function GameArena() {
         user_input: userAnswer,
         is_text_mode: true,
       });
-      setGameState(response.state);
-      setFeedback({
-        correct: response.is_correct,
-        message: response.feedback,
-      });
+
+      const oldTopicOrder = gameState.selected_topic_order;
+      const oldLevel = gameState.selected_level;
+      const newState = response.state;
+
+      setGameState(newState);
       setError(null);
+
+      const topicChanged = newState.selected_topic_order !== oldTopicOrder;
+      const levelChanged = newState.selected_level !== oldLevel;
+
+      if (newState.topic_completed) {
+        setFeedback({
+          correct: response.is_correct,
+          message: response.feedback,
+        });
+        setUserAnswer('');
+        setProblem(null);
+      } else if (topicChanged || levelChanged) {
+        setFeedback(null);
+        setUserAnswer('');
+        setProblem(null);
+        await fetchNextProblem(newState.session_id);
+      } else {
+        setFeedback({
+          correct: response.is_correct,
+          message: response.feedback,
+        });
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
       setError(errorMsg);
       console.error('Error submitting answer:', err);
+    }
+  };
+
+  const handleNavigate = async (macro: string, topicOrder: number, level: number) => {
+    if (!gameState?.session_id) {
+      return;
+    }
+
+    setIsNavigating(true);
+    setFeedback(null);
+    setUserAnswer('');
+    setProblem(null);
+    setError(null);
+
+    try {
+      const nextState = await navigateSession({
+        session_id: gameState.session_id,
+        selected_macro: macro,
+        selected_topic_order: topicOrder,
+        selected_level: level,
+      });
+
+      setGameState(nextState);
+      await fetchNextProblem(nextState.session_id);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
+      setError(errorMsg);
+      console.error('Error navigating topic:', err);
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -137,10 +192,19 @@ export default function GameArena() {
     <div className="min-h-screen bg-slate-900 text-white p-8 font-sans flex flex-col items-center">
       <XPBar gameState={gameState} />
 
+      {curriculum && (
+        <TopicToolbar
+          curriculum={curriculum}
+          gameState={gameState}
+          isNavigating={isNavigating}
+          onNavigate={handleNavigate}
+        />
+      )}
+
       <div className="w-full max-w-2xl bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 text-center">
         <ProblemDisplay 
           problem={problem} 
-          selectedMacro={selectedMacro} 
+          selectedMacro={gameState.selected_macro} 
           isLoading={!problem} 
         />
 
@@ -158,6 +222,7 @@ export default function GameArena() {
               <FeedbackCard
                 feedback={feedback}
                 onNextProblem={() => fetchNextProblem(gameState.session_id)}
+                topicCompleted={gameState.topic_completed}
               />
             )}
           </>

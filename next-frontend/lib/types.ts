@@ -57,6 +57,13 @@ export interface SessionStartRequest {
   selected_macro?: string;
 }
 
+export interface SessionNavigateRequest {
+  session_id: string;
+  selected_macro?: string;
+  selected_topic_order?: number;
+  selected_level?: number;
+}
+
 export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;

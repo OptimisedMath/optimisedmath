@@ -101,6 +101,14 @@ class SessionStartRequest(BaseModel):
     selected_macro: Optional[str] = Field(default=None, description="Initial macro topic to select (optional)")
 
 
+class SessionNavigateRequest(BaseModel):
+    """Request model for POST /session/navigate"""
+    session_id: str = Field(description="Session ID to update")
+    selected_macro: Optional[str] = Field(default=None, description="Macro topic to select")
+    selected_topic_order: Optional[int] = Field(default=None, description="Micro topic order to select")
+    selected_level: Optional[int] = Field(default=None, ge=1, description="Level to select")
+
+
 class ProblemSubmissionRequest(BaseModel):
     """Request model for POST /problem/submit"""
     session_id: str = Field(description="Session ID for the submission")
@@ -295,6 +303,69 @@ async def session_start(request: SessionStartRequest):
     # Record problem start time for telemetry
     state["problem_start_time"] = time.time()
     
+    return _dict_to_gamestate(state)
+
+
+@app.post("/session/navigate", response_model=GameState, tags=["Session"])
+async def session_navigate(request: SessionNavigateRequest):
+    """Navigate an active session to a different macro topic, micro topic, or level."""
+    if request.session_id not in ACTIVE_SESSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    state = ACTIVE_SESSIONS[request.session_id]
+    curriculum = engine.get_curriculum()
+    macro_topic = request.selected_macro or state.get("selected_macro")
+
+    if not macro_topic or macro_topic not in curriculum:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Macro topic '{macro_topic}' not found in curriculum"
+        )
+
+    topic_list = curriculum[macro_topic]
+    if not topic_list:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Macro topic '{macro_topic}' has no available topics"
+        )
+
+    available_orders = [int(topic["Topic_Order"]) for topic in topic_list]
+    topic_order = request.selected_topic_order
+
+    if topic_order is None:
+        if request.selected_macro and request.selected_macro != state.get("selected_macro"):
+            topic_order = state_manager.StateManager._get_first_topic_order(curriculum, macro_topic)
+        else:
+            topic_order = state.get("selected_topic_order") or state_manager.StateManager._get_first_topic_order(curriculum, macro_topic)
+
+    topic_order = int(topic_order)
+    if topic_order not in available_orders:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Topic order {topic_order} not found in curriculum"
+        )
+
+    selected_topic = next(topic for topic in topic_list if int(topic["Topic_Order"]) == topic_order)
+    max_level = int(selected_topic["Level"])
+    selected_level = request.selected_level if request.selected_level is not None else state.get("selected_level", 1)
+    selected_level = int(selected_level)
+
+    if selected_level < 1 or selected_level > max_level:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Level {selected_level} is not available for topic order {topic_order}"
+        )
+
+    state_manager.StateManager.navigate_to(
+        state,
+        macro=macro_topic,
+        topic_order=topic_order,
+        level=selected_level,
+    )
+
     return _dict_to_gamestate(state)
 
 
