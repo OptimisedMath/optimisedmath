@@ -7,10 +7,11 @@ import TopicToolbar from './TopicToolbar';
 import ProblemDisplay from './ProblemDisplay';
 import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
-import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer } from '@/lib/api';
+import ProgressBar from './ProgressBar';
+import MasteryScoreboard from './MasteryScoreboard';
+import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
 import type { CurriculumResponse, GameState, Problem, Feedback } from '@/lib/types';
 
-const DEFAULT_USERNAME = 'Player1';
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
 
 export default function GameArena() {
@@ -22,6 +23,7 @@ export default function GameArena() {
   const [error, setError] = useState<string | null>(null);
   const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
 
   const fetchNextProblem = useCallback(async (currentSessionId: string) => {
     setFeedback(null);
@@ -43,6 +45,14 @@ export default function GameArena() {
     let isMounted = true;
 
     const initializeGame = async () => {
+      const storedUsername = localStorage.getItem('username');
+      const storedSessionId = localStorage.getItem('session_id');
+
+      if (!storedUsername || !storedSessionId) {
+        router.push('/login');
+        return;
+      }
+
       try {
         const curriculumResponse = await getCurriculum();
         if (!isMounted) return;
@@ -59,7 +69,7 @@ export default function GameArena() {
         setCurriculum(curriculumResponse);
 
         const sessionResponse = await startSession({
-          username: DEFAULT_USERNAME,
+          username: storedUsername,
           selected_macro: initialMacro,
         });
         if (!isMounted) return;
@@ -80,19 +90,21 @@ export default function GameArena() {
     return () => {
       isMounted = false;
     };
-  }, [fetchNextProblem]);
+  }, [fetchNextProblem, router]);
 
   const handleSubmit = async () => {
     if (!gameState?.session_id || !problem?.problem_id || userAnswer.trim() === '') {
       return;
     }
 
+    const isTextMode = gameState.current_input_mode === 'text';
+
     try {
       const response = await submitAnswer({
         session_id: gameState.session_id,
         problem_id: problem.problem_id,
         user_input: userAnswer,
-        is_text_mode: true,
+        is_text_mode: isTextMode,
       });
 
       const oldTopicOrder = gameState.selected_topic_order;
@@ -130,6 +142,15 @@ export default function GameArena() {
     }
   };
 
+  const handleAutoSolve = async () => {
+    if (!problem?.correct) {
+      return;
+    }
+
+    setUserAnswer(problem.correct);
+    await handleSubmit();
+  };
+
   const handleNavigate = async (macro: string, topicOrder: number, level: number) => {
     if (!gameState?.session_id) {
       return;
@@ -155,6 +176,37 @@ export default function GameArena() {
       const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
       setError(errorMsg);
       console.error('Error navigating topic:', err);
+    } finally {
+      setIsNavigating(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!gameState?.session_id) {
+      return;
+    }
+
+    if (!confirm('Czy na pewno chcesz zresetować cały postęp? Ta operacja jest nieodwracalna.')) {
+      return;
+    }
+
+    setIsNavigating(true);
+    setFeedback(null);
+    setUserAnswer('');
+    setProblem(null);
+    setError(null);
+
+    try {
+      const nextState = await resetSession({
+        session_id: gameState.session_id,
+      });
+
+      setGameState(nextState);
+      await fetchNextProblem(nextState.session_id);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to reset progress';
+      setError(errorMsg);
+      console.error('Error resetting progress:', err);
     } finally {
       setIsNavigating(false);
     }
@@ -198,14 +250,26 @@ export default function GameArena() {
           gameState={gameState}
           isNavigating={isNavigating}
           onNavigate={handleNavigate}
+          onReset={handleReset}
         />
       )}
 
+      {curriculum && (
+        <>
+          <ProgressBar gameState={gameState} curriculum={curriculum} type="macro" />
+          <ProgressBar gameState={gameState} curriculum={curriculum} type="micro" />
+        </>
+      )}
+
+      <MasteryScoreboard gameState={gameState} />
+
       <div className="w-full max-w-2xl bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 text-center">
-        <ProblemDisplay 
-          problem={problem} 
-          selectedMacro={gameState.selected_macro} 
-          isLoading={!problem} 
+        <ProblemDisplay
+          problem={problem}
+          selectedMacro={gameState.selected_macro}
+          isLoading={!problem}
+          gameState={gameState}
+          curriculum={curriculum}
         />
 
         {problem && (
@@ -216,6 +280,10 @@ export default function GameArena() {
               onSubmit={handleSubmit}
               disabled={feedback !== null}
               showFeedback={feedback !== null}
+              problem={problem}
+              gameState={gameState}
+              onAutoSolve={handleAutoSolve}
+              adminMode={adminMode}
             />
 
             {feedback && (
@@ -223,6 +291,7 @@ export default function GameArena() {
                 feedback={feedback}
                 onNextProblem={() => fetchNextProblem(gameState.session_id)}
                 topicCompleted={gameState.topic_completed}
+                gameState={gameState}
               />
             )}
           </>

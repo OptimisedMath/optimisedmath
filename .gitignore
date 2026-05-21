@@ -10,3 +10,4 @@ storage/*.db
 frontend/node_modules/
 frontend/dist/
 .windsurf/
+start.command

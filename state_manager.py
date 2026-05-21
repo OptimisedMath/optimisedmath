@@ -30,6 +30,8 @@ class StateManager:
             "session_id": str(uuid.uuid4()),
             "xp": 0,
             "streak": 0,
+            "flawless_eligible": True,
+            "max_streak": config.MAX_STREAK,
             "selected_macro": macro_topics[0] if macro_topics else None,
             "selected_topic_order": StateManager._get_first_topic_order(curriculum, macro_topics[0] if macro_topics else None),
             "selected_level": 1,
@@ -40,7 +42,6 @@ class StateManager:
             "feedback_type": None,
             "feedback_msg": "",
             "show_balloons": False,
-            "flawless_eligible": True
         }
 
         # Set defaults for any missing keys

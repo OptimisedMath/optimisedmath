@@ -11,6 +11,7 @@ export interface GameState {
   xp: number;
   streak: number;
   flawless_eligible: boolean;
+  max_streak: number;
   selected_macro: string | null;
   selected_topic_order: number | null;
   selected_level: number;
@@ -39,6 +40,7 @@ export interface Problem {
   problem_id: string;
   level_display: string;
   grading_policy?: string;
+  keyboard_type?: string;
 }
 
 export interface CurriculumTopic {
@@ -62,6 +64,10 @@ export interface SessionNavigateRequest {
   selected_macro?: string;
   selected_topic_order?: number;
   selected_level?: number;
+}
+
+export interface SessionResetRequest {
+  session_id: string;
 }
 
 export interface ProblemSubmissionRequest {

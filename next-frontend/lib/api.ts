@@ -6,6 +6,7 @@ import type {
   SubmissionResponse,
   SessionStartRequest,
   SessionNavigateRequest,
+  SessionResetRequest,
   ProblemSubmissionRequest,
 } from './types';
 
@@ -51,6 +52,11 @@ export const startSession = async (request: SessionStartRequest): Promise<GameSt
 
 export const navigateSession = async (request: SessionNavigateRequest): Promise<GameState> => {
   const response = await api.post<GameState>('/session/navigate', request);
+  return response.data;
+};
+
+export const resetSession = async (request: SessionResetRequest): Promise<GameState> => {
+  const response = await api.post<GameState>('/session/reset', request);
   return response.data;
 };
 

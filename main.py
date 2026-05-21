@@ -25,37 +25,38 @@ class TopicProgress(BaseModel):
 
 class GameState(BaseModel):
     """Mirrors the current state structure from state_manager.py."""
-    
+
     # Core identifiers
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique session identifier")
     username: Optional[str] = Field(default=None, description="Logged-in username")
-    
+
     # XP and streaks
     xp: int = Field(default=0, ge=0, description="Total experience points")
     streak: int = Field(default=0, ge=0, description="Current correct answer streak")
     flawless_eligible: bool = Field(default=True, description="Whether user is eligible for flawless bonus")
-    
+    max_streak: int = Field(default=3, ge=1, description="Maximum streak required for level unlock")
+
     # Navigation and selection
     selected_macro: Optional[str] = Field(default=None, description="Currently selected macro topic")
     selected_topic_order: Optional[int] = Field(default=None, description="Currently selected topic order")
     selected_level: int = Field(default=1, ge=1, description="Currently selected difficulty level")
-    
+
     # Problem and input state
     problem_answered: bool = Field(default=False, description="Whether current problem has been answered")
     current_input_mode: str = Field(default="radio", description="Input mode for current problem (radio/text)")
     topic_completed: bool = Field(default=False, description="Whether current topic is completed")
-    
+
     # Feedback
     feedback_type: Optional[str] = Field(default=None, description="Type of feedback (correct/incorrect)")
     feedback_msg: str = Field(default="", description="Feedback message for user")
     show_balloons: bool = Field(default=False, description="Whether to show celebration balloons")
-    
+
     # Progress tracking
     progress: Dict[str, TopicProgress] = Field(
         default_factory=dict,
         description="Progress dictionary mapping macro_topic -> TopicProgress"
     )
-    
+
     # Optional current problem (not persisted)
     current_problem: Optional[Dict[str, Any]] = Field(default=None, description="Current problem being worked on")
 
@@ -107,6 +108,12 @@ class SessionNavigateRequest(BaseModel):
     selected_macro: Optional[str] = Field(default=None, description="Macro topic to select")
     selected_topic_order: Optional[int] = Field(default=None, description="Micro topic order to select")
     selected_level: Optional[int] = Field(default=None, ge=1, description="Level to select")
+
+
+class SessionResetRequest(BaseModel):
+    """Request model for POST /session/reset"""
+    session_id: str = Field(description="Session ID to reset")
+
 
 
 class ProblemSubmissionRequest(BaseModel):
@@ -369,6 +376,25 @@ async def session_navigate(request: SessionNavigateRequest):
     return _dict_to_gamestate(state)
 
 
+@app.post("/session/reset", response_model=GameState, tags=["Session"])
+async def session_reset(request: SessionResetRequest):
+    """Reset a session's progress to initial state."""
+    if request.session_id not in ACTIVE_SESSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    state = ACTIVE_SESSIONS[request.session_id]
+    curriculum = engine.get_curriculum()
+    macro_topics = list(curriculum.keys())
+
+    # Hard reset the state
+    state_manager.StateManager.hard_reset(state, macro_topics, curriculum)
+
+    return _dict_to_gamestate(state)
+
+
 # ============================================================================
 # PROBLEM ENDPOINTS
 # ============================================================================
@@ -444,6 +470,13 @@ async def problem_next(session_id: str):
     state["show_balloons"] = False
     state["problem_start_time"] = time.time()
     state["current_problem"] = problem
+
+    # Add keyboard type flag for context-aware input
+    # Check if macro topic requires decimal keyboard
+    macro_topic = state.get("selected_macro", "")
+    requires_decimal = "Dziesiętne" in macro_topic if macro_topic else False
+    if "keyboard_type" not in problem:
+        problem["keyboard_type"] = "decimal" if requires_decimal else "default"
     
     return {
         "problem": problem,
