@@ -173,8 +173,12 @@ def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
 
     state_copy = dict(state_dict)
     state_copy["progress"] = progress
-    if isinstance(state_copy.get("show_balloons"), str):
-        state_copy["show_balloons"] = True
+    show_val = state_copy.get("show_balloons")
+    if not isinstance(show_val, bool):
+        if isinstance(show_val, str):
+            state_copy["show_balloons"] = show_val.lower() == "true"
+        else:
+            state_copy["show_balloons"] = False
     return GameState(**state_copy)
 
 

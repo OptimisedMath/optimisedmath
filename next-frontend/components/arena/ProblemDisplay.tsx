@@ -41,7 +41,7 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
         📍 {problem.level_display || `Level ${selectedLevel}`}
       </div>
       <h2 className="text-3xl font-medium mb-4">Zadanie:</h2>
-      <div className="text-5xl font-bold mb-8 p-4 bg-slate-700 rounded-lg">
+      <div className="text-2xl font-bold mb-8 p-4 bg-slate-700 rounded-lg">
         <BlockMath math={problem.question} />
       </div>
     </div>
