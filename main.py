@@ -173,6 +173,8 @@ def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
 
     state_copy = dict(state_dict)
     state_copy["progress"] = progress
+    if isinstance(state_copy.get("show_balloons"), str):
+        state_copy["show_balloons"] = True
     return GameState(**state_copy)
 
 
@@ -549,18 +551,32 @@ async def problem_submit(request: ProblemSubmissionRequest):
             topic_map[order] = {"name": name, "max_level": int(max_level)}
     
     # Process the submission
-    state_manager.StateManager.process_submission(
-        state,
-        problem,
-        request.user_input,
-        request.is_text_mode,
-        topic_map
-    )
+    try:
+        state_manager.StateManager.process_submission(
+            state,
+            problem,
+            request.user_input,
+            request.is_text_mode,
+            topic_map
+        )
+    except Exception as e:
+        print(f"Error in process_submission: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing submission: {str(e)}"
+        )
     
     # Evaluate to get is_correct
-    eval_result = engine.evaluate_answer(request.user_input, problem, request.is_text_mode)
-    is_correct = eval_result.get("is_correct", False)
-    feedback = state.get("feedback_msg", "")
+    try:
+        eval_result = engine.evaluate_answer(request.user_input, problem, request.is_text_mode)
+        is_correct = eval_result.get("is_correct", False)
+        feedback = state.get("feedback_msg", "")
+    except Exception as e:
+        print(f"Error in evaluate_answer: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error evaluating answer: {str(e)}"
+        )
     
     return {
         "state": _dict_to_gamestate(state),

@@ -13,6 +13,12 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
     return null;
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !topicCompleted) {
+      onNextProblem();
+    }
+  };
+
   const showBalloons = gameState.show_balloons;
 
   return (
@@ -33,6 +39,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
         <Button
           type="button"
           onClick={onNextProblem}
+          onKeyDown={handleKeyDown}
           className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-lg text-xl font-bold transition-all"
         >
           Następne zadanie ➡️

@@ -1,6 +1,8 @@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { InlineMath } from 'react-katex';
 import type { Problem, GameState } from '@/lib/types';
+import 'katex/dist/katex.min.css';
 
 interface AnswerInputProps {
   value: string;
@@ -11,7 +13,6 @@ interface AnswerInputProps {
   problem: Problem | null;
   gameState: GameState;
   onAutoSolve?: () => void;
-  adminMode?: boolean;
 }
 
 export default function AnswerInput({
@@ -23,11 +24,23 @@ export default function AnswerInput({
   problem,
   gameState,
   onAutoSolve,
-  adminMode = false,
 }: AnswerInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && value.trim() !== '' && !disabled) {
+      onSubmit();
+    }
+  };
+
+  const handleRadioKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && value.trim() !== '' && !disabled && !showFeedback) {
+      e.preventDefault();
+      onSubmit();
+    }
   };
 
   const inputMode = gameState.current_input_mode;
@@ -36,12 +49,20 @@ export default function AnswerInput({
   // Render radio mode
   if (inputMode === 'radio' && problem?.options) {
     return (
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4" onKeyDown={handleRadioKeyDown} tabIndex={0}>
         <div className="flex flex-col gap-3 w-full">
           {problem.options.map((option, index) => (
             <button
               key={index}
               onClick={() => !showFeedback && onChange(option)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !showFeedback) {
+                  e.preventDefault();
+                  onChange(option);
+                  // Auto-submit after selection
+                  setTimeout(() => onSubmit(), 100);
+                }
+              }}
               disabled={showFeedback}
               className={`p-4 text-xl rounded-lg border-2 transition-all ${
                 value === option
@@ -49,7 +70,7 @@ export default function AnswerInput({
                   : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
               } ${showFeedback ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
             >
-              {option.includes('\\') ? `$${option}$` : option}
+              {option.includes('\\') ? <InlineMath math={option} /> : option}
             </button>
           ))}
         </div>
@@ -63,7 +84,7 @@ export default function AnswerInput({
             >
               Sprawdź odpowiedź
             </Button>
-            {adminMode && onAutoSolve && (
+            {onAutoSolve && (
               <Button
                 onClick={onAutoSolve}
                 disabled={disabled}
@@ -86,6 +107,7 @@ export default function AnswerInput({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Wpisz wynik..."
         inputMode={keyboardType === 'decimal' ? 'decimal' : 'text'}
         className="px-6 py-4 text-2xl text-black rounded-lg w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
@@ -102,7 +124,7 @@ export default function AnswerInput({
           >
             Sprawdź odpowiedź
           </Button>
-          {adminMode && onAutoSolve && (
+          {onAutoSolve && (
             <Button
               onClick={onAutoSolve}
               disabled={disabled}

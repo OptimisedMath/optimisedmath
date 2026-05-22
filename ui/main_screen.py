@@ -157,13 +157,12 @@ def render_learning_screen(state, problem, topic_map):
         fb_type = state.get("feedback_type")
         if fb_type == "success":
             st.success(state.feedback_msg)
-            if state.get("show_balloons") == "level":
+            if state.get("show_balloons"):
                 st.balloons()
-                st.success(f"🎊 Poziom {state.progress[state.selected_macro]['unlocked_level']} odblokowany! Zostałeś automatycznie przeniesiony na nowy poziom. 🎊")
-                state.show_balloons = False
-            elif state.get("show_balloons") == "topic":
-                st.balloons()
-                st.success("🏆 Gratulacje! Ukończyłeś cały temat. Jesteś gotowy, aby przejść do kolejnego!")
+                if state.get("topic_completed"):
+                    st.success("🏆 Gratulacje! Ukończyłeś cały temat. Jesteś gotowy, aby przejść do kolejnego!")
+                else:
+                    st.success(f"🎊 Poziom {state.progress[state.selected_macro]['unlocked_level']} odblokowany! Zostałeś automatycznie przeniesiony na nowy poziom. 🎊")
                 state.show_balloons = False
         elif fb_type == "error": st.error(state.feedback_msg)
         elif fb_type == "warning": st.warning(state.feedback_msg)

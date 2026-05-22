@@ -99,7 +99,11 @@ class StateManager:
     def sync_to_db(state):
         """Pushes current session state to the database."""
         if state.get("username"):
-            db.save_user(state["username"], state)
+            try:
+                db.save_user(state["username"], state)
+            except Exception as e:
+                print(f"Error syncing to database for user {state.get('username')}: {e}")
+                # Don't raise - allow the game to continue even if DB sync fails
 
     @staticmethod
     def hard_reset(state, macro_topics, curriculum):
@@ -262,7 +266,7 @@ class StateManager:
                         state["feedback_msg"] += f" ✨ +{flawless_bonus} Flawless Bonus!"
                     
                     prog["unlocked_level"] += 1
-                    state["show_balloons"] = "level"
+                    state["show_balloons"] = True
                     state["selected_level"] = prog["unlocked_level"]
                     state["streak"] = 0
                     state["flawless_eligible"] = True  # Reset for new level
@@ -274,7 +278,7 @@ class StateManager:
                         state["feedback_msg"] += f" ✨ +{flawless_bonus} Flawless Bonus!"
                     
                     state["topic_completed"] = True
-                    state["show_balloons"] = "topic"
+                    state["show_balloons"] = True
                     state["streak"] = 0
                     state["flawless_eligible"] = True
 

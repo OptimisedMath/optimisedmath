@@ -35,6 +35,13 @@ api.interceptors.response.use(
   (error) => {
     const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
     console.error('API Error:', errorMessage);
+    console.error('Full error details:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data,
+      config: error.config?.url,
+      status: error.response?.status
+    });
     return Promise.reject(new Error(errorMessage));
   }
 );

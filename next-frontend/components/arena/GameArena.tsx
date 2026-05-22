@@ -24,6 +24,7 @@ export default function GameArena() {
   const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchNextProblem = useCallback(async (currentSessionId: string) => {
     setFeedback(null);
@@ -43,6 +44,33 @@ export default function GameArena() {
 
   useEffect(() => {
     let isMounted = true;
+
+    // Global Enter key handler
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        // Check if we should submit answer
+        const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const checkButton = Array.from(document.querySelectorAll('button')).find(btn => 
+          btn.textContent?.includes('Sprawdź odpowiedź')
+        ) as HTMLButtonElement;
+        const nextButton = Array.from(document.querySelectorAll('button')).find(btn => 
+          btn.textContent?.includes('Następne zadanie')
+        ) as HTMLButtonElement;
+
+        if (submitButton && !submitButton.disabled) {
+          e.preventDefault();
+          submitButton.click();
+        } else if (checkButton && !checkButton.disabled) {
+          e.preventDefault();
+          checkButton.click();
+        } else if (nextButton) {
+          e.preventDefault();
+          nextButton.click();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
 
     const initializeGame = async () => {
       const storedUsername = localStorage.getItem('username');
@@ -89,15 +117,24 @@ export default function GameArena() {
 
     return () => {
       isMounted = false;
+      window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, [fetchNextProblem, router]);
 
   const handleSubmit = async () => {
+    console.log('handleSubmit called', { gameState, problem, userAnswer, isSubmitting });
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring duplicate call');
+      return;
+    }
     if (!gameState?.session_id || !problem?.problem_id || userAnswer.trim() === '') {
+      console.log('handleSubmit validation failed');
       return;
     }
 
+    setIsSubmitting(true);
     const isTextMode = gameState.current_input_mode === 'text';
+    console.log('Submitting answer', { session_id: gameState.session_id, problem_id: problem.problem_id, user_input: userAnswer, is_text_mode: isTextMode });
 
     try {
       const response = await submitAnswer({
@@ -106,6 +143,7 @@ export default function GameArena() {
         user_input: userAnswer,
         is_text_mode: isTextMode,
       });
+      console.log('Submit response received', response);
 
       const oldTopicOrder = gameState.selected_topic_order;
       const oldLevel = gameState.selected_level;
@@ -116,6 +154,7 @@ export default function GameArena() {
 
       const topicChanged = newState.selected_topic_order !== oldTopicOrder;
       const levelChanged = newState.selected_level !== oldLevel;
+      console.log('State update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
 
       if (newState.topic_completed) {
         setFeedback({
@@ -139,6 +178,14 @@ export default function GameArena() {
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
       setError(errorMsg);
       console.error('Error submitting answer:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace',
+        gameState,
+        problem
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -251,6 +298,8 @@ export default function GameArena() {
           isNavigating={isNavigating}
           onNavigate={handleNavigate}
           onReset={handleReset}
+          adminMode={adminMode}
+          setAdminMode={setAdminMode}
         />
       )}
 
@@ -283,7 +332,6 @@ export default function GameArena() {
               problem={problem}
               gameState={gameState}
               onAutoSolve={handleAutoSolve}
-              adminMode={adminMode}
             />
 
             {feedback && (

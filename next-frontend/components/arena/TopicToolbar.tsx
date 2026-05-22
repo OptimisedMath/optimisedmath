@@ -9,6 +9,8 @@ interface TopicToolbarProps {
   isNavigating: boolean;
   onNavigate: (macro: string, topicOrder: number, level: number) => void;
   onReset: () => void;
+  adminMode: boolean;
+  setAdminMode: (value: boolean) => void;
 }
 
 export default function TopicToolbar({
@@ -17,8 +19,9 @@ export default function TopicToolbar({
   isNavigating,
   onNavigate,
   onReset,
+  adminMode,
+  setAdminMode,
 }: TopicToolbarProps) {
-  const [adminMode, setAdminMode] = useState(false);
   const selectedMacro = gameState.selected_macro || curriculum.macro_topics[0] || '';
   const topics = curriculum.topics[selectedMacro] || [];
   const firstTopic = topics[0];
