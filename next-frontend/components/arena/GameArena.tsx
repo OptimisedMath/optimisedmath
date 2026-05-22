@@ -156,24 +156,11 @@ export default function GameArena() {
       const levelChanged = newState.selected_level !== oldLevel;
       console.log('State update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
 
-      if (newState.topic_completed) {
-        setFeedback({
-          correct: response.is_correct,
-          message: response.feedback,
-        });
-        setUserAnswer('');
-        setProblem(null);
-      } else if (topicChanged || levelChanged) {
-        setFeedback(null);
-        setUserAnswer('');
-        setProblem(null);
-        await fetchNextProblem(newState.session_id);
-      } else {
-        setFeedback({
-          correct: response.is_correct,
-          message: response.feedback,
-        });
-      }
+      setFeedback({
+        correct: response.is_correct,
+        message: response.feedback,
+      });
+      setUserAnswer('');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
       setError(errorMsg);

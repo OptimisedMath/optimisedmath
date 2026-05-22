@@ -42,7 +42,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
           onKeyDown={handleKeyDown}
           className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-lg text-xl font-bold transition-all"
         >
-          Następne zadanie ➡️
+          {showBalloons ? 'Następny poziom ➡️' : 'Następne zadanie ➡️'}
         </Button>
       )}
     </div>
