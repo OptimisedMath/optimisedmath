@@ -41,6 +41,7 @@ export interface Problem {
   level_display: string;
   grading_policy?: string;
   keyboard_type?: string;
+  image_html?: string;
 }
 
 export interface CurriculumTopic {

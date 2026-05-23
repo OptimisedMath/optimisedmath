@@ -260,6 +260,12 @@ export default function GameArena() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('username');
+    localStorage.removeItem('session_id');
+    router.push('/login');
+  };
+
   if (error) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-900 text-white p-8">
@@ -289,8 +295,14 @@ export default function GameArena() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-slate-900 text-white p-8 font-sans flex flex-col items-center relative">
       <XPBar gameState={gameState} />
+      <button
+        onClick={handleLogout}
+        className="absolute top-4 right-4 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border border-slate-600"
+      >
+        Wyloguj
+      </button>
 
       {curriculum && (
         <TopicToolbar

@@ -120,33 +120,40 @@ def generate_fraction_svg(n, d, start_val=0):
 
 def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
     """Draws a mathematical number line with custom intervals and labels."""
-    width = 600
-    height = 140
-    svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">'
-    svg += '<line x1="40" y1="80" x2="560" y2="80" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
-    svg += '<polygon points="45,72 30,80 45,88" fill="#ffffff" />'
-    svg += '<polygon points="555,72 570,80 555,88" fill="#ffffff" />'
+    width = 4000
+    height = 900
+    svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">'
+    
+    # Main line - solid color for visibility
+    svg += f'<line x1="250" y1="500" x2="3750" y2="500" stroke="#cbd5e1" stroke-width="15" stroke-linecap="round"/>'
+    
+    # Right arrow only
+    svg += '<polygon points="3725,463 3775,500 3725,537" fill="#cbd5e1" />'
 
-    start_x = 80
-    end_x = 520
+    start_x = 500
+    end_x = 3500
     spacing = (end_x - start_x) / ticks_count
 
     for i in range(ticks_count + 1):
         x = start_x + i * spacing
-        # Labeled ticks are slightly longer for readability
-        tick_len = 20 if i in labeled_ticks else 10
-        y1 = 80 - tick_len / 2
-        y2 = 80 + tick_len / 2
+        # Labeled ticks are longer and thicker for readability
+        tick_len = 125 if i in labeled_ticks else 75
+        tick_width = 15 if i in labeled_ticks else 10
+        y1 = 500 - tick_len / 2
+        y2 = 500 + tick_len / 2
 
-        svg += f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>'
+        # Tick color based on whether it's labeled
+        tick_color = "#e2e8f0" if i in labeled_ticks else "#64748b"
+        svg += f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{tick_color}" stroke-width="{tick_width}" stroke-linecap="round"/>'
 
         if i in labeled_ticks:
-            svg += f'<text x="{x}" y="125" font-family="sans-serif" font-size="24" font-weight="bold" fill="#ffffff" text-anchor="middle">{labeled_ticks[i]}</text>'
+            svg += f'<text x="{x}" y="750" font-family="system-ui, -apple-system, sans-serif" font-size="100" font-weight="600" fill="#f1f5f9" text-anchor="middle">{labeled_ticks[i]}</text>'
 
         if i == target_tick:
-            svg += f'<line x1="{x}" y1="20" x2="{x}" y2="55" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>'
-            svg += f'<polygon points="{x-8},50 {x+8},50 {x},65" fill="#e74c3c" />'
-            svg += f'<text x="{x}" y="15" font-family="sans-serif" font-size="32" font-weight="bold" fill="#e74c3c" text-anchor="middle">?</text>'
+            # Target marker with glow effect
+            svg += f'<defs><filter id="glow"><feGaussianBlur stdDeviation="10" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
+            svg += f'<line x1="{x}" y1="125" x2="{x}" y2="375" stroke="#f43f5e" stroke-width="20" stroke-linecap="round" filter="url(#glow)"/>'
+            svg += f'<polygon points="{x-50},350 {x+50},350 {x},425" fill="#f43f5e" filter="url(#glow)" />'
 
     svg += "</svg>"
     return svg

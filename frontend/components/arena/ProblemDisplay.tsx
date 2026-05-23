@@ -44,6 +44,11 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
       <div className="text-2xl font-bold mb-8 p-4 bg-slate-700 rounded-lg">
         <BlockMath math={problem.question} />
       </div>
+      {problem.image_html && (
+        <div className="mb-6 flex justify-center">
+          <div style={{ width: '100%', maxWidth: '1200px' }} dangerouslySetInnerHTML={{ __html: problem.image_html }} />
+        </div>
+      )}
     </div>
   );
 }
