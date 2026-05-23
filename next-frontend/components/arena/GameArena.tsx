@@ -54,7 +54,9 @@ export default function GameArena() {
           btn.textContent?.includes('Sprawdź odpowiedź')
         ) as HTMLButtonElement;
         const nextButton = Array.from(document.querySelectorAll('button')).find(btn => 
-          btn.textContent?.includes('Następne zadanie')
+          btn.textContent?.includes('Następne zadanie') ||
+          btn.textContent?.includes('Następny poziom') ||
+          btn.textContent?.includes('Następny temat')
         ) as HTMLButtonElement;
 
         if (submitButton && !submitButton.disabled) {
@@ -215,6 +217,18 @@ export default function GameArena() {
     }
   };
 
+  const handleAdvance = useCallback(() => {
+    if (!gameState) return;
+    if (gameState.topic_completed) {
+      const macro = gameState.selected_macro!;
+      const nextOrder = gameState.progress[macro]?.unlocked_order;
+      if (nextOrder === undefined) return;
+      handleNavigate(macro, nextOrder, 1);
+    } else {
+      fetchNextProblem(gameState.session_id);
+    }
+  }, [gameState, handleNavigate, fetchNextProblem]);
+
   const handleReset = async () => {
     if (!gameState?.session_id) {
       return;
@@ -324,7 +338,7 @@ export default function GameArena() {
             {feedback && (
               <FeedbackCard
                 feedback={feedback}
-                onNextProblem={() => fetchNextProblem(gameState.session_id)}
+                onNextProblem={handleAdvance}
                 topicCompleted={gameState.topic_completed}
                 gameState={gameState}
               />

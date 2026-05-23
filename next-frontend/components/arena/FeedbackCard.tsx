@@ -14,12 +14,25 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !topicCompleted) {
+    if (e.key === 'Enter') {
       onNextProblem();
     }
   };
 
   const showBalloons = gameState.show_balloons;
+
+  const macro = gameState.selected_macro;
+  const unlockedOrder = macro ? gameState.progress[macro]?.unlocked_order : undefined;
+  const hasNextTopic = unlockedOrder !== undefined &&
+    gameState.selected_topic_order !== null &&
+    unlockedOrder > (gameState.selected_topic_order ?? 0);
+
+  let buttonLabel = 'Następne zadanie ➡️';
+  if (topicCompleted) {
+    buttonLabel = 'Następny temat ➡️';
+  } else if (showBalloons) {
+    buttonLabel = 'Następny poziom ➡️';
+  }
 
   return (
     <div className="w-full flex flex-col items-center gap-4 mt-4">
@@ -31,9 +44,9 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
       <div className={`text-2xl font-bold ${feedback.correct ? 'text-green-400' : 'text-red-400'}`}>
         {feedback.message}
       </div>
-      {topicCompleted ? (
-        <div className="text-slate-300 text-lg">
-          Use the toolbar above to select the next topic or level
+      {topicCompleted && !hasNextTopic ? (
+        <div className="text-slate-300 text-lg text-center">
+          🎊 Gratulacje! Ukończyłeś wszystkie tematy w tym dziale!
         </div>
       ) : (
         <Button
@@ -42,7 +55,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
           onKeyDown={handleKeyDown}
           className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-lg text-xl font-bold transition-all"
         >
-          {showBalloons ? 'Następny poziom ➡️' : 'Następne zadanie ➡️'}
+          {buttonLabel}
         </Button>
       )}
     </div>

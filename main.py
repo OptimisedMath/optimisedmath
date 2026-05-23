@@ -304,11 +304,18 @@ async def session_start(request: SessionStartRequest):
     state_manager.StateManager.init_defaults(state, macro_topics, curriculum)
     state_manager.StateManager.load_profile(state, request.username, macro_topics, curriculum)
     
-    # Override selected_macro if provided
+    # Override selected_macro if provided, but only reset topic/level when switching macros.
+    # Preserving the loaded position avoids a level/topic mismatch on session resume
+    # (e.g. selected_level=4 kept while selected_topic_order is forced to a topic with max_level=1).
     if request.selected_macro:
+        prev_macro = state.get("selected_macro")
         state["selected_macro"] = request.selected_macro
-        first_order = state_manager.StateManager._get_first_topic_order(curriculum, request.selected_macro)
-        state["selected_topic_order"] = first_order
+        if request.selected_macro != prev_macro:
+            # Switching to a different macro: jump to the user's unlocked position in that macro
+            macro_progress = state["progress"].get(request.selected_macro, {})
+            first_order = state_manager.StateManager._get_first_topic_order(curriculum, request.selected_macro)
+            state["selected_topic_order"] = macro_progress.get("unlocked_order", first_order)
+            state["selected_level"] = macro_progress.get("unlocked_level", 1)
     
     # Store session in memory
     ACTIVE_SESSIONS[state["session_id"]] = state

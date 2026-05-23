@@ -282,6 +282,13 @@ class StateManager:
                     state["streak"] = 0
                     state["flawless_eligible"] = True
 
+                    # Unlock the next micro-topic so the frontend can navigate to it
+                    current_order = int(state["selected_topic_order"])
+                    next_topics = sorted(int(o) for o in topic_map if int(o) > current_order)
+                    if next_topics:
+                        prog["unlocked_order"] = next_topics[0]
+                        prog["unlocked_level"] = 1
+
         elif not is_correct and state["streak"] > 0:
             if state["feedback_type"] != "info": 
                 state["streak"] -= 1
