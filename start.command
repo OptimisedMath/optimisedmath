@@ -9,9 +9,9 @@ echo "🚀 Starting Optimised Math Learning Platform..."
 # 1. Start the Python FastAPI backend in the background
 echo "⚡ Launching FastAPI Backend on port 8000..."
 if [ -d ".venv" ]; then
-    .venv/bin/python main.py &
+    .venv/bin/python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
 else
-    python3 main.py &
+    python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
     echo "⚠️ Warning: .venv folder not found. Using system python3."
 fi
 
@@ -20,7 +20,7 @@ BACKEND_PID=$!
 
 # 2. Open a separate Mac terminal window to run the Next.js dev server
 echo "🎨 Launching Next.js Frontend on port 3000..."
-osascript -e "tell application \"Terminal\" to do script \"cd '$SCRIPT_DIR/next-frontend' && npm run dev\""
+osascript -e "tell application \"Terminal\" to do script \"cd '$SCRIPT_DIR/frontend' && npm run dev\""
 
 # 3. Wait 3 seconds for the servers to warm up, then open the browser
 sleep 3

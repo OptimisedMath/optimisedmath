@@ -1,6 +1,6 @@
 # tests/test_core_logic.py
 import pytest
-from core.utils import clean_mobile_input, clean_latex, check_text_answer, fmt_dec
+from backend.core.utils import clean_mobile_input, clean_latex, check_text_answer, fmt_dec
 # import engine # Uncomment when ready to test engine.evaluate_answer
 
 class TestMobileSanitizer:

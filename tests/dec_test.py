@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
 
 # Import the specific math function you want to test
-from macro_topics.ulamki_dziesietne.micro_11_kolejnosc import dec_order_1
+from backend.macro_topics.ulamki_dziesietne.micro_11_kolejnosc import dec_order_1
 
 
 def test_dec_order_1_structure():

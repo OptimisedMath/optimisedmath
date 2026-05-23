@@ -5,17 +5,18 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
+sys.path.append(str(BASE_DIR / "backend"))
 
 
 def get_all_math_functions():
     functions_to_test = []
-    macro_path = BASE_DIR / "macro_topics"
+    macro_path = BASE_DIR / "backend" / "macro_topics"
 
     for file_path in macro_path.rglob("*.py"):
         if file_path.name.startswith("__"):
             continue
 
-        module_path = ".".join(file_path.relative_to(BASE_DIR).parts)[:-3]
+        module_path = ".".join(file_path.relative_to(BASE_DIR).parts)[:-3]  # e.g. backend.macro_topics.xxx
         module = importlib.import_module(module_path)
 
         for name, func in module.__dict__.items():
