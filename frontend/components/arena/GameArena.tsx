@@ -166,9 +166,6 @@ export default function GameArena() {
         feedback_type: newState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
         is_locked: isLocked,
       });
-      if (isLocked) {
-        setUserAnswer('');
-      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
       setError(errorMsg);
@@ -209,9 +206,6 @@ export default function GameArena() {
         feedback_type: newState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
         is_locked: isLocked,
       });
-      if (isLocked) {
-        setUserAnswer('');
-      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
       setError(errorMsg);
@@ -379,6 +373,7 @@ export default function GameArena() {
               problem={problem}
               gameState={gameState}
               onAutoSolve={handleAutoSolve}
+              feedback={feedback}
             />
 
             {feedback && !feedback.is_locked && (

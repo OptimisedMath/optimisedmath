@@ -13,6 +13,7 @@ interface AnswerInputProps {
   problem: Problem | null;
   gameState: GameState;
   onAutoSolve?: () => void;
+  feedback?: { correct: boolean } | null;
 }
 
 export default function AnswerInput({
@@ -24,6 +25,7 @@ export default function AnswerInput({
   problem,
   gameState,
   onAutoSolve,
+  feedback,
 }: AnswerInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +48,26 @@ export default function AnswerInput({
   const inputMode = problem?.input_mode ?? gameState.current_input_mode;
   const keyboardType = problem?.keyboard_type || 'default';
 
+  // Convert plain text input to LaTeX for display
+  const formatInputAsLatex = (s: string): string => {
+    if (!s.trim()) return s;
+    const trimmed = s.trim();
+    // Handle mixed numbers like "1 3/4" → "1\\frac{3}{4}"
+    const mixedMatch = trimmed.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+    if (mixedMatch) {
+      const [, whole, num, den] = mixedMatch;
+      return `${whole}\\frac{${num}}{${den}}`;
+    }
+    // Handle fractions like "3/4" → "\\frac{3}{4}"
+    const fracMatch = trimmed.match(/^(\d+)\/(\d+)$/);
+    if (fracMatch) {
+      const [, num, den] = fracMatch;
+      return `\\frac{${num}}{${den}}`;
+    }
+    // Return as-is for decimals or whole numbers
+    return trimmed;
+  };
+
   // Render radio mode
   if (inputMode === 'radio' && problem?.options) {
     return (
@@ -65,10 +87,18 @@ export default function AnswerInput({
               }}
               disabled={showFeedback}
               className={`p-4 text-xl rounded-lg border-2 transition-all ${
-                value === option
-                  ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                  : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
-              } ${showFeedback ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                showFeedback && feedback
+                  ? value === option && feedback.correct
+                    ? 'border-green-500 bg-green-600/50 text-white ring-2 ring-green-400'
+                    : value === option && !feedback.correct
+                    ? 'border-red-500 bg-red-600/50 text-white ring-2 ring-red-400'
+                    : option === problem?.correct
+                    ? 'border-green-500 bg-green-600/50 text-white ring-2 ring-green-400'
+                    : 'border-slate-600 bg-slate-700 text-slate-300 opacity-30'
+                  : value === option
+                    ? 'border-blue-500 bg-blue-500/20 text-blue-300'
+                    : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
+              } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
               {option.includes('\\') ? <InlineMath math={option} /> : option}
             </button>
@@ -103,17 +133,27 @@ export default function AnswerInput({
   // Render text mode
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
-      <Input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Wpisz wynik..."
-        inputMode={keyboardType === 'decimal' ? 'decimal' : 'text'}
-        className="px-6 py-4 text-2xl text-white rounded-lg w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
-        autoFocus
-        disabled={showFeedback}
-      />
+      {showFeedback ? (
+        <div className="px-6 py-4 text-2xl text-white rounded-lg w-64 text-center bg-slate-700 border-2 border-slate-600">
+          {value.includes('/') || value.includes(' ') ? (
+            <InlineMath math={formatInputAsLatex(value)} />
+          ) : (
+            value
+          )}
+        </div>
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Wpisz wynik..."
+          inputMode={keyboardType === 'decimal' ? 'decimal' : 'text'}
+          className="px-6 py-4 text-2xl text-white rounded-lg w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
+          autoFocus
+          disabled={showFeedback}
+        />
+      )}
 
       {!showFeedback ? (
         <>
