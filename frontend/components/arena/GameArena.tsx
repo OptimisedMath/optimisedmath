@@ -159,11 +159,16 @@ export default function GameArena() {
       const levelChanged = newState.selected_level !== oldLevel;
       console.log('State update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
 
+      const isLocked = newState.problem_answered;
       setFeedback({
         correct: response.is_correct,
         message: response.feedback,
+        feedback_type: newState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
+        is_locked: isLocked,
       });
-      setUserAnswer('');
+      if (isLocked) {
+        setUserAnswer('');
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
       setError(errorMsg);
@@ -197,11 +202,16 @@ export default function GameArena() {
       const levelChanged = newState.selected_level !== oldLevel;
       console.log('Auto-solve state update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
 
+      const isLocked = newState.problem_answered;
       setFeedback({
         correct: response.is_correct,
         message: response.feedback,
+        feedback_type: newState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
+        is_locked: isLocked,
       });
-      setUserAnswer('');
+      if (isLocked) {
+        setUserAnswer('');
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
       setError(errorMsg);
@@ -364,14 +374,20 @@ export default function GameArena() {
               value={userAnswer}
               onChange={setUserAnswer}
               onSubmit={handleSubmit}
-              disabled={feedback !== null}
-              showFeedback={feedback !== null}
+              disabled={feedback?.is_locked ?? false}
+              showFeedback={feedback?.is_locked ?? false}
               problem={problem}
               gameState={gameState}
               onAutoSolve={handleAutoSolve}
             />
 
-            {feedback && (
+            {feedback && !feedback.is_locked && (
+              <div className="mt-3 text-yellow-400 text-lg font-semibold text-center">
+                {feedback.message}
+              </div>
+            )}
+
+            {feedback && feedback.is_locked && (
               <FeedbackCard
                 feedback={feedback}
                 onNextProblem={handleAdvance}

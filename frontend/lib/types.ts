@@ -93,4 +93,6 @@ export interface SubmissionResponse {
 export interface Feedback {
   correct: boolean;
   message: string;
+  feedback_type: string;
+  is_locked: boolean;
 }
