@@ -12,9 +12,6 @@ export default function XPBar({ gameState }: XPBarProps) {
         XP: <span className="text-yellow-400 font-bold">{gameState.xp}</span>
       </div>
       <div className="text-xl">
-        Streak: <span className="text-orange-400 font-bold">{gameState.streak} 🔥</span>
-      </div>
-      <div className="text-xl">
         Bonus:{' '}
         <Badge
           variant={gameState.flawless_eligible ? 'default' : 'destructive'}
