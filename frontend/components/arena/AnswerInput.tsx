@@ -43,7 +43,7 @@ export default function AnswerInput({
     }
   };
 
-  const inputMode = gameState.current_input_mode;
+  const inputMode = problem?.input_mode ?? gameState.current_input_mode;
   const keyboardType = problem?.keyboard_type || 'default';
 
   // Render radio mode

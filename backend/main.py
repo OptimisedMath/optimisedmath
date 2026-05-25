@@ -497,6 +497,7 @@ async def problem_next(session_id: str):
     requires_decimal = "Dziesiętne" in macro_topic if macro_topic else False
     if "keyboard_type" not in problem:
         problem["keyboard_type"] = "decimal" if requires_decimal else "default"
+    problem["input_mode"] = state.get("current_input_mode", "radio")
     
     return {
         "problem": problem,

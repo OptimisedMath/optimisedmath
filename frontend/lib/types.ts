@@ -41,6 +41,7 @@ export interface Problem {
   level_display: string;
   grading_policy?: string;
   keyboard_type?: string;
+  input_mode?: string;
   image_html?: string;
 }
 
