@@ -11,6 +11,7 @@ import backend.config as config
 import backend.engine as engine
 import backend.state_manager as state_manager
 from backend.core import db
+from backend.core.utils import clean_latex
 
 
 # ============================================================================
@@ -114,6 +115,12 @@ class SessionResetRequest(BaseModel):
     """Request model for POST /session/reset"""
     session_id: str = Field(description="Session ID to reset")
 
+
+
+class AutoSolveRequest(BaseModel):
+    """Request model for POST /problem/auto-solve"""
+    session_id: str = Field(description="Session ID for auto-solve")
+    problem_id: Optional[str] = Field(default=None, description="Problem ID for stale-submit protection")
 
 
 class ProblemSubmissionRequest(BaseModel):
@@ -589,6 +596,101 @@ async def problem_submit(request: ProblemSubmissionRequest):
             detail=f"Error evaluating answer: {str(e)}"
         )
     
+    return {
+        "state": _dict_to_gamestate(state),
+        "is_correct": is_correct,
+        "feedback": feedback
+    }
+
+
+@app.post("/problem/auto-solve", response_model=SubmissionResponse, tags=["Problem"])
+async def problem_auto_solve(request: AutoSolveRequest):
+    """Auto-solve the current problem using the known correct answer.
+    
+    - Derives the correct answer format from current_input_mode
+    - Radio mode: submits the raw LaTeX key that matches options_map
+    - Text mode: converts LaTeX to human notation via clean_latex (e.g. 3\\frac{3}{4} → 3 3/4)
+    """
+    if request.session_id not in ACTIVE_SESSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    state = ACTIVE_SESSIONS[request.session_id]
+
+    if not state.get("current_problem"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active problem in this session"
+        )
+
+    if state.get("problem_answered"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current problem has already been answered"
+        )
+
+    problem = state["current_problem"]
+
+    if request.problem_id and request.problem_id != problem.get("problem_id"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Submitted problem_id does not match the active problem"
+        )
+
+    # Determine correct answer in the format the evaluator expects for the current mode
+    is_text_mode = state.get("current_input_mode") == "text"
+    if is_text_mode:
+        user_input = clean_latex(problem["correct"])
+    else:
+        user_input = problem["correct"]
+
+    # Build topic_map (mirrors /problem/submit)
+    curriculum = engine.get_curriculum()
+    macro_topic = state.get("selected_macro")
+
+    if macro_topic not in curriculum:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Macro topic '{macro_topic}' not found"
+        )
+
+    topic_list = curriculum[macro_topic]
+    topic_map = {}
+    for topic in topic_list:
+        order = topic.get("Topic_Order")
+        name = topic.get("Micro_Topic")
+        max_level = topic.get("Level", 1)
+        if order and name:
+            topic_map[order] = {"name": name, "max_level": int(max_level)}
+
+    try:
+        state_manager.StateManager.process_submission(
+            state,
+            problem,
+            user_input,
+            is_text_mode,
+            topic_map
+        )
+    except Exception as e:
+        print(f"Error in auto-solve process_submission: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing auto-solve: {str(e)}"
+        )
+
+    try:
+        eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
+        is_correct = eval_result.get("is_correct", False)
+        feedback = state.get("feedback_msg", "")
+    except Exception as e:
+        print(f"Error in auto-solve evaluate_answer: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error evaluating auto-solve: {str(e)}"
+        )
+
     return {
         "state": _dict_to_gamestate(state),
         "is_correct": is_correct,

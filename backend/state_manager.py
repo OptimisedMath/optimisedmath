@@ -293,5 +293,8 @@ class StateManager:
             if state["feedback_type"] != "info": 
                 state["streak"] -= 1
 
+        # Update input mode based on current streak (per Structure.md: streak 0 → radio, streak ≥1 → text)
+        state["current_input_mode"] = "text" if state["streak"] >= 1 else "radio"
+
         # Sync to database
         cls.sync_to_db(state)

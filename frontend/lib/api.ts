@@ -79,4 +79,12 @@ export const submitAnswer = async (request: ProblemSubmissionRequest): Promise<S
   return response.data;
 };
 
+export const autoSolve = async (sessionId: string, problemId?: string): Promise<SubmissionResponse> => {
+  const response = await api.post<SubmissionResponse>('/problem/auto-solve', {
+    session_id: sessionId,
+    problem_id: problemId,
+  });
+  return response.data;
+};
+
 export default api;

@@ -9,7 +9,7 @@ import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
-import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
+import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
 import type { CurriculumResponse, GameState, Problem, Feedback } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
@@ -29,6 +29,7 @@ export default function GameArena() {
   const fetchNextProblem = useCallback(async (currentSessionId: string) => {
     setFeedback(null);
     setUserAnswer('');
+    setProblem(null);
     setError(null);
 
     try {
@@ -179,12 +180,35 @@ export default function GameArena() {
   };
 
   const handleAutoSolve = async () => {
-    if (!problem?.correct) {
-      return;
-    }
+    if (!gameState?.session_id || !problem?.problem_id) return;
 
-    setUserAnswer(problem.correct);
-    await handleSubmit();
+    setIsSubmitting(true);
+    try {
+      const response = await autoSolve(gameState.session_id, problem.problem_id);
+
+      const oldTopicOrder = gameState.selected_topic_order;
+      const oldLevel = gameState.selected_level;
+      const newState = response.state;
+
+      setGameState(newState);
+      setError(null);
+
+      const topicChanged = newState.selected_topic_order !== oldTopicOrder;
+      const levelChanged = newState.selected_level !== oldLevel;
+      console.log('Auto-solve state update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
+
+      setFeedback({
+        correct: response.is_correct,
+        message: response.feedback,
+      });
+      setUserAnswer('');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
+      setError(errorMsg);
+      console.error('Error auto-solving:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleNavigate = async (macro: string, topicOrder: number, level: number) => {

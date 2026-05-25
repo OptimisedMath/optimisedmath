@@ -110,7 +110,7 @@ export default function AnswerInput({
         onKeyDown={handleKeyDown}
         placeholder="Wpisz wynik..."
         inputMode={keyboardType === 'decimal' ? 'decimal' : 'text'}
-        className="px-6 py-4 text-2xl text-black rounded-lg w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
+        className="px-6 py-4 text-2xl text-white rounded-lg w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
         autoFocus
         disabled={showFeedback}
       />
