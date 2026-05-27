@@ -11,7 +11,7 @@ from backend.core import db
 
 class StateManager:
     """Centralizes all state mutations to prevent race conditions during Streamlit reruns.
-    
+
     All methods accept a `state` dict (or Streamlit session_state proxy) as the first argument.
     This design allows unit testing without Streamlit and enables framework-agnostic code.
     """
@@ -33,7 +33,9 @@ class StateManager:
             "flawless_eligible": True,
             "max_streak": config.MAX_STREAK,
             "selected_macro": macro_topics[0] if macro_topics else None,
-            "selected_topic_order": StateManager._get_first_topic_order(curriculum, macro_topics[0] if macro_topics else None),
+            "selected_topic_order": StateManager._get_first_topic_order(
+                curriculum, macro_topics[0] if macro_topics else None
+            ),
             "selected_level": 1,
             "problem_answered": False,
             "current_input_mode": "radio",
@@ -52,7 +54,10 @@ class StateManager:
         # Ensure progress dictionary catches new macro topics AND heals old broken saves
         for mt in macro_topics:
             first_order = StateManager._get_first_topic_order(curriculum, mt)
-            if mt not in state["progress"] or state["progress"][mt]["unlocked_order"] < first_order:
+            if (
+                mt not in state["progress"]
+                or state["progress"][mt]["unlocked_order"] < first_order
+            ):
                 state["progress"][mt] = {
                     "unlocked_order": first_order,
                     "unlocked_level": 1,
@@ -61,14 +66,19 @@ class StateManager:
         # Heal the selected topic order if it's currently broken (None or < first_order)
         curr_macro = state["selected_macro"]
         first_curr = StateManager._get_first_topic_order(curriculum, curr_macro)
-        if state["selected_topic_order"] is None or state["selected_topic_order"] < first_curr:
+        if (
+            state["selected_topic_order"] is None
+            or state["selected_topic_order"] < first_curr
+        ):
             state["selected_topic_order"] = first_curr
 
     @staticmethod
     def reset_turn(state):
         """Clears the current problem state when navigating or advancing."""
         state["streak"] = 0
-        state["flawless_eligible"] = True  # Reset flawless eligibility when streak hits 0
+        state["flawless_eligible"] = (
+            True  # Reset flawless eligibility when streak hits 0
+        )
         state["problem_answered"] = False
         state["topic_completed"] = False
         state["feedback_type"] = None
@@ -102,19 +112,30 @@ class StateManager:
             try:
                 db.save_user(state["username"], state)
             except Exception as e:
-                print(f"Error syncing to database for user {state.get('username')}: {e}")
-                # Don't raise - allow the game to continue even if DB sync fails
+                print(
+                    f"Error syncing to database for user {state.get('username')}: {e}"
+                )
+        if state.get("session_id") and state.get("username"):
+            try:
+                db.save_session(state["session_id"], state["username"], state)
+            except Exception as e:
+                print(f"Error saving session {state.get('session_id')}: {e}")
 
     @staticmethod
     def hard_reset(state, macro_topics, curriculum):
         """Wipes all progress and resets to initial state."""
         state["xp"] = 0
         state["progress"] = {
-            mt: {"unlocked_order": StateManager._get_first_topic_order(curriculum, mt), "unlocked_level": 1}
+            mt: {
+                "unlocked_order": StateManager._get_first_topic_order(curriculum, mt),
+                "unlocked_level": 1,
+            }
             for mt in macro_topics
         }
         state["selected_macro"] = macro_topics[0] if macro_topics else None
-        state["selected_topic_order"] = StateManager._get_first_topic_order(curriculum, macro_topics[0] if macro_topics else None)
+        state["selected_topic_order"] = StateManager._get_first_topic_order(
+            curriculum, macro_topics[0] if macro_topics else None
+        )
         state["selected_level"] = 1
         StateManager.reset_turn(state)
         StateManager.sync_to_db(state)
@@ -134,14 +155,14 @@ class StateManager:
     @staticmethod
     def get_macro_progress(state, macro_topic, curriculum_map):
         """Calculate the completion progress of a macro topic based on unlocked_order.
-        
+
         Counts completed micro-topics: a micro-topic is completed if its order < unlocked_order.
-        
+
         Args:
             state: Session state object containing progress dictionary
             macro_topic: The macro topic to check progress for
             curriculum_map: Mapping of macro_topic -> {order: {topic_info}} (order-keyed dict)
-            
+
         Returns:
             tuple: (completion_percentage (0.0-1.0), completed_micro, total_micro)
             Returns (0.0, 0, 1) if macro_topic not found or no micro-topics exist
@@ -149,9 +170,9 @@ class StateManager:
         # Handle edge cases
         if not macro_topic or macro_topic not in curriculum_map:
             return 0.0, 0, 1
-        
+
         topics_dict = curriculum_map.get(macro_topic, {})
-        
+
         # Handle legacy list format gracefully
         if isinstance(topics_dict, list):
             total_micro = len(topics_dict)
@@ -159,41 +180,43 @@ class StateManager:
                 return 0.0, 0, 1
             # Fall back to simple counting if structure is unexpected
             return 0.0, 0, total_micro
-        
+
         # Extract topic orders from the dictionary
         if not isinstance(topics_dict, dict):
             return 0.0, 0, 1
-        
-        topic_orders = sorted([order for order in topics_dict.keys() if isinstance(order, int)])
+
+        topic_orders = sorted(
+            [order for order in topics_dict.keys() if isinstance(order, int)]
+        )
         total_micro = len(topic_orders)
-        
+
         if total_micro == 0:
             return 0.0, 0, 1
-        
+
         # Get unlocked_order from progress dictionary
         progress = state.get("progress", {})
         macro_progress = progress.get(macro_topic, {})
         unlocked_order = macro_progress.get("unlocked_order", 1)
-        
+
         # Count completed micro-topics: those with order < unlocked_order
         completed_micro = sum(1 for order in topic_orders if order < unlocked_order)
-        
+
         # Ensure bounds safety
         completed_micro = max(0, min(completed_micro, total_micro))
-        
+
         # If topic is fully completed, override to total_micro
         if state.get("topic_completed") == True:
             completed_micro = total_micro
-        
+
         # Calculate percentage
         percentage = completed_micro / total_micro
-        
+
         return percentage, completed_micro, total_micro
 
     @classmethod
     def process_submission(cls, state, problem, user_input, is_text_mode, topic_map):
         """Process user submission: evaluate, log telemetry, handle rewards and progression.
-        
+
         Args:
             state: Session state object (dict or Streamlit session_state proxy)
             problem: Current problem dict from engine
@@ -217,15 +240,23 @@ class StateManager:
         time_spent = None
         if "problem_start_time" in state:
             time_spent = int(time.time() - state["problem_start_time"])
-        
+
         current_micro_topic = topic_map[state["selected_topic_order"]]["name"]
 
         # Clean equation state for telemetry
         keys_to_remove = [
-            "image_html", "messages", "options", "options_map", 
-            "level", "level_name", "level_display", "problem_id" 
+            "image_html",
+            "messages",
+            "options",
+            "options_map",
+            "level",
+            "level_name",
+            "level_display",
+            "problem_id",
         ]
-        clean_problem_state = {k: v for k, v in problem.items() if k not in keys_to_remove}
+        clean_problem_state = {
+            k: v for k, v in problem.items() if k not in keys_to_remove
+        }
         problem_state = json.dumps(clean_problem_state)
 
         # Log telemetry
@@ -235,36 +266,47 @@ class StateManager:
             macro_topic=state["selected_macro"],
             micro_topic=current_micro_topic,
             level_number=state["selected_level"],
-            is_text_mode=is_text_mode,              
+            is_text_mode=is_text_mode,
             is_correct=is_correct,
-            user_input=user_input,                  
+            user_input=user_input,
             trap_id=trap_id_hit,
             time_spent_seconds=time_spent,
-            equation_state=problem_state 
+            equation_state=problem_state,
         )
-        
+
         # Handle gamification & rewards
         if is_correct:
-            earned_xp = config.XP_REWARDS.get(state["selected_level"], config.DEFAULT_XP_REWARD)
-            
+            earned_xp = config.XP_REWARDS.get(
+                state["selected_level"], config.DEFAULT_XP_REWARD
+            )
+
             state["feedback_type"] = "success"
-            state["feedback_msg"] = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
+            state["feedback_msg"] = (
+                f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
+            )
             state["xp"] += earned_xp
 
             if state["streak"] < config.MAX_STREAK:
                 state["streak"] += 1
 
             prog = state["progress"][state["selected_macro"]]
-            if state["streak"] == config.STARS_FOR_UNLOCK and state["selected_level"] == prog["unlocked_level"]:
-                current_topic_max = topic_map[state["selected_topic_order"]]["max_level"]
+            if (
+                state["streak"] == config.STARS_FOR_UNLOCK
+                and state["selected_level"] == prog["unlocked_level"]
+            ):
+                current_topic_max = topic_map[state["selected_topic_order"]][
+                    "max_level"
+                ]
 
                 if prog["unlocked_level"] < current_topic_max:
                     # Check for flawless bonus when leveling up
                     if state.get("flawless_eligible", False):
                         flawless_bonus = config.FLAWLESS_LEVEL_BONUS
                         state["xp"] += flawless_bonus
-                        state["feedback_msg"] += f" ✨ +{flawless_bonus} Flawless Bonus!"
-                    
+                        state[
+                            "feedback_msg"
+                        ] += f" ✨ +{flawless_bonus} Flawless Bonus!"
+
                     prog["unlocked_level"] += 1
                     state["show_balloons"] = True
                     state["selected_level"] = prog["unlocked_level"]
@@ -275,8 +317,10 @@ class StateManager:
                     if state.get("flawless_eligible", False):
                         flawless_bonus = config.FLAWLESS_LEVEL_BONUS
                         state["xp"] += flawless_bonus
-                        state["feedback_msg"] += f" ✨ +{flawless_bonus} Flawless Bonus!"
-                    
+                        state[
+                            "feedback_msg"
+                        ] += f" ✨ +{flawless_bonus} Flawless Bonus!"
+
                     state["topic_completed"] = True
                     state["show_balloons"] = True
                     state["streak"] = 0
@@ -284,13 +328,15 @@ class StateManager:
 
                     # Unlock the next micro-topic so the frontend can navigate to it
                     current_order = int(state["selected_topic_order"])
-                    next_topics = sorted(int(o) for o in topic_map if int(o) > current_order)
+                    next_topics = sorted(
+                        int(o) for o in topic_map if int(o) > current_order
+                    )
                     if next_topics:
                         prog["unlocked_order"] = next_topics[0]
                         prog["unlocked_level"] = 1
 
         elif not is_correct and state["streak"] > 0:
-            if state["feedback_type"] != "info": 
+            if state["feedback_type"] != "info":
                 state["streak"] -= 1
 
         # Update input mode based on current streak (per Structure.md: streak 0 → radio, streak ≥1 → text)

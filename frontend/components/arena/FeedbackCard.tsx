@@ -35,7 +35,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-4 mt-4">
+    <div className="w-full flex flex-col items-center gap-4 mt-4 animate-[fadeSlideIn_0.3s_ease-out]">
       {showBalloons && (
         <div className="text-6xl animate-bounce">
           🎉

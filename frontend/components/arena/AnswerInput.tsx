@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMath } from 'react-katex';
@@ -46,6 +49,21 @@ export default function AnswerInput({
   };
 
   const inputMode = problem?.input_mode ?? gameState.current_input_mode;
+
+  useEffect(() => {
+    const handleGlobalNumberKey = (e: KeyboardEvent) => {
+      if (inputMode !== 'radio' || !problem?.options || showFeedback) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= problem.options.length) {
+        e.preventDefault();
+        onChange(problem.options[num - 1]);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalNumberKey);
+    return () => window.removeEventListener('keydown', handleGlobalNumberKey);
+  }, [inputMode, problem, showFeedback, onChange]);
   const keyboardType = problem?.keyboard_type || 'default';
 
   // Convert plain text input to LaTeX for display
@@ -100,7 +118,12 @@ export default function AnswerInput({
                     : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
               } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
             >
-              {option.includes('\\') ? <InlineMath math={option} /> : option}
+              <span className="inline-flex items-center gap-2">
+                <kbd className="hidden sm:inline-block text-xs px-1.5 py-0.5 rounded bg-slate-600/50 text-slate-400 font-mono border border-slate-500/50">
+                  {index + 1}
+                </kbd>
+                {option.includes('\\') ? <InlineMath math={option} /> : option}
+              </span>
             </button>
           ))}
         </div>

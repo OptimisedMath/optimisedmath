@@ -3,16 +3,18 @@ import json
 from backend.config import DB_PATH
 from fastapi.encoders import jsonable_encoder
 
+
 def get_connection():
     # Create the data directory if it doesn't exist
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
+
 def init_db():
     """Initializes the database schema if it doesn't exist."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
                 xp INTEGER DEFAULT 0,
@@ -22,8 +24,16 @@ def init_db():
                 selected_level INTEGER,
                 progress_json TEXT
             )
-        ''')
-        cursor.execute('''
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_id TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                state_json TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,            -- NEW: Groups events by session
@@ -40,16 +50,59 @@ def init_db():
                 equation_state TEXT,                 
                 FOREIGN KEY (username) REFERENCES users(username)
             )
-        ''')
+        """)
         conn.commit()
+
+
+def save_session(session_id, username, state_dict):
+    """Persists a full session state to SQLite."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        state_json = json.dumps(jsonable_encoder(state_dict))
+        cursor.execute(
+            """
+            INSERT INTO sessions (session_id, username, state_json, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(session_id) DO UPDATE SET
+                state_json=excluded.state_json,
+                updated_at=CURRENT_TIMESTAMP
+        """,
+            (session_id, username, state_json),
+        )
+        conn.commit()
+
+
+def load_session(session_id):
+    """Loads a session state from SQLite. Returns None if not found."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT state_json FROM sessions WHERE session_id = ?", (session_id,)
+        )
+        row = cursor.fetchone()
+        if row:
+            return json.loads(row[0])
+        return None
+
+
+def delete_session(session_id):
+    """Removes a session from the database."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+        conn.commit()
+
 
 def load_user(username):
     """Loads a user's state. Returns None if the user doesn't exist."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT xp, streak, selected_macro, selected_topic_order, selected_level, progress_json FROM users WHERE username = ?", (username,))
+        cursor.execute(
+            "SELECT xp, streak, selected_macro, selected_topic_order, selected_level, progress_json FROM users WHERE username = ?",
+            (username,),
+        )
         row = cursor.fetchone()
-        
+
         if row:
             return {
                 "xp": row[0],
@@ -57,17 +110,19 @@ def load_user(username):
                 "selected_macro": row[2],
                 "selected_topic_order": row[3],
                 "selected_level": row[4],
-                "progress": json.loads(row[5]) if row[5] else {}
+                "progress": json.loads(row[5]) if row[5] else {},
             }
         return None
+
 
 def save_user(username, state_dict):
     """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
         progress_str = json.dumps(jsonable_encoder(state_dict.get("progress", {})))
-        
-        cursor.execute('''
+
+        cursor.execute(
+            """
             INSERT INTO users (username, xp, streak, selected_macro, selected_topic_order, selected_level, progress_json)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
@@ -77,28 +132,54 @@ def save_user(username, state_dict):
                 selected_topic_order=excluded.selected_topic_order,
                 selected_level=excluded.selected_level,
                 progress_json=excluded.progress_json
-        ''', (
-            username, 
-            state_dict.get("xp", 0), 
-            state_dict.get("streak", 0),
-            state_dict.get("selected_macro"),
-            state_dict.get("selected_topic_order"),
-            state_dict.get("selected_level"),
-            progress_str
-        ))
+        """,
+            (
+                username,
+                state_dict.get("xp", 0),
+                state_dict.get("streak", 0),
+                state_dict.get("selected_macro"),
+                state_dict.get("selected_topic_order"),
+                state_dict.get("selected_level"),
+                progress_str,
+            ),
+        )
         conn.commit()
 
-def log_telemetry(session_id, username, macro_topic, micro_topic, level_number, is_text_mode, is_correct, user_input=None, trap_id=None, time_spent_seconds=None, equation_state=None):
+
+def log_telemetry(
+    session_id,
+    username,
+    macro_topic,
+    micro_topic,
+    level_number,
+    is_text_mode,
+    is_correct,
+    user_input=None,
+    trap_id=None,
+    time_spent_seconds=None,
+    equation_state=None,
+):
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT INTO telemetry_logs (
                 session_id, username, macro_topic, micro_topic, level_number, is_text_mode,
                 trap_id, is_correct, user_input, time_spent_seconds, equation_state
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            session_id, username, macro_topic, micro_topic, level_number, is_text_mode,
-            trap_id, is_correct, str(user_input) if user_input is not None else None, 
-            time_spent_seconds, equation_state
-        ))
+        """,
+            (
+                session_id,
+                username,
+                macro_topic,
+                micro_topic,
+                level_number,
+                is_text_mode,
+                trap_id,
+                is_correct,
+                str(user_input) if user_input is not None else None,
+                time_spent_seconds,
+                equation_state,
+            ),
+        )
         conn.commit()

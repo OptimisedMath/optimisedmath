@@ -38,8 +38,8 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-700">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">🧮 Optymalna nauka matematyki :D</h1>
         <h2 className="text-xl font-semibold text-center mb-6 text-slate-300">Zaloguj się</h2>
 
@@ -54,14 +54,14 @@ export default function LoginForm() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="np. Janek"
-              className="bg-slate-900 border-slate-600 text-white placeholder:text-slate-500"
+              className="bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
               disabled={isLoading}
               autoFocus
             />
           </div>
 
           {error && (
-            <div className="bg-red-900 border border-red-600 text-red-200 px-4 py-2 rounded-lg text-sm">
+            <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 px-4 py-2 rounded-lg text-sm">
               {error}
             </div>
           )}

@@ -27,6 +27,7 @@ export default function GameArena() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchNextProblem = useCallback(async (currentSessionId: string) => {
+    const scrollY = window.scrollY;
     setFeedback(null);
     setUserAnswer('');
     setProblem(null);
@@ -36,6 +37,7 @@ export default function GameArena() {
       const response = await getNextProblem(currentSessionId);
       setProblem(response.problem);
       setGameState(response.state);
+      requestAnimationFrame(() => window.scrollTo(0, scrollY));
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch problem';
       setError(errorMsg);
@@ -105,6 +107,7 @@ export default function GameArena() {
         });
         if (!isMounted) return;
 
+        localStorage.setItem('session_id', sessionResponse.session_id);
         setGameState(sessionResponse);
         setError(null);
         fetchNextProblem(sessionResponse.session_id);
@@ -220,6 +223,7 @@ export default function GameArena() {
       return;
     }
 
+    const scrollY = window.scrollY;
     setIsNavigating(true);
     setFeedback(null);
     setUserAnswer('');
@@ -236,6 +240,7 @@ export default function GameArena() {
 
       setGameState(nextState);
       await fetchNextProblem(nextState.session_id);
+      requestAnimationFrame(() => window.scrollTo(0, scrollY));
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
       setError(errorMsg);
@@ -296,9 +301,9 @@ export default function GameArena() {
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-900 text-white p-8">
-        <div className="max-w-md bg-red-900 border-2 border-red-600 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-red-200">Error</h2>
+      <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-8">
+        <div className="max-w-md bg-red-100 dark:bg-red-900 border-2 border-red-400 dark:border-red-600 rounded-lg p-6 text-center">
+          <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-200">Error</h2>
           <p className="text-lg mb-6">{error}</p>
           <button
             onClick={() => {
@@ -316,14 +321,14 @@ export default function GameArena() {
 
   if (!gameState) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
+      <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
         Connecting to Python Brain...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-8 font-sans flex flex-col items-center">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-8 font-sans flex flex-col items-center">
       <XPBar gameState={gameState} onLogout={handleLogout} />
 
       {curriculum && (
@@ -347,7 +352,7 @@ export default function GameArena() {
 
       <MasteryScoreboard gameState={gameState} />
 
-      <div className="w-full max-w-2xl bg-slate-800 p-4 sm:p-8 rounded-2xl shadow-2xl border border-slate-700 text-center">
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 p-4 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 text-center">
         <ProblemDisplay
           problem={problem}
           selectedMacro={gameState.selected_macro}
