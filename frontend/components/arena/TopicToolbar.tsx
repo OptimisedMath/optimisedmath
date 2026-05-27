@@ -95,7 +95,7 @@ export default function TopicToolbar({
           </Button>
         </div>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-slate-300">
             Macro topic
             <select

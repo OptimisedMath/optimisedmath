@@ -41,11 +41,11 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
           🎉
         </div>
       )}
-      <div className={`text-2xl font-bold ${feedback.correct ? 'text-green-400' : 'text-red-400'}`}>
+      <div className={`text-lg sm:text-2xl font-bold ${feedback.correct ? 'text-green-400' : 'text-red-400'}`}>
         {feedback.message}
       </div>
       {topicCompleted && !hasNextTopic ? (
-        <div className="text-slate-300 text-lg text-center">
+        <div className="text-slate-300 text-base sm:text-lg text-center">
           🎊 Gratulacje! Ukończyłeś wszystkie tematy w tym dziale!
         </div>
       ) : (
@@ -53,7 +53,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
           type="button"
           onClick={onNextProblem}
           onKeyDown={handleKeyDown}
-          className="bg-slate-700 hover:bg-slate-600 text-white px-8 py-3 rounded-lg text-xl font-bold transition-all"
+          className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all"
         >
           {buttonLabel}
         </Button>

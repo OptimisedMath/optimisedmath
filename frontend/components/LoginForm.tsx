@@ -39,8 +39,8 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
-        <h1 className="text-3xl font-bold text-center mb-2">🧮 Optymalna nauka matematyki :D</h1>
+      <div className="w-full max-w-md bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-700">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">🧮 Optymalna nauka matematyki :D</h1>
         <h2 className="text-xl font-semibold text-center mb-6 text-slate-300">Zaloguj się</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

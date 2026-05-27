@@ -323,14 +323,8 @@ export default function GameArena() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8 font-sans flex flex-col items-center relative">
-      <XPBar gameState={gameState} />
-      <button
-        onClick={handleLogout}
-        className="absolute top-4 right-4 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-medium transition-colors border border-slate-600"
-      >
-        Wyloguj
-      </button>
+    <div className="min-h-screen bg-slate-900 text-white p-4 sm:p-8 font-sans flex flex-col items-center">
+      <XPBar gameState={gameState} onLogout={handleLogout} />
 
       {curriculum && (
         <TopicToolbar
@@ -353,7 +347,7 @@ export default function GameArena() {
 
       <MasteryScoreboard gameState={gameState} />
 
-      <div className="w-full max-w-2xl bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 text-center">
+      <div className="w-full max-w-2xl bg-slate-800 p-4 sm:p-8 rounded-2xl shadow-2xl border border-slate-700 text-center">
         <ProblemDisplay
           problem={problem}
           selectedMacro={gameState.selected_macro}

@@ -86,7 +86,7 @@ export default function AnswerInput({
                 }
               }}
               disabled={showFeedback}
-              className={`p-4 text-xl rounded-lg border-2 transition-all ${
+              className={`p-3 sm:p-4 text-base sm:text-xl rounded-lg border-2 transition-all ${
                 showFeedback && feedback
                   ? value === option && feedback.correct
                     ? 'border-green-500 bg-green-600/50 text-white ring-2 ring-green-400'
@@ -110,7 +110,7 @@ export default function AnswerInput({
             <Button
               onClick={onSubmit}
               disabled={value.trim() === '' || disabled}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg text-xl font-bold transition-all shadow-lg hover:shadow-blue-500/50"
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-blue-500/50"
             >
               Sprawdź odpowiedź
             </Button>
@@ -134,7 +134,7 @@ export default function AnswerInput({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
       {showFeedback ? (
-        <div className="px-6 py-4 text-2xl text-white rounded-lg w-64 text-center bg-slate-700 border-2 border-slate-600">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-white rounded-lg w-full max-w-xs sm:w-64 text-center bg-slate-700 border-2 border-slate-600">
           {value.includes('/') || value.includes(' ') ? (
             <InlineMath math={formatInputAsLatex(value)} />
           ) : (
@@ -149,7 +149,7 @@ export default function AnswerInput({
           onKeyDown={handleKeyDown}
           placeholder="Wpisz wynik..."
           inputMode={keyboardType === 'decimal' ? 'decimal' : 'text'}
-          className="px-6 py-4 text-2xl text-white rounded-lg w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
+          className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-white rounded-lg w-full max-w-xs sm:w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
           autoFocus
           disabled={showFeedback}
         />
@@ -160,7 +160,7 @@ export default function AnswerInput({
           <Button
             type="submit"
             disabled={value.trim() === '' || disabled}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-8 py-3 rounded-lg text-xl font-bold transition-all shadow-lg hover:shadow-blue-500/50"
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-blue-500/50"
           >
             Sprawdź odpowiedź
           </Button>

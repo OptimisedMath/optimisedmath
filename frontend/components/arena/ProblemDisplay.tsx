@@ -36,17 +36,17 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
   return (
     <div className="mb-6 text-slate-300">
       <p className="text-sm uppercase tracking-wide">{selectedMacro}</p>
-      <p className="text-lg font-medium mb-2">{microTopicName}</p>
+      <p className="text-base sm:text-lg font-medium mb-2">{microTopicName}</p>
       <div className="text-sm text-slate-400 mb-4">
         📍 {problem.level_display || `Level ${selectedLevel}`}
       </div>
-      <h2 className="text-3xl font-medium mb-4">Zadanie:</h2>
-      <div className="text-2xl font-bold mb-8 p-4 bg-slate-700 rounded-lg">
+      <h2 className="text-xl sm:text-3xl font-medium mb-4">Zadanie:</h2>
+      <div className="text-lg sm:text-2xl font-bold mb-4 sm:mb-8 p-3 sm:p-4 bg-slate-700 rounded-lg">
         <BlockMath math={problem.question} />
       </div>
       {problem.image_html && (
         <div className="mb-6 flex justify-center">
-          <div style={{ width: '100%', maxWidth: '1200px' }} dangerouslySetInnerHTML={{ __html: problem.image_html }} />
+          <div style={{ width: '100%', maxWidth: '100%' }} dangerouslySetInnerHTML={{ __html: problem.image_html }} />
         </div>
       )}
     </div>
