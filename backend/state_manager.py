@@ -43,7 +43,7 @@ class StateManager:
             "progress": {},
             "feedback_type": None,
             "feedback_msg": "",
-            "show_balloons": False,
+            "show_celebration": False,
         }
 
         # Set defaults for any missing keys
@@ -308,7 +308,7 @@ class StateManager:
                         ] += f" ✨ +{flawless_bonus} Flawless Bonus!"
 
                     prog["unlocked_level"] += 1
-                    state["show_balloons"] = True
+                    state["show_celebration"] = True
                     state["selected_level"] = prog["unlocked_level"]
                     state["streak"] = 0
                     state["flawless_eligible"] = True  # Reset for new level
@@ -322,7 +322,7 @@ class StateManager:
                         ] += f" ✨ +{flawless_bonus} Flawless Bonus!"
 
                     state["topic_completed"] = True
-                    state["show_balloons"] = True
+                    state["show_celebration"] = True
                     state["streak"] = 0
                     state["flawless_eligible"] = True
 

@@ -19,7 +19,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
     }
   };
 
-  const showBalloons = gameState.show_balloons;
+  const showBalloons = gameState.show_celebration;
 
   const macro = gameState.selected_macro;
   const unlockedOrder = macro ? gameState.progress[macro]?.unlocked_order : undefined;

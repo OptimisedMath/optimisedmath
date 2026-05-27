@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMath } from 'react-katex';
@@ -49,6 +49,12 @@ export default function AnswerInput({
   };
 
   const inputMode = problem?.input_mode ?? gameState.current_input_mode;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const appendChar = (char: string) => {
+    onChange(value + char);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
 
   useEffect(() => {
     const handleGlobalNumberKey = (e: KeyboardEvent) => {
@@ -171,11 +177,33 @@ export default function AnswerInput({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Wpisz wynik..."
-          inputMode={keyboardType === 'decimal' ? 'decimal' : 'text'}
+          inputMode={keyboardType === 'decimal' ? 'decimal' : 'numeric'}
           className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-white rounded-lg w-full max-w-xs sm:w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
           autoFocus
           disabled={showFeedback}
+          ref={inputRef}
         />
+      )}
+
+      {!showFeedback && keyboardType !== 'decimal' && (
+        <div className="sm:hidden flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendChar('/')}
+            className="border-slate-500 text-slate-200 hover:bg-slate-700 px-5 py-3 text-xl font-mono"
+          >
+            /
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendChar(' ')}
+            className="border-slate-500 text-slate-200 hover:bg-slate-700 px-5 py-3 text-xl"
+          >
+            spacja
+          </Button>
+        </div>
       )}
 
       {!showFeedback ? (

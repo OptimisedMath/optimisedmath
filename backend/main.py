@@ -76,8 +76,8 @@ class GameState(BaseModel):
         default=None, description="Type of feedback (correct/incorrect)"
     )
     feedback_msg: str = Field(default="", description="Feedback message for user")
-    show_balloons: bool = Field(
-        default=False, description="Whether to show celebration balloons"
+    show_celebration: bool = Field(
+        default=False, description="Whether to show a celebration on level-up or topic completion"
     )
 
     # Progress tracking
@@ -107,7 +107,7 @@ class GameState(BaseModel):
                 "topic_completed": False,
                 "feedback_type": None,
                 "feedback_msg": "",
-                "show_balloons": False,
+                "show_celebration": False,
                 "progress": {
                     "Ułamki Zwykłe": {"unlocked_order": 3, "unlocked_level": 2},
                     "Ułamki Dziesiętne": {"unlocked_order": 1, "unlocked_level": 1},
@@ -242,12 +242,12 @@ def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
 
     state_copy = dict(state_dict)
     state_copy["progress"] = progress
-    show_val = state_copy.get("show_balloons")
+    show_val = state_copy.get("show_celebration")
     if not isinstance(show_val, bool):
         if isinstance(show_val, str):
-            state_copy["show_balloons"] = show_val.lower() == "true"
+            state_copy["show_celebration"] = show_val.lower() == "true"
         else:
-            state_copy["show_balloons"] = False
+            state_copy["show_celebration"] = False
     return GameState(**state_copy)
 
 
@@ -555,7 +555,7 @@ async def problem_next(session_id: str):
     state["problem_answered"] = False
     state["feedback_type"] = None
     state["feedback_msg"] = ""
-    state["show_balloons"] = False
+    state["show_celebration"] = False
     state["problem_start_time"] = time.time()
     state["current_problem"] = problem
 

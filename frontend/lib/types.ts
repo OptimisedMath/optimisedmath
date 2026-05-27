@@ -20,7 +20,7 @@ export interface GameState {
   topic_completed: boolean;
   feedback_type: string | null;
   feedback_msg: string;
-  show_balloons: boolean;
+  show_celebration: boolean;
   progress: Record<string, TopicProgress>;
   current_problem: Problem | null;
 }
