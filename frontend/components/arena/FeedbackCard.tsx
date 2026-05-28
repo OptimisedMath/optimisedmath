@@ -6,9 +6,10 @@ interface FeedbackCardProps {
   onNextProblem: () => void;
   topicCompleted?: boolean;
   gameState: GameState;
+  disabled?: boolean;
 }
 
-export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState }: FeedbackCardProps) {
+export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState, disabled = false }: FeedbackCardProps) {
   if (!feedback) {
     return null;
   }
@@ -46,6 +47,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
         <Button
           type="button"
           onClick={onNextProblem}
+          disabled={disabled}
           className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all"
         >
           {buttonLabel}

@@ -25,26 +25,41 @@ export default function GameArena() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const isFetchingRef = useRef(false);
+  const isAdvancingRef = useRef(false);
+  const sessionId = gameState?.session_id;
 
-  const fetchNextProblem = useCallback(async (currentSessionId: string) => {
-    if (isFetchingRef.current) return;
+  const fetchNextProblem = useCallback(async (
+    currentSessionId: string,
+    options: { clearBeforeFetch?: boolean } = {}
+  ) => {
+    if (isFetchingRef.current) return false;
     isFetchingRef.current = true;
+    const { clearBeforeFetch = true } = options;
     const scrollY = window.scrollY;
-    setFeedback(null);
-    setUserAnswer('');
-    setProblem(null);
+
+    if (clearBeforeFetch) {
+      setFeedback(null);
+      setUserAnswer('');
+      setProblem(null);
+    }
+
     setError(null);
 
     try {
       const response = await getNextProblem(currentSessionId);
       setProblem(response.problem);
       setGameState(response.state);
+      setFeedback(null);
+      setUserAnswer('');
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
+      return true;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch problem';
       setError(errorMsg);
       console.error('Error fetching problem:', err);
+      return false;
     } finally {
       isFetchingRef.current = false;
     }
@@ -73,7 +88,13 @@ export default function GameArena() {
         } else if (checkButton && !checkButton.disabled) {
           e.preventDefault();
           checkButton.click();
-        } else if (nextButton && document.activeElement !== nextButton) {
+        } else if (
+          nextButton &&
+          document.activeElement !== nextButton &&
+          !e.repeat &&
+          !isAdvancingRef.current &&
+          !isFetchingRef.current
+        ) {
           e.preventDefault();
           nextButton.click();
         }
@@ -223,8 +244,8 @@ export default function GameArena() {
     }
   };
 
-  const handleNavigate = async (macro: string, topicOrder: number, level: number) => {
-    if (!gameState?.session_id) {
+  const handleNavigate = useCallback(async (macro: string, topicOrder: number, level: number) => {
+    if (!sessionId) {
       return;
     }
 
@@ -237,7 +258,7 @@ export default function GameArena() {
 
     try {
       const nextState = await navigateSession({
-        session_id: gameState.session_id,
+        session_id: sessionId,
         selected_macro: macro,
         selected_topic_order: topicOrder,
         selected_level: level,
@@ -253,17 +274,26 @@ export default function GameArena() {
     } finally {
       setIsNavigating(false);
     }
-  };
+  }, [sessionId, fetchNextProblem]);
 
-  const handleAdvance = useCallback(() => {
-    if (!gameState) return;
-    if (gameState.topic_completed) {
-      const macro = gameState.selected_macro!;
-      const nextOrder = gameState.progress[macro]?.unlocked_order;
-      if (nextOrder === undefined) return;
-      handleNavigate(macro, nextOrder, 1);
-    } else {
-      fetchNextProblem(gameState.session_id);
+  const handleAdvance = useCallback(async () => {
+    if (!gameState || isAdvancingRef.current) return;
+
+    isAdvancingRef.current = true;
+    setIsAdvancing(true);
+
+    try {
+      if (gameState.topic_completed) {
+        const macro = gameState.selected_macro!;
+        const nextOrder = gameState.progress[macro]?.unlocked_order;
+        if (nextOrder === undefined) return;
+        await handleNavigate(macro, nextOrder, 1);
+      } else {
+        await fetchNextProblem(gameState.session_id, { clearBeforeFetch: false });
+      }
+    } finally {
+      isAdvancingRef.current = false;
+      setIsAdvancing(false);
     }
   }, [gameState, handleNavigate, fetchNextProblem]);
 
@@ -392,6 +422,7 @@ export default function GameArena() {
                 onNextProblem={handleAdvance}
                 topicCompleted={gameState.topic_completed}
                 gameState={gameState}
+                disabled={isAdvancing}
               />
             )}
           </>
