@@ -68,7 +68,7 @@ export default function GameArena() {
         } else if (checkButton && !checkButton.disabled) {
           e.preventDefault();
           checkButton.click();
-        } else if (nextButton) {
+        } else if (nextButton && document.activeElement !== nextButton) {
           e.preventDefault();
           nextButton.click();
         }

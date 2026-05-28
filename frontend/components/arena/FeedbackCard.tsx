@@ -13,12 +13,6 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
     return null;
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onNextProblem();
-    }
-  };
-
   const showBalloons = gameState.show_celebration;
 
   const macro = gameState.selected_macro;
@@ -52,7 +46,6 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
         <Button
           type="button"
           onClick={onNextProblem}
-          onKeyDown={handleKeyDown}
           className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all"
         >
           {buttonLabel}
