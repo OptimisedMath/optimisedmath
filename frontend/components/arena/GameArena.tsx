@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
@@ -25,8 +25,11 @@ export default function GameArena() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isFetchingRef = useRef(false);
 
   const fetchNextProblem = useCallback(async (currentSessionId: string) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     const scrollY = window.scrollY;
     setFeedback(null);
     setUserAnswer('');
@@ -42,6 +45,8 @@ export default function GameArena() {
       const errorMsg = err instanceof Error ? err.message : 'Failed to fetch problem';
       setError(errorMsg);
       console.error('Error fetching problem:', err);
+    } finally {
+      isFetchingRef.current = false;
     }
   }, []);
 

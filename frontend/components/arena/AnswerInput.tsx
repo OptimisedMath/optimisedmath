@@ -35,12 +35,6 @@ export default function AnswerInput({
     onSubmit();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && value.trim() !== '' && !disabled) {
-      onSubmit();
-    }
-  };
-
   const handleRadioKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && value.trim() !== '' && !disabled && !showFeedback) {
       e.preventDefault();
@@ -175,7 +169,6 @@ export default function AnswerInput({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
           placeholder="Wpisz wynik..."
           inputMode={keyboardType === 'decimal' ? 'decimal' : 'numeric'}
           className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-white rounded-lg w-full max-w-xs sm:w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
