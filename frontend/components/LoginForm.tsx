@@ -49,7 +49,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg-light dark:gradient-bg-dark flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen gradient-bg flex items-center justify-center p-4 relative overflow-hidden">
       {FLOATING_SYMBOLS.map((item, i) => (
         <span
           key={i}

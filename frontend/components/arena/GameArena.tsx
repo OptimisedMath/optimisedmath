@@ -355,7 +355,7 @@ export default function GameArena() {
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center gradient-bg-light dark:gradient-bg-dark p-8">
+      <div className="flex h-screen items-center justify-center gradient-bg p-8">
         <div className="max-w-md glass-card-strong rounded-3xl p-8 text-center animate-scale-in">
           <div className="w-14 h-14 rounded-2xl bg-red-500/15 flex items-center justify-center text-3xl mx-auto mb-4 border border-red-500/30">
             ⚠️
@@ -378,7 +378,7 @@ export default function GameArena() {
 
   if (!gameState) {
     return (
-      <div className="flex h-screen items-center justify-center gradient-bg-light dark:gradient-bg-dark">
+      <div className="flex h-screen items-center justify-center gradient-bg">
         <div className="flex flex-col items-center gap-4 animate-fade-slide-up">
           <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
           <span className="text-sm text-muted-foreground">Łączenie z serwerem...</span>
@@ -388,7 +388,7 @@ export default function GameArena() {
   }
 
   return (
-    <div className="min-h-screen gradient-bg-light dark:gradient-bg-dark p-4 sm:p-8 font-sans flex flex-col items-center">
+    <div className="min-h-screen gradient-bg p-4 sm:p-8 font-sans flex flex-col items-center">
       <XPBar gameState={gameState} onLogout={handleLogout} />
 
       {curriculum && (
