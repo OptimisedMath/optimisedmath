@@ -1,5 +1,5 @@
 import functools
-import pandas as pd
+import yaml
 import importlib
 from pathlib import Path
 from backend.core.utils import check_text_answer, parse_to_fraction
@@ -31,29 +31,32 @@ def get_curriculum() -> dict:
     if not data_dir.exists():
         return curriculum_dict
 
-    # 1. Dynamically scan for every CSV file in the data folder
-    for file_path in data_dir.glob("*.csv"):
-        # 2. Convert the file name to the Macro Topic (e.g., "Ułamki_dziesiętne.csv" -> "Ułamki dziesiętne")
-        macro_topic = file_path.stem.replace("_", " ")
-
+    # 1. Dynamically scan for every YAML file in the data folder
+    for file_path in sorted(data_dir.glob("*.yaml")):
         try:
-            # 3. Load the specific topic database
-            df = pd.read_csv(file_path, sep=config.CSV_SEPARATOR, encoding=config.CSV_ENCODING)
+            with open(file_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
 
-            # Filter out any rows you haven't finished building yet
-            valid_df = df[df["Function_Name"] != "TBD"]
+            macro_topic = data["macro_topic"]
+            topics = []
 
-            if not valid_df.empty:
-                # 4. Group by Topic_Order to build the sidebar menu correctly
-                micro_group = (
-                    valid_df.groupby(["Topic_Order", "Micro_Topic"], sort=False)[
-                        "Level"
-                    ]
-                    .max()
-                    .reset_index()
-                )
-                micro_group = micro_group.sort_values("Topic_Order")
-                curriculum_dict[macro_topic] = micro_group.to_dict("records")
+            # 2. Build topic list from YAML, filtering unpublished levels
+            for topic in data.get("topics", []):
+                published_levels = [
+                    lvl["level"]
+                    for lvl in topic.get("levels", [])
+                    if lvl.get("published", True)
+                ]
+                if published_levels:
+                    topics.append({
+                        "Topic_Order": topic["order"],
+                        "Micro_Topic": topic["name"],
+                        "Level": max(published_levels),
+                        "text_mode_disabled": topic.get("text_mode_disabled", False),
+                    })
+
+            if topics:
+                curriculum_dict[macro_topic] = topics
 
         except Exception as e:
             print(f"Error loading {file_path.name}: {e}")
@@ -62,56 +65,62 @@ def get_curriculum() -> dict:
 
 
 @functools.lru_cache(maxsize=None)
-def load_topic_database(macro_topic: str) -> pd.DataFrame:
-    """Helper function to load and cache the CSV once per topic."""
-    safe_filename = macro_topic.replace(" ", "_") + ".csv"
-    csv_path = BASE_DIR / "data" / safe_filename
-    if not csv_path.exists():
-        return pd.DataFrame()
-    return pd.read_csv(csv_path, sep=config.CSV_SEPARATOR, encoding=config.CSV_ENCODING)
+def load_topic_yaml(macro_topic: str) -> dict:
+    """Helper function to load and cache the YAML once per topic."""
+    safe_filename = macro_topic.replace(" ", "_") + ".yaml"
+    yaml_path = BASE_DIR / "data" / safe_filename
+    if not yaml_path.exists():
+        return {}
+    with open(yaml_path, encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 
 def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
-    # Use the cached dataframe instead of reading the CSV here
-    df = load_topic_database(macro_topic)
-    if df.empty:
+    data = load_topic_yaml(macro_topic)
+    if not data:
         return {"error": f"Missing database file for: {macro_topic}"}
 
-    # 4. Filter by Micro Topic and Level
-    filtered_df = df[(df["Micro_Topic"] == micro_topic) & (df["Level"] == level)]
+    # Find the matching micro-topic
+    topic_entry = next(
+        (t for t in data.get("topics", []) if t["name"] == micro_topic),
+        None,
+    )
+    if topic_entry is None:
+        return None
 
-    if not filtered_df.empty:
-        row = filtered_df.iloc[0]
-        func_name = str(row["Function_Name"]).strip()
-        problem_func = FUNCTION_REGISTRY.get(func_name)
+    # Find the matching level
+    level_entry = next(
+        (lvl for lvl in topic_entry.get("levels", []) if lvl["level"] == int(level)),
+        None,
+    )
+    if level_entry is None or not level_entry.get("published", True):
+        return None
 
-        if not problem_func:
-            return {"error": f"Function {func_name} not found"}
+    func_name = level_entry["function"]
+    problem_func = FUNCTION_REGISTRY.get(func_name)
 
-        try:
-            problem_dict = generate_problem(problem_func)
-            problem_dict["level"] = int(level)
-            problem_dict["level_name"] = f"Poziom {level}"
-            problem_dict["problem_id"] = str(uuid.uuid4())
-        except RuntimeError as e:
-            return {"error": str(e)}
+    if not problem_func:
+        return {"error": f"Function {func_name} not found"}
 
-        # Pull messages cleanly
-        def get_msg(col_name):
-            val = row.get(col_name)
-            if pd.isna(val) or str(val).strip() in ["N/A", "None", "nan", ""]:
-                return "Niepoprawna odpowiedź, spróbuj ponownie."
-            return str(val)
+    try:
+        problem_dict = generate_problem(problem_func)
+        problem_dict["level"] = int(level)
+        problem_dict["level_name"] = level_entry["name"]
+        problem_dict["problem_id"] = str(uuid.uuid4())
+    except RuntimeError as e:
+        return {"error": str(e)}
 
-        problem_dict["messages"] = {
-            "t1": get_msg("Trap1_Message"),
-            "t2": get_msg("Trap2_Message"),
-            "t3": get_msg("Trap3_Message"),
-        }
-        problem_dict["level_display"] = f"{row['Level_Name']} (Lvl {level})"
-        return problem_dict
-
-    return None
+    # Pull trap messages, falling back to default for missing keys
+    DEFAULT_MSG = config.DEFAULT_WRONG_MESSAGE
+    traps = level_entry.get("traps", {})
+    problem_dict["messages"] = {
+        "t1": traps.get("t1") or DEFAULT_MSG,
+        "t2": traps.get("t2") or DEFAULT_MSG,
+        "t3": traps.get("t3") or DEFAULT_MSG,
+    }
+    problem_dict["level_display"] = f"{level_entry['name']} (Lvl {level})"
+    problem_dict["keyboard_type"] = data.get("keyboard_type", "default")
+    return problem_dict
 
 
 def generate_problem(topic_function):

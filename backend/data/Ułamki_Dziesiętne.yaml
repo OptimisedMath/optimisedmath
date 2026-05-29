@@ -1,0 +1,340 @@
+macro_topic: "Ułamki Dziesiętne"
+keyboard_type: "decimal"
+topics:
+  - order: 10
+    name: "Zamiana ułamków"
+    levels:
+      - level: 1
+        name: "Z ułamka dziesiętnego na zwykły"
+        function: "dec_to_frac_1"
+        traps:
+          t1: "Zły mianownik! Jedno miejsce po przecinku to 10 na dole. Dwa miejsca to 100, trzy to 1000. Policz zera!"
+          t2: "Zapomniałeś o całościach z przodu!"
+          t3: "Podałeś złą liczbę w liczniku. Wpisz dokładnie to samo co po przecinku."
+      - level: 2
+        name: "Ze zwykłego na dziesiętny (mianowniki 10, 100)"
+        function: "dec_to_frac_2"
+        traps:
+          t1: "Brakuje zera! Liczba zer w mianowniku to DOKŁADNIE liczba miejsc, które musisz zająć po przecinku."
+          t2: "Masz za dużo miejsc po przecinku. Spójrz na ilość zer na dole ułamka zwykłego."
+          t3: "Podałeś błędną cyfrę z licznika."
+      - level: 3
+        name: "Ze zwykłego na dziesiętny (rozszerzanie 2, 4, 5)"
+        function: "dec_to_frac_3"
+        traps:
+          t1: "Zanim zapiszesz przecinek, musisz rozszerzyć ułamek tak, aby na dole było 10, 100 lub 1000!"
+          t2: "Zły wynik - zapomniałeś, by pomnożyć też górę!"
+          t3: "Zły wynik - ułamek rozszerza się przez odpowiednią liczbę."
+      - level: 4
+        name: "Ze zwykłego na dziesiętny (dzielenie)"
+        function: "dec_to_frac_4"
+        traps:
+          t1: "Ten ułamek nie rozszerza się łatwo. Najlepszy sposób to po prostu podzielić pisemnie licznik przez mianownik (Góra ÷ Dół)."
+          t2: "Błąd w dzieleniu."
+          t3: "Brak przecinka."
+
+  - order: 20
+    name: "Porównywanie"
+    text_mode_disabled: true
+    levels:
+      - level: 1
+        name: "Różne cyfry, te same pozycje"
+        function: "dec_compare_1"
+        traps:
+          t1: "Spójrz najpierw na najwyższy rząd (całości, potem części dziesiąte). Cyfra z przodu ma zawsze największą wagę!"
+      - level: 2
+        name: "Różna liczba miejsc po przecinku"
+        function: "dec_compare_2"
+        traps:
+          t1: "Dałeś się złapać! 'Dłuższa' liczba wcale nie jest większa. Dopisz niewidzialne zera na końcu, aby obie liczby miały tyle samo miejsc po przecinku, i porównaj jeszcze raz."
+      - level: 3
+        name: "Zdradliwe zera"
+        function: "dec_compare_3"
+        traps:
+          t1: "Pamiętaj, zero zaraz po przecinku jest bardzo ważne (zmniejsza ułamek), ale zera na samym końcu można wykreślić!"
+
+  - order: 30
+    name: "Oś liczbowa"
+    levels:
+      - level: 1
+        name: "Oś co 0.1"
+        function: "dec_number_line_1"
+        traps:
+          t1: "Pomyłka! Zobacz na przedział i policz wszystkie przerwy. Każdy skok to jedna dziesiąta (0.1)."
+      - level: 2
+        name: "Oś co 0.01"
+        function: "dec_number_line_2"
+        traps:
+          t1: "Pomyłka! Jesteś między 0.1 a 0.2. Każdy mały skok to jedna setna (0.01)."
+      - level: 3
+        name: "Oś co 0.2 lub podobne"
+        function: "dec_number_line_3"
+        traps:
+          t1: "Uwaga! Odstępy na osi nie zawsze wynoszą 1. Zobacz ile kresek dzieli pełną jedność, by odkryć wielkość jednego małego skoku."
+      - level: 4
+        name: "Duży odstęp"
+        function: "dec_number_line_4"
+        traps:
+          t1: "Oblicz szerokość przedziału (np. 1.0 - 0.5) i podziel przez liczbę skoków (odstępów)."
+      - level: 5
+        name: "Duży odstęp cz. 2"
+        function: "dec_number_line_5"
+        traps:
+          t1: "Najpierw policz odstępy, później odejmij skrajne wartości, na końcu podziel."
+      - level: 6
+        name: "Dziwne przedziały"
+        function: "dec_number_line_6"
+        traps:
+          t1: "To bardzo podstępna oś. Ustal, ile wynosi dokładnie jeden skok."
+
+  - order: 40
+    name: "Zaokrąglanie"
+    levels:
+      - level: 1
+        name: "Do całości"
+        function: "dec_round_1"
+        traps:
+          t1: "Zapomniałeś o regule '5 i więcej'! Spójrz na cyfrę po przecinku. Jeśli to 5, 6, 7, 8 lub 9, musisz powiększyć całość o jeden w górę."
+          t2: "Pomyłka! Jeśli cyfra to 4, 3, 2, 1, 0 - nic nie powiększamy, po prostu ucina się to, co jest za nią."
+      - level: 2
+        name: "Do części dziesiątych"
+        function: "dec_round_2"
+        traps:
+          t1: "Masz zaokrąglić do części dziesiątych (jedno miejsce po przecinku)! Zatem patrzysz TYLKO na drugą cyfrę po przecinku, by zdecydować co zrobić z pierwszą."
+          t2: "Skreśliłeś źle. Zostaw tylko jedną cyfrę po przecinku."
+      - level: 3
+        name: "Zdradliwa dziewiątka"
+        function: "dec_round_3"
+        traps:
+          t1: "Uwaga! Gdy zaokrąglasz 9 w górę, staje się ona dziesiątką, co oznacza, że musisz przepchnąć 'jeden' do jeszcze wyższego rzędu (efekt domina)."
+
+  - order: 50
+    name: "Dodawanie"
+    levels:
+      - level: 1
+        name: "Bez przekroczenia rzędu"
+        function: "dec_add_1"
+        traps:
+          t1: "Źle podstawiłeś przecinek w pamięci! Złota zasada dodawania to: Przecinek pod przecinkiem."
+          t2: "Błąd w sumowaniu liczb. Spróbuj dodać jeszcze raz."
+          t3: "Zapomniałeś o przecinku."
+      - level: 2
+        name: "Z przekroczeniem rzędu"
+        function: "dec_add_2"
+        traps:
+          t1: "Zapomniałeś przenieść '1' do wyższego rzędu!"
+          t2: "Zamiast przenieść '1', dopisałeś cały wynik po przecinku. Pamiętaj o przenoszeniu w pamięci!"
+          t3: "Zastosowałeś zasadę z mnożenia! Przy dodawaniu przecinek opada w dół, nie sumujemy miejsc po przecinku."
+      - level: 3
+        name: "Różna liczba miejsc (np. 1.2 + 0.05)"
+        function: "dec_add_3"
+        traps:
+          t1: "Błąd dodawania różnej długości liczb! Zanim dodasz, wyrównaj je. Dopisz '0' na końcu krótszej liczby (np. zrób z 1.2 -> 1.20)."
+          t2: "Przecinek jest ułożony źle. W działaniach pisemnych przecinek absolutnie musi stać nad przecinkiem."
+          t3: "Błąd sumowania."
+
+  - order: 60
+    name: "Odejmowanie"
+    levels:
+      - level: 1
+        name: "Bez pożyczania"
+        function: "dec_sub_1"
+        traps:
+          t1: "Przecinek uciekł w złe miejsce! W odejmowaniu pisemnym zasada to przecinek idealnie pod przecinkiem."
+          t2: "Odjąłeś w drugą stronę (od dolnej liczby górną)! Zawsze odejmujemy od góry."
+          t3: "Błąd w obliczeniach."
+      - level: 2
+        name: "Z pożyczaniem"
+        function: "dec_sub_2"
+        traps:
+          t1: "Zapomniałeś o pożyczaniu z sąsiedniego rzędu!"
+          t2: "Błędnie przepisałeś przecinek. Przecinek opada równo na dół."
+          t3: "Błąd rachunkowy przy odejmowaniu."
+      - level: 3
+        name: "Z dopisywaniem zer (np. 1 - 0.25)"
+        function: "dec_sub_3"
+        traps:
+          t1: "Nie masz od czego odjąć liczby! Najpierw dopisz pożyczkowe zera na górze (zrób z 1 -> 1.00) i dopiero wtedy pożyczaj."
+          t2: "Błąd w rzędzie dziesiątek - gdy pożyczasz nad zerem, to zero staje się 9."
+          t3: "Błąd pożyczania."
+
+  - order: 70
+    name: "Przesuwanie przecinka"
+    levels:
+      - level: 1
+        name: "Mnożenie przez 10, 100..."
+        function: "dec_comma_1"
+        traps:
+          t1: "Przesunąłeś przecinek w lewą stronę! Mnożenie robi liczbę WIEKSZĄ, więc przecinek maszeruje w PRAWO."
+          t2: "Przesunąłeś o złą liczbę miejsc. Mnożąc przez 100 masz dwa zera, więc dwa skoki."
+          t3: "Brak wykreślenia jedynek. Ułamek jest przesunięty, ale format dziwny."
+      - level: 2
+        name: "Dzielenie przez 10, 100..."
+        function: "dec_comma_2"
+        traps:
+          t1: "Przesunąłeś przecinek w prawą stronę! Dzielenie robi liczbę MNIEJSZĄ, więc przecinek ucieka w LEWO."
+          t2: "Przesunąłeś o złą liczbę miejsc. Dzieląc przez 100 masz dwa zera, więc robisz dwa skoki w lewo."
+          t3: "Brakuje zera z przodu po przecinku."
+
+  - order: 80
+    name: "Mnożenie"
+    levels:
+      - level: 1
+        name: "Przez liczbę jednocyfrową"
+        function: "dec_mult_1"
+        traps:
+          t1: "Źle wstawiony przecinek w wyniku! Wymnóż liczby jakby przecinka nie było, a potem wstaw go tak, by po przecinku było tyle samo miejsc co w pytaniu."
+          t2: "Zły wynik mnożenia."
+      - level: 2
+        name: "Ułamek przez ułamek"
+        function: "dec_mult_2"
+        traps:
+          t1: "Pomyłka z przecinkiem! Policz wszystkie miejsca po przecinku w OBU mnożonych liczbach. Twój wynik musi mieć ich sumę!"
+          t2: "Błąd w obliczeniach."
+          t3: "Za mało miejsc po przecinku w wyniku."
+      - level: 3
+        name: "Z dużą ilością zer"
+        function: "dec_mult_3"
+        traps:
+          t1: "Brak przecinka lub w złym miejscu! Pamiętaj, jeśli z przodu wychodzą zera, też je liczysz przy przesuwaniu."
+          t2: "Zgubiłeś zera po przecinku przed samą liczbą."
+          t3: "Błąd mnożenia bazy liczbowej."
+
+  - order: 90
+    name: "Dzielenie"
+    levels:
+      - level: 1
+        name: "Przez liczbę całkowitą (bez reszty)"
+        function: "dec_div_1"
+        traps:
+          t1: "Zgubiłeś przecinek! Podczas dzielenia pisemnego, wstawiasz przecinek w wyniku DOKŁADNIE w tym samym miejscu, co w dolnej liczbie."
+          t2: "Błąd obliczeniowy."
+          t3: "Zapomniałeś o zera na początku."
+      - level: 2
+        name: "Przez liczbę całkowitą (z resztą)"
+        function: "dec_div_2"
+        traps:
+          t1: "Wynik wyszedł z resztą! Pamiętaj, że w ułamkach dziesiętnych zawsze możesz dopisać darmowe '0' na samym końcu i ciągnąć dzielenie dalej."
+          t2: "Brakuje zera w wyniku przed cyframi!"
+          t3: "Przecinek w złym miejscu."
+      - level: 3
+        name: "Przez ułamek dziesiętny (proste)"
+        function: "dec_div_3"
+        traps:
+          t1: "Nie wolno dzielić przez ułamek! Najpierw pozbądź się przecinka z dzielnika, przesuwając go w prawo w OBU liczbach, np. 2,4 : 0,2 = 24 : 2"
+          t2: "Błąd mnożenia licznika i dzielnika."
+          t3: "Błąd miejsca dziesiętnego po rozszerzeniu."
+      - level: 4
+        name: "Przez ułamek dziesiętny (zaawansowane)"
+        function: "dec_div_4"
+        traps:
+          t1: "Przesunąłeś przecinek tylko w jednej liczbie. Pamiętaj, jeśli dzielnik przesuwasz o 2 w prawo, pierwszą liczbę (dzielną) TEŻ musisz przesunąć o 2."
+          t2: "Nie masz już gdzie przesunąć? Zamiast kroku dodawaj na końcu zera (np. z 5 robisz 50)."
+          t3: "Błąd dzielenia pisemnego po przesunięciu przecinka."
+
+  - order: 100
+    name: "Potęgowanie"
+    levels:
+      - level: 1
+        name: "Kwadrat ułamka dziesiętnego"
+        function: "dec_pow_1"
+        traps:
+          t1: "Mnożysz to przez 2, a to jest kwadrat (do potęgi drugiej). Mnożymy liczbę przez SAMĄ SIEBIE (np. 0.3 * 0.3)."
+          t2: "Błąd w stawianiu przecinka. 0.3 ma 1 miejsce. 0.3 * 0.3 musi mieć 1+1=2 miejsca po przecinku (czyli np. 0.09)."
+          t3: "Zapomniałeś zera z przodu (np. 0.04 to nie to samo co 0.4)."
+
+  - order: 110
+    name: "Kolejność wykonywania działań"
+    levels:
+      - level: 1
+        name: "Kolejność Podstawowa"
+        function: "dec_order_1"
+        traps:
+          t1: "Policzyłeś od lewej do prawej. Zawsze najpierw mnożenie i dzielenie!"
+          t2: "Dodałeś lub odjąłeś wszystkie liczby, zapominając o mnożeniu."
+          t3: "Ostatnie działanie wykonałeś przed pierwszym - zła kolejność!"
+      - level: 2
+        name: "Pojedyncze Nawiasy"
+        function: "dec_order_2"
+        traps:
+          t1: "Zignorowałeś nawias! Wykonaj go w pierwszej kolejności."
+          t2: "Pomyliłeś znak na samym końcu działania."
+          t3: "Policzyłeś od lewej do prawej ignorując nawias."
+      - level: 3
+        name: "Potęgi i Podstawy"
+        function: "dec_order_3"
+        traps:
+          t1: "Zrobiłeś mnożenie przed potęgowaniem! Najpierw potęguj."
+          t2: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
+          t3: "Zignorowałeś potęgę i po prostu przepisałeś liczbę."
+      - level: 4
+        name: "Złożone Działania"
+        function: "dec_order_4"
+        traps:
+          t1: "Rozwiązałeś nawiasy, ale policzyłeś resztę w złej kolejności."
+          t2: "Zignorowałeś kolejność działań i połączyłeś liczby błędnie."
+          t3: "Skupiłeś się na drugiej części i zapomniałeś o pierwszej."
+      - level: 5
+        name: "Potęgowanie Nawiasu"
+        function: "dec_order_5"
+        traps:
+          t1: "Podniosłeś do kwadratu obie liczby osobno! Najpierw środek, potem potęga."
+          t2: "Pomnożyłeś wynik nawiasu przez 2 zamiast potęgować."
+          t3: "Pomyliłeś znak poza nawiasem."
+      - level: 6
+        name: "Boss Level"
+        function: "dec_order_6"
+        traps:
+          t1: "Zrobiłeś mnożenie przed potęgą nawiasu! Najpierw potęga, potem mnożenie."
+          t2: "Pomnożyłeś nawias przez 2 zamiast potęgować."
+          t3: "Podniosłeś do kwadratu liczby z nawiasu osobno."
+
+  - order: 120
+    name: "Jednostki"
+    levels:
+      - level: 1
+        name: "Zamiana na mniejsze (mm, cm)"
+        function: "dec_unit_1"
+        traps:
+          t1: "Zamieniasz duże na małe (np. z centymetrów na milimetry), powinieneś POMNOŻYĆ przez odpowiednią liczbę."
+          t2: "Błąd przesuwania przecinka - np. 1cm to 10mm, więc przesuwasz o jedno w prawo."
+          t3: "Zła wielkość jednostki konwersyjnej."
+      - level: 2
+        name: "Zamiana na większe (g, kg)"
+        function: "dec_unit_2"
+        traps:
+          t1: "Zamieniasz z małych na duże, tu trzeba PODZIELIĆ przez odpowiednią wielkość (np. kg to 1000g)."
+          t2: "Przesunięty przecinek w złą stronę (np. na prawo). Dzieląc zawsze idziemy w lewo."
+          t3: "Pomyłka w rzędach jednostek (np. myślisz że to 100, a to 1000)."
+      - level: 3
+        name: "Jednostki pieniężne i wagowe (mieszane)"
+        function: "dec_unit_3"
+        traps:
+          t1: "1 złoty to 100 groszy. Oznacza to dwa miejsca po przecinku (np. 20gr = 0.20 zł)."
+          t2: "Podałeś złą ilość wagową."
+          t3: "Błąd w konwersji."
+
+  - order: 130
+    name: "Działania mieszane"
+    levels:
+      - level: 1
+        name: "Zwykłe dziesiętne jako ułamek"
+        function: "dec_mix_1"
+        traps:
+          t1: "Gdy masz zmieszane ułamki zwykłe i dziesiętne w jednym działaniu, zamień wszystkie na jeden z tych typów, najlepiej ułamek zwykły."
+          t2: "Błąd przy skracaniu."
+          t3: "Zły wspólny mianownik."
+      - level: 2
+        name: "Ułamki w dzieleniu dziesiętnym"
+        function: "dec_mix_2"
+        traps:
+          t1: "Podpowiedź: zamień ułamek zwykły na dziesiętny - tu powinno się dać prosto."
+          t2: "Błąd w operacjach dziesiętnych."
+          t3: "Źle zamieniony ułamek zwykły."
+      - level: 3
+        name: "Z nawiasami i różnymi typami"
+        function: "dec_mix_3"
+        traps:
+          t1: "Uporządkuj! Najpierw nawiasy, najlepiej wykonane wewnątrz jednego typu np. ułamków zwykłych."
+          t2: "Błąd rachunkowy."
+          t3: "Złe potęgowanie w działaniu mieszanym."

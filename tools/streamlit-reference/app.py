@@ -33,7 +33,14 @@ StateManager.init_defaults(st.session_state, macro_topics, curriculum)
 
 # Build map for CURRENT macro topic
 macro_curr = curriculum[st.session_state.selected_macro]
-topic_map = {row["Topic_Order"]: {"name": row["Micro_Topic"], "max_level": row["Level"]} for row in macro_curr}
+topic_map = {
+    row["Topic_Order"]: {
+        "name": row["Micro_Topic"],
+        "max_level": row["Level"],
+        "text_mode_disabled": row.get("text_mode_disabled", False),
+    }
+    for row in macro_curr
+}
 
 
 # --- 2. SIDEBAR: NAVIGATION & PROFILE ---

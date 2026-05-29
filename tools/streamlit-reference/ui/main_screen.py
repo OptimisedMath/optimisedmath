@@ -203,7 +203,8 @@ def render_learning_screen(state, problem, topic_map):
                 state.problem_answered = False
                 state.feedback_type = None
                 
-                if state.streak >= config.STREAK_THRESHOLD_FOR_TEXT_MODE and "Porównywanie" not in topic_map[state.selected_topic_order]["name"]:
+                topic_cfg = topic_map[state.selected_topic_order]
+                if state.streak >= config.STREAK_THRESHOLD_FOR_TEXT_MODE and not topic_cfg.get("text_mode_disabled", False):
                     state.current_input_mode = "text"
                 else:
                     state.current_input_mode = "radio"

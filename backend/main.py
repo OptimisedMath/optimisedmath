@@ -559,12 +559,6 @@ async def problem_next(session_id: str):
     state["problem_start_time"] = time.time()
     state["current_problem"] = problem
 
-    # Add keyboard type flag for context-aware input
-    # Check if macro topic requires decimal keyboard
-    macro_topic = state.get("selected_macro", "")
-    requires_decimal = "Dziesiętne" in macro_topic if macro_topic else False
-    if "keyboard_type" not in problem:
-        problem["keyboard_type"] = "decimal" if requires_decimal else "default"
     problem["input_mode"] = state.get("current_input_mode", "radio")
 
     return {"problem": problem, "state": _dict_to_gamestate(state)}

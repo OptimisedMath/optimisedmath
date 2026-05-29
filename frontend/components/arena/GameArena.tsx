@@ -287,7 +287,26 @@ export default function GameArena() {
         const macro = gameState.selected_macro!;
         const nextOrder = gameState.progress[macro]?.unlocked_order;
         if (nextOrder === undefined) return;
-        await handleNavigate(macro, nextOrder, 1);
+
+        setIsNavigating(true);
+        setError(null);
+
+        try {
+          const nextState = await navigateSession({
+            session_id: gameState.session_id,
+            selected_macro: macro,
+            selected_topic_order: nextOrder,
+            selected_level: 1,
+          });
+
+          await fetchNextProblem(nextState.session_id, { clearBeforeFetch: false });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
+          setError(errorMsg);
+          console.error('Error navigating topic:', err);
+        } finally {
+          setIsNavigating(false);
+        }
       } else {
         await fetchNextProblem(gameState.session_id, { clearBeforeFetch: false });
       }
@@ -295,7 +314,7 @@ export default function GameArena() {
       isAdvancingRef.current = false;
       setIsAdvancing(false);
     }
-  }, [gameState, handleNavigate, fetchNextProblem]);
+  }, [gameState, fetchNextProblem]);
 
   const handleReset = async () => {
     if (!gameState?.session_id) {

@@ -10,10 +10,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 # --- DATABASE CONFIGURATION ---
 DB_PATH = PROJECT_ROOT / "storage" / "users.db"
 
-# --- CSV PARSING SETTINGS ---
-CSV_SEPARATOR = ";"
-CSV_ENCODING = "utf-8"
-
 # --- GAME MECHANICS: PROGRESSION ---
 # Threshold of consecutive correct answers needed to unlock the next level
 STARS_FOR_UNLOCK = 3
