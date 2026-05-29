@@ -355,18 +355,21 @@ export default function GameArena() {
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-8">
-        <div className="max-w-md bg-red-100 dark:bg-red-900 border-2 border-red-400 dark:border-red-600 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-200">Error</h2>
-          <p className="text-lg mb-6">{error}</p>
+      <div className="flex h-screen items-center justify-center gradient-bg-light dark:gradient-bg-dark p-8">
+        <div className="max-w-md glass-card-strong rounded-3xl p-8 text-center animate-scale-in">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/15 flex items-center justify-center text-3xl mx-auto mb-4 border border-red-500/30">
+            ⚠️
+          </div>
+          <h2 className="text-xl font-bold mb-3 text-foreground">Wystąpił błąd</h2>
+          <p className="text-sm text-muted-foreground mb-6">{error}</p>
           <button
             onClick={() => {
               setError(null);
               window.location.reload();
             }}
-            className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg font-bold"
+            className="h-10 px-6 gradient-primary text-white rounded-xl font-semibold text-sm transition-all hover:opacity-90 shadow-lg"
           >
-            Try Again
+            Spróbuj ponownie
           </button>
         </div>
       </div>
@@ -375,14 +378,17 @@ export default function GameArena() {
 
   if (!gameState) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
-        Connecting to Python Brain...
+      <div className="flex h-screen items-center justify-center gradient-bg-light dark:gradient-bg-dark">
+        <div className="flex flex-col items-center gap-4 animate-fade-slide-up">
+          <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span className="text-sm text-muted-foreground">Łączenie z serwerem...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-8 font-sans flex flex-col items-center">
+    <div className="min-h-screen gradient-bg-light dark:gradient-bg-dark p-4 sm:p-8 font-sans flex flex-col items-center">
       <XPBar gameState={gameState} onLogout={handleLogout} />
 
       {curriculum && (
@@ -406,7 +412,7 @@ export default function GameArena() {
 
       <MasteryScoreboard gameState={gameState} />
 
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 p-4 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 text-center">
+      <div className="w-full max-w-2xl glass-card-strong p-5 sm:p-8 rounded-3xl text-center animate-fade-slide-in" style={{ animationDelay: '0.25s' }}>
         <ProblemDisplay
           problem={problem}
           selectedMacro={gameState.selected_macro}
@@ -430,7 +436,7 @@ export default function GameArena() {
             />
 
             {feedback && !feedback.is_locked && (
-              <div className="mt-3 text-yellow-400 text-lg font-semibold text-center">
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-base font-semibold text-center">
                 {feedback.message}
               </div>
             )}
