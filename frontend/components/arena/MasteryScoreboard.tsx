@@ -9,18 +9,21 @@ interface MasteryScoreboardProps {
 
 export default function MasteryScoreboard({ gameState }: MasteryScoreboardProps) {
   const { streak, max_streak } = gameState;
-  const prevStreak = useRef(streak);
+  const completedStreakPendingAdvance =
+    gameState.problem_answered && gameState.show_celebration && streak === 0;
+  const displayStreak = completedStreakPendingAdvance ? max_streak : streak;
+  const prevDisplayStreak = useRef(displayStreak);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (streak > prevStreak.current) {
-      setAnimatingIndex(streak - 1);
+    if (displayStreak > prevDisplayStreak.current) {
+      setAnimatingIndex(displayStreak - 1);
       const timer = setTimeout(() => setAnimatingIndex(null), 400);
-      prevStreak.current = streak;
+      prevDisplayStreak.current = displayStreak;
       return () => clearTimeout(timer);
     }
-    prevStreak.current = streak;
-  }, [streak]);
+    prevDisplayStreak.current = displayStreak;
+  }, [displayStreak]);
 
   return (
     <div className="w-full max-w-3xl mb-4 rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/55">
@@ -36,12 +39,12 @@ export default function MasteryScoreboard({ gameState }: MasteryScoreboardProps)
             }`}
             style={i === animatingIndex ? { animation: 'star-pop 0.4s ease-out' } : undefined}
           >
-            {i < streak ? '⭐' : '⬛'}
+            {i < displayStreak ? '⭐' : '⬛'}
           </span>
         ))}
       </div>
       <div className="text-center text-slate-500 dark:text-slate-400 text-xs mt-2">
-        {streak}/{max_streak} gwiazdek
+        {displayStreak}/{max_streak} gwiazdek
       </div>
     </div>
   );
