@@ -2,7 +2,8 @@ import random
 from backend.core.utils import build_problem_dict, generate_universal_number_line, format_answers
 
 
-def frac_number_line_1():
+def frac_number_line_1() -> dict | None:
+    """Jeden skok = 1/x (poziom 1)."""
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     q_str = rf"\text{{Jaki ułamek zaznaczono na osi?}}"
@@ -28,7 +29,8 @@ def frac_number_line_1():
         return result
 
 
-def frac_number_line_2():
+def frac_number_line_2() -> dict | None:
+    """Jeden skok to wielokrotność (poziom 2)."""
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     W = random.randint(1, 5)
@@ -55,7 +57,8 @@ def frac_number_line_2():
         return result
 
 
-def frac_number_line_3():
+def frac_number_line_3() -> dict | None:
+    """Wskazywanie liczby mieszanej (poziom 3)."""
     # Level 3: Decrypt the Axis (Gap > 1)
     d = random.choice([2, 3, 4])
     D = random.choice(
@@ -123,7 +126,8 @@ def frac_number_line_3():
             return result
 
 
-def frac_number_line_4():
+def frac_number_line_4() -> dict | None:
+    """Trudne przedziały (poziom 4)."""
     # Level 4: Extrapolation (Target is outside the labeled bounds)
     d = random.choice([3, 4, 5])
     W = random.randint(1, 5)

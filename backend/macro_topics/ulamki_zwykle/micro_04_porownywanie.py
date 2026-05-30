@@ -2,7 +2,8 @@ import random
 from backend.core.utils import format_fraction_question, build_problem_dict
 
 
-def frac_comp_1():
+def frac_comp_1() -> dict | None:
+    """Ten sam mianownik (poziom 1)."""
     d = random.randint(3, 12)
     n1 = random.randint(1, d + 5)
     n2 = n1
@@ -11,7 +12,7 @@ def frac_comp_1():
 
     q_str = rf"\text{{Wybierz znak: }} {format_fraction_question(n1, d)} \text{{ \_\_\_ }} {format_fraction_question(n2, d)}"
 
-    c_str, t1 = ("<", ">") if n1 < n2 else (">", "<")
+    c_str, t1 = ("<", ">") if n1 < n2 else (">", "<")  # Trap (t1): zły znak przy tym samym mianowniku
 
     result = build_problem_dict(
         q_str,
@@ -22,7 +23,8 @@ def frac_comp_1():
         return result
 
 
-def frac_comp_2():
+def frac_comp_2() -> dict | None:
+    """Ten sam licznik (poziom 2)."""
     n = random.randint(1, 9)
     d1 = random.randint(2, 12)
     d2 = d1
@@ -33,7 +35,7 @@ def frac_comp_2():
 
     v1, v2 = n / d1, n / d2
 
-    c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
+    c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")  # Trap (t1): zły znak przy tym samym liczniku
 
     result = build_problem_dict(
         q_str,
@@ -44,7 +46,8 @@ def frac_comp_2():
         return result
 
 
-def frac_comp_3():
+def frac_comp_3() -> dict | None:
+    """Różne ułamki (poziom 3)."""
     if random.random() < 0.25:
         d1 = random.randint(2, 6)
         n1 = random.randint(1, d1 * 2)
@@ -86,8 +89,8 @@ def frac_comp_3():
         result = build_problem_dict(
             q_str,
             "=",
-            t3="<",
-            w1=">",
+            t2="<",
+            t3=">",
         )
         if result:
             return result

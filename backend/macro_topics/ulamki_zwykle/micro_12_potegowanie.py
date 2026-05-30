@@ -2,7 +2,8 @@ import random
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_pow_1():
+def frac_pow_1() -> dict | None:
+    """Kwadrat ułamka (poziom 1)."""
     d = random.randint(3, 8)
     n = random.randint(1, d - 1)
     p = 2
@@ -30,7 +31,8 @@ def frac_pow_1():
         return result
 
 
-def frac_pow_2():
+def frac_pow_2() -> dict | None:
+    """Sześcian ułamka (poziom 2)."""
     # Keeping denominator up to 5 so cubes don't get absurdly large
     d = random.randint(2, 5)
     n = random.randint(1, d - 1)
@@ -59,7 +61,8 @@ def frac_pow_2():
         return result
 
 
-def frac_pow_3():
+def frac_pow_3() -> dict | None:
+    """Potęgowanie liczby mieszanej (poziom 3)."""
     w = random.randint(1, 2)
     p = random.randint(2, 3)
     # Cap denominator if p=3 to prevent math from becoming tedious

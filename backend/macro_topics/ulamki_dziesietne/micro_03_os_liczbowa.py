@@ -2,7 +2,8 @@ import random
 from backend.core.utils import build_problem_dict, fmt_dec, generate_universal_number_line
 
 
-def dec_number_line_1():
+def dec_number_line_1() -> dict | None:
+    """Oś co 0.1 (poziom 1)."""
     # Level 1: Absolute basics. 10 ticks, whole numbers. Step is always 0.1.
     base = random.randint(0, 20)
     target = random.randint(1, 9)
@@ -28,7 +29,8 @@ def dec_number_line_1():
             return result
 
 
-def dec_number_line_2():
+def dec_number_line_2() -> dict | None:
+    """Oś co 0.01 (poziom 2)."""
     # Level 2: 10 ticks, but with decimals (hundredths and thousandths). Step 0.01 or 0.001.
     step = random.choice([0.01, 0.001])
     base_mult = random.randint(1, 99)
@@ -45,7 +47,7 @@ def dec_number_line_2():
 
     c_str = fmt_dec(round(c_val, 4))
     t1 = fmt_dec(round(base + target * (step / 10), 5))  # Trap: Wrong magnitude
-    t2 = fmt_dec(round(c_val + step, 4))
+    t2 = fmt_dec(round(c_val + step, 4))  # Trap (t2): Pomyłka w wielkości skoku — to nie dziesiąte, tylko setne
     w1_target = 10 - target if target != 5 else 6
     w1 = fmt_dec(round(base + w1_target * step, 4))
 
@@ -57,7 +59,8 @@ def dec_number_line_2():
             return result
 
 
-def dec_number_line_3():
+def dec_number_line_3() -> dict | None:
+    """Oś co 0.2 lub podobne (poziom 3)."""
     # Level 3: Easy Scale Intro. 5 ticks, whole numbers. Step is 0.2.
     ticks = 5
     step = 0.2
@@ -72,7 +75,7 @@ def dec_number_line_3():
 
     c_str = fmt_dec(round(c_val, 1))
     t1 = fmt_dec(round(base + target * 0.1, 1))  # Trap: Assumed default 0.1 step
-    t2 = fmt_dec(round(c_val + step, 1))
+    t2 = fmt_dec(round(c_val + step, 1))  # Trap (t2): Założyłeś skok 0,1 — najpierw oblicz szerokość przedziału i liczbę pod...
     w1_target = ticks - target if ticks - target != target else target + 1
     w1 = fmt_dec(round(base + w1_target * step, 1))
 
@@ -84,7 +87,8 @@ def dec_number_line_3():
             return result
 
 
-def dec_number_line_4():
+def dec_number_line_4() -> dict | None:
+    """Duży odstęp (poziom 4)."""
     # Level 4: Advanced Scale. 4 or 5 ticks, decimal numbers.
     ticks = random.choice([4, 5])
     step = 0.02 if ticks == 5 else 0.025
@@ -102,7 +106,7 @@ def dec_number_line_4():
 
     c_str = fmt_dec(round(c_val, 3))
     t1 = fmt_dec(round(base + target * 0.01, 3))  # Trap: Assumed default 0.01 step
-    t2 = fmt_dec(round(c_val + step, 3))
+    t2 = fmt_dec(round(c_val + step, 3))  # Trap (t2): Błąd w liczeniu skoków — o jeden przedział za mało lub za dużo
     w1_target = ticks - target if ticks - target != target else target + 1
     w1 = fmt_dec(round(base + w1_target * step, 3))
 
@@ -114,7 +118,8 @@ def dec_number_line_4():
             return result
 
 
-def dec_number_line_5():
+def dec_number_line_5() -> dict | None:
+    """Duży odstęp cz. 2 (poziom 5)."""
     # Level 5: Extrapolation. 10 ticks, target is outside bounds.
     ticks = 10
     step = random.choice([0.1, 0.01])
@@ -133,10 +138,10 @@ def dec_number_line_5():
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 3))
-    t1 = fmt_dec(
+    t1 = fmt_dec(  # Trap (t1): Najpierw policz odstępy, później odejmij skrajne wartości, na końcu po...
         round(base + idx2 * step + (target - idx2) * step * 2, 3)
     )  # Miscalculated gap size
-    t2 = fmt_dec(round(c_val + step, 3))
+    t2 = fmt_dec(round(c_val + step, 3))  # Trap (t2): Zła kolejność — najpierw policz liczbę przerw, potem szerokość przedzi...
     w1 = fmt_dec(
         round(base + target * step * 2, 3)
     )  # Added distance from 0 instead of idx1
@@ -149,7 +154,8 @@ def dec_number_line_5():
             return result
 
 
-def dec_number_line_6():
+def dec_number_line_6() -> dict | None:
+    """Dziwne przedziały (poziom 6)."""
     # Level 6: Exam Boss. Scattered labels, calculate the step.
     ticks = 10
     step = random.choice([0.1, 0.2, 0.05])
@@ -168,8 +174,8 @@ def dec_number_line_6():
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 3))
-    t1 = fmt_dec(round(c_val + step, 3))
-    t2 = fmt_dec(
+    t1 = fmt_dec(round(c_val + step, 3))  # Trap (t1): To bardzo podstępna oś
+    t2 = fmt_dec(  # Trap (t2): Zgadłeś bez obliczenia wartości jednego skoku
         round(base + idx1 * step + (target - idx1) * 0.1, 3)
     )  # Default step trap
     w1 = fmt_dec(round(c_val - step, 3))

@@ -3,7 +3,8 @@ import math
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_div_frac_1():
+def frac_div_frac_1() -> dict | None:
+    """Proste odwracanie (poziom 1)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
 
@@ -25,7 +26,8 @@ def frac_div_frac_1():
         return result
 
 
-def frac_div_frac_2():
+def frac_div_frac_2() -> dict | None:
+    """Odwracanie i skracanie (poziom 2)."""
     n1, n2 = 2, 4
     while math.gcd(n1, n2) == 1:
         n1, n2 = random.randint(2, 8), random.randint(2, 8)
@@ -44,10 +46,14 @@ def frac_div_frac_2():
 
     w1, _, _ = format_answers((n1 * d2) + 1, d1 * n2)
 
-    return build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
+    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
+
+    if result:
+        return result
 
 
-def frac_div_frac_3():
+def frac_div_frac_3() -> dict | None:
+    """Dzielenie z liczbami mieszanymi (poziom 3)."""
     w1, w2 = random.randint(1, 2), random.randint(1, 2)
     d1, d2 = random.randint(2, 4), random.randint(2, 4)
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)

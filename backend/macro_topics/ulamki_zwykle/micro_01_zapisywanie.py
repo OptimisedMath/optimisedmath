@@ -2,7 +2,8 @@ import random
 from backend.core.utils import build_problem_dict, format_answers
 
 
-def frac_write_1():
+def frac_write_1() -> dict | None:
+    """Dzielenie jako ułamek (poziom 1)."""
     n = random.randint(1, 9)
     d = random.randint(2, 9)
     if n == d:

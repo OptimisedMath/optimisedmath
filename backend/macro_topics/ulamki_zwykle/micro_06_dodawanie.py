@@ -3,7 +3,8 @@ import math
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_add_1():
+def frac_add_1() -> dict | None:
+    """Ten sam mianownik (poziom 1)."""
     d = random.randint(3, 9)
     n1 = random.randint(1, d - 1)
     n2 = random.randint(1, d - 1)
@@ -26,7 +27,8 @@ def frac_add_1():
         return result
 
 
-def frac_add_2():
+def frac_add_2() -> dict | None:
+    """Skracanie wyniku (poziom 2)."""
     d1 = random.randint(2, 5)
     factor = random.randint(2, 4)
     d2 = d1 * factor
@@ -50,7 +52,8 @@ def frac_add_2():
         return result
 
 
-def frac_add_3():
+def frac_add_3() -> dict | None:
+    """Liczby mieszane z wyłączaniem (poziom 3)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     if math.gcd(d1, d2) > 1 or d1 == d2:
         return None
@@ -74,7 +77,8 @@ def frac_add_3():
         return result
 
 
-def frac_add_4():
+def frac_add_4() -> dict | None:
+    """Różne mianowniki - wstęp (poziom 4)."""
     w1, w2 = random.randint(1, 3), random.randint(1, 3)
     d = random.randint(3, 7)
     n1, n2 = random.randint(1, d - 1), random.randint(1, d - 1)
@@ -97,7 +101,8 @@ def frac_add_4():
         return result
 
 
-def frac_add_5():
+def frac_add_5() -> dict | None:
+    """Różne mianowniki - zaawansowane (poziom 5)."""
     w1, w2 = random.randint(1, 2), random.randint(1, 2)
     d1, d2 = random.randint(2, 5), random.randint(2, 5)
     if math.gcd(d1, d2) > 1 or d1 == d2:

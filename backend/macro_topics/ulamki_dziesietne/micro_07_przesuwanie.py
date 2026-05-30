@@ -2,19 +2,20 @@ import random
 from backend.core.utils import build_problem_dict, fmt_dec
 
 
-def dec_comma_1():
+def dec_comma_1() -> dict | None:
+    """Mnożenie przez 10, 100... (poziom 1)."""
     v = random.randint(111, 999) / 100
     zeros = random.choice([10, 100, 1000])
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v)} \cdot {zeros}"
     c_str = fmt_dec(round(v * zeros, 2))
 
-    t1 = fmt_dec(round(v / zeros, 4))
+    t1 = fmt_dec(round(v / zeros, 4))  # Trap (t1): Przesunąłeś przecinek w lewą stronę
     wrong_zeros = zeros * 10 if zeros < 1000 else 100
-    t2 = fmt_dec(round(v * wrong_zeros, 2))
+    t2 = fmt_dec(round(v * wrong_zeros, 2))  # Trap (t2): Przesunąłeś o złą liczbę miejsc
     # Trap: Append zeros matching the magnitude of the multiplier
     num_zeros = len(str(zeros)) - 1
-    t3 = fmt_dec(v) + "0" * num_zeros
+    t3 = fmt_dec(v) + "0" * num_zeros  # Trap (t3): Brak wykreślenia jedynek
 
     result = build_problem_dict(
         q_str,
@@ -27,17 +28,18 @@ def dec_comma_1():
         return result
 
 
-def dec_comma_2():
+def dec_comma_2() -> dict | None:
+    """Dzielenie przez 10, 100... (poziom 2)."""
     v = random.randint(111, 999) / 10
     zeros = random.choice([10, 100, 1000])
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v)} : {zeros}"
     c_str = fmt_dec(round(v / zeros, 5))
 
-    t1 = fmt_dec(round(v * zeros, 2))
+    t1 = fmt_dec(round(v * zeros, 2))  # Trap (t1): Przesunąłeś przecinek w prawą stronę
     wrong_zeros = zeros / 10 if zeros > 10 else 100
-    t2 = fmt_dec(round(v / wrong_zeros, 4))
-    t3 = fmt_dec(round(v / (zeros * 10), 6))
+    t2 = fmt_dec(round(v / wrong_zeros, 4))  # Trap (t2): Przesunąłeś o złą liczbę miejsc
+    t3 = fmt_dec(round(v / (zeros * 10), 6))  # Trap (t3): Brakuje zera z przodu po przecinku
 
     result = build_problem_dict(
         q_str,

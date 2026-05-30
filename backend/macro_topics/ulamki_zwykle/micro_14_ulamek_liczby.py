@@ -2,7 +2,8 @@ import random
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_frac_of_int_1():
+def frac_frac_of_int_1() -> dict | None:
+    """Całości bez reszty (poziom 1)."""
     d = random.randint(2, 8)
     n = random.randint(1, d - 1)
     k = d * random.randint(2, 6)
@@ -27,7 +28,8 @@ def frac_frac_of_int_1():
         return result
 
 
-def frac_frac_of_int_2():
+def frac_frac_of_int_2() -> dict | None:
+    """Trudniejsze liczby (poziom 2)."""
     d = random.randint(3, 9)
     n = random.randint(1, d - 1)
     k = random.randint(4, 15)
@@ -54,7 +56,8 @@ def frac_frac_of_int_2():
         return result
 
 
-def frac_frac_of_int_3():
+def frac_frac_of_int_3() -> dict | None:
+    """Gdy wynik jest ułamkiem (poziom 3)."""
     d = random.randint(3, 8)
     n = random.randint(2, d - 1)
     whole = d * random.randint(2, 6)
@@ -64,7 +67,7 @@ def frac_frac_of_int_3():
     c_str = str(whole)
 
     t1 = str(int((part // n) * (d + 1)))  # Miscalculated the multiplier
-    t2 = str(
+    t2 = str(  # Trap (t2): Podałeś odwrotność
         int(part * n // d)
     )  # TRAP: Calculated the fraction OF the number instead of finding the whole
     w1 = str(whole + d)
@@ -80,7 +83,8 @@ def frac_frac_of_int_3():
         return result
 
 
-def frac_frac_of_int_4():
+def frac_frac_of_int_4() -> dict | None:
+    """Ułamek z liczby mieszanej (poziom 4)."""
     d = random.randint(3, 6)
     n = random.randint(1, d - 1)
     base = d * random.randint(2, 5)
@@ -94,7 +98,7 @@ def frac_frac_of_int_4():
     c_val = base + change if is_increase else base - change
     c_str = str(c_val)
 
-    t1 = str(
+    t1 = str(  # Trap (t1): Zamień ułamek na postać niewłaściwą zanim zaczniesz mnożyć
         change
     )  # TRAP: Only calculated the fraction, forgot to add/subtract it to the base!
     t2 = (

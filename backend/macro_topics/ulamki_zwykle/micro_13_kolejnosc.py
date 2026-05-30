@@ -3,7 +3,8 @@ from fractions import Fraction
 from backend.core.utils import build_problem_dict
 
 
-def frac_ord_1():
+def frac_ord_1() -> dict | None:
+    """Kolejność Podstawowa (poziom 1)."""
     # Poziom 1: Podstawy bez nawiasów
     template = random.choice(["add_mul", "mul_add", "sub_mul"])
     dens = [2, 3, 4, 5]
@@ -31,16 +32,19 @@ def frac_ord_1():
         ans = a - (b * c)
         t1, t2, t3 = (a - b) * c, a - b - c, a - b + c
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q,
         f"{ans.numerator}/{ans.denominator}",
         t1=f"{t1.numerator}/{t1.denominator}",
         t2=f"{t2.numerator}/{t2.denominator}",
         t3=f"{t3.numerator}/{t3.denominator}",
     )
+    if result:
+        return result
 
 
-def frac_ord_2():
+def frac_ord_2() -> dict | None:
+    """Siła Nawiasów (poziom 2)."""
     # Poziom 2: Nawiasy
     template = random.choice(["brack_mul", "mul_brack", "div_brack"])
 
@@ -65,16 +69,18 @@ def frac_ord_2():
         ans = a / (b - c)
         t1, t2, t3 = (a / b) - c, a / (b + c), a * (b - c)
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q,
         f"{ans.numerator}/{ans.denominator}",
         t1=f"{t1.numerator}/{t1.denominator}",
         t2=f"{t2.numerator}/{t2.denominator}",
         t3=f"{t3.numerator}/{t3.denominator}",
     )
+    if result:
+        return result
 
-
-def frac_ord_3():
+def frac_ord_3() -> dict | None:
+    """Dwa Zestawy (poziom 3)."""
     # Poziom 3: Dwa zestawy działań
     template = random.choice(["brack_div_brack", "add_div_add"])
 
@@ -91,7 +97,7 @@ def frac_ord_3():
         ans = a + (b / c) + d
         t1, t2, t3 = (a + b) / (c + d), a + (b / c) * d, (a + b) / c + d
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q,
         f"{ans.numerator}/{ans.denominator}",
         t1=f"{t1.numerator}/{t1.denominator}",
@@ -99,8 +105,12 @@ def frac_ord_3():
         t3=f"{t3.numerator}/{t3.denominator}",
     )
 
+    if result:
+        return result
 
-def frac_ord_4():
+
+def frac_ord_4() -> dict | None:
+    """Potęgi i Ułamki (poziom 4)."""
     # Poziom 4: Potęgi
     template = random.choice(["pow_add", "sub_pow"])
 
@@ -117,16 +127,18 @@ def frac_ord_4():
         ans = a - (b**2)
         t1, t2, t3 = (a - b) ** 2, a - b, a - (b * 2)
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q,
         f"{ans.numerator}/{ans.denominator}",
         t1=f"{t1.numerator}/{t1.denominator}",
         t2=f"{t2.numerator}/{t2.denominator}",
         t3=f"{t3.numerator}/{t3.denominator}",
     )
+    if result:
+        return result
 
-
-def frac_ord_5():
+def frac_ord_5() -> dict | None:
+    """Potęgowanie Nawiasu (poziom 5)."""
     # Poziom 5: Potęga Nawiasu
     template = random.choice(["brack_sq_sub", "mul_brack_sq"])
 
@@ -146,16 +158,18 @@ def frac_ord_5():
         ans = a * ((b - c) ** 2)
         t1, t2, t3 = (a * (b - c)) ** 2, a * ((b - c) * 2), a * (b**2 - c**2)
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q,
         f"{ans.numerator}/{ans.denominator}",
         t1=f"{t1.numerator}/{t1.denominator}",
         t2=f"{t2.numerator}/{t2.denominator}",
         t3=f"{t3.numerator}/{t3.denominator}",
     )
+    if result:
+        return result
 
-
-def frac_ord_6():
+def frac_ord_6() -> dict | None:
+    """Boss Level (poziom 6)."""
     # Poziom 6: Ultimate Boss
     a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
     c = Fraction(1, random.choice([2, 3]))
@@ -166,14 +180,16 @@ def frac_ord_6():
     if ans < 0:
         ans = abs(ans)
 
-    t1 = (a * (b + c)) ** 2 - d
-    t2 = a * ((b + c) * 2) - d
-    t3 = a * (b**2 + c**2) - d
+    t1 = (a * (b + c)) ** 2 - d  # Trap (t1): Wymnożyłeś najpierw ułamek przed nawiasem
+    t2 = a * ((b + c) * 2) - d  # Trap (t2): Pomnożyłeś nawias przez 2 zamiast potęgować
+    t3 = a * (b**2 + c**2) - d  # Trap (t3): Podniosłeś do kwadratu ułamki w nawiasie osobno zamiast zsumować
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q,
         f"{ans.numerator}/{ans.denominator}",
         t1=f"{t1.numerator}/{t1.denominator}",
         t2=f"{t2.numerator}/{t2.denominator}",
         t3=f"{t3.numerator}/{t3.denominator}",
     )
+    if result:
+        return result

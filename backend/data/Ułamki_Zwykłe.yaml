@@ -78,6 +78,8 @@ topics:
         function: "frac_comp_3"
         traps:
           t1: "Zły znak! Aby porównać te ułamki bezpiecznie, rozszerz je najpierw do wspólnego mianownika."
+          t2: "Liczby są równe — wybierz znak równości!"
+          t3: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
 
   - order: 50
     name: "Oś liczbowa"
@@ -87,6 +89,7 @@ topics:
         function: "frac_number_line_1"
         traps:
           t1: "Pomyłka! Zobacz na mianownik i policz wszystkie przerwy między 0 a 1. To jest twój 'skok'."
+          t2: "Jesteś o jeden skok za daleko lub za blisko."
       - level: 2
         name: "Jeden skok to wielokrotność"
         function: "frac_number_line_2"
@@ -104,6 +107,7 @@ topics:
         function: "frac_number_line_4"
         traps:
           t1: "Pomyłka! Najpierw oblicz wartość jednego małego skoku."
+          t2: "Błąd w liczeniu skoków między etykietami."
 
   - order: 60
     name: "Dodawanie"
@@ -113,8 +117,6 @@ topics:
         function: "frac_add_1"
         traps:
           t1: "Dodałeś do siebie mianowniki! Przy dodawaniu ułamków mianownik ZAWSZE przepisujemy bez zmian."
-          t2: "Dodałeś liczniki, ale odjąłeś mianowniki! Mianownik pozostaje bez zmian."
-          t3: "Pomnożyłeś liczniki zamiast je dodać!"
       - level: 2
         name: "Skracanie wyniku"
         function: "frac_add_2"
@@ -134,8 +136,6 @@ topics:
         function: "frac_add_4"
         traps:
           t1: "Dodałeś mianowniki! Zanim dodasz, musisz sprowadzić oba ułamki do wspolnego mianownika."
-          t2: "Rozszerzyłeś dół, ale zapomniałeś pomnożyć góry! Obie części ułamka muszą rosnąć proporcjonalnie."
-          t3: "Dodałeś bez wspólnego mianownika! Liczniki można dodać TYLKO wtedy, gdy doły są identyczne."
       - level: 5
         name: "Różne mianowniki - zaawansowane"
         function: "frac_add_5"
@@ -152,7 +152,6 @@ topics:
         function: "frac_sub_1"
         traps:
           t1: "Odjąłeś od siebie mianowniki! Przy odejmowaniu ułamków mianownik ZAWSZE przepisujemy bez zmian."
-          t2: "Odjąłeś odwrotnie! Zawsze odejmuj drugą liczbę od pierwszej."
       - level: 2
         name: "Liczby mieszane"
         function: "frac_sub_2"
@@ -165,6 +164,7 @@ topics:
         traps:
           t1: "Odjąłeś ułamek od całości tak, jakby był całością! Musisz 'rozmienić' jedną całość na ułamek."
           t2: "Źle rozmieniłeś całość! 1 całość to ułamek, który ma na górze i na dole tę samą liczbę (np. 5/5)."
+          t3: "Zamiast odjąć, dodałeś liczniki — sprawdź znak działania."
       - level: 4
         name: "Zabieranie całości w liczbie mieszanej"
         function: "frac_sub_4"
@@ -244,21 +244,18 @@ topics:
         traps:
           t1: "Podzieliłeś mianownik! Gdy ułamek dzielimy przez liczbę całkowitą, to dzielimy tylko licznik (jeśli się da)."
           t2: "Pomnożyłeś ułamek zamiast podzielić!"
-          t3: "Dodałeś zamiast podzielić!"
       - level: 2
         name: "Gdy licznik się nie dzieli"
         function: "frac_div_num_2"
         traps:
           t1: "Odwróciłeś pierwszy ułamek! Pierwszy zostaje bez zmian, mnożymy zawsze przez odwrotność drugiego (czyli z liczby robimy '1/liczba')."
           t2: "Podzieliłeś mianownik! W tym przypadku musisz pomnożyć mianownik przez tę liczbę całkowitą."
-          t3: "Zapomniałeś odwrócić drugą liczbę! Dzielenie to mnożenie przez ODWROTNOŚĆ."
       - level: 3
         name: "Dzielenie liczby mieszanej"
         function: "frac_div_num_3"
         traps:
           t1: "Podzieliłeś tylko ułamek, a zapomniałeś o całościach!"
           t2: "Musisz ZAWSZE najpierw zamienić liczbę mieszaną na ułamek niewłaściwy, a dopiero potem odwracać do mnożenia."
-          t3: "Odwróciłeś pierwszy ułamek! Odwracamy ZAWSZE tylko drugą liczbę."
 
   - order: 110
     name: "Dzielenie ułamków"
@@ -269,7 +266,6 @@ topics:
         traps:
           t1: "Zapomniałeś odwrócić! Dzielenie ułamków to to samo co MNOŻENIE pierwszego przez ODWROTNOŚĆ drugiego."
           t2: "Odwróciłeś PIERWSZY ułamek zamiast drugiego! Zawsze kręci się tylko drugi ułamek."
-          t3: "Odwróciłeś oba ułamki na raz! Zostaw pierwszy w spokoju."
       - level: 2
         name: "Odwracanie i skracanie"
         function: "frac_div_frac_2"
@@ -292,7 +288,6 @@ topics:
         traps:
           t1: "Potęgowanie to MNOŻENIE ułamka przez samego siebie, a nie mnożenie go przez 2!"
           t2: "Podniosłeś do kwadratu tylko górę! Musisz podnieść zarówno licznik, jak i mianownik."
-          t3: "Podniosłeś do kwadratu tylko dół! Pamiętaj o liczniku."
       - level: 2
         name: "Sześcian ułamka"
         function: "frac_pow_2"
@@ -305,7 +300,6 @@ topics:
         traps:
           t1: "Podniosłeś do potęgi osobno całości i ułamek! BŁĄD. Zanim użyjesz potęgi, ZAWSZE wciągaj całości do ułamka niewłaściwego."
           t2: "Pomnożyłeś przez 2 zamiast potęgować!"
-          t3: "Zapomniałeś podnieść mianownik!"
 
   - order: 130
     name: "Kolejność wykonywania działań"
@@ -362,21 +356,18 @@ topics:
         traps:
           t1: "Ułamek z liczby to nic innego jak matematyczne MNOŻENIE. Zastąp słowo 'z' kropeczką i pomnóż!"
           t2: "Zły mianownik."
-          t3: "Błąd mnożenia."
       - level: 2
         name: "Trudniejsze liczby"
         function: "frac_frac_of_int_2"
         traps:
           t1: "Najszybsza droga: najpierw PODZIEL liczbę całkowitą przez dół ułamka, a wynik POMNÓŻ przez górę!"
           t2: "Błąd skracania."
-          t3: "Złe mnożenie."
       - level: 3
         name: "Gdy wynik jest ułamkiem"
         function: "frac_frac_of_int_3"
         traps:
           t1: "Jeśli liczba się nie dzieli ładnie, to po prostu wciągnij ją na samą górę ułamka (pomnóż z licznikiem)."
           t2: "Podałeś odwrotność."
-          t3: "Złe mnożenie licznika."
       - level: 4
         name: "Ułamek z liczby mieszanej"
         function: "frac_frac_of_int_4"

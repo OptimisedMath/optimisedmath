@@ -3,7 +3,8 @@ import math
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_exp_1():
+def frac_exp_1() -> dict | None:
+    """Rozszerzanie przez liczbę (poziom 1)."""
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d:
@@ -13,9 +14,9 @@ def frac_exp_1():
     q_str = rf"\text{{Rozszerz ułamek }} {format_fraction_question(n, d)} \text{{ przez }} {factor}."
 
     c_str = rf"\frac{{{n * factor}}}{{{d * factor}}}"
-    t1 = rf"\frac{{{n * factor}}}{{{d}}}"
-    t2 = rf"\frac{{{n}}}{{{d * factor}}}"
-    t3 = rf"\frac{{{n + factor}}}{{{d + factor}}}"
+    t1 = rf"\frac{{{n * factor}}}{{{d}}}"  # Trap (t1): Pomnożyłeś tylko licznik
+    t2 = rf"\frac{{{n}}}{{{d * factor}}}"  # Trap (t2): Pomnożyłeś tylko mianownik
+    t3 = rf"\frac{{{n + factor}}}{{{d + factor}}}"  # Trap (t3): Dodałeś liczbę zamiast pomnożyć
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, t3=t3, grading_policy="exact_match_only"
@@ -24,7 +25,8 @@ def frac_exp_1():
         return result
 
 
-def frac_exp_2():
+def frac_exp_2() -> dict | None:
+    """Rozszerzanie do mianownika (poziom 2)."""
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d:
@@ -35,12 +37,12 @@ def frac_exp_2():
     q_str = rf"\text{{Rozszerz ułamek }} {format_fraction_question(n, d)} \text{{ tak, aby w mianowniku było }} {target_d}."
 
     c_str = rf"\frac{{{n * factor}}}{{{target_d}}}"
-    t1 = rf"\frac{{{n}}}{{{target_d}}}"
+    t1 = rf"\frac{{{n}}}{{{target_d}}}"  # Trap (t1): Zapomniałeś pomnożyć licznik
 
     wrong_factor = factor + random.choice([-1, 1])
     if wrong_factor < 1:
         wrong_factor = factor + 2
-    t2 = rf"\frac{{{n * wrong_factor}}}{{{target_d}}}"
+    t2 = rf"\frac{{{n * wrong_factor}}}{{{target_d}}}"  # Trap (t2): Pomnożyłeś licznik przez złą liczbę
 
     w1 = rf"\frac{{{n * factor + random.choice([-1, 1])}}}{{{target_d}}}"
 
@@ -51,7 +53,8 @@ def frac_exp_2():
         return result
 
 
-def frac_exp_3():
+def frac_exp_3() -> dict | None:
+    """Skracanie przez liczbę (poziom 3)."""
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d:
@@ -75,7 +78,8 @@ def frac_exp_3():
         return result
 
 
-def frac_exp_4():
+def frac_exp_4() -> dict | None:
+    """Postać nieskracalna (poziom 4)."""
     d = random.randint(2, 9)
     n = random.randint(1, d * 2)
     if n == d or math.gcd(n, d) > 1:

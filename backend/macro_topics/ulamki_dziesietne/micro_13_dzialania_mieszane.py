@@ -2,7 +2,8 @@ import random
 from backend.core.utils import build_problem_dict, fmt_dec, format_answers
 
 
-def dec_mix_1():
+def dec_mix_1() -> dict | None:
+    """Zwykłe dziesiętne jako ułamek (poziom 1)."""
     d = random.choice([2, 4, 5, 10])
     n = random.randint(1, d - 1)
 
@@ -31,7 +32,8 @@ def dec_mix_1():
         return result
 
 
-def dec_mix_2():
+def dec_mix_2() -> dict | None:
+    """Ułamki w dzieleniu dziesiętnym (poziom 2)."""
     # Denominators that create infinite decimals (1/3, 1/6) forcing fraction math
     d1 = random.choice([3, 6, 7, 9])
     n1 = random.randint(1, d1 - 1)
@@ -47,7 +49,7 @@ def dec_mix_2():
     c_str, _, _ = format_answers(c_num, c_den)
 
     t1, _, _ = format_answers(n1 + n2, d1 + 10)
-    t2 = fmt_dec(round(n1 / d1 + dec_val, 2))
+    t2 = fmt_dec(round(n1 / d1 + dec_val, 2))  # Trap (t2): Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zw...
     w1, _, _ = format_answers(c_num + 1, c_den)
 
     result = build_problem_dict(
@@ -61,7 +63,8 @@ def dec_mix_2():
         return result
 
 
-def dec_mix_3():
+def dec_mix_3() -> dict | None:
+    """Z nawiasami i różnymi typami (poziom 3)."""
     d1 = random.choice([3, 4, 5, 6, 7])
     n1 = random.randint(1, d1 - 1)
 

@@ -3,7 +3,8 @@ import math
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_mult_num_1():
+def frac_mult_num_1() -> dict | None:
+    """Mnożenie ułamka przez liczbę (poziom 1)."""
     d = random.randint(3, 9)
     n = random.randint(1, d - 1)
     k = random.randint(2, 5)
@@ -28,7 +29,8 @@ def frac_mult_num_1():
         return result
 
 
-def frac_mult_num_2():
+def frac_mult_num_2() -> dict | None:
+    """Skracanie na krzyż z liczbą (poziom 2)."""
     k = random.randint(2, 6)
     factor = random.randint(2, 4)
     d = k * factor
@@ -39,7 +41,7 @@ def frac_mult_num_2():
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \cdot {k}"
 
     c_str, _, _ = format_answers(n * k, d)
-    t1 = rf"\frac{{{n * k}}}{{{d}}}"
+    t1 = rf"\frac{{{n * k}}}{{{d}}}"  # Trap (t1): Wynik jest dobry, ale nieskrócony
     t2, _, _ = format_answers(1, factor)
     w1, _, _ = format_answers(n * k + 1, d)
 
@@ -54,7 +56,8 @@ def frac_mult_num_2():
         return result
 
 
-def frac_mult_num_3():
+def frac_mult_num_3() -> dict | None:
+    """Mnożenie liczby mieszanej (poziom 3)."""
     w = random.randint(1, 3)
     d = random.randint(2, 5)
     n = random.randint(1, d - 1)

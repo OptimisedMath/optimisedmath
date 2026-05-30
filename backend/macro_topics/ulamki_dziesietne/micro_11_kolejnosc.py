@@ -2,7 +2,8 @@ import random
 from backend.core.utils import build_problem_dict, fmt_dec
 
 
-def dec_order_1():
+def dec_order_1() -> dict | None:
+    """Kolejność Podstawowa (poziom 1)."""
     # Poziom 1: Podstawy (4 wariacje)
     # Loop up to 20 times to find a math combination that doesn't cause a trap collision
     for _ in range(20):
@@ -49,7 +50,8 @@ def dec_order_1():
     raise RuntimeError("dec_order_1 failed to generate a valid problem without collisions after 20 attempts.")
 
 
-def dec_order_2():
+def dec_order_2() -> dict | None:
+    """Pojedyncze Nawiasy (poziom 2)."""
     # Poziom 2: Pojedyncze Nawiasy (4 wariacje)
     for _ in range(20):
         template = random.choice(["brack_mul", "mul_brack", "brack_div", "div_brack"])
@@ -96,7 +98,8 @@ def dec_order_2():
     raise RuntimeError("dec_order_2 failed to generate a valid problem without collisions after 20 attempts.")
 
 
-def dec_order_3():
+def dec_order_3() -> dict | None:
+    """Potęgi i Podstawy (poziom 3)."""
     # Poziom 3: Potęgowanie + Podstawy (4 wariacje)
     template = random.choice(["pow_add", "add_pow", "sub_pow", "pow_mul"])
 
@@ -122,12 +125,15 @@ def dec_order_3():
         ans = (a**2) * b
         t1, t2, t3 = (a * b) ** 2, (a * 2) * b, (a**2) + b
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)
     )
+    if result:
+        return result
 
 
-def dec_order_4():
+def dec_order_4() -> dict | None:
+    """Złożone Działania (poziom 4)."""
     # Poziom 4: Złożone Działania i Nawiasy (Boss 1)
     template = random.choice(["brack_mul_brack", "mul_add_mul"])
 
@@ -145,12 +151,15 @@ def dec_order_4():
         ans = (a * b) + (c * d)
         t1, t2, t3 = a * (b + c) * d, (a * b + c) * d, a + b + c + d
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)
     )
+    if result:
+        return result
 
 
-def dec_order_5():
+def dec_order_5() -> dict | None:
+    """Potęgowanie Nawiasu (poziom 5)."""
     # Poziom 5: Potęgowanie w Nawiasach
     template = random.choice(["brack_sq_sub", "sub_brack_sq"])
 
@@ -166,22 +175,27 @@ def dec_order_5():
         ans = a - ((b + c) ** 2)
         t1, t2, t3 = (a - (b + c)) ** 2, a - ((b + c) * 2), a - (b**2 + c**2)
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)
     )
+    if result:
+        return result
 
 
-def dec_order_6():
+def dec_order_6() -> dict | None:
+    """Boss Level (poziom 6)."""
     # Poziom 6: Ultimate Boss (Potęgi, Nawiasy i Mnożenie)
     a = round(random.randint(2, 4) * 0.1, 1)
     b, c = [round(random.randint(1, 3) * 0.1, 1) for _ in range(2)]
     d = round(random.randint(1, 5) * 0.1, 1)
     q = f"{fmt_dec(a)} \\cdot ({fmt_dec(b)} + {fmt_dec(c)})^2 - {fmt_dec(d)}"
     ans = a * ((b + c) ** 2) - d
-    t1 = (a * (b + c)) ** 2 - d
-    t2 = a * ((b + c) * 2) - d
-    t3 = a * (b**2 + c**2) - d
+    t1 = (a * (b + c)) ** 2 - d  # Trap (t1): Zrobiłeś mnożenie przed potęgą nawiasu
+    t2 = a * ((b + c) * 2) - d  # Trap (t2): Pomnożyłeś nawias przez 2 zamiast potęgować
+    t3 = a * (b**2 + c**2) - d  # Trap (t3): Podniosłeś do kwadratu liczby z nawiasu osobno
 
-    return build_problem_dict(
+    result = build_problem_dict(
         q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)
     )
+    if result:
+        return result

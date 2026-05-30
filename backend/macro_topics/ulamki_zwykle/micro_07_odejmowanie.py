@@ -3,7 +3,8 @@ import math
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_sub_1():
+def frac_sub_1() -> dict | None:
+    """Ten sam mianownik (poziom 1)."""
     d = random.randint(3, 9)
     n1 = random.randint(2, d - 1)
     n2 = random.randint(1, n1 - 1)
@@ -11,7 +12,7 @@ def frac_sub_1():
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d}}} - \frac{{{n2}}}{{{d}}}"
 
     c_str, _, _ = format_answers(n1 - n2, d)
-    t1 = "0"
+    t1 = "0"  # Trap (t1): Odjąłeś od siebie mianowniki
     w1, _, _ = format_answers(max(1, n1 - n2 - 1), d)
     w2, _, _ = format_answers(n1 - n2 + 1, d)
 
@@ -26,7 +27,8 @@ def frac_sub_1():
         return result
 
 
-def frac_sub_2():
+def frac_sub_2() -> dict | None:
+    """Liczby mieszane (poziom 2)."""
     d1 = random.randint(2, 5)
     factor = random.randint(2, 4)
     d2 = d1 * factor
@@ -52,7 +54,8 @@ def frac_sub_2():
         return result
 
 
-def frac_sub_3():
+def frac_sub_3() -> dict | None:
+    """Zabieranie całości (poziom 3)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     if math.gcd(d1, d2) > 1 or d1 == d2:
         return None
@@ -78,7 +81,8 @@ def frac_sub_3():
         return result
 
 
-def frac_sub_4():
+def frac_sub_4() -> dict | None:
+    """Zabieranie całości w liczbie mieszanej (poziom 4)."""
     w1, w2 = random.randint(2, 4), random.randint(1, 2)
     if w1 <= w2:
         return None
@@ -105,7 +109,8 @@ def frac_sub_4():
         return result
 
 
-def frac_sub_5():
+def frac_sub_5() -> dict | None:
+    """Różne mianowniki (poziom 5)."""
     w1, w2 = random.randint(2, 4), random.randint(1, 2)
     if w1 <= w2:
         return None

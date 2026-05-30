@@ -2,7 +2,8 @@ import random
 from backend.core.utils import format_fraction_question, build_problem_dict, format_answers
 
 
-def frac_imp_1():
+def frac_imp_1() -> dict | None:
+    """Zamiana na ułamek niewłaściwy (poziom 1)."""
     w = random.randint(1, 5)
     d = random.randint(2, 9)
     n = random.randint(1, d - 1)
@@ -27,7 +28,8 @@ def frac_imp_1():
         return result
 
 
-def frac_imp_2():
+def frac_imp_2() -> dict | None:
+    """Wyłączanie całości (poziom 2)."""
     w = random.randint(1, 5)
     d = random.randint(2, 9)
     n = random.randint(1, d - 1)

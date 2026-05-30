@@ -29,9 +29,9 @@ topics:
         name: "Ze zwykłego na dziesiętny (dzielenie)"
         function: "dec_to_frac_4"
         traps:
-          t1: "Ten ułamek nie rozszerza się łatwo. Najlepszy sposób to po prostu podzielić pisemnie licznik przez mianownik (Góra ÷ Dół)."
-          t2: "Błąd w dzieleniu."
-          t3: "Brak przecinka."
+          t1: "Zapomniałeś nawiasów okresu! Ułamek rozwijający się w nieskończoność zapisujemy z nawiasem, np. 0,(3)."
+          t2: "Dodałeś zbędne zero przed okresem lub źle umieściłeś nawias."
+          t3: "Zła cyfra w okresie — sprawdź wynik dzielenia licznika przez mianownik."
 
   - order: 20
     name: "Porównywanie"
@@ -42,16 +42,21 @@ topics:
         function: "dec_compare_1"
         traps:
           t1: "Spójrz najpierw na najwyższy rząd (całości, potem części dziesiąte). Cyfra z przodu ma zawsze największą wagę!"
+          t2: "Liczby nie są równe — nie wybieraj znaku równości!"
       - level: 2
         name: "Różna liczba miejsc po przecinku"
         function: "dec_compare_2"
         traps:
           t1: "Dałeś się złapać! 'Dłuższa' liczba wcale nie jest większa. Dopisz niewidzialne zera na końcu, aby obie liczby miały tyle samo miejsc po przecinku, i porównaj jeszcze raz."
+          t2: "Liczby są równe — wybierz znak równości!"
+          t3: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
       - level: 3
         name: "Zdradliwe zera"
         function: "dec_compare_3"
         traps:
           t1: "Pamiętaj, zero zaraz po przecinku jest bardzo ważne (zmniejsza ułamek), ale zera na samym końcu można wykreślić!"
+          t2: "Liczby są równe — wybierz znak równości!"
+          t3: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
 
   - order: 30
     name: "Oś liczbowa"
@@ -61,31 +66,37 @@ topics:
         function: "dec_number_line_1"
         traps:
           t1: "Pomyłka! Zobacz na przedział i policz wszystkie przerwy. Każdy skok to jedna dziesiąta (0.1)."
+          t2: "Jesteś o jeden skok za daleko lub za blisko — policz kreski od zera."
       - level: 2
         name: "Oś co 0.01"
         function: "dec_number_line_2"
         traps:
           t1: "Pomyłka! Jesteś między 0.1 a 0.2. Każdy mały skok to jedna setna (0.01)."
+          t2: "Pomyłka w wielkości skoku — to nie dziesiąte, tylko setne."
       - level: 3
         name: "Oś co 0.2 lub podobne"
         function: "dec_number_line_3"
         traps:
           t1: "Uwaga! Odstępy na osi nie zawsze wynoszą 1. Zobacz ile kresek dzieli pełną jedność, by odkryć wielkość jednego małego skoku."
+          t2: "Założyłeś skok 0,1 — najpierw oblicz szerokość przedziału i liczbę podziałów."
       - level: 4
         name: "Duży odstęp"
         function: "dec_number_line_4"
         traps:
           t1: "Oblicz szerokość przedziału (np. 1.0 - 0.5) i podziel przez liczbę skoków (odstępów)."
+          t2: "Błąd w liczeniu skoków — o jeden przedział za mało lub za dużo."
       - level: 5
         name: "Duży odstęp cz. 2"
         function: "dec_number_line_5"
         traps:
           t1: "Najpierw policz odstępy, później odejmij skrajne wartości, na końcu podziel."
+          t2: "Zła kolejność — najpierw policz liczbę przerw, potem szerokość przedziału."
       - level: 6
         name: "Dziwne przedziały"
         function: "dec_number_line_6"
         traps:
           t1: "To bardzo podstępna oś. Ustal, ile wynosi dokładnie jeden skok."
+          t2: "Zgadłeś bez obliczenia wartości jednego skoku."
 
   - order: 40
     name: "Zaokrąglanie"
@@ -107,6 +118,7 @@ topics:
         function: "dec_round_3"
         traps:
           t1: "Uwaga! Gdy zaokrąglasz 9 w górę, staje się ona dziesiątką, co oznacza, że musisz przepchnąć 'jeden' do jeszcze wyższego rzędu (efekt domina)."
+          t2: "Zostawiłeś ,9 zamiast przejść do następnej całości z ,0."
 
   - order: 50
     name: "Dodawanie"
@@ -116,8 +128,6 @@ topics:
         function: "dec_add_1"
         traps:
           t1: "Źle podstawiłeś przecinek w pamięci! Złota zasada dodawania to: Przecinek pod przecinkiem."
-          t2: "Błąd w sumowaniu liczb. Spróbuj dodać jeszcze raz."
-          t3: "Zapomniałeś o przecinku."
       - level: 2
         name: "Z przekroczeniem rzędu"
         function: "dec_add_2"
@@ -141,15 +151,12 @@ topics:
         function: "dec_sub_1"
         traps:
           t1: "Przecinek uciekł w złe miejsce! W odejmowaniu pisemnym zasada to przecinek idealnie pod przecinkiem."
-          t2: "Odjąłeś w drugą stronę (od dolnej liczby górną)! Zawsze odejmujemy od góry."
-          t3: "Błąd w obliczeniach."
       - level: 2
         name: "Z pożyczaniem"
         function: "dec_sub_2"
         traps:
           t1: "Zapomniałeś o pożyczaniu z sąsiedniego rzędu!"
           t2: "Błędnie przepisałeś przecinek. Przecinek opada równo na dół."
-          t3: "Błąd rachunkowy przy odejmowaniu."
       - level: 3
         name: "Z dopisywaniem zer (np. 1 - 0.25)"
         function: "dec_sub_3"
@@ -198,7 +205,6 @@ topics:
         traps:
           t1: "Brak przecinka lub w złym miejscu! Pamiętaj, jeśli z przodu wychodzą zera, też je liczysz przy przesuwaniu."
           t2: "Zgubiłeś zera po przecinku przed samą liczbą."
-          t3: "Błąd mnożenia bazy liczbowej."
 
   - order: 90
     name: "Dzielenie"
@@ -208,8 +214,7 @@ topics:
         function: "dec_div_1"
         traps:
           t1: "Zgubiłeś przecinek! Podczas dzielenia pisemnego, wstawiasz przecinek w wyniku DOKŁADNIE w tym samym miejscu, co w dolnej liczbie."
-          t2: "Błąd obliczeniowy."
-          t3: "Zapomniałeś o zera na początku."
+          t2: "Błędnie przesunąłeś przecinek w wyniku — policz miejsca po przecinku w dzielnej."
       - level: 2
         name: "Przez liczbę całkowitą (z resztą)"
         function: "dec_div_2"
@@ -222,15 +227,13 @@ topics:
         function: "dec_div_3"
         traps:
           t1: "Nie wolno dzielić przez ułamek! Najpierw pozbądź się przecinka z dzielnika, przesuwając go w prawo w OBU liczbach, np. 2,4 : 0,2 = 24 : 2"
-          t2: "Błąd mnożenia licznika i dzielnika."
-          t3: "Błąd miejsca dziesiętnego po rozszerzeniu."
+          t2: "Błąd mnożenia licznika i dzielnika po przesunięciu przecinka."
       - level: 4
         name: "Przez ułamek dziesiętny (zaawansowane)"
         function: "dec_div_4"
         traps:
           t1: "Przesunąłeś przecinek tylko w jednej liczbie. Pamiętaj, jeśli dzielnik przesuwasz o 2 w prawo, pierwszą liczbę (dzielną) TEŻ musisz przesunąć o 2."
           t2: "Nie masz już gdzie przesunąć? Zamiast kroku dodawaj na końcu zera (np. z 5 robisz 50)."
-          t3: "Błąd dzielenia pisemnego po przesunięciu przecinka."
 
   - order: 100
     name: "Potęgowanie"
@@ -312,7 +315,6 @@ topics:
         traps:
           t1: "1 złoty to 100 groszy. Oznacza to dwa miejsca po przecinku (np. 20gr = 0.20 zł)."
           t2: "Podałeś złą ilość wagową."
-          t3: "Błąd w konwersji."
 
   - order: 130
     name: "Działania mieszane"
@@ -322,19 +324,16 @@ topics:
         function: "dec_mix_1"
         traps:
           t1: "Gdy masz zmieszane ułamki zwykłe i dziesiętne w jednym działaniu, zamień wszystkie na jeden z tych typów, najlepiej ułamek zwykły."
-          t2: "Błąd przy skracaniu."
-          t3: "Zły wspólny mianownik."
+          t2: "Dodałeś liczniki i mianowniki osobno zamiast sprowadzić do wspólnego mianownika."
       - level: 2
         name: "Ułamki w dzieleniu dziesiętnym"
         function: "dec_mix_2"
         traps:
           t1: "Podpowiedź: zamień ułamek zwykły na dziesiętny - tu powinno się dać prosto."
-          t2: "Błąd w operacjach dziesiętnych."
-          t3: "Źle zamieniony ułamek zwykły."
+          t2: "Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zwykłej."
       - level: 3
         name: "Z nawiasami i różnymi typami"
         function: "dec_mix_3"
         traps:
           t1: "Uporządkuj! Najpierw nawiasy, najlepiej wykonane wewnątrz jednego typu np. ułamków zwykłych."
-          t2: "Błąd rachunkowy."
-          t3: "Złe potęgowanie w działaniu mieszanym."
+          t2: "Pomnożyłeś lub podzieliłeś bez zamiany ułamka zwykłego na wspólny format."

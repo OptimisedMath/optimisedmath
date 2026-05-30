@@ -2,7 +2,8 @@ import random
 from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
 
 
-def frac_div_num_1():
+def frac_div_num_1() -> dict | None:
+    """Dzielenie licznika (poziom 1)."""
     d = random.randint(2, 7)
     n = random.randint(1, d - 1)
     k = random.randint(2, 5)
@@ -27,7 +28,8 @@ def frac_div_num_1():
         return result
 
 
-def frac_div_num_2():
+def frac_div_num_2() -> dict | None:
+    """Gdy licznik się nie dzieli (poziom 2)."""
     k = random.randint(2, 5)
     d = random.randint(2, 7)
     n = random.randint(1, d - 1)
@@ -50,7 +52,8 @@ def frac_div_num_2():
         return result
 
 
-def frac_div_num_3():
+def frac_div_num_3() -> dict | None:
+    """Dzielenie liczby mieszanej (poziom 3)."""
     w = random.randint(2, 4)
     d = random.randint(2, 5)
     n = random.randint(1, d - 1)
