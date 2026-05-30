@@ -66,74 +66,87 @@ export default function AnswerInput({
   }, [inputMode, problem, showFeedback, onChange]);
   const keyboardType = problem?.keyboard_type || 'default';
 
-  // Convert plain text input to LaTeX for display
   const formatInputAsLatex = (s: string): string => {
     if (!s.trim()) return s;
     const trimmed = s.trim();
-    // Handle mixed numbers like "1 3/4" → "1\\frac{3}{4}"
     const mixedMatch = trimmed.match(/^(\d+)\s+(\d+)\/(\d+)$/);
     if (mixedMatch) {
       const [, whole, num, den] = mixedMatch;
       return `${whole}\\frac{${num}}{${den}}`;
     }
-    // Handle fractions like "3/4" → "\\frac{3}{4}"
     const fracMatch = trimmed.match(/^(\d+)\/(\d+)$/);
     if (fracMatch) {
       const [, num, den] = fracMatch;
       return `\\frac{${num}}{${den}}`;
     }
-    // Return as-is for decimals or whole numbers
     return trimmed;
   };
 
-  // Render radio mode
   if (inputMode === 'radio' && problem?.options) {
     return (
       <div className="flex flex-col items-center gap-4" onKeyDown={handleRadioKeyDown} tabIndex={0}>
-        <div className="flex flex-col gap-3 w-full">
-          {problem.options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => !showFeedback && onChange(option)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !showFeedback) {
-                  e.preventDefault();
-                  onChange(option);
-                  // Auto-submit after selection
-                  setTimeout(() => onSubmit(), 100);
-                }
-              }}
-              disabled={showFeedback}
-              className={`p-3 sm:p-4 text-base sm:text-xl rounded-lg border-2 transition-all ${
-                showFeedback && feedback
-                  ? value === option && feedback.correct
-                    ? 'border-green-500 bg-green-600/50 text-white ring-2 ring-green-400'
-                    : value === option && !feedback.correct
-                    ? 'border-red-500 bg-red-600/50 text-white ring-2 ring-red-400'
-                    : option === problem?.correct
-                    ? 'border-green-500 bg-green-600/50 text-white ring-2 ring-green-400'
-                    : 'border-slate-600 bg-slate-700 text-slate-300 opacity-30'
-                  : value === option
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-300'
-                    : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
-              } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <span className="inline-flex items-center gap-2">
-                <kbd className="hidden sm:inline-block text-xs px-1.5 py-0.5 rounded bg-slate-600/50 text-slate-400 font-mono border border-slate-500/50">
-                  {index + 1}
-                </kbd>
-                {option.includes('\\') ? <InlineMath math={option} /> : option}
-              </span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-2.5 w-full">
+          {problem.options.map((option, index) => {
+            const isSelected = value === option;
+            const isCorrectAnswer = option === problem?.correct;
+
+            let optionClasses = 'p-3.5 sm:p-4 text-base sm:text-lg rounded-2xl border-2 transition-all duration-200 ';
+
+            if (showFeedback && feedback) {
+              if (isSelected && feedback.correct) {
+                optionClasses += 'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/30 shadow-[0_0_12px_oklch(0.6_0.2_155/0.15)]';
+              } else if (isSelected && !feedback.correct) {
+                optionClasses += 'border-red-500 bg-red-500/15 text-red-600 dark:text-red-400 ring-2 ring-red-500/30';
+              } else if (isCorrectAnswer) {
+                optionClasses += 'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/30';
+              } else {
+                optionClasses += 'border-border/30 bg-secondary/30 text-muted-foreground opacity-40';
+              }
+            } else if (isSelected) {
+              optionClasses += 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20 shadow-md';
+            } else {
+              optionClasses += 'border-border/50 bg-secondary/30 dark:bg-white/3 text-foreground hover:border-primary/40 hover:bg-primary/5';
+            }
+
+            if (showFeedback) {
+              optionClasses += ' cursor-default';
+            } else {
+              optionClasses += ' cursor-pointer active:scale-[0.98]';
+            }
+
+            return (
+              <button
+                key={index}
+                onClick={() => !showFeedback && onChange(option)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !showFeedback) {
+                    e.preventDefault();
+                    onChange(option);
+                    setTimeout(() => onSubmit(), 100);
+                  }
+                }}
+                disabled={showFeedback}
+                className={optionClasses}
+              >
+                <span className="inline-flex items-center gap-2.5">
+                  <kbd className="hidden sm:inline-flex items-center justify-center w-6 h-6 text-[10px] rounded-lg bg-secondary/80 dark:bg-white/10 text-muted-foreground font-mono border border-border/50">
+                    {index + 1}
+                  </kbd>
+                  <span className="font-medium">
+                    {option.includes('\\') ? <InlineMath math={option} /> : option}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {!showFeedback && (
-          <>
+          <div className="flex flex-col items-center gap-2 w-full mt-1">
             <Button
               onClick={onSubmit}
               disabled={value.trim() === '' || disabled}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-blue-500/50"
+              className="w-full max-w-xs h-12 gradient-primary hover:opacity-90 disabled:opacity-40 text-white rounded-xl text-base font-semibold transition-all shadow-lg hover:shadow-xl hover:translate-y-[-1px] active:translate-y-0"
             >
               Sprawdź odpowiedź
             </Button>
@@ -141,23 +154,22 @@ export default function AnswerInput({
               <Button
                 onClick={onAutoSolve}
                 disabled={disabled}
-                variant="outline"
-                className="border-slate-500 text-slate-300 hover:bg-slate-700"
+                variant="ghost"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
                 🪄 Auto-Solve
               </Button>
             )}
-          </>
+          </div>
         )}
       </div>
     );
   }
 
-  // Render text mode
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
       {showFeedback ? (
-        <div className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-white rounded-lg w-full max-w-xs sm:w-64 text-center bg-slate-700 border-2 border-slate-600">
+        <div className="px-5 py-3.5 text-lg sm:text-2xl rounded-2xl w-full max-w-xs sm:w-64 text-center bg-secondary/50 dark:bg-white/5 border-2 border-border/30 text-foreground font-medium">
           {value.includes('/') || value.includes(' ') ? (
             <InlineMath math={formatInputAsLatex(value)} />
           ) : (
@@ -171,7 +183,7 @@ export default function AnswerInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder="Wpisz wynik..."
           inputMode={keyboardType === 'decimal' ? 'decimal' : 'numeric'}
-          className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-white rounded-lg w-full max-w-xs sm:w-64 text-center focus:outline-none focus:ring-4 focus:ring-blue-500"
+          className="h-14 px-5 text-lg sm:text-2xl rounded-2xl w-full max-w-xs sm:w-64 text-center bg-white/50 dark:bg-white/5 border-2 border-border/50 focus-visible:border-primary focus-visible:ring-primary/20 font-medium transition-all"
           autoFocus
           disabled={showFeedback}
           ref={inputRef}
@@ -184,7 +196,7 @@ export default function AnswerInput({
             type="button"
             variant="outline"
             onClick={() => appendChar('/')}
-            className="border-slate-500 text-slate-200 hover:bg-slate-700 px-5 py-3 text-xl font-mono"
+            className="rounded-xl border-border/50 text-foreground hover:bg-secondary px-5 py-3 text-xl font-mono"
           >
             /
           </Button>
@@ -192,7 +204,7 @@ export default function AnswerInput({
             type="button"
             variant="outline"
             onClick={() => appendChar(' ')}
-            className="border-slate-500 text-slate-200 hover:bg-slate-700 px-5 py-3 text-xl"
+            className="rounded-xl border-border/50 text-foreground hover:bg-secondary px-5 py-3 text-base"
           >
             spacja
           </Button>
@@ -200,11 +212,11 @@ export default function AnswerInput({
       )}
 
       {!showFeedback ? (
-        <>
+        <div className="flex flex-col items-center gap-2 w-full mt-1">
           <Button
             type="submit"
             disabled={value.trim() === '' || disabled}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 sm:px-8 sm:py-3 rounded-lg text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-blue-500/50"
+            className="w-full max-w-xs h-12 gradient-primary hover:opacity-90 disabled:opacity-40 text-white rounded-xl text-base font-semibold transition-all shadow-lg hover:shadow-xl hover:translate-y-[-1px] active:translate-y-0"
           >
             Sprawdź odpowiedź
           </Button>
@@ -212,13 +224,13 @@ export default function AnswerInput({
             <Button
               onClick={onAutoSolve}
               disabled={disabled}
-              variant="outline"
-              className="border-slate-500 text-slate-300 hover:bg-slate-700"
+              variant="ghost"
+              className="text-xs text-muted-foreground hover:text-foreground"
             >
               🪄 Auto-Solve
             </Button>
           )}
-        </>
+        </div>
       ) : null}
     </form>
   );
