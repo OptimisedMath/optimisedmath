@@ -63,10 +63,10 @@ def frac_exp_3():
 
     q_str = rf"\text{{Skróć ułamek }} {format_fraction_question(start_n, start_d)} \text{{ przez }} {factor}."
 
-    c_str = rf"\frac{{{n}}}{{{d}}}"
-    t1 = rf"\frac{{{n}}}{{{start_d}}}"
-    t2 = rf"\frac{{{start_n}}}{{{d}}}"
-    t3 = rf"\frac{{{max(1, start_n - factor)}}}{{{max(2, start_d - factor)}}}"
+    c_str, _, _ = format_answers(n, d)
+    t1, _, _ = format_answers(n, start_d)
+    t2, _, _ = format_answers(start_n, d)
+    t3, _, _ = format_answers(max(1, start_n - factor), max(2, start_d - factor))
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, t3=t3, grading_policy="exact_match_only"
@@ -90,10 +90,10 @@ def frac_exp_4():
 
     q_str = rf"\text{{Skróć ułamek }} {format_fraction_question(start_n, start_d)} \text{{ do postaci nieskracalnej.}}"
 
-    c_str = rf"\frac{{{n}}}{{{d}}}"
-    t1 = rf"\frac{{{n * factor2}}}{{{d * factor2}}}"
-    t2 = rf"\frac{{{n}}}{{{d * factor2}}}"
-    t3 = rf"\frac{{{n * factor2}}}{{{d}}}"
+    c_str, _, _ = format_answers(n, d)
+    t1, _, _ = format_answers(n * factor2, d * factor2)
+    t2, _, _ = format_answers(n, d * factor2)
+    t3, _, _ = format_answers(n * factor2, d)
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, t3=t3, grading_policy="exact_match_only"
