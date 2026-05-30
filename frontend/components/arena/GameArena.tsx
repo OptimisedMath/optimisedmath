@@ -382,7 +382,9 @@ export default function GameArena() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-8 font-sans flex flex-col items-center">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
+      <div className="relative z-10 flex w-full flex-col items-center">
       <XPBar gameState={gameState} onLogout={handleLogout} />
 
       {curriculum && (
@@ -406,7 +408,8 @@ export default function GameArena() {
 
       <MasteryScoreboard gameState={gameState} />
 
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 p-4 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 text-center">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-white/70 bg-white/85 p-4 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-slate-900/78 dark:shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-300" />
         <ProblemDisplay
           problem={problem}
           selectedMacro={gameState.selected_macro}
@@ -430,7 +433,7 @@ export default function GameArena() {
             />
 
             {feedback && !feedback.is_locked && (
-              <div className="mt-3 text-yellow-400 text-lg font-semibold text-center">
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
                 {feedback.message}
               </div>
             )}
@@ -446,6 +449,7 @@ export default function GameArena() {
             )}
           </>
         )}
+      </div>
       </div>
     </div>
   );

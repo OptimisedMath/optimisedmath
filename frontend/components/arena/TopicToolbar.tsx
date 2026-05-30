@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { type ChangeEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { CurriculumResponse, GameState } from '@/lib/types';
@@ -68,17 +68,17 @@ export default function TopicToolbar({
   };
 
   return (
-    <div className="w-full max-w-2xl bg-slate-800 p-4 rounded-xl shadow-lg mb-4 border border-slate-700">
+    <div className="w-full max-w-3xl rounded-2xl border border-white/70 bg-white/80 p-4 shadow-[0_16px_50px_rgba(15,23,42,0.10)] backdrop-blur-xl mb-4 dark:border-white/10 dark:bg-slate-900/75">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-300">Admin Mode:</span>
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Admin Mode:</span>
             <button
               onClick={() => setAdminMode(!adminMode)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all shadow-sm ${
                 adminMode
-                  ? 'bg-green-600 hover:bg-green-500 text-white'
-                  : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700'
               }`}
             >
               {adminMode ? 'ON 🛠️' : 'OFF'}
@@ -96,13 +96,13 @@ export default function TopicToolbar({
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-slate-300">
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
             Macro topic
             <select
               value={selectedMacro}
               onChange={handleMacroChange}
               disabled={isNavigating}
-              className="h-10 rounded-lg border border-slate-600 bg-slate-900 px-3 text-white outline-none focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
               {curriculum.macro_topics.map((macro) => (
                 <option key={macro} value={macro}>
@@ -112,13 +112,13 @@ export default function TopicToolbar({
             </select>
           </label>
 
-          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-slate-300">
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
             Micro topic
             <select
               value={selectedTopicOrder}
               onChange={handleTopicChange}
               disabled={isNavigating || topicOptions.length === 0}
-              className="h-10 rounded-lg border border-slate-600 bg-slate-900 px-3 text-white outline-none focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
               {topicOptions.map((topic, index) => (
                 <option key={topic.order} value={topic.order}>
@@ -128,13 +128,13 @@ export default function TopicToolbar({
             </select>
           </label>
 
-          <label className="flex flex-col gap-2 text-sm font-medium text-slate-300 lg:w-28">
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 lg:w-28">
             Level
             <select
               value={selectedLevel}
               onChange={handleLevelChange}
               disabled={isNavigating}
-              className="h-10 rounded-lg border border-slate-600 bg-slate-900 px-3 text-white outline-none focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
               {levelOptions.map((level) => (
                 <option key={level} value={level}>
@@ -145,7 +145,7 @@ export default function TopicToolbar({
           </label>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Badge variant="secondary">{selectedTopic?.name || 'No topic selected'}</Badge>
           <span>Level {selectedLevel}</span>
           {isNavigating && <span className="text-blue-300">Loading topic...</span>}

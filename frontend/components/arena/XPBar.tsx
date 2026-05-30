@@ -15,26 +15,27 @@ export default function XPBar({ gameState, onLogout }: XPBarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="w-full max-w-2xl bg-slate-800 dark:bg-slate-800 bg-white p-4 rounded-xl flex justify-between items-center shadow-lg mb-4 sm:mb-8 border border-slate-200 dark:border-slate-700">
-      <div className="text-base sm:text-xl text-slate-900 dark:text-white">
+    <div className="w-full max-w-3xl rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.12)] backdrop-blur-xl mb-4 sm:mb-6 dark:border-white/10 dark:bg-slate-900/75">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-base sm:text-xl text-slate-900 dark:text-white font-semibold">
         XP:{' '}
         <span className="text-yellow-500 dark:text-yellow-400 font-bold tabular-nums">
           {animatedXP}
         </span>
       </div>
-      <div className="flex items-center gap-2 sm:gap-4">
-        <div className="text-base sm:text-xl text-slate-900 dark:text-white">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="text-sm sm:text-base text-slate-700 dark:text-slate-200">
           Bonus:{' '}
           <Badge
             variant={gameState.flawless_eligible ? 'default' : 'destructive'}
-            className="ml-1 sm:ml-2"
+            className="ml-1 sm:ml-2 shadow-sm"
           >
             {gameState.flawless_eligible ? 'Active 💎' : 'Lost ❌'}
           </Badge>
         </div>
         <button
           onClick={toggleTheme}
-          className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-600 whitespace-nowrap"
+          className="bg-slate-100/90 dark:bg-slate-800/90 hover:bg-sky-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all border border-slate-200 dark:border-slate-700 whitespace-nowrap shadow-sm hover:border-sky-200"
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {theme === 'dark' ? '☀️' : '🌙'}
@@ -42,11 +43,12 @@ export default function XPBar({ gameState, onLogout }: XPBarProps) {
         {onLogout && (
           <button
             onClick={onLogout}
-            className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-600 whitespace-nowrap"
+            className="bg-slate-100/90 dark:bg-slate-800/90 hover:bg-rose-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all border border-slate-200 dark:border-slate-700 whitespace-nowrap shadow-sm hover:border-rose-200"
           >
             Wyloguj
           </button>
         )}
+      </div>
       </div>
     </div>
   );
