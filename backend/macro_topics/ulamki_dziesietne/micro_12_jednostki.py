@@ -14,7 +14,8 @@ def dec_unit_1():
 
     t1 = fmt_dec(round(v / (factor / 10 if factor > 10 else 100), 4))
     t2 = fmt_dec(round(v * factor, 2))
-    t3 = f"{v}00"
+    # Trap: Wrong direction - multiply instead of divide by factor
+    t3 = fmt_dec(round(v * factor, 2))
 
     result = build_problem_dict(
         q_str,
@@ -53,7 +54,9 @@ def dec_unit_3():
     c_str = fmt_dec(zl + (gr / 100))
 
     t1 = fmt_dec(zl + (gr / 10))  # Trap: 5.8 instead of 5.08
-    t2 = f"{zl},{gr}0"
+    # Bulletproof: ensure gr stays single-digit even if logic changes
+    ones_digit = gr % 10
+    t2 = f"{zl},{ones_digit}0"
     w1 = fmt_dec(zl + ((gr + 1) / 100))
 
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)

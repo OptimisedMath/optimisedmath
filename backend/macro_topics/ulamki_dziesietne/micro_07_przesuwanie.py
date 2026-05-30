@@ -12,7 +12,9 @@ def dec_comma_1():
     t1 = fmt_dec(round(v / zeros, 4))
     wrong_zeros = zeros * 10 if zeros < 1000 else 100
     t2 = fmt_dec(round(v * wrong_zeros, 2))
-    t3 = fmt_dec(v) + "0"
+    # Trap: Append zeros matching the magnitude of the multiplier
+    num_zeros = len(str(zeros)) - 1
+    t3 = fmt_dec(v) + "0" * num_zeros
 
     result = build_problem_dict(
         q_str,
