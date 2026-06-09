@@ -95,9 +95,11 @@ def frac_exp_4() -> dict | None:
     q_str = rf"\text{{Skróć ułamek }} {format_fraction_question(start_n, start_d)} \text{{ do postaci nieskracalnej.}}"
 
     c_str, _, _ = format_answers(n, d)
-    t1, _, _ = format_answers(n * factor2, d * factor2)
-    t2, _, _ = format_answers(n, d * factor2)
-    t3, _, _ = format_answers(n * factor2, d)
+    # Keep the partial-reduction trap unsimplified. Using format_answers() here
+    # would simplify it back to the correct answer and invalidate the option set.
+    t1 = format_fraction_question(n * factor2, d * factor2)
+    t2 = format_fraction_question(n, d * factor2)
+    t3 = format_fraction_question(n * factor2, d)
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, t3=t3, grading_policy="exact_match_only"

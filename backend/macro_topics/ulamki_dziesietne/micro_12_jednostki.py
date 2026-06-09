@@ -13,10 +13,9 @@ def dec_unit_1() -> dict | None:
     )
     c_str = fmt_dec(round(v / factor, 4))
 
-    t1 = fmt_dec(round(v / (factor / 10 if factor > 10 else 100), 4))  # Trap (t1): Zamieniasz duże na małe (np
-    t2 = fmt_dec(round(v * factor, 2))  # Trap (t2): Błąd przesuwania przecinka - np
-    # Trap: Wrong direction - multiply instead of divide by factor
-    t3 = fmt_dec(round(v * factor, 2))  # Trap (t3): Zła wielkość jednostki konwersyjnej
+    t1 = fmt_dec(round(v / (factor / 10 if factor > 10 else 100), 4))
+    t2 = fmt_dec(round(v * factor, 2))
+    t3 = fmt_dec(round(v / (factor * 10), 4))
 
     result = build_problem_dict(
         q_str,
