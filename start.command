@@ -8,7 +8,6 @@ echo "🚀 Starting Optimised Math Learning Platform..."
 
 # 1. Start the Python FastAPI backend in the background
 echo "⚡ Launching FastAPI Backend on port 8000..."
-export NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8000"
 if [ -d ".venv" ]; then
     .venv/bin/python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
 else
