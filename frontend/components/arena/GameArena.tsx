@@ -9,7 +9,7 @@ import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
-import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
+import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
 import type { CurriculumResponse, GameState, Problem, Feedback } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
@@ -23,7 +23,6 @@ export default function GameArena() {
   const [error, setError] = useState<string | null>(null);
   const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
-  const [adminMode, setAdminMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const isFetchingRef = useRef(false);
@@ -67,41 +66,6 @@ export default function GameArena() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // Global Enter key handler
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        // Check if we should submit answer
-        const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-        const checkButton = Array.from(document.querySelectorAll('button')).find(btn => 
-          btn.textContent?.includes('Sprawdź odpowiedź')
-        ) as HTMLButtonElement;
-        const nextButton = Array.from(document.querySelectorAll('button')).find(btn => 
-          btn.textContent?.includes('Następne zadanie') ||
-          btn.textContent?.includes('Następny poziom') ||
-          btn.textContent?.includes('Następny temat')
-        ) as HTMLButtonElement;
-
-        if (submitButton && !submitButton.disabled) {
-          e.preventDefault();
-          submitButton.click();
-        } else if (checkButton && !checkButton.disabled) {
-          e.preventDefault();
-          checkButton.click();
-        } else if (
-          nextButton &&
-          document.activeElement !== nextButton &&
-          !e.repeat &&
-          !isAdvancingRef.current &&
-          !isFetchingRef.current
-        ) {
-          e.preventDefault();
-          nextButton.click();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleGlobalKeyDown);
 
     const initializeGame = async () => {
       const storedUsername = localStorage.getItem('username');
@@ -149,24 +113,19 @@ export default function GameArena() {
 
     return () => {
       isMounted = false;
-      window.removeEventListener('keydown', handleGlobalKeyDown);
     };
   }, [fetchNextProblem, router]);
 
   const handleSubmit = async () => {
-    console.log('handleSubmit called', { gameState, problem, userAnswer, isSubmitting });
     if (isSubmitting) {
-      console.log('Already submitting, ignoring duplicate call');
       return;
     }
     if (!gameState?.session_id || !problem?.problem_id || userAnswer.trim() === '') {
-      console.log('handleSubmit validation failed');
       return;
     }
 
     setIsSubmitting(true);
     const isTextMode = gameState.current_input_mode === 'text';
-    console.log('Submitting answer', { session_id: gameState.session_id, problem_id: problem.problem_id, user_input: userAnswer, is_text_mode: isTextMode });
 
     try {
       const response = await submitAnswer({
@@ -175,73 +134,26 @@ export default function GameArena() {
         user_input: userAnswer,
         is_text_mode: isTextMode,
       });
-      console.log('Submit response received', response);
-
-      const oldTopicOrder = gameState.selected_topic_order;
-      const oldLevel = gameState.selected_level;
-      const newState = response.state;
-
-      setGameState(newState);
-      setError(null);
-
-      const topicChanged = newState.selected_topic_order !== oldTopicOrder;
-      const levelChanged = newState.selected_level !== oldLevel;
-      console.log('State update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
-
-      const isLocked = newState.problem_answered;
-      setFeedback({
-        correct: response.is_correct,
-        message: response.feedback,
-        feedback_type: newState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
-        is_locked: isLocked,
-      });
+      applySubmissionResponse(response);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
       setError(errorMsg);
       console.error('Error submitting answer:', err);
-      console.error('Error details:', {
-        message: err instanceof Error ? err.message : 'Unknown error',
-        stack: err instanceof Error ? err.stack : 'No stack trace',
-        gameState,
-        problem
-      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAutoSolve = async () => {
-    if (!gameState?.session_id || !problem?.problem_id) return;
-
-    setIsSubmitting(true);
-    try {
-      const response = await autoSolve(gameState.session_id, problem.problem_id);
-
-      const oldTopicOrder = gameState.selected_topic_order;
-      const oldLevel = gameState.selected_level;
-      const newState = response.state;
-
-      setGameState(newState);
-      setError(null);
-
-      const topicChanged = newState.selected_topic_order !== oldTopicOrder;
-      const levelChanged = newState.selected_level !== oldLevel;
-      console.log('Auto-solve state update', { topicChanged, levelChanged, topic_completed: newState.topic_completed });
-
-      const isLocked = newState.problem_answered;
-      setFeedback({
-        correct: response.is_correct,
-        message: response.feedback,
-        feedback_type: newState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
-        is_locked: isLocked,
-      });
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
-      setError(errorMsg);
-      console.error('Error auto-solving:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const applySubmissionResponse = (response: { state: GameState; is_correct: boolean; feedback: string }) => {
+    const nextState = response.state;
+    setGameState(nextState);
+    setError(null);
+    setFeedback({
+      correct: response.is_correct,
+      message: response.feedback,
+      feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
+      is_locked: nextState.problem_answered,
+    });
   };
 
   const handleNavigate = useCallback(async (macro: string, topicOrder: number, level: number) => {
@@ -315,6 +227,24 @@ export default function GameArena() {
       setIsAdvancing(false);
     }
   }, [gameState, fetchNextProblem]);
+
+  useEffect(() => {
+    const handleAdvanceKey = (e: KeyboardEvent) => {
+      if (
+        e.key === 'Enter' &&
+        feedback?.is_locked &&
+        !e.repeat &&
+        !isAdvancingRef.current &&
+        !isFetchingRef.current
+      ) {
+        e.preventDefault();
+        void handleAdvance();
+      }
+    };
+
+    window.addEventListener('keydown', handleAdvanceKey);
+    return () => window.removeEventListener('keydown', handleAdvanceKey);
+  }, [feedback?.is_locked, handleAdvance]);
 
   const handleReset = async () => {
     if (!gameState?.session_id) {
@@ -394,8 +324,6 @@ export default function GameArena() {
           isNavigating={isNavigating}
           onNavigate={handleNavigate}
           onReset={handleReset}
-          adminMode={adminMode}
-          setAdminMode={setAdminMode}
         />
       )}
 
@@ -428,7 +356,6 @@ export default function GameArena() {
               showFeedback={feedback?.is_locked ?? false}
               problem={problem}
               gameState={gameState}
-              onAutoSolve={handleAutoSolve}
               feedback={feedback}
             />
 

@@ -238,7 +238,8 @@ class StateManager:
         if "problem_start_time" in state:
             time_spent = int(time.time() - state["problem_start_time"])
 
-        current_micro_topic = topic_map[state["selected_topic_order"]]["name"]
+        selected_topic_order = int(state["selected_topic_order"])
+        current_micro_topic = topic_map[selected_topic_order]["name"]
 
         # Clean equation state for telemetry
         keys_to_remove = [
@@ -291,9 +292,7 @@ class StateManager:
                 state["streak"] == config.STARS_FOR_UNLOCK
                 and state["selected_level"] == prog["unlocked_level"]
             ):
-                current_topic_max = topic_map[state["selected_topic_order"]][
-                    "max_level"
-                ]
+                current_topic_max = topic_map[selected_topic_order]["max_level"]
 
                 if prog["unlocked_level"] < current_topic_max:
                     # Check for flawless bonus when leveling up
@@ -341,3 +340,4 @@ class StateManager:
 
         # Sync to database
         cls.sync_to_db(state)
+        return eval_result

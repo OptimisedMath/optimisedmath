@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import type { Problem, GameState } from '@/lib/types';
 import 'katex/dist/katex.min.css';
@@ -15,7 +16,6 @@ interface AnswerInputProps {
   showFeedback: boolean;
   problem: Problem | null;
   gameState: GameState;
-  onAutoSolve?: () => void;
   feedback?: { correct: boolean } | null;
 }
 
@@ -27,7 +27,6 @@ export default function AnswerInput({
   showFeedback,
   problem,
   gameState,
-  onAutoSolve,
   feedback,
 }: AnswerInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,13 +51,13 @@ export default function AnswerInput({
 
   useEffect(() => {
     const handleGlobalNumberKey = (e: KeyboardEvent) => {
-      if (inputMode !== 'radio' || !problem?.options || showFeedback) return;
+      if (inputMode !== 'radio' || !problem?.answer_options || showFeedback) return;
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
       const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= problem.options.length) {
+      if (num >= 1 && num <= problem.answer_options.length) {
         e.preventDefault();
-        onChange(problem.options[num - 1]);
+        onChange(problem.answer_options[num - 1]);
       }
     };
     window.addEventListener('keydown', handleGlobalNumberKey);
@@ -87,11 +86,11 @@ export default function AnswerInput({
   };
 
   // Render radio mode
-  if (inputMode === 'radio' && problem?.options) {
+  if (inputMode === 'radio' && problem?.answer_options) {
     return (
       <div className="flex flex-col items-center gap-4" onKeyDown={handleRadioKeyDown} tabIndex={0}>
         <div className="flex flex-col gap-3 w-full">
-          {problem.options.map((option, index) => (
+          {problem.answer_options.map((option, index) => (
             <button
               key={index}
               onClick={() => !showFeedback && onChange(option)}
@@ -110,8 +109,6 @@ export default function AnswerInput({
                     ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                     : value === option && !feedback.correct
                     ? 'border-red-500 bg-red-600/85 text-white ring-2 ring-red-300'
-                    : option === problem?.correct
-                    ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                     : 'border-slate-200 bg-slate-100 text-slate-500 opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                   : value === option
                     ? 'border-sky-500 bg-sky-50 text-sky-700 ring-4 ring-sky-100 dark:bg-sky-500/20 dark:text-sky-200 dark:ring-sky-500/20'
@@ -135,18 +132,9 @@ export default function AnswerInput({
               disabled={value.trim() === '' || disabled}
               className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
             >
+              <Check className="mr-2 h-5 w-5" aria-hidden="true" />
               Sprawdź odpowiedź
             </Button>
-            {onAutoSolve && (
-              <Button
-                onClick={onAutoSolve}
-                disabled={disabled}
-                variant="outline"
-                className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                🪄 Auto-Solve
-              </Button>
-            )}
           </>
         )}
       </div>
@@ -206,18 +194,9 @@ export default function AnswerInput({
             disabled={value.trim() === '' || disabled}
             className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
           >
+            <Check className="mr-2 h-5 w-5" aria-hidden="true" />
             Sprawdź odpowiedź
           </Button>
-          {onAutoSolve && (
-            <Button
-              onClick={onAutoSolve}
-              disabled={disabled}
-              variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              🪄 Auto-Solve
-            </Button>
-          )}
         </>
       ) : null}
     </form>

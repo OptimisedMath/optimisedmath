@@ -23,18 +23,13 @@ export interface GameState {
   show_celebration: boolean;
   progress: Record<string, TopicProgress>;
   current_problem: Problem | null;
+  can_submit: boolean;
+  can_advance: boolean;
 }
 
 export interface Problem {
   question: string;
-  correct: string;
-  options?: string[];
-  options_map?: Record<string, string>;
-  messages?: {
-    t1: string;
-    t2: string;
-    t3: string;
-  };
+  answer_options?: string[];
   level: number;
   level_name: string;
   problem_id: string;

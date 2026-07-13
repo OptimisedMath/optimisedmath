@@ -11,7 +11,7 @@ import backend.config as config
 import backend.engine as engine
 import backend.state_manager as state_manager
 from backend.core import db
-from backend.core.utils import clean_latex
+from backend.core.utils import clean_latex, clean_mobile_input
 
 # ============================================================================
 # Pydantic Models
@@ -89,6 +89,12 @@ class GameState(BaseModel):
     # Optional current problem (not persisted)
     current_problem: Optional[Dict[str, Any]] = Field(
         default=None, description="Current problem being worked on"
+    )
+    can_submit: bool = Field(
+        default=False, description="Whether the current problem can be submitted"
+    )
+    can_advance: bool = Field(
+        default=False, description="Whether the current session can advance"
     )
 
     model_config = ConfigDict(
@@ -242,6 +248,14 @@ def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
 
     state_copy = dict(state_dict)
     state_copy["progress"] = progress
+    if state_copy.get("current_problem"):
+        state_copy["current_problem"] = _public_problem(
+            state_copy["current_problem"], state_copy
+        )
+    state_copy["can_submit"] = bool(
+        state_copy.get("current_problem") and not state_copy.get("problem_answered")
+    )
+    state_copy["can_advance"] = bool(state_copy.get("problem_answered"))
     show_val = state_copy.get("show_celebration")
     if not isinstance(show_val, bool):
         if isinstance(show_val, str):
@@ -254,6 +268,70 @@ def _dict_to_gamestate(state_dict: Dict[str, Any]) -> GameState:
 def _gamestate_to_dict(game_state: GameState) -> Dict[str, Any]:
     """Convert a GameState Pydantic model to a dictionary."""
     return game_state.model_dump()
+
+
+def _is_safe_svg_fragment(value: str) -> bool:
+    lowered = value.strip().lower()
+    if not lowered.startswith("<svg") or not lowered.endswith("</svg>"):
+        return False
+    blocked_tokens = ["<script", "javascript:", " onload=", " onclick=", " onerror="]
+    return not any(token in lowered for token in blocked_tokens)
+
+
+def _public_problem(problem: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+    """Return only fields needed by the visual layer."""
+    public_keys = {
+        "problem_id",
+        "question",
+        "image_html",
+        "level",
+        "level_name",
+        "level_display",
+        "keyboard_type",
+    }
+    public_problem = {key: problem.get(key) for key in public_keys if key in problem}
+    image_html = public_problem.get("image_html")
+    if image_html and not _is_safe_svg_fragment(str(image_html)):
+        public_problem["image_html"] = None
+    public_problem["answer_options"] = list(problem.get("options", []))
+    public_problem["input_mode"] = state.get("current_input_mode", "radio")
+    return public_problem
+
+
+def _build_topic_map(curriculum: Dict[str, Any], macro_topic: str) -> Dict[int, Dict[str, Any]]:
+    topic_map = {}
+    for topic in curriculum.get(macro_topic, []):
+        order = topic.get("Topic_Order")
+        name = topic.get("Micro_Topic")
+        max_level = topic.get("Level", 1)
+        if order and name:
+            topic_map[int(order)] = {"name": name, "max_level": int(max_level)}
+    return topic_map
+
+
+def _validate_unlocked_navigation(
+    state: Dict[str, Any],
+    macro_topic: str,
+    topic_order: int,
+    selected_level: int,
+    topic_map: Dict[int, Dict[str, Any]],
+) -> None:
+    progress = state.get("progress", {}).get(macro_topic, {})
+    first_order = min(topic_map) if topic_map else 1
+    unlocked_order = int(progress.get("unlocked_order", first_order))
+    unlocked_level = int(progress.get("unlocked_level", 1))
+
+    if topic_order > unlocked_order:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Topic is locked",
+        )
+
+    if topic_order == unlocked_order and selected_level > unlocked_level:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Level is locked",
+        )
 
 
 # ============================================================================
@@ -294,7 +372,6 @@ app.add_middleware(
         "http://localhost:3000",  # React development server
         "http://localhost:8000",  # Local testing
         "https://localhost:3000",  # HTTPS variant
-        "*",
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
@@ -449,10 +526,9 @@ async def session_navigate(request: SessionNavigateRequest):
             detail=f"Topic order {topic_order} not found in curriculum",
         )
 
-    selected_topic = next(
-        topic for topic in topic_list if int(topic["Topic_Order"]) == topic_order
-    )
-    max_level = int(selected_topic["Level"])
+    topic_map = _build_topic_map(curriculum, macro_topic)
+    selected_topic = topic_map[topic_order]
+    max_level = int(selected_topic["max_level"])
     selected_level = (
         request.selected_level
         if request.selected_level is not None
@@ -465,6 +541,10 @@ async def session_navigate(request: SessionNavigateRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Level {selected_level} is not available for topic order {topic_order}",
         )
+
+    _validate_unlocked_navigation(
+        state, macro_topic, topic_order, selected_level, topic_map
+    )
 
     state_manager.StateManager.navigate_to(
         state,
@@ -560,8 +640,9 @@ async def problem_next(session_id: str):
     state["current_problem"] = problem
 
     problem["input_mode"] = state.get("current_input_mode", "radio")
+    state_manager.StateManager.sync_to_db(state)
 
-    return {"problem": problem, "state": _dict_to_gamestate(state)}
+    return {"problem": _public_problem(problem, state), "state": _dict_to_gamestate(state)}
 
 
 # ============================================================================
@@ -612,21 +693,17 @@ async def problem_submit(request: ProblemSubmissionRequest):
             detail=f"Macro topic '{macro_topic}' not found",
         )
 
-    # Build topic_map for process_submission
-    # topic_map should map Topic_Order -> {name, max_level}
-    topic_list = curriculum[macro_topic]
-    topic_map = {}
-    for topic in topic_list:
-        order = topic.get("Topic_Order")
-        name = topic.get("Micro_Topic")
-        max_level = topic.get("Level", 1)
-        if order and name:
-            topic_map[order] = {"name": name, "max_level": int(max_level)}
+    topic_map = _build_topic_map(curriculum, macro_topic)
+    user_input = (
+        clean_mobile_input(request.user_input)
+        if request.is_text_mode
+        else request.user_input
+    )
 
     # Process the submission
     try:
-        state_manager.StateManager.process_submission(
-            state, problem, request.user_input, request.is_text_mode, topic_map
+        eval_result = state_manager.StateManager.process_submission(
+            state, problem, user_input, request.is_text_mode, topic_map
         )
     except Exception as e:
         print(f"Error in process_submission: {e}")
@@ -635,24 +712,10 @@ async def problem_submit(request: ProblemSubmissionRequest):
             detail=f"Error processing submission: {str(e)}",
         )
 
-    # Evaluate to get is_correct
-    try:
-        eval_result = engine.evaluate_answer(
-            request.user_input, problem, request.is_text_mode
-        )
-        is_correct = eval_result.get("is_correct", False)
-        feedback = state.get("feedback_msg", "")
-    except Exception as e:
-        print(f"Error in evaluate_answer: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error evaluating answer: {str(e)}",
-        )
-
     return {
         "state": _dict_to_gamestate(state),
-        "is_correct": is_correct,
-        "feedback": feedback,
+        "is_correct": eval_result.get("is_correct", False),
+        "feedback": state.get("feedback_msg", ""),
     }
 
 
@@ -664,6 +727,12 @@ async def problem_auto_solve(request: AutoSolveRequest):
     - Radio mode: submits the raw LaTeX key that matches options_map
     - Text mode: converts LaTeX to human notation via clean_latex (e.g. 3\\frac{3}{4} → 3 3/4)
     """
+    if not config.ENABLE_DEV_TOOLS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Development tools are disabled",
+        )
+
     state = _get_session(request.session_id)
 
     if not state.get("current_problem"):
@@ -693,7 +762,6 @@ async def problem_auto_solve(request: AutoSolveRequest):
     else:
         user_input = problem["correct"]
 
-    # Build topic_map (mirrors /problem/submit)
     curriculum = engine.get_curriculum()
     macro_topic = state.get("selected_macro")
 
@@ -703,17 +771,10 @@ async def problem_auto_solve(request: AutoSolveRequest):
             detail=f"Macro topic '{macro_topic}' not found",
         )
 
-    topic_list = curriculum[macro_topic]
-    topic_map = {}
-    for topic in topic_list:
-        order = topic.get("Topic_Order")
-        name = topic.get("Micro_Topic")
-        max_level = topic.get("Level", 1)
-        if order and name:
-            topic_map[order] = {"name": name, "max_level": int(max_level)}
+    topic_map = _build_topic_map(curriculum, macro_topic)
 
     try:
-        state_manager.StateManager.process_submission(
+        eval_result = state_manager.StateManager.process_submission(
             state, problem, user_input, is_text_mode, topic_map
         )
     except Exception as e:
@@ -723,21 +784,10 @@ async def problem_auto_solve(request: AutoSolveRequest):
             detail=f"Error processing auto-solve: {str(e)}",
         )
 
-    try:
-        eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
-        is_correct = eval_result.get("is_correct", False)
-        feedback = state.get("feedback_msg", "")
-    except Exception as e:
-        print(f"Error in auto-solve evaluate_answer: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error evaluating auto-solve: {str(e)}",
-        )
-
     return {
         "state": _dict_to_gamestate(state),
-        "is_correct": is_correct,
-        "feedback": feedback,
+        "is_correct": eval_result.get("is_correct", False),
+        "feedback": state.get("feedback_msg", ""),
     }
 
 

@@ -45,3 +45,7 @@ MAX_RETRIES_DUPLICATE_CHECK = 10
 
 # --- ERROR MESSAGES & FEEDBACK ---
 DEFAULT_WRONG_MESSAGE = "Niepoprawna odpowiedź, spróbuj ponownie."
+
+# --- DEVELOPMENT TOOLS ---
+# Keep answer-revealing helper endpoints disabled unless explicitly enabled.
+ENABLE_DEV_TOOLS = False

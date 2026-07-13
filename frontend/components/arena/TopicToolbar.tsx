@@ -9,8 +9,6 @@ interface TopicToolbarProps {
   isNavigating: boolean;
   onNavigate: (macro: string, topicOrder: number, level: number) => void;
   onReset: () => void;
-  adminMode: boolean;
-  setAdminMode: (value: boolean) => void;
 }
 
 export default function TopicToolbar({
@@ -19,8 +17,6 @@ export default function TopicToolbar({
   isNavigating,
   onNavigate,
   onReset,
-  adminMode,
-  setAdminMode,
 }: TopicToolbarProps) {
   const selectedMacro = gameState.selected_macro || curriculum.macro_topics[0] || '';
   const topics = curriculum.topics[selectedMacro] || [];
@@ -32,11 +28,10 @@ export default function TopicToolbar({
   const unlockedOrder = progress?.unlocked_order ?? firstTopic?.order ?? 1;
   const unlockedLevel = progress?.unlocked_level ?? 1;
 
-  // When admin mode is enabled, show all topics and levels
-  const availableTopics = adminMode ? topics : topics.filter((topic) => topic.order <= unlockedOrder);
+  const availableTopics = topics.filter((topic) => topic.order <= unlockedOrder);
   const topicOptions = availableTopics.length > 0 ? availableTopics : topics.slice(0, 1);
   const levelLimit = selectedTopic
-    ? adminMode || selectedTopic.order < unlockedOrder
+    ? selectedTopic.order < unlockedOrder
       ? selectedTopic.max_level
       : Math.min(unlockedLevel, selectedTopic.max_level)
     : 1;
@@ -71,19 +66,7 @@ export default function TopicToolbar({
     <div className="w-full max-w-3xl rounded-2xl border border-white/70 bg-white/80 p-4 shadow-[0_16px_50px_rgba(15,23,42,0.10)] backdrop-blur-xl mb-4 dark:border-white/10 dark:bg-slate-900/75">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Admin Mode:</span>
-            <button
-              onClick={() => setAdminMode(!adminMode)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all shadow-sm ${
-                adminMode
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700'
-              }`}
-            >
-              {adminMode ? 'ON 🛠️' : 'OFF'}
-            </button>
-          </div>
+          <div className="text-sm font-medium text-slate-600 dark:text-slate-300">Wybór tematu</div>
           <Button
             onClick={onReset}
             disabled={isNavigating}
@@ -149,7 +132,6 @@ export default function TopicToolbar({
           <Badge variant="secondary">{selectedTopic?.name || 'No topic selected'}</Badge>
           <span>Level {selectedLevel}</span>
           {isNavigating && <span className="text-blue-300">Loading topic...</span>}
-          {adminMode && <span className="text-green-400">🛠️ Admin mode active</span>}
         </div>
       </div>
     </div>

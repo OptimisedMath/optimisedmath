@@ -1,4 +1,5 @@
 import functools
+import logging
 import yaml
 import importlib
 from pathlib import Path
@@ -7,6 +8,7 @@ import backend.config as config
 import uuid
 
 BASE_DIR = Path(__file__).resolve().parent
+logger = logging.getLogger(__name__)
 
 # --- THE AUTOLOADER ---
 FUNCTION_REGISTRY = {}
@@ -58,8 +60,8 @@ def get_curriculum() -> dict:
             if topics:
                 curriculum_dict[macro_topic] = topics
 
-        except Exception as e:
-            print(f"Error loading {file_path.name}: {e}")
+        except Exception:
+            logger.exception("Error loading curriculum file %s", file_path.name)
 
     return curriculum_dict
 
@@ -137,8 +139,12 @@ def generate_problem(topic_function):
             problem = topic_function()
             if problem is not None:
                 return problem
-        except Exception as e:
-            # Log individual generation errors but continue retrying
+        except Exception:
+            logger.exception(
+                "Problem generator %s failed on attempt %s",
+                topic_function.__name__,
+                attempt + 1,
+            )
             continue
     
     raise RuntimeError(
