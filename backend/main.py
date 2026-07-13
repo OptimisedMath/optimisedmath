@@ -370,8 +370,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # React development server
+        "http://127.0.0.1:3000",  # Local loopback dev server
         "http://localhost:8000",  # Local testing
+        "http://127.0.0.1:8000",  # Local loopback backend
         "https://localhost:3000",  # HTTPS variant
+        "https://127.0.0.1:3000",  # HTTPS loopback variant
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
