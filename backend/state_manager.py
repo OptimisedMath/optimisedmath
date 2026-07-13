@@ -1,6 +1,3 @@
-# Pure Python state management - NO Streamlit imports
-# This enables unit testing and framework-agnostic state handling
-
 import uuid
 import json
 import time
