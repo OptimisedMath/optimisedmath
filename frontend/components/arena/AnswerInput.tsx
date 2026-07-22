@@ -50,19 +50,26 @@ export default function AnswerInput({
   };
 
   useEffect(() => {
-    const handleGlobalNumberKey = (e: KeyboardEvent) => {
-      if (inputMode !== 'radio' || !problem?.answer_options || showFeedback) return;
+    const handleGlobalRadioKey = (e: KeyboardEvent) => {
+      if (inputMode !== 'radio' || !problem?.answer_options || showFeedback || disabled) return;
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'Enter' && value.trim() !== '') {
+        e.preventDefault();
+        onSubmit();
+        return;
+      }
+
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= problem.answer_options.length) {
         e.preventDefault();
-        onSubmit(problem.answer_options[num - 1]);
+        onChange(problem.answer_options[num - 1]);
       }
     };
-    window.addEventListener('keydown', handleGlobalNumberKey);
-    return () => window.removeEventListener('keydown', handleGlobalNumberKey);
-  }, [inputMode, problem, showFeedback, onSubmit]);
+    window.addEventListener('keydown', handleGlobalRadioKey);
+    return () => window.removeEventListener('keydown', handleGlobalRadioKey);
+  }, [inputMode, problem, showFeedback, disabled, value, onChange, onSubmit]);
   const keyboardType = problem?.keyboard_type || 'default';
 
   // Convert plain text input to LaTeX for display
@@ -93,11 +100,10 @@ export default function AnswerInput({
           {problem.answer_options.map((option, index) => (
             <button
               key={index}
-              onClick={() => !showFeedback && onSubmit(option)}
+              onClick={() => !showFeedback && onChange(option)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !showFeedback) {
+                if (e.key === 'Enter') {
                   e.preventDefault();
-                  onSubmit(option);
                 }
               }}
               disabled={showFeedback}
