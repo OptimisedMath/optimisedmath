@@ -27,6 +27,7 @@ export default function GameArena() {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const isFetchingRef = useRef(false);
   const isAdvancingRef = useRef(false);
+  const feedbackRef = useRef<HTMLDivElement>(null);
   const sessionId = gameState?.session_id;
 
   const fetchNextProblem = useCallback(async (
@@ -235,6 +236,16 @@ export default function GameArena() {
   }, [gameState, fetchNextProblem]);
 
   useEffect(() => {
+    if (!feedback) return;
+
+    const frameId = requestAnimationFrame(() => {
+      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [feedback]);
+
+  useEffect(() => {
     const handleAdvanceKey = (e: KeyboardEvent) => {
       if (
         e.key === 'Enter' &&
@@ -365,20 +376,24 @@ export default function GameArena() {
               feedback={feedback}
             />
 
-            {feedback && !feedback.is_locked && (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
-                {feedback.message}
-              </div>
-            )}
+            {feedback && (
+              <div ref={feedbackRef}>
+                {!feedback.is_locked && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                    {feedback.message}
+                  </div>
+                )}
 
-            {feedback && feedback.is_locked && (
-              <FeedbackCard
-                feedback={feedback}
-                onNextProblem={handleAdvance}
-                topicCompleted={gameState.topic_completed}
-                gameState={gameState}
-                disabled={isAdvancing}
-              />
+                {feedback.is_locked && (
+                  <FeedbackCard
+                    feedback={feedback}
+                    onNextProblem={handleAdvance}
+                    topicCompleted={gameState.topic_completed}
+                    gameState={gameState}
+                    disabled={isAdvancing}
+                  />
+                )}
+              </div>
             )}
           </>
         )}
