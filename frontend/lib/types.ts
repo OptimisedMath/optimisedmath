@@ -91,3 +91,5 @@ export interface Feedback {
   feedback_type: string;
   is_locked: boolean;
 }
+
+export type SubmitAnswerHandler = (answerOverride?: string) => void;

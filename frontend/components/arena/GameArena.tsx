@@ -10,7 +10,7 @@ import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
-import type { CurriculumResponse, GameState, Problem, Feedback } from '@/lib/types';
+import type { CurriculumResponse, GameState, Problem, Feedback, SubmitAnswerHandler } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
 
@@ -116,12 +116,18 @@ export default function GameArena() {
     };
   }, [fetchNextProblem, router]);
 
-  const handleSubmit = async () => {
+  const handleSubmit: SubmitAnswerHandler = async (answerOverride) => {
     if (isSubmitting) {
       return;
     }
-    if (!gameState?.session_id || !problem?.problem_id || userAnswer.trim() === '') {
+
+    const answer = (answerOverride ?? userAnswer).trim();
+    if (!gameState?.session_id || !problem?.problem_id || answer === '') {
       return;
+    }
+
+    if (answerOverride !== undefined) {
+      setUserAnswer(answerOverride);
     }
 
     setIsSubmitting(true);
@@ -131,7 +137,7 @@ export default function GameArena() {
       const response = await submitAnswer({
         session_id: gameState.session_id,
         problem_id: problem.problem_id,
-        user_input: userAnswer,
+        user_input: answer,
         is_text_mode: isTextMode,
       });
       applySubmissionResponse(response);

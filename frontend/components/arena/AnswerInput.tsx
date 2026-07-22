@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
-import type { Problem, GameState } from '@/lib/types';
+import type { Problem, GameState, SubmitAnswerHandler } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
 interface AnswerInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: SubmitAnswerHandler;
   disabled: boolean;
   showFeedback: boolean;
   problem: Problem | null;
@@ -57,12 +57,12 @@ export default function AnswerInput({
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= problem.answer_options.length) {
         e.preventDefault();
-        onChange(problem.answer_options[num - 1]);
+        onSubmit(problem.answer_options[num - 1]);
       }
     };
     window.addEventListener('keydown', handleGlobalNumberKey);
     return () => window.removeEventListener('keydown', handleGlobalNumberKey);
-  }, [inputMode, problem, showFeedback, onChange]);
+  }, [inputMode, problem, showFeedback, onSubmit]);
   const keyboardType = problem?.keyboard_type || 'default';
 
   // Convert plain text input to LaTeX for display
@@ -93,13 +93,11 @@ export default function AnswerInput({
           {problem.answer_options.map((option, index) => (
             <button
               key={index}
-              onClick={() => !showFeedback && onChange(option)}
+              onClick={() => !showFeedback && onSubmit(option)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !showFeedback) {
                   e.preventDefault();
-                  onChange(option);
-                  // Auto-submit after selection
-                  setTimeout(() => onSubmit(), 100);
+                  onSubmit(option);
                 }
               }}
               disabled={showFeedback}
@@ -126,16 +124,14 @@ export default function AnswerInput({
         </div>
 
         {!showFeedback && (
-          <>
             <Button
-              onClick={onSubmit}
+              onClick={() => onSubmit()}
               disabled={value.trim() === '' || disabled}
               className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
             >
               <Check className="mr-2 h-5 w-5" aria-hidden="true" />
               Sprawdź odpowiedź
             </Button>
-          </>
         )}
       </div>
     );
