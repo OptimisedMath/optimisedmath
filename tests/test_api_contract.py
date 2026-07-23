@@ -43,6 +43,35 @@ def make_state(problem, *, streak=0, input_mode="radio"):
     return state
 
 
+def test_wrong_radio_submit_reveals_correct_answer():
+    problem = {
+        "problem_id": "p-radio-wrong",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+    }
+    state = make_state(problem, input_mode="radio")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-radio-wrong",
+                user_input="3",
+                is_text_mode=False,
+            )
+        )
+    )
+
+    assert response["is_correct"] is False
+    revealed = response["state"].current_problem
+    assert revealed["correct_answer"] == "2"
+    assert "correct" not in revealed
+    assert "options_map" not in revealed
+
+
 def test_next_problem_hides_answer_contract_fields():
     state = run(
         main.session_start(

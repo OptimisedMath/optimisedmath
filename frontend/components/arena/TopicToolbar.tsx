@@ -83,7 +83,7 @@ export default function TopicToolbar({
             size="sm"
             className="text-sm"
           >
-            🔄 Reset Progress
+            🔄 Zresetuj postęp
           </Button>
         </div>
 

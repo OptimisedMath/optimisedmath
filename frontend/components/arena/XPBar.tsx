@@ -30,7 +30,7 @@ export default function XPBar({ gameState, onLogout }: XPBarProps) {
             variant={gameState.flawless_eligible ? 'default' : 'destructive'}
             className="ml-1 sm:ml-2 shadow-sm"
           >
-            {gameState.flawless_eligible ? 'Active 💎' : 'Lost ❌'}
+            {gameState.flawless_eligible ? 'Aktywny 💎' : 'Stracony ❌'}
           </Badge>
         </div>
         <button

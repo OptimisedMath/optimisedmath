@@ -30,6 +30,7 @@ export interface GameState {
 export interface Problem {
   question: string;
   answer_options?: string[];
+  correct_answer?: string;
   level: number;
   level_name: string;
   problem_id: string;

@@ -73,6 +73,8 @@ def _public_problem(problem: Dict[str, Any], state: GameState) -> Dict[str, Any]
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
     public["input_mode"] = state.current_input_mode
+    if state.problem_answered and state.current_input_mode == "radio":
+        public["correct_answer"] = problem.get("correct")
     return public
 
 

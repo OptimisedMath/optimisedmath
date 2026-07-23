@@ -116,6 +116,8 @@ export default function AnswerInput({
                     ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                     : value === option && !feedback.correct
                     ? 'border-red-500 bg-red-600/85 text-white ring-2 ring-red-300'
+                    : !feedback.correct && problem.correct_answer === option
+                    ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                     : 'border-slate-200 bg-slate-100 text-slate-500 opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                   : value === option
                     ? 'border-sky-500 bg-sky-50 text-sky-700 ring-4 ring-sky-100 dark:bg-sky-500/20 dark:text-sky-200 dark:ring-sky-500/20'

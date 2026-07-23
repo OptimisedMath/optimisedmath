@@ -25,7 +25,7 @@ export default function ProgressBar({ gameState, curriculum, type }: ProgressBar
       <div className="w-full max-w-3xl mb-4 rounded-xl border border-white/70 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/55">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
           <span className="truncate font-medium">🏆 {selectedMacro}</span>
-          <span className="shrink-0 tabular-nums">{completedTopics}/{totalTopics} topics completed</span>
+          <span className="shrink-0 tabular-nums">{completedTopics}/{totalTopics} tematów ukończonych</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div
