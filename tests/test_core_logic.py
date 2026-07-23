@@ -1,6 +1,12 @@
 # tests/test_core_logic.py
 import pytest
-from backend.core.utils import clean_mobile_input, clean_latex, check_text_answer, fmt_dec
+from backend.core.utils import (
+    clean_mobile_input,
+    clean_latex,
+    check_text_answer,
+    fmt_dec,
+    format_fraction_answer,
+)
 # import engine # Uncomment when ready to test engine.evaluate_answer
 
 class TestMobileSanitizer:
@@ -61,6 +67,21 @@ class TestFormatters:
     ])
     def test_fmt_dec(self, val, expected):
         assert fmt_dec(val) == expected
+
+
+class TestFormatFractionAnswer:
+    @pytest.mark.parametrize("num, den, simplify, expected", [
+        (9, 3, False, r"\frac{9}{3}"),
+        (9, 3, True, "3"),
+        (6, 4, False, r"\frac{6}{4}"),
+        (6, 4, True, r"1\frac{1}{2}"),
+        (3, 1, False, "3"),
+    ])
+    def test_format_fraction_answer(self, num, den, simplify, expected):
+        assert format_fraction_answer(num, den, simplify=simplify) == expected
+
+    def test_format_fraction_answer_mixed_unsimplified(self):
+        assert format_fraction_answer(2, 3, 1, simplify=False) == r"1\frac{2}{3}"
 
 # --- MOCKING THE ENGINE (Example for future implementation) ---
 # class TestEngineEvaluator:

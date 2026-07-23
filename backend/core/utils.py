@@ -35,6 +35,15 @@ def format_fraction_question(n, d, w=None):
         return rf"\frac{{{n}}}{{{d}}}"
 
 
+def format_fraction_answer(num, den, whole=0, *, simplify=True) -> str:
+    if simplify:
+        c_str, _, _ = format_answers(num, den, whole)
+        return c_str
+    if whole:
+        return format_fraction_question(num, den, whole)
+    return str(num) if den == 1 else rf"\frac{{{num}}}{{{den}}}"
+
+
 def build_problem_dict(
     q_str,
     c_str,

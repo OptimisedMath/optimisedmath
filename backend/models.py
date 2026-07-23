@@ -8,6 +8,8 @@ from typing import Any, Callable, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+import backend.config as config
+
 
 def heal_legacy_state(data: dict) -> dict:
     """Normalize legacy dict keys from older saves into current field names."""
@@ -71,6 +73,10 @@ class GameState(BaseModel):
 
     can_submit: bool = False
     can_advance: bool = False
+    admin_mode: bool = Field(
+        default=False,
+        description="Whether the user has admin privileges (all topics + auto-solve)",
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -128,6 +134,7 @@ class GameState(BaseModel):
             else:
                 copy.show_celebration = False
         copy.problem_start_time = None
+        copy.admin_mode = config.is_admin_user(copy.username)
         return copy
 
 

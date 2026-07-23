@@ -1,5 +1,5 @@
 import random
-from backend.core.utils import build_problem_dict, format_answers
+from backend.core.utils import build_problem_dict, format_fraction_answer
 
 
 def frac_write_1() -> dict | None:
@@ -11,13 +11,13 @@ def frac_write_1() -> dict | None:
 
     q_str = rf"\text{{Zapisz dzielenie jako ułamek: }} {n} : {d}"
 
-    c_str, _, _ = format_answers(n, d)
-    t1, _, _ = format_answers(d, n)
-    t2, _, _ = format_answers(n, n + d)
+    c_str = format_fraction_answer(n, d, simplify=False)
+    t1 = format_fraction_answer(d, n, simplify=False)
+    t2 = format_fraction_answer(n, n + d, simplify=False)
     w_denom = d + random.choice([-1, 1])
     if w_denom < 2:
         w_denom = d + 1
-    w1, _, _ = format_answers(n, w_denom)
+    w1 = format_fraction_answer(n, w_denom, simplify=False)
 
     result = build_problem_dict(
         q_str, c_str, t1=t1, t2=t2, w1=w1, grading_policy="equivalent_accepted"

@@ -19,6 +19,7 @@ interface AnswerInputProps {
   gameState: GameState;
   feedback?: { correct: boolean } | null;
   textModeDisabled?: boolean;
+  onAutoSolve?: () => void;
 }
 
 export default function AnswerInput({
@@ -32,6 +33,7 @@ export default function AnswerInput({
   gameState,
   feedback,
   textModeDisabled = false,
+  onAutoSolve,
 }: AnswerInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +137,7 @@ export default function AnswerInput({
         </div>
 
         {!showFeedback && (
+            <div className="flex flex-wrap items-center justify-center gap-3">
             <Button
               onClick={() => onSubmit()}
               disabled={submitDisabled}
@@ -143,6 +146,17 @@ export default function AnswerInput({
               <Check className="mr-2 h-5 w-5" aria-hidden="true" />
               Sprawdź odpowiedź
             </Button>
+            {onAutoSolve && (
+              <Button
+                onClick={onAutoSolve}
+                disabled={disabled}
+                variant="outline"
+                className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                🪄 Auto-Solve
+              </Button>
+            )}
+            </div>
         )}
       </div>
     );
@@ -194,7 +208,7 @@ export default function AnswerInput({
       )}
 
       {!showFeedback ? (
-        <>
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
             type="submit"
             disabled={submitDisabled}
@@ -203,7 +217,18 @@ export default function AnswerInput({
             <Check className="mr-2 h-5 w-5" aria-hidden="true" />
             Sprawdź odpowiedź
           </Button>
-        </>
+          {onAutoSolve && (
+            <Button
+              type="button"
+              onClick={onAutoSolve}
+              disabled={disabled}
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              🪄 Auto-Solve
+            </Button>
+          )}
+        </div>
       ) : null}
     </form>
   );

@@ -49,3 +49,12 @@ DEFAULT_WRONG_MESSAGE = "Niepoprawna odpowiedź, spróbuj ponownie."
 # --- DEVELOPMENT TOOLS ---
 # Keep answer-revealing helper endpoints disabled unless explicitly enabled.
 ENABLE_DEV_TOOLS = False
+
+# Usernames that receive admin mode (all topics unlocked + auto-solve).
+ADMIN_USERNAMES = frozenset({"Antoni", "Antonio", "Tony"})
+
+
+def is_admin_user(username: str | None) -> bool:
+    if not username:
+        return False
+    return username.strip() in ADMIN_USERNAMES

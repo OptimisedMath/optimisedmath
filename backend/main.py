@@ -85,6 +85,9 @@ def _validate_unlocked_navigation(
     selected_level: int,
     topic_map: dict,
 ) -> None:
+    if config.is_admin_user(state.username):
+        return
+
     progress = state.progress.get(macro_topic)
     first_order = min(topic_map) if topic_map else 1
     unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
@@ -431,13 +434,13 @@ async def problem_submit(request: ProblemSubmissionRequest):
 
 @app.post("/problem/auto-solve", response_model=SubmissionResponse, tags=["Problem"])
 async def problem_auto_solve(request: AutoSolveRequest):
-    if not config.ENABLE_DEV_TOOLS:
+    state = _get_session(request.session_id)
+
+    if not config.ENABLE_DEV_TOOLS and not config.is_admin_user(state.username):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Development tools are disabled",
         )
-
-    state = _get_session(request.session_id)
 
     if not state.current_problem:
         raise HTTPException(

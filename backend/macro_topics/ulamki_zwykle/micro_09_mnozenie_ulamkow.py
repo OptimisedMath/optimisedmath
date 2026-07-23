@@ -1,6 +1,6 @@
 import random
 import math
-from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
+from backend.core.utils import format_answers, format_fraction_answer, format_fraction_question, build_problem_dict
 
 
 def frac_mult_1() -> dict | None:
@@ -38,7 +38,7 @@ def frac_mult_2() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2)}"
 
     c_str, _, _ = format_answers(n1 * n2, d1 * d2)
-    t1 = rf"\frac{{{n1 * n2}}}{{{d1 * d2}}}"  # Trap (t1): Pominąłeś skracanie
+    t1 = format_fraction_answer(n1 * n2, d1 * d2, simplify=False)
     t2, _, _ = format_answers(1, d1 * d2)
     w1, _, _ = format_answers(n1 * n2, d1 * d2 + 1)
 

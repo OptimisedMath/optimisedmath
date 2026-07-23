@@ -9,7 +9,7 @@ import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
-import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
+import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
 import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
 import type { CurriculumResponse, GameState, Feedback, SubmitAnswerHandler } from '@/lib/types';
 
@@ -178,6 +178,32 @@ export default function GameArena() {
       feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
       is_locked: nextState.can_advance,
     });
+  };
+
+  const handleAutoSolve = async () => {
+    if (isSubmitting || !gameState?.can_submit || !gameState.admin_mode) {
+      return;
+    }
+
+    if (!gameState.session_id || !problem?.problem_id) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await autoSolve({
+        session_id: gameState.session_id,
+        problem_id: problem.problem_id,
+      });
+      applySubmissionResponse(response);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
+      setError(errorMsg);
+      console.error('Error auto-solving:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleNavigate = useCallback(async (macro: string, microTopicOrder: number, level: number) => {
@@ -355,6 +381,7 @@ export default function GameArena() {
 
   const showAdvance = gameState.can_advance && feedback !== null;
   const canSubmit = gameState.can_submit && !isSubmitting;
+  const adminMode = gameState.admin_mode ?? false;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
@@ -369,6 +396,7 @@ export default function GameArena() {
           isNavigating={isNavigating}
           onNavigate={handleNavigate}
           onReset={handleReset}
+          adminMode={adminMode}
         />
       )}
 
@@ -404,6 +432,7 @@ export default function GameArena() {
               gameState={gameState}
               feedback={feedback}
               textModeDisabled={textModeDisabled}
+              onAutoSolve={adminMode ? handleAutoSolve : undefined}
             />
 
             {feedback && !showAdvance && (

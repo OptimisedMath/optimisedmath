@@ -25,6 +25,7 @@ export interface GameState {
   current_problem: Problem | null;
   can_submit: boolean;
   can_advance: boolean;
+  admin_mode?: boolean;
 }
 
 export interface Problem {

@@ -9,6 +9,7 @@ interface TopicToolbarProps {
   isNavigating: boolean;
   onNavigate: (macro: string, microTopicOrder: number, level: number) => void;
   onReset: () => void;
+  adminMode?: boolean;
 }
 
 export default function TopicToolbar({
@@ -17,6 +18,7 @@ export default function TopicToolbar({
   isNavigating,
   onNavigate,
   onReset,
+  adminMode = false,
 }: TopicToolbarProps) {
   const selectedMacro = gameState.selected_macro || curriculum.macro_topics[0] || '';
   const topics = curriculum.topics[selectedMacro] || [];
@@ -31,12 +33,12 @@ export default function TopicToolbar({
     progress?.unlocked_micro_topic_order ?? firstTopic?.micro_topic_order ?? 1;
   const unlockedLevel = progress?.unlocked_level ?? 1;
 
-  const availableTopics = topics.filter(
-    (topic) => topic.micro_topic_order <= unlockedOrder
-  );
+  const availableTopics = adminMode
+    ? topics
+    : topics.filter((topic) => topic.micro_topic_order <= unlockedOrder);
   const topicOptions = availableTopics.length > 0 ? availableTopics : topics.slice(0, 1);
   const levelLimit = selectedTopic
-    ? selectedTopic.micro_topic_order < unlockedOrder
+    ? adminMode || selectedTopic.micro_topic_order < unlockedOrder
       ? selectedTopic.max_level
       : Math.min(unlockedLevel, selectedTopic.max_level)
     : 1;
@@ -141,6 +143,7 @@ export default function TopicToolbar({
           <Badge variant="secondary">{selectedTopic?.name || 'No topic selected'}</Badge>
           <span>Level {selectedLevel}</span>
           {isNavigating && <span className="text-blue-300">Loading topic...</span>}
+          {adminMode && <span className="text-green-400">🛠️ Admin mode active</span>}
         </div>
       </div>
     </div>
