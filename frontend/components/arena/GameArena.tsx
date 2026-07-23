@@ -10,6 +10,7 @@ import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
+import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
 import type { CurriculumResponse, GameState, Feedback, SubmitAnswerHandler } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
@@ -27,6 +28,7 @@ export default function GameArena() {
   const isFetchingRef = useRef(false);
   const isAdvancingRef = useRef(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
   const sessionId = gameState?.session_id;
 
@@ -256,7 +258,10 @@ export default function GameArena() {
     if (!feedback) return;
 
     const frameId = requestAnimationFrame(() => {
-      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      const target = feedback.is_locked ? nextButtonRef.current : feedbackRef.current;
+      if (target) {
+        scrollElementClearOfMobileChrome(target);
+      }
     });
 
     return () => cancelAnimationFrame(frameId);
@@ -352,7 +357,7 @@ export default function GameArena() {
   const canSubmit = gameState.can_submit && !isSubmitting;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
       <XPBar gameState={gameState} onLogout={handleLogout} />
@@ -401,24 +406,24 @@ export default function GameArena() {
               textModeDisabled={textModeDisabled}
             />
 
-            {feedback && (
-              <div ref={feedbackRef}>
-                {!showAdvance && (
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
-                    {feedback.message}
-                  </div>
-                )}
-
-                {showAdvance && (
-                  <FeedbackCard
-                    feedback={feedback}
-                    onNextProblem={handleAdvance}
-                    topicCompleted={gameState.topic_completed}
-                    gameState={gameState}
-                    disabled={isAdvancing}
-                  />
-                )}
+            {feedback && !showAdvance && (
+              <div
+                ref={feedbackRef}
+                className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"
+              >
+                {feedback.message}
               </div>
+            )}
+
+            {feedback && showAdvance && (
+              <FeedbackCard
+                feedback={feedback}
+                onNextProblem={handleAdvance}
+                topicCompleted={gameState.topic_completed}
+                gameState={gameState}
+                disabled={isAdvancing}
+                nextButtonRef={nextButtonRef}
+              />
             )}
           </>
         )}

@@ -1,3 +1,4 @@
+import { type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import type { Feedback, GameState } from '@/lib/types';
 
@@ -7,9 +8,10 @@ interface FeedbackCardProps {
   topicCompleted?: boolean;
   gameState: GameState;
   disabled?: boolean;
+  nextButtonRef?: RefObject<HTMLButtonElement | null>;
 }
 
-export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState, disabled = false }: FeedbackCardProps) {
+export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState, disabled = false, nextButtonRef }: FeedbackCardProps) {
   if (!feedback) {
     return null;
   }
@@ -48,6 +50,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
         </div>
       ) : (
         <Button
+          ref={nextButtonRef}
           type="button"
           onClick={onNextProblem}
           disabled={disabled}
