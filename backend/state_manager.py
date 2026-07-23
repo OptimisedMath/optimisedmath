@@ -303,6 +303,5 @@ class StateManager:
             if state.feedback_type != "info":
                 state.streak -= 1
 
-        state.current_input_mode = cls._resolve_input_mode(state, topic_map)
         cls.sync_to_db(state)
         return eval_result

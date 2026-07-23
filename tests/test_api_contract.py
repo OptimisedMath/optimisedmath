@@ -87,6 +87,68 @@ def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
     assert response["state"].current_input_mode == "text"
 
 
+def test_input_mode_defers_radio_to_text_until_next_problem():
+    problem = {
+        "problem_id": "p-radio-defer",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, streak=0, input_mode="radio")
+
+    submit_response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-radio-defer",
+                user_input="2",
+                is_text_mode=False,
+            )
+        )
+    )
+
+    assert submit_response["is_correct"] is True
+    assert submit_response["state"].streak == 1
+    assert submit_response["state"].current_input_mode == "radio"
+
+    next_response = run(main.problem_next(state.session_id))
+    assert next_response["state"].current_input_mode == "text"
+    assert next_response["problem"]["input_mode"] == "text"
+
+
+def test_input_mode_defers_text_to_radio_until_next_problem():
+    problem = {
+        "problem_id": "p-text-defer",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, streak=1, input_mode="text")
+
+    submit_response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-text-defer",
+                user_input="3",
+                is_text_mode=True,
+            )
+        )
+    )
+
+    assert submit_response["is_correct"] is False
+    assert submit_response["state"].streak == 0
+    assert submit_response["state"].current_input_mode == "text"
+
+    next_response = run(main.problem_next(state.session_id))
+    assert next_response["state"].current_input_mode == "radio"
+    assert next_response["problem"]["input_mode"] == "radio"
+
+
 def test_soft_syntax_error_does_not_lock_problem():
     problem = {
         "problem_id": "p-soft",

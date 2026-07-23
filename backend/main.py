@@ -333,6 +333,11 @@ async def problem_next(session_id: str):
             detail=f"Micro-topic order {micro_topic_order} not found in curriculum",
         )
 
+    topic_map = engine.build_topic_map(curriculum, macro_topic)
+    state.current_input_mode = state_manager.StateManager._resolve_input_mode(
+        state, topic_map
+    )
+
     level = state.selected_level
     problem = engine.get_problem_from_db(macro_topic, micro_topic, level)
 
