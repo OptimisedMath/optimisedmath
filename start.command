@@ -8,6 +8,18 @@ cd "$SCRIPT_DIR"
 export NO_PROXY="localhost,127.0.0.1,*.local"
 export no_proxy="$NO_PROXY"
 
+get_local_ip() {
+    for iface in en0 en1 bridge0; do
+        ip=$(ipconfig getifaddr "$iface" 2>/dev/null)
+        if [ -n "$ip" ]; then
+            echo "$ip"
+            return
+        fi
+    done
+}
+
+LOCAL_IP="$(get_local_ip)"
+
 echo "🚀 Starting Optimised Math Learning Platform..."
 
 # 1. Start the Python FastAPI backend in the background
@@ -52,6 +64,11 @@ open http://127.0.0.1:3000/login
 # Keep this script window responsive so you can close everything cleanly
 echo "------------------------------------------------"
 echo "🟢 App is running! Press [CTRL+C] in this window to stop the backend."
+if [ -n "$LOCAL_IP" ]; then
+    echo "📱 On your phone (same WiFi), open: http://$LOCAL_IP:3000/login"
+else
+    echo "📱 On your phone: use your Mac's WiFi IP with http://<mac-ip>:3000/login"
+fi
 echo "------------------------------------------------"
 
 # Trap Ctrl+C to kill the backend server process when you're done
