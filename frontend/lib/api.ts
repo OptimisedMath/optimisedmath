@@ -11,7 +11,9 @@ import type {
   ProblemSubmissionRequest,
 } from './types';
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+// Same-origin /api is proxied to the backend by Next.js (see next.config.ts).
+// This avoids WiFi/corporate proxy settings intercepting direct localhost:8000 calls.
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: apiBaseUrl,

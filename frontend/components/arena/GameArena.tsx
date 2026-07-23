@@ -27,6 +27,7 @@ export default function GameArena() {
   const isFetchingRef = useRef(false);
   const isAdvancingRef = useRef(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const sessionId = gameState?.session_id;
 
   const problem = gameState?.current_problem ?? null;
@@ -86,6 +87,7 @@ export default function GameArena() {
       const storedSessionId = localStorage.getItem('session_id');
 
       if (!storedUsername || !storedSessionId) {
+        setNeedsLogin(true);
         router.push('/login');
         return;
       }
@@ -341,7 +343,7 @@ export default function GameArena() {
   if (!gameState) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
-        Connecting to Python Brain...
+        {needsLogin ? 'Redirecting to login...' : 'Connecting to Python Brain...'}
       </div>
     );
   }
