@@ -72,6 +72,35 @@ def test_wrong_radio_submit_reveals_correct_answer():
     assert "options_map" not in revealed
 
 
+def test_wrong_text_submit_reveals_correct_answer():
+    problem = {
+        "problem_id": "p-text-wrong",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, input_mode="text")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-text-wrong",
+                user_input="99",
+                is_text_mode=True,
+            )
+        )
+    )
+
+    assert response["is_correct"] is False
+    revealed = response["state"].current_problem
+    assert revealed["correct_answer"] == "2"
+    assert "correct" not in revealed
+    assert "options_map" not in revealed
+
+
 def test_next_problem_hides_answer_contract_fields():
     state = run(
         main.session_start(

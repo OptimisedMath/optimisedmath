@@ -1,6 +1,8 @@
 import { type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
-import type { Feedback, GameState } from '@/lib/types';
+import { InlineMath } from 'react-katex';
+import type { Feedback, GameState, Problem } from '@/lib/types';
+import 'katex/dist/katex.min.css';
 
 interface FeedbackCardProps {
   feedback: Feedback | null;
@@ -9,9 +11,10 @@ interface FeedbackCardProps {
   gameState: GameState;
   disabled?: boolean;
   nextButtonRef?: RefObject<HTMLButtonElement | null>;
+  problem?: Problem | null;
 }
 
-export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState, disabled = false, nextButtonRef }: FeedbackCardProps) {
+export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState, disabled = false, nextButtonRef, problem }: FeedbackCardProps) {
   if (!feedback) {
     return null;
   }
@@ -26,6 +29,10 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
     unlockedOrder !== undefined &&
     gameState.selected_micro_topic_order !== null &&
     unlockedOrder > (gameState.selected_micro_topic_order ?? 0);
+
+  const inputMode = problem?.input_mode ?? gameState.current_input_mode;
+  const correctAnswer =
+    !feedback.correct && inputMode !== 'radio' ? problem?.correct_answer : undefined;
 
   let buttonLabel = 'Następne zadanie ➡️';
   if (topicCompleted) {
@@ -44,6 +51,18 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
       <div className={`text-lg sm:text-2xl font-bold ${feedback.correct ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
         {feedback.message}
       </div>
+      {correctAnswer && (
+        <div className="flex items-center gap-2 rounded-xl border-2 border-emerald-500 bg-emerald-50 px-4 py-2 text-base sm:text-lg font-semibold text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-400/10 dark:text-emerald-300">
+          <span>Poprawna odpowiedź:</span>
+          <span className="font-bold">
+            {correctAnswer.includes('\\') ? (
+              <InlineMath math={correctAnswer} />
+            ) : (
+              correctAnswer
+            )}
+          </span>
+        </div>
+      )}
       {topicCompleted && !hasNextTopic ? (
         <div className="text-slate-600 dark:text-slate-300 text-base sm:text-lg text-center">
           🎊 Gratulacje! Ukończyłeś wszystkie tematy w tym dziale!

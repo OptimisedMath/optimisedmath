@@ -452,6 +452,7 @@ export default function GameArena() {
                 gameState={gameState}
                 disabled={isAdvancing}
                 nextButtonRef={nextButtonRef}
+                problem={problem}
               />
             )}
           </>
