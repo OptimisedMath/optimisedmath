@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 import backend.main as main
 from backend.core import db
+from backend.models import GameState, heal_legacy_state
 
 
 def run(coro):
@@ -26,22 +27,18 @@ def make_state(problem, *, streak=0, input_mode="radio"):
     macro = next(iter(curriculum))
     topic = curriculum[macro][0]
     session_id = str(uuid.uuid4())
-    state = {}
+    state = GameState()
     main.state_manager.StateManager.init_defaults(state, list(curriculum), curriculum)
-    state.update(
-        {
-            "session_id": session_id,
-            "username": f"test-{session_id}",
-            "selected_macro": macro,
-            "selected_topic_order": int(topic["Topic_Order"]),
-            "selected_level": 1,
-            "streak": streak,
-            "current_input_mode": input_mode,
-            "problem_answered": False,
-            "current_problem": problem,
-            "problem_start_time": 0,
-        }
-    )
+    state.session_id = session_id
+    state.username = f"test-{session_id}"
+    state.selected_macro = macro
+    state.selected_micro_topic_order = int(topic["micro_topic_order"])
+    state.selected_level = 1
+    state.streak = streak
+    state.current_input_mode = input_mode
+    state.problem_answered = False
+    state.current_problem = problem
+    state.problem_start_time = 0
     main.ACTIVE_SESSIONS[session_id] = state
     return state
 
@@ -77,7 +74,7 @@ def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
     response = run(
         main.problem_submit(
             main.ProblemSubmissionRequest(
-                session_id=state["session_id"],
+                session_id=state.session_id,
                 problem_id="p-mobile",
                 user_input="1-1/2",
                 is_text_mode=True,
@@ -104,7 +101,7 @@ def test_soft_syntax_error_does_not_lock_problem():
     response = run(
         main.problem_submit(
             main.ProblemSubmissionRequest(
-                session_id=state["session_id"],
+                session_id=state.session_id,
                 problem_id="p-soft",
                 user_input="abc",
                 is_text_mode=True,
@@ -132,7 +129,7 @@ def test_stale_and_duplicate_submissions_are_rejected():
         run(
             main.problem_submit(
                 main.ProblemSubmissionRequest(
-                    session_id=state["session_id"],
+                    session_id=state.session_id,
                     problem_id="wrong-id",
                     user_input="2",
                 )
@@ -143,7 +140,7 @@ def test_stale_and_duplicate_submissions_are_rejected():
     run(
         main.problem_submit(
             main.ProblemSubmissionRequest(
-                session_id=state["session_id"],
+                session_id=state.session_id,
                 problem_id="p-lock",
                 user_input="2",
             )
@@ -154,7 +151,7 @@ def test_stale_and_duplicate_submissions_are_rejected():
         run(
             main.problem_submit(
                 main.ProblemSubmissionRequest(
-                    session_id=state["session_id"],
+                    session_id=state.session_id,
                     problem_id="p-lock",
                     user_input="2",
                 )
@@ -174,17 +171,72 @@ def test_locked_navigation_is_rejected():
     if len(topics) < 2:
         pytest.skip("Need at least two topics for locked navigation test")
 
-    locked_order = int(topics[1]["Topic_Order"])
+    locked_order = int(topics[1]["micro_topic_order"])
     with pytest.raises(HTTPException) as exc:
         run(
             main.session_navigate(
                 main.SessionNavigateRequest(
                     session_id=state.session_id,
                     selected_macro=macro,
-                    selected_topic_order=locked_order,
+                    selected_micro_topic_order=locked_order,
                     selected_level=1,
                 )
             )
         )
 
     assert exc.value.status_code == 403
+
+
+def test_legacy_state_key_healing():
+    legacy = {
+        "session_id": "legacy-session",
+        "selected_topic_order": 20,
+        "progress": {
+            "Ułamki Zwykłe": {"unlocked_order": 30, "unlocked_level": 2},
+        },
+    }
+    healed = heal_legacy_state(legacy)
+    assert healed["selected_micro_topic_order"] == 20
+    assert "selected_topic_order" not in healed
+    assert healed["progress"]["Ułamki Zwykłe"]["unlocked_micro_topic_order"] == 30
+
+    state = GameState.from_storage(legacy)
+    assert state.selected_micro_topic_order == 20
+    assert state.progress["Ułamki Zwykłe"].unlocked_micro_topic_order == 30
+
+
+def test_text_mode_disabled_keeps_radio_input():
+    curriculum = main.engine.get_curriculum()
+    disabled_topic = None
+    disabled_macro = None
+    for macro, topics in curriculum.items():
+        for topic in topics:
+            if topic.get("text_mode_disabled"):
+                disabled_topic = topic
+                disabled_macro = macro
+                break
+        if disabled_topic:
+            break
+
+    if not disabled_topic:
+        pytest.skip("No text_mode_disabled topic in curriculum")
+
+    problem = {
+        "problem_id": "p-radio-only",
+        "question": "q",
+        "correct": disabled_topic["name"],
+        "options": ["a", "b"],
+        "options_map": {"a": "correct", "b": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, streak=0, input_mode="radio")
+    state.selected_macro = disabled_macro
+    state.selected_micro_topic_order = disabled_topic["micro_topic_order"]
+    topic_map = main.engine.build_topic_map(curriculum, disabled_macro)
+
+    main.state_manager.StateManager.process_submission(
+        state, problem, "a", False, topic_map
+    )
+
+    assert state.streak == 1
+    assert state.current_input_mode == "radio"

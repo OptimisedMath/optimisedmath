@@ -23,13 +23,15 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
     return null;
   }
 
-  const selectedTopicOrder = gameState.selected_topic_order;
+  const selectedMicroTopicOrder = gameState.selected_micro_topic_order;
   const selectedLevel = gameState.selected_level;
 
   let microTopicName = 'Current topic';
-  if (selectedMacro && selectedTopicOrder && curriculum) {
+  if (selectedMacro && selectedMicroTopicOrder && curriculum) {
     const topics = curriculum.topics[selectedMacro] || [];
-    const currentTopic = topics.find((topic) => topic.order === selectedTopicOrder);
+    const currentTopic = topics.find(
+      (topic) => topic.micro_topic_order === selectedMicroTopicOrder
+    );
     microTopicName = currentTopic?.name || 'Current topic';
   }
 

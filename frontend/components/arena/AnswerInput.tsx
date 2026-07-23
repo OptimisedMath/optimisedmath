@@ -14,9 +14,11 @@ interface AnswerInputProps {
   onSubmit: SubmitAnswerHandler;
   disabled: boolean;
   showFeedback: boolean;
+  canSubmit: boolean;
   problem: Problem | null;
   gameState: GameState;
   feedback?: { correct: boolean } | null;
+  textModeDisabled?: boolean;
 }
 
 export default function AnswerInput({
@@ -25,9 +27,11 @@ export default function AnswerInput({
   onSubmit,
   disabled,
   showFeedback,
+  canSubmit,
   problem,
   gameState,
   feedback,
+  textModeDisabled = false,
 }: AnswerInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +39,15 @@ export default function AnswerInput({
   };
 
   const handleRadioKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && value.trim() !== '' && !disabled && !showFeedback) {
+    if (e.key === 'Enter' && value.trim() !== '' && canSubmit && !disabled && !showFeedback) {
       e.preventDefault();
       onSubmit();
     }
   };
 
-  const inputMode = problem?.input_mode ?? gameState.current_input_mode;
+  const rawInputMode = problem?.input_mode ?? gameState.current_input_mode;
+  const inputMode =
+    textModeDisabled || rawInputMode === 'radio' ? 'radio' : rawInputMode;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const appendChar = (char: string) => {
@@ -70,29 +76,26 @@ export default function AnswerInput({
     window.addEventListener('keydown', handleGlobalRadioKey);
     return () => window.removeEventListener('keydown', handleGlobalRadioKey);
   }, [inputMode, problem, showFeedback, disabled, value, onChange, onSubmit]);
-  const keyboardType = problem?.keyboard_type || 'default';
 
-  // Convert plain text input to LaTeX for display
+  const keyboardType = problem?.keyboard_type || 'default';
+  const submitDisabled = value.trim() === '' || !canSubmit || disabled;
+
   const formatInputAsLatex = (s: string): string => {
     if (!s.trim()) return s;
     const trimmed = s.trim();
-    // Handle mixed numbers like "1 3/4" → "1\\frac{3}{4}"
     const mixedMatch = trimmed.match(/^(\d+)\s+(\d+)\/(\d+)$/);
     if (mixedMatch) {
       const [, whole, num, den] = mixedMatch;
       return `${whole}\\frac{${num}}{${den}}`;
     }
-    // Handle fractions like "3/4" → "\\frac{3}{4}"
     const fracMatch = trimmed.match(/^(\d+)\/(\d+)$/);
     if (fracMatch) {
       const [, num, den] = fracMatch;
       return `\\frac{${num}}{${den}}`;
     }
-    // Return as-is for decimals or whole numbers
     return trimmed;
   };
 
-  // Render radio mode
   if (inputMode === 'radio' && problem?.answer_options) {
     return (
       <div className="flex flex-col items-center gap-4" onKeyDown={handleRadioKeyDown} tabIndex={0}>
@@ -132,7 +135,7 @@ export default function AnswerInput({
         {!showFeedback && (
             <Button
               onClick={() => onSubmit()}
-              disabled={value.trim() === '' || disabled}
+              disabled={submitDisabled}
               className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
             >
               <Check className="mr-2 h-5 w-5" aria-hidden="true" />
@@ -143,7 +146,6 @@ export default function AnswerInput({
     );
   }
 
-  // Render text mode
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
       {showFeedback ? (
@@ -193,7 +195,7 @@ export default function AnswerInput({
         <>
           <Button
             type="submit"
-            disabled={value.trim() === '' || disabled}
+            disabled={submitDisabled}
             className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
           >
             <Check className="mr-2 h-5 w-5" aria-hidden="true" />

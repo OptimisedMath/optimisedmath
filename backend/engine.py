@@ -3,7 +3,10 @@ import logging
 import yaml
 import importlib
 from pathlib import Path
+from typing import Any, TypedDict
+
 from backend.core.utils import check_text_answer, parse_to_fraction
+from backend.models import CurriculumResponse, CurriculumTopic
 import backend.config as config
 import uuid
 
@@ -25,24 +28,35 @@ for file_path in macro_path.rglob("*.py"):
             FUNCTION_REGISTRY[k] = v
 
 
+class MicroTopicDict(TypedDict):
+    micro_topic_order: int
+    name: str
+    max_level: int
+    text_mode_disabled: bool
+
+
+class TopicMeta(TypedDict):
+    name: str
+    max_level: int
+    text_mode_disabled: bool
+
+
 @functools.lru_cache(maxsize=None)
-def get_curriculum() -> dict:
-    curriculum_dict = {}
+def get_curriculum() -> dict[str, list[MicroTopicDict]]:
+    curriculum_dict: dict[str, list[MicroTopicDict]] = {}
     data_dir = BASE_DIR / "data"
 
     if not data_dir.exists():
         return curriculum_dict
 
-    # 1. Dynamically scan for every YAML file in the data folder
     for file_path in sorted(data_dir.glob("*.yaml")):
         try:
             with open(file_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             macro_topic = data["macro_topic"]
-            topics = []
+            topics: list[MicroTopicDict] = []
 
-            # 2. Build topic list from YAML, filtering unpublished levels
             for topic in data.get("topics", []):
                 published_levels = [
                     lvl["level"]
@@ -50,12 +64,16 @@ def get_curriculum() -> dict:
                     if lvl.get("published", True)
                 ]
                 if published_levels:
-                    topics.append({
-                        "Topic_Order": topic["order"],
-                        "Micro_Topic": topic["name"],
-                        "Level": max(published_levels),
-                        "text_mode_disabled": topic.get("text_mode_disabled", False),
-                    })
+                    topics.append(
+                        {
+                            "micro_topic_order": int(topic["order"]),
+                            "name": topic["name"],
+                            "max_level": max(published_levels),
+                            "text_mode_disabled": topic.get(
+                                "text_mode_disabled", False
+                            ),
+                        }
+                    )
 
             if topics:
                 curriculum_dict[macro_topic] = topics
@@ -64,6 +82,43 @@ def get_curriculum() -> dict:
             logger.exception("Error loading curriculum file %s", file_path.name)
 
     return curriculum_dict
+
+
+def get_curriculum_response() -> CurriculumResponse:
+    """Return curriculum metadata formatted for the API."""
+    curriculum = get_curriculum()
+    return CurriculumResponse(
+        macro_topics=list(curriculum.keys()),
+        topics={
+            macro_topic: [CurriculumTopic(**topic) for topic in topic_list]
+            for macro_topic, topic_list in curriculum.items()
+        },
+    )
+
+
+def build_topic_map(
+    curriculum: dict[str, list[MicroTopicDict]], macro_topic: str
+) -> dict[int, TopicMeta]:
+    topic_map: dict[int, TopicMeta] = {}
+    for topic in curriculum.get(macro_topic, []):
+        order = topic["micro_topic_order"]
+        topic_map[int(order)] = {
+            "name": topic["name"],
+            "max_level": int(topic["max_level"]),
+            "text_mode_disabled": topic.get("text_mode_disabled", False),
+        }
+    return topic_map
+
+
+def get_micro_topic_name(
+    curriculum: dict[str, list[MicroTopicDict]],
+    macro_topic: str,
+    micro_topic_order: int,
+) -> str | None:
+    for topic in curriculum.get(macro_topic, []):
+        if topic["micro_topic_order"] == micro_topic_order:
+            return topic["name"]
+    return None
 
 
 @functools.lru_cache(maxsize=None)

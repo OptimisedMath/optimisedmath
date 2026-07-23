@@ -1,13 +1,28 @@
-import sqlite3
 import json
-from backend.config import DB_PATH
+import sqlite3
+
 from fastapi.encoders import jsonable_encoder
+
+from backend.config import DB_PATH
+from backend.models import GameState, TopicProgress, heal_legacy_state
 
 
 def get_connection():
-    # Create the data directory if it doesn't exist
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(DB_PATH)
+
+
+def _migrate_schema(cursor) -> None:
+    """Apply one-time schema migrations for renamed columns."""
+    cursor.execute("PRAGMA table_info(users)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if (
+        "selected_topic_order" in columns
+        and "selected_micro_topic_order" not in columns
+    ):
+        cursor.execute(
+            "ALTER TABLE users RENAME COLUMN selected_topic_order TO selected_micro_topic_order"
+        )
 
 
 def init_db():
@@ -20,7 +35,7 @@ def init_db():
                 xp INTEGER DEFAULT 0,
                 streak INTEGER DEFAULT 0,
                 selected_macro TEXT,
-                selected_topic_order INTEGER,
+                selected_micro_topic_order INTEGER,
                 selected_level INTEGER,
                 progress_json TEXT
             )
@@ -36,29 +51,30 @@ def init_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,            -- NEW: Groups events by session
-                username TEXT NOT NULL,            
+                session_id TEXT NOT NULL,
+                username TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                macro_topic TEXT NOT NULL,           
-                micro_topic TEXT NOT NULL,           
-                level_number INTEGER NOT NULL,       
-                is_text_mode BOOLEAN NOT NULL,       
-                trap_id TEXT,                        
-                is_correct BOOLEAN NOT NULL,         
-                user_input TEXT,                     
-                time_spent_seconds INTEGER,          
-                equation_state TEXT,                 
+                macro_topic TEXT NOT NULL,
+                micro_topic TEXT NOT NULL,
+                level_number INTEGER NOT NULL,
+                is_text_mode BOOLEAN NOT NULL,
+                trap_id TEXT,
+                is_correct BOOLEAN NOT NULL,
+                user_input TEXT,
+                time_spent_seconds INTEGER,
+                equation_state TEXT,
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         """)
+        _migrate_schema(cursor)
         conn.commit()
 
 
-def save_session(session_id, username, state_dict):
+def save_session(session_id, username, state: GameState):
     """Persists a full session state to SQLite."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        state_json = json.dumps(jsonable_encoder(state_dict))
+        state_json = json.dumps(jsonable_encoder(state.model_dump(mode="json")))
         cursor.execute(
             """
             INSERT INTO sessions (session_id, username, state_json, updated_at)
@@ -72,7 +88,7 @@ def save_session(session_id, username, state_dict):
         conn.commit()
 
 
-def load_session(session_id):
+def load_session(session_id) -> GameState | None:
     """Loads a session state from SQLite. Returns None if not found."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -81,7 +97,8 @@ def load_session(session_id):
         )
         row = cursor.fetchone()
         if row:
-            return json.loads(row[0])
+            data = json.loads(row[0])
+            return GameState.from_storage(data)
         return None
 
 
@@ -98,48 +115,63 @@ def load_user(username):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT xp, streak, selected_macro, selected_topic_order, selected_level, progress_json FROM users WHERE username = ?",
+            """
+            SELECT xp, streak, selected_macro, selected_micro_topic_order,
+                   selected_level, progress_json
+            FROM users WHERE username = ?
+            """,
             (username,),
         )
         row = cursor.fetchone()
 
         if row:
+            raw_progress = json.loads(row[5]) if row[5] else {}
+            progress = {}
+            for macro, prog_data in raw_progress.items():
+                healed = heal_legacy_state(prog_data if isinstance(prog_data, dict) else {})
+                progress[macro] = TopicProgress(**healed)
+
             return {
                 "xp": row[0],
                 "streak": row[1],
                 "selected_macro": row[2],
-                "selected_topic_order": row[3],
+                "selected_micro_topic_order": row[3],
                 "selected_level": row[4],
-                "progress": json.loads(row[5]) if row[5] else {},
+                "progress": progress,
             }
         return None
 
 
-def save_user(username, state_dict):
+def save_user(username, state: GameState):
     """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        progress_str = json.dumps(jsonable_encoder(state_dict.get("progress", {})))
+        progress_str = json.dumps(
+            jsonable_encoder({k: v.model_dump() for k, v in state.progress.items()})
+        )
 
         cursor.execute(
             """
-            INSERT INTO users (username, xp, streak, selected_macro, selected_topic_order, selected_level, progress_json)
+            INSERT INTO users (
+                username, xp, streak, selected_macro,
+                selected_micro_topic_order, selected_level, progress_json
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
                 xp=excluded.xp,
                 streak=excluded.streak,
                 selected_macro=excluded.selected_macro,
-                selected_topic_order=excluded.selected_topic_order,
+                selected_micro_topic_order=excluded.selected_micro_topic_order,
                 selected_level=excluded.selected_level,
                 progress_json=excluded.progress_json
         """,
             (
                 username,
-                state_dict.get("xp", 0),
-                state_dict.get("streak", 0),
-                state_dict.get("selected_macro"),
-                state_dict.get("selected_topic_order"),
-                state_dict.get("selected_level"),
+                state.xp,
+                state.streak,
+                state.selected_macro,
+                state.selected_micro_topic_order,
+                state.selected_level,
                 progress_str,
             ),
         )

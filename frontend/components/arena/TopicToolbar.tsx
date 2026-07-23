@@ -7,7 +7,7 @@ interface TopicToolbarProps {
   curriculum: CurriculumResponse;
   gameState: GameState;
   isNavigating: boolean;
-  onNavigate: (macro: string, topicOrder: number, level: number) => void;
+  onNavigate: (macro: string, microTopicOrder: number, level: number) => void;
   onReset: () => void;
 }
 
@@ -21,17 +21,22 @@ export default function TopicToolbar({
   const selectedMacro = gameState.selected_macro || curriculum.macro_topics[0] || '';
   const topics = curriculum.topics[selectedMacro] || [];
   const firstTopic = topics[0];
-  const selectedTopicOrder = gameState.selected_topic_order || firstTopic?.order || 1;
-  const selectedTopic = topics.find((topic) => topic.order === selectedTopicOrder) || firstTopic;
+  const selectedMicroTopicOrder =
+    gameState.selected_micro_topic_order || firstTopic?.micro_topic_order || 1;
+  const selectedTopic =
+    topics.find((topic) => topic.micro_topic_order === selectedMicroTopicOrder) || firstTopic;
   const selectedLevel = Math.min(gameState.selected_level || 1, selectedTopic?.max_level || 1);
   const progress = selectedMacro ? gameState.progress[selectedMacro] : undefined;
-  const unlockedOrder = progress?.unlocked_order ?? firstTopic?.order ?? 1;
+  const unlockedOrder =
+    progress?.unlocked_micro_topic_order ?? firstTopic?.micro_topic_order ?? 1;
   const unlockedLevel = progress?.unlocked_level ?? 1;
 
-  const availableTopics = topics.filter((topic) => topic.order <= unlockedOrder);
+  const availableTopics = topics.filter(
+    (topic) => topic.micro_topic_order <= unlockedOrder
+  );
   const topicOptions = availableTopics.length > 0 ? availableTopics : topics.slice(0, 1);
   const levelLimit = selectedTopic
-    ? selectedTopic.order < unlockedOrder
+    ? selectedTopic.micro_topic_order < unlockedOrder
       ? selectedTopic.max_level
       : Math.min(unlockedLevel, selectedTopic.max_level)
     : 1;
@@ -41,25 +46,29 @@ export default function TopicToolbar({
     const nextMacro = event.target.value;
     const nextProgress = gameState.progress[nextMacro];
     const nextTopics = curriculum.topics[nextMacro] || [];
-    const nextTopicOrder = nextProgress?.unlocked_order ?? nextTopics[0]?.order ?? 1;
-    const nextTopic = nextTopics.find((topic) => topic.order === nextTopicOrder) || nextTopics[0];
+    const nextMicroTopicOrder =
+      nextProgress?.unlocked_micro_topic_order ?? nextTopics[0]?.micro_topic_order ?? 1;
+    const nextTopic =
+      nextTopics.find((topic) => topic.micro_topic_order === nextMicroTopicOrder) ||
+      nextTopics[0];
     const nextLevel = Math.min(nextProgress?.unlocked_level ?? 1, nextTopic?.max_level ?? 1);
 
-    onNavigate(nextMacro, nextTopicOrder, nextLevel);
+    onNavigate(nextMacro, nextMicroTopicOrder, nextLevel);
   };
 
   const handleTopicChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextTopicOrder = Number(event.target.value);
-    const nextTopic = topics.find((topic) => topic.order === nextTopicOrder);
-    const nextLevel = nextTopicOrder < unlockedOrder
-      ? 1
-      : Math.min(unlockedLevel, nextTopic?.max_level ?? 1);
+    const nextMicroTopicOrder = Number(event.target.value);
+    const nextTopic = topics.find((topic) => topic.micro_topic_order === nextMicroTopicOrder);
+    const nextLevel =
+      nextMicroTopicOrder < unlockedOrder
+        ? 1
+        : Math.min(unlockedLevel, nextTopic?.max_level ?? 1);
 
-    onNavigate(selectedMacro, nextTopicOrder, nextLevel);
+    onNavigate(selectedMacro, nextMicroTopicOrder, nextLevel);
   };
 
   const handleLevelChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate(selectedMacro, selectedTopicOrder, Number(event.target.value));
+    onNavigate(selectedMacro, selectedMicroTopicOrder, Number(event.target.value));
   };
 
   return (
@@ -98,13 +107,13 @@ export default function TopicToolbar({
           <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-slate-600 dark:text-slate-300">
             Micro topic
             <select
-              value={selectedTopicOrder}
+              value={selectedMicroTopicOrder}
               onChange={handleTopicChange}
               disabled={isNavigating || topicOptions.length === 0}
               className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
               {topicOptions.map((topic, index) => (
-                <option key={topic.order} value={topic.order}>
+                <option key={topic.micro_topic_order} value={topic.micro_topic_order}>
                   {index + 1}. {topic.name}
                 </option>
               ))}

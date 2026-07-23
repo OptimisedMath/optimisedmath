@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type {
+  AutoSolveRequest,
   CurriculumResponse,
   GameState,
   ProblemResponse,
@@ -19,17 +20,11 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for error handling
 api.interceptors.request.use(
-  (config) => {
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (config) => config,
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -46,7 +41,6 @@ api.interceptors.response.use(
   }
 );
 
-// API Functions
 export const getCurriculum = async (): Promise<CurriculumResponse> => {
   const response = await api.get<CurriculumResponse>('/curriculum');
   return response.data;
@@ -79,11 +73,8 @@ export const submitAnswer = async (request: ProblemSubmissionRequest): Promise<S
   return response.data;
 };
 
-export const autoSolve = async (sessionId: string, problemId?: string): Promise<SubmissionResponse> => {
-  const response = await api.post<SubmissionResponse>('/problem/auto-solve', {
-    session_id: sessionId,
-    problem_id: problemId,
-  });
+export const autoSolve = async (request: AutoSolveRequest): Promise<SubmissionResponse> => {
+  const response = await api.post<SubmissionResponse>('/problem/auto-solve', request);
   return response.data;
 };
 

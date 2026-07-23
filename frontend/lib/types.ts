@@ -1,7 +1,7 @@
 // TypeScript types matching FastAPI Pydantic models
 
 export interface TopicProgress {
-  unlocked_order: number;
+  unlocked_micro_topic_order: number;
   unlocked_level: number;
 }
 
@@ -13,7 +13,7 @@ export interface GameState {
   flawless_eligible: boolean;
   max_streak: number;
   selected_macro: string | null;
-  selected_topic_order: number | null;
+  selected_micro_topic_order: number | null;
   selected_level: number;
   problem_answered: boolean;
   current_input_mode: string;
@@ -34,16 +34,16 @@ export interface Problem {
   level_name: string;
   problem_id: string;
   level_display: string;
-  grading_policy?: string;
   keyboard_type?: string;
   input_mode?: string;
   image_html?: string;
 }
 
 export interface CurriculumTopic {
-  order: number;
+  micro_topic_order: number;
   name: string;
   max_level: number;
+  text_mode_disabled?: boolean;
 }
 
 export interface CurriculumResponse {
@@ -59,7 +59,7 @@ export interface SessionStartRequest {
 export interface SessionNavigateRequest {
   session_id: string;
   selected_macro?: string;
-  selected_topic_order?: number;
+  selected_micro_topic_order?: number;
   selected_level?: number;
 }
 
@@ -71,6 +71,11 @@ export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;
   is_text_mode: boolean;
+  problem_id?: string;
+}
+
+export interface AutoSolveRequest {
+  session_id: string;
   problem_id?: string;
 }
 

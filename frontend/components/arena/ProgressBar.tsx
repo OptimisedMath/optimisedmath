@@ -8,14 +8,16 @@ interface ProgressBarProps {
 
 export default function ProgressBar({ gameState, curriculum, type }: ProgressBarProps) {
   const selectedMacro = gameState.selected_macro;
-  const selectedTopicOrder = gameState.selected_topic_order;
+  const selectedMicroTopicOrder = gameState.selected_micro_topic_order;
   const selectedLevel = gameState.selected_level;
 
   if (type === 'macro' && selectedMacro) {
     const topics = curriculum.topics[selectedMacro] || [];
     const progress = gameState.progress[selectedMacro];
-    const unlockedOrder = progress?.unlocked_order ?? 1;
-    const completedTopics = topics.filter((topic) => topic.order < unlockedOrder).length;
+    const unlockedOrder = progress?.unlocked_micro_topic_order ?? 1;
+    const completedTopics = topics.filter(
+      (topic) => topic.micro_topic_order < unlockedOrder
+    ).length;
     const totalTopics = topics.length;
     const percentage = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
 
@@ -35,9 +37,11 @@ export default function ProgressBar({ gameState, curriculum, type }: ProgressBar
     );
   }
 
-  if (type === 'micro' && selectedMacro && selectedTopicOrder) {
+  if (type === 'micro' && selectedMacro && selectedMicroTopicOrder) {
     const topics = curriculum.topics[selectedMacro] || [];
-    const currentTopic = topics.find((topic) => topic.order === selectedTopicOrder);
+    const currentTopic = topics.find(
+      (topic) => topic.micro_topic_order === selectedMicroTopicOrder
+    );
     const maxLevel = currentTopic?.max_level || 1;
     const completedLevels = selectedLevel - 1;
     const percentage = maxLevel > 0 ? (completedLevels / maxLevel) * 100 : 0;

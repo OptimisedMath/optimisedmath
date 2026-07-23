@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
@@ -10,14 +10,13 @@ import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession } from '@/lib/api';
-import type { CurriculumResponse, GameState, Problem, Feedback, SubmitAnswerHandler } from '@/lib/types';
+import type { CurriculumResponse, GameState, Feedback, SubmitAnswerHandler } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
 
 export default function GameArena() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [problem, setProblem] = useState<Problem | null>(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +28,19 @@ export default function GameArena() {
   const isAdvancingRef = useRef(false);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const sessionId = gameState?.session_id;
+
+  const problem = gameState?.current_problem ?? null;
+
+  const textModeDisabled = useMemo(() => {
+    if (!curriculum || !gameState?.selected_macro || !gameState.selected_micro_topic_order) {
+      return false;
+    }
+    const topics = curriculum.topics[gameState.selected_macro] || [];
+    const topic = topics.find(
+      (t) => t.micro_topic_order === gameState.selected_micro_topic_order
+    );
+    return topic?.text_mode_disabled ?? false;
+  }, [curriculum, gameState?.selected_macro, gameState?.selected_micro_topic_order]);
 
   const fetchNextProblem = useCallback(async (
     currentSessionId: string,
@@ -42,14 +54,15 @@ export default function GameArena() {
     if (clearBeforeFetch) {
       setFeedback(null);
       setUserAnswer('');
-      setProblem(null);
+      setGameState((prev) =>
+        prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
+      );
     }
 
     setError(null);
 
     try {
       const response = await getNextProblem(currentSessionId);
-      setProblem(response.problem);
       setGameState(response.state);
       setFeedback(null);
       setUserAnswer('');
@@ -118,7 +131,7 @@ export default function GameArena() {
   }, [fetchNextProblem, router]);
 
   const handleSubmit: SubmitAnswerHandler = async (answerOverride) => {
-    if (isSubmitting) {
+    if (isSubmitting || !gameState?.can_submit) {
       return;
     }
 
@@ -159,11 +172,11 @@ export default function GameArena() {
       correct: response.is_correct,
       message: response.feedback,
       feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
-      is_locked: nextState.problem_answered,
+      is_locked: nextState.can_advance,
     });
   };
 
-  const handleNavigate = useCallback(async (macro: string, topicOrder: number, level: number) => {
+  const handleNavigate = useCallback(async (macro: string, microTopicOrder: number, level: number) => {
     if (!sessionId) {
       return;
     }
@@ -172,14 +185,16 @@ export default function GameArena() {
     setIsNavigating(true);
     setFeedback(null);
     setUserAnswer('');
-    setProblem(null);
+    setGameState((prev) =>
+      prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
+    );
     setError(null);
 
     try {
       const nextState = await navigateSession({
         session_id: sessionId,
         selected_macro: macro,
-        selected_topic_order: topicOrder,
+        selected_micro_topic_order: microTopicOrder,
         selected_level: level,
       });
 
@@ -196,7 +211,7 @@ export default function GameArena() {
   }, [sessionId, fetchNextProblem]);
 
   const handleAdvance = useCallback(async () => {
-    if (!gameState || isAdvancingRef.current) return;
+    if (!gameState || !gameState.can_advance || isAdvancingRef.current) return;
 
     isAdvancingRef.current = true;
     setIsAdvancing(true);
@@ -204,7 +219,7 @@ export default function GameArena() {
     try {
       if (gameState.topic_completed) {
         const macro = gameState.selected_macro!;
-        const nextOrder = gameState.progress[macro]?.unlocked_order;
+        const nextOrder = gameState.progress[macro]?.unlocked_micro_topic_order;
         if (nextOrder === undefined) return;
 
         setIsNavigating(true);
@@ -214,7 +229,7 @@ export default function GameArena() {
           const nextState = await navigateSession({
             session_id: gameState.session_id,
             selected_macro: macro,
-            selected_topic_order: nextOrder,
+            selected_micro_topic_order: nextOrder,
             selected_level: 1,
           });
 
@@ -249,7 +264,8 @@ export default function GameArena() {
     const handleAdvanceKey = (e: KeyboardEvent) => {
       if (
         e.key === 'Enter' &&
-        feedback?.is_locked &&
+        gameState?.can_advance &&
+        feedback &&
         !e.repeat &&
         !isAdvancingRef.current &&
         !isFetchingRef.current
@@ -261,7 +277,7 @@ export default function GameArena() {
 
     window.addEventListener('keydown', handleAdvanceKey);
     return () => window.removeEventListener('keydown', handleAdvanceKey);
-  }, [feedback?.is_locked, handleAdvance]);
+  }, [gameState?.can_advance, feedback, handleAdvance]);
 
   const handleReset = async () => {
     if (!gameState?.session_id) {
@@ -275,7 +291,9 @@ export default function GameArena() {
     setIsNavigating(true);
     setFeedback(null);
     setUserAnswer('');
-    setProblem(null);
+    setGameState((prev) =>
+      prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
+    );
     setError(null);
 
     try {
@@ -328,6 +346,9 @@ export default function GameArena() {
     );
   }
 
+  const showAdvance = gameState.can_advance && feedback !== null;
+  const canSubmit = gameState.can_submit && !isSubmitting;
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
@@ -369,22 +390,24 @@ export default function GameArena() {
               value={userAnswer}
               onChange={setUserAnswer}
               onSubmit={handleSubmit}
-              disabled={feedback?.is_locked ?? false}
-              showFeedback={feedback?.is_locked ?? false}
+              disabled={!canSubmit}
+              canSubmit={canSubmit}
+              showFeedback={showAdvance}
               problem={problem}
               gameState={gameState}
               feedback={feedback}
+              textModeDisabled={textModeDisabled}
             />
 
             {feedback && (
               <div ref={feedbackRef}>
-                {!feedback.is_locked && (
+                {!showAdvance && (
                   <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
                     {feedback.message}
                   </div>
                 )}
 
-                {feedback.is_locked && (
+                {showAdvance && (
                   <FeedbackCard
                     feedback={feedback}
                     onNextProblem={handleAdvance}
