@@ -209,7 +209,7 @@ class StateManager:
         state.feedback_msg = eval_result.get("feedback_msg", "")
         trap_id_hit = eval_result.get("trap_id")
 
-        if not is_correct or trap_id_hit:
+        if not is_correct and state.feedback_type != "info":
             state.flawless_eligible = False
 
         time_spent = None

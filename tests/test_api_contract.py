@@ -234,6 +234,83 @@ def test_soft_syntax_error_does_not_lock_problem():
     assert response["state"].can_submit is True
 
 
+def test_soft_syntax_error_preserves_flawless_eligible():
+    problem = {
+        "problem_id": "p-soft-flawless",
+        "question": "q",
+        "correct": "3/4",
+        "options": ["3/4", "1/2"],
+        "options_map": {"3/4": "correct", "1/2": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, input_mode="text")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-soft-flawless",
+                user_input="abc",
+                is_text_mode=True,
+            )
+        )
+    )
+
+    assert response["is_correct"] is False
+    assert response["state"].flawless_eligible is True
+
+
+def test_unsimplified_fraction_preserves_flawless_eligible():
+    problem = {
+        "problem_id": "p-unsimplified",
+        "question": "q",
+        "correct": "1/2",
+        "options": ["1/2", "2/4"],
+        "options_map": {"1/2": "correct", "2/4": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, input_mode="text")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-unsimplified",
+                user_input="2/4",
+                is_text_mode=True,
+            )
+        )
+    )
+
+    assert response["is_correct"] is False
+    assert response["state"].flawless_eligible is True
+
+
+def test_wrong_answer_forfeits_flawless_eligible():
+    problem = {
+        "problem_id": "p-flawless-wrong",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem)
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-flawless-wrong",
+                user_input="3",
+            )
+        )
+    )
+
+    assert response["is_correct"] is False
+    assert response["state"].flawless_eligible is False
+
+
 def test_stale_and_duplicate_submissions_are_rejected():
     problem = {
         "problem_id": "p-lock",
