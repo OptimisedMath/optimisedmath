@@ -21,14 +21,7 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
 
   const showBalloons = gameState.show_celebration;
 
-  const macro = gameState.selected_macro;
-  const unlockedOrder = macro
-    ? gameState.progress[macro]?.unlocked_micro_topic_order
-    : undefined;
-  const hasNextTopic =
-    unlockedOrder !== undefined &&
-    gameState.selected_micro_topic_order !== null &&
-    unlockedOrder > (gameState.selected_micro_topic_order ?? 0);
+  const hasNextTopic = gameState.navigation?.has_next_unlocked_topic ?? false;
 
   const inputMode = problem?.input_mode ?? gameState.current_input_mode;
   const correctAnswer =

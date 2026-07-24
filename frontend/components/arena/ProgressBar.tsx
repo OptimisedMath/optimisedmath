@@ -1,31 +1,24 @@
-import type { GameState, CurriculumResponse } from '@/lib/types';
+import type { GameState } from '@/lib/types';
 
 interface ProgressBarProps {
   gameState: GameState;
-  curriculum: CurriculumResponse;
   type: 'macro' | 'micro';
 }
 
-export default function ProgressBar({ gameState, curriculum, type }: ProgressBarProps) {
-  const selectedMacro = gameState.selected_macro;
-  const selectedMicroTopicOrder = gameState.selected_micro_topic_order;
-  const selectedLevel = gameState.selected_level;
+export default function ProgressBar({ gameState, type }: ProgressBarProps) {
+  const navigation = gameState.navigation;
+  if (!navigation) {
+    return null;
+  }
 
-  if (type === 'macro' && selectedMacro) {
-    const topics = curriculum.topics[selectedMacro] || [];
-    const progress = gameState.progress[selectedMacro];
-    const unlockedOrder = progress?.unlocked_micro_topic_order ?? 1;
-    const completedTopics = topics.filter(
-      (topic) => topic.micro_topic_order < unlockedOrder
-    ).length;
-    const totalTopics = topics.length;
-    const percentage = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
+  if (type === 'macro' && gameState.selected_macro && navigation.macro_progress) {
+    const { completed, total, percentage } = navigation.macro_progress;
 
     return (
       <div className="w-full max-w-3xl mb-4 rounded-xl border border-white/70 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/55">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">🏆 {selectedMacro}</span>
-          <span className="shrink-0 tabular-nums">{completedTopics}/{totalTopics} tematów ukończonych</span>
+          <span className="truncate font-medium">🏆 {gameState.selected_macro}</span>
+          <span className="shrink-0 tabular-nums">{completed}/{total} tematów ukończonych</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div
@@ -37,20 +30,15 @@ export default function ProgressBar({ gameState, curriculum, type }: ProgressBar
     );
   }
 
-  if (type === 'micro' && selectedMacro && selectedMicroTopicOrder) {
-    const topics = curriculum.topics[selectedMacro] || [];
-    const currentTopic = topics.find(
-      (topic) => topic.micro_topic_order === selectedMicroTopicOrder
-    );
-    const maxLevel = currentTopic?.max_level || 1;
-    const completedLevels = selectedLevel - 1;
-    const percentage = maxLevel > 0 ? (completedLevels / maxLevel) * 100 : 0;
+  if (type === 'micro' && navigation.micro_progress) {
+    const { total, percentage } = navigation.micro_progress;
+    const selectedLevel = gameState.selected_level;
 
     return (
       <div className="w-full max-w-3xl mb-4 rounded-xl border border-white/70 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/55">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">📚 {currentTopic?.name || 'Current topic'}</span>
-          <span className="shrink-0 tabular-nums">Level {selectedLevel}/{maxLevel}</span>
+          <span className="truncate font-medium">📚 {navigation.current_topic_name || 'Current topic'}</span>
+          <span className="shrink-0 tabular-nums">Level {selectedLevel}/{total}</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div

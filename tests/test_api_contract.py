@@ -360,3 +360,188 @@ def test_text_mode_disabled_keeps_radio_input():
 
     assert state.streak == 1
     assert state.current_input_mode == "radio"
+
+
+def test_game_state_includes_navigation_view():
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="nav-user", selected_macro=None)
+        )
+    )
+    nav = state.navigation
+    assert nav is not None
+    assert len(nav.macro_topics) > 0
+    assert len(nav.available_micro_topics) > 0
+    assert len(nav.available_levels) > 0
+    assert nav.current_topic_name is not None
+    assert isinstance(nav.has_next_unlocked_topic, bool)
+    assert isinstance(nav.text_mode_disabled, bool)
+    assert nav.macro_progress is not None
+    assert nav.micro_progress is not None
+
+
+def test_navigation_available_topics_respect_locks():
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="lock-nav-user", selected_macro=None)
+        )
+    )
+    macro = state.selected_macro
+    topics = main.engine.get_curriculum()[macro]
+    if len(topics) < 2:
+        pytest.skip("Need at least two topics for lock navigation test")
+
+    unlocked_order = state.progress[macro].unlocked_micro_topic_order
+    available_orders = {t.micro_topic_order for t in state.navigation.available_micro_topics}
+    expected = {
+        int(t["micro_topic_order"])
+        for t in topics
+        if int(t["micro_topic_order"]) <= unlocked_order
+    }
+    assert available_orders == expected
+
+
+def test_navigation_admin_sees_all_topics():
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="Antoni", selected_macro=None)
+        )
+    )
+    macro = state.selected_macro
+    topics = main.engine.get_curriculum()[macro]
+    assert len(state.navigation.available_micro_topics) == len(topics)
+
+
+def test_navigate_macro_change_resolves_to_unlocked_topic():
+    curriculum = main.engine.get_curriculum()
+    macro_topics = list(curriculum.keys())
+    if len(macro_topics) < 2:
+        pytest.skip("Need at least two macro topics")
+
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="macro-switch-user", selected_macro=None)
+        )
+    )
+    target_macro = macro_topics[1] if state.selected_macro == macro_topics[0] else macro_topics[0]
+    expected_order = state.progress[target_macro].unlocked_micro_topic_order
+    expected_level = min(
+        state.progress[target_macro].unlocked_level,
+        int(curriculum[target_macro][0]["max_level"])
+        if not any(
+            int(t["micro_topic_order"]) == expected_order for t in curriculum[target_macro]
+        )
+        else next(
+            int(t["max_level"])
+            for t in curriculum[target_macro]
+            if int(t["micro_topic_order"]) == expected_order
+        ),
+    )
+
+    next_state = run(
+        main.session_navigate(
+            main.SessionNavigateRequest(
+                session_id=state.session_id,
+                selected_macro=target_macro,
+            )
+        )
+    )
+
+    assert next_state.selected_macro == target_macro
+    assert next_state.selected_micro_topic_order == expected_order
+    assert next_state.selected_level == expected_level
+
+
+def test_navigate_topic_change_to_completed_resets_level_to_one():
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="topic-switch-user", selected_macro=None)
+        )
+    )
+    macro = state.selected_macro
+    topics = main.engine.get_curriculum()[macro]
+    if len(topics) < 2:
+        pytest.skip("Need at least two topics")
+
+    unlocked_order = state.progress[macro].unlocked_micro_topic_order
+    completed_topics = [
+        t for t in topics if int(t["micro_topic_order"]) < unlocked_order
+    ]
+    if not completed_topics:
+        pytest.skip("Need a completed topic behind the unlocked frontier")
+
+    completed_order = int(completed_topics[0]["micro_topic_order"])
+    state.selected_level = 3
+
+    next_state = run(
+        main.session_navigate(
+            main.SessionNavigateRequest(
+                session_id=state.session_id,
+                selected_micro_topic_order=completed_order,
+            )
+        )
+    )
+
+    assert next_state.selected_micro_topic_order == completed_order
+    assert next_state.selected_level == 1
+
+
+def test_navigation_has_next_unlocked_topic():
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="next-topic-user", selected_macro=None)
+        )
+    )
+    macro = state.selected_macro
+    topics = main.engine.get_curriculum()[macro]
+    if len(topics) < 2:
+        pytest.skip("Need at least two topics")
+
+    first_order = int(topics[0]["micro_topic_order"])
+    second_order = int(topics[1]["micro_topic_order"])
+    state.selected_micro_topic_order = first_order
+    state.progress[macro].unlocked_micro_topic_order = second_order
+
+    nav = main.navigation.build_navigation_view(
+        state.for_response(main._public_problem),
+        main.engine.get_curriculum(),
+    )
+    assert nav.has_next_unlocked_topic is True
+
+    state.progress[macro].unlocked_micro_topic_order = first_order
+    nav = main.navigation.build_navigation_view(
+        state.for_response(main._public_problem),
+        main.engine.get_curriculum(),
+    )
+    assert nav.has_next_unlocked_topic is False
+
+
+def test_navigation_progress_counts():
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username="progress-user", selected_macro=None)
+        )
+    )
+    macro = state.selected_macro
+    topics = main.engine.get_curriculum()[macro]
+    unlocked_order = state.progress[macro].unlocked_micro_topic_order
+    completed = sum(1 for t in topics if int(t["micro_topic_order"]) < unlocked_order)
+    total = len(topics)
+
+    assert state.navigation.macro_progress.completed == completed
+    assert state.navigation.macro_progress.total == total
+    assert state.navigation.macro_progress.percentage == pytest.approx(
+        (completed / total * 100) if total else 0.0
+    )
+
+    current_topic = next(
+        t
+        for t in topics
+        if int(t["micro_topic_order"]) == state.selected_micro_topic_order
+    )
+    max_level = int(current_topic["max_level"])
+    assert state.navigation.micro_progress.completed == state.selected_level - 1
+    assert state.navigation.micro_progress.total == max_level
+    assert state.navigation.micro_progress.percentage == pytest.approx(
+        ((state.selected_level - 1) / max_level * 100) if max_level else 0.0
+    )

@@ -1,5 +1,5 @@
 import { BlockMath } from 'react-katex';
-import type { Problem, GameState, CurriculumResponse } from '@/lib/types';
+import type { Problem, GameState } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
 interface ProblemDisplayProps {
@@ -7,10 +7,9 @@ interface ProblemDisplayProps {
   selectedMacro: string | null;
   isLoading?: boolean;
   gameState: GameState;
-  curriculum: CurriculumResponse | null;
 }
 
-export default function ProblemDisplay({ problem, selectedMacro, isLoading, gameState, curriculum }: ProblemDisplayProps) {
+export default function ProblemDisplay({ problem, selectedMacro, isLoading, gameState }: ProblemDisplayProps) {
   if (isLoading) {
     return (
       <div className="py-16 text-xl font-semibold text-slate-500 animate-pulse dark:text-slate-400">
@@ -23,17 +22,8 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
     return null;
   }
 
-  const selectedMicroTopicOrder = gameState.selected_micro_topic_order;
   const selectedLevel = gameState.selected_level;
-
-  let microTopicName = 'Current topic';
-  if (selectedMacro && selectedMicroTopicOrder && curriculum) {
-    const topics = curriculum.topics[selectedMacro] || [];
-    const currentTopic = topics.find(
-      (topic) => topic.micro_topic_order === selectedMicroTopicOrder
-    );
-    microTopicName = currentTopic?.name || 'Current topic';
-  }
+  const microTopicName = gameState.navigation?.current_topic_name || 'Current topic';
 
   return (
     <div className="mb-6 text-slate-700 dark:text-slate-300">

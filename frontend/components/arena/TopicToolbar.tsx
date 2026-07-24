@@ -1,76 +1,45 @@
 import { type ChangeEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { CurriculumResponse, GameState } from '@/lib/types';
+import type { GameState, SessionNavigateRequest } from '@/lib/types';
+
+type NavigateIntent = Pick<
+  SessionNavigateRequest,
+  'selected_macro' | 'selected_micro_topic_order' | 'selected_level'
+>;
 
 interface TopicToolbarProps {
-  curriculum: CurriculumResponse;
   gameState: GameState;
   isNavigating: boolean;
-  onNavigate: (macro: string, microTopicOrder: number, level: number) => void;
+  onNavigate: (intent: NavigateIntent) => void;
   onReset: () => void;
-  adminMode?: boolean;
 }
 
 export default function TopicToolbar({
-  curriculum,
   gameState,
   isNavigating,
   onNavigate,
   onReset,
-  adminMode = false,
 }: TopicToolbarProps) {
-  const selectedMacro = gameState.selected_macro || curriculum.macro_topics[0] || '';
-  const topics = curriculum.topics[selectedMacro] || [];
-  const firstTopic = topics[0];
-  const selectedMicroTopicOrder =
-    gameState.selected_micro_topic_order || firstTopic?.micro_topic_order || 1;
-  const selectedTopic =
-    topics.find((topic) => topic.micro_topic_order === selectedMicroTopicOrder) || firstTopic;
-  const selectedLevel = Math.min(gameState.selected_level || 1, selectedTopic?.max_level || 1);
-  const progress = selectedMacro ? gameState.progress[selectedMacro] : undefined;
-  const unlockedOrder =
-    progress?.unlocked_micro_topic_order ?? firstTopic?.micro_topic_order ?? 1;
-  const unlockedLevel = progress?.unlocked_level ?? 1;
+  const navigation = gameState.navigation;
+  if (!navigation) {
+    return null;
+  }
 
-  const availableTopics = adminMode
-    ? topics
-    : topics.filter((topic) => topic.micro_topic_order <= unlockedOrder);
-  const topicOptions = availableTopics.length > 0 ? availableTopics : topics.slice(0, 1);
-  const levelLimit = selectedTopic
-    ? adminMode || selectedTopic.micro_topic_order < unlockedOrder
-      ? selectedTopic.max_level
-      : Math.min(unlockedLevel, selectedTopic.max_level)
-    : 1;
-  const levelOptions = Array.from({ length: Math.max(levelLimit, 1) }, (_, index) => index + 1);
+  const selectedMacro = gameState.selected_macro ?? '';
+  const selectedMicroTopicOrder = gameState.selected_micro_topic_order ?? 1;
+  const selectedLevel = gameState.selected_level;
 
   const handleMacroChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextMacro = event.target.value;
-    const nextProgress = gameState.progress[nextMacro];
-    const nextTopics = curriculum.topics[nextMacro] || [];
-    const nextMicroTopicOrder =
-      nextProgress?.unlocked_micro_topic_order ?? nextTopics[0]?.micro_topic_order ?? 1;
-    const nextTopic =
-      nextTopics.find((topic) => topic.micro_topic_order === nextMicroTopicOrder) ||
-      nextTopics[0];
-    const nextLevel = Math.min(nextProgress?.unlocked_level ?? 1, nextTopic?.max_level ?? 1);
-
-    onNavigate(nextMacro, nextMicroTopicOrder, nextLevel);
+    onNavigate({ selected_macro: event.target.value });
   };
 
   const handleTopicChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextMicroTopicOrder = Number(event.target.value);
-    const nextTopic = topics.find((topic) => topic.micro_topic_order === nextMicroTopicOrder);
-    const nextLevel =
-      nextMicroTopicOrder < unlockedOrder
-        ? 1
-        : Math.min(unlockedLevel, nextTopic?.max_level ?? 1);
-
-    onNavigate(selectedMacro, nextMicroTopicOrder, nextLevel);
+    onNavigate({ selected_micro_topic_order: Number(event.target.value) });
   };
 
   const handleLevelChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate(selectedMacro, selectedMicroTopicOrder, Number(event.target.value));
+    onNavigate({ selected_level: Number(event.target.value) });
   };
 
   return (
@@ -98,7 +67,7 @@ export default function TopicToolbar({
               disabled={isNavigating}
               className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
-              {curriculum.macro_topics.map((macro) => (
+              {navigation.macro_topics.map((macro) => (
                 <option key={macro} value={macro}>
                   {macro}
                 </option>
@@ -111,10 +80,10 @@ export default function TopicToolbar({
             <select
               value={selectedMicroTopicOrder}
               onChange={handleTopicChange}
-              disabled={isNavigating || topicOptions.length === 0}
+              disabled={isNavigating || navigation.available_micro_topics.length === 0}
               className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
-              {topicOptions.map((topic, index) => (
+              {navigation.available_micro_topics.map((topic, index) => (
                 <option key={topic.micro_topic_order} value={topic.micro_topic_order}>
                   {index + 1}. {topic.name}
                 </option>
@@ -130,7 +99,7 @@ export default function TopicToolbar({
               disabled={isNavigating}
               className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-slate-950 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white dark:focus:ring-sky-500/20"
             >
-              {levelOptions.map((level) => (
+              {navigation.available_levels.map((level) => (
                 <option key={level} value={level}>
                   {level}
                 </option>
@@ -140,10 +109,10 @@ export default function TopicToolbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <Badge variant="secondary">{selectedTopic?.name || 'No topic selected'}</Badge>
+          <Badge variant="secondary">{navigation.current_topic_name || 'No topic selected'}</Badge>
           <span>Level {selectedLevel}</span>
           {isNavigating && <span className="text-blue-300">Loading topic...</span>}
-          {adminMode && <span className="text-green-400">🛠️ Admin mode active</span>}
+          {gameState.admin_mode && <span className="text-green-400">🛠️ Admin mode active</span>}
         </div>
       </div>
     </div>

@@ -5,6 +5,28 @@ export interface TopicProgress {
   unlocked_level: number;
 }
 
+export interface NavigationMicroTopicOption {
+  micro_topic_order: number;
+  name: string;
+}
+
+export interface NavigationProgress {
+  completed: number;
+  total: number;
+  percentage: number;
+}
+
+export interface NavigationView {
+  macro_topics: string[];
+  current_topic_name: string | null;
+  available_micro_topics: NavigationMicroTopicOption[];
+  available_levels: number[];
+  has_next_unlocked_topic: boolean;
+  text_mode_disabled: boolean;
+  macro_progress: NavigationProgress | null;
+  micro_progress: NavigationProgress | null;
+}
+
 export interface GameState {
   session_id: string;
   username: string | null;
@@ -26,6 +48,7 @@ export interface GameState {
   can_submit: boolean;
   can_advance: boolean;
   admin_mode?: boolean;
+  navigation?: NavigationView | null;
 }
 
 export interface Problem {

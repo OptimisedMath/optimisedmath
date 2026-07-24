@@ -43,6 +43,28 @@ class TopicProgress(BaseModel):
     )
 
 
+class NavigationMicroTopicOption(BaseModel):
+    micro_topic_order: int
+    name: str
+
+
+class NavigationProgress(BaseModel):
+    completed: int
+    total: int
+    percentage: float
+
+
+class NavigationView(BaseModel):
+    macro_topics: list[str]
+    current_topic_name: Optional[str] = None
+    available_micro_topics: list[NavigationMicroTopicOption]
+    available_levels: list[int]
+    has_next_unlocked_topic: bool
+    text_mode_disabled: bool
+    macro_progress: Optional[NavigationProgress] = None
+    micro_progress: Optional[NavigationProgress] = None
+
+
 class GameState(BaseModel):
     """Mutable session state used by StateManager and API responses."""
 
@@ -76,6 +98,10 @@ class GameState(BaseModel):
     admin_mode: bool = Field(
         default=False,
         description="Whether the user has admin privileges (all topics + auto-solve)",
+    )
+    navigation: Optional[NavigationView] = Field(
+        default=None,
+        description="Computed UI navigation state (API responses only, not persisted)",
     )
 
     model_config = ConfigDict(

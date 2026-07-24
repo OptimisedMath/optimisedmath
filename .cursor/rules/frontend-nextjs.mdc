@@ -1,0 +1,12 @@
+---
+description: Next.js and React conventions for the frontend
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend (Next.js)
+
+- Read `node_modules/next/dist/docs/` before writing Next.js code — this project uses Next.js 16 with breaking changes.
+- App Router pages under `app/`. Arena components in `components/arena/`, shadcn UI in `components/ui/`.
+- Call backend via relative `/api/*` paths (proxied to `:8000`).
+- Mirror backend Pydantic models in `lib/types.ts` when changing API contracts.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
@@ -9,11 +9,16 @@ import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
-import { getCurriculum, startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
+import { startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
 import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
-import type { CurriculumResponse, GameState, Feedback, SubmitAnswerHandler } from '@/lib/types';
+import type { GameState, Feedback, SubmitAnswerHandler, SessionNavigateRequest } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
+
+type NavigateIntent = Pick<
+  SessionNavigateRequest,
+  'selected_macro' | 'selected_micro_topic_order' | 'selected_level'
+>;
 
 export default function GameArena() {
   const router = useRouter();
@@ -21,7 +26,6 @@ export default function GameArena() {
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdvancing, setIsAdvancing] = useState(false);
@@ -33,17 +37,6 @@ export default function GameArena() {
   const sessionId = gameState?.session_id;
 
   const problem = gameState?.current_problem ?? null;
-
-  const textModeDisabled = useMemo(() => {
-    if (!curriculum || !gameState?.selected_macro || !gameState.selected_micro_topic_order) {
-      return false;
-    }
-    const topics = curriculum.topics[gameState.selected_macro] || [];
-    const topic = topics.find(
-      (t) => t.micro_topic_order === gameState.selected_micro_topic_order
-    );
-    return topic?.text_mode_disabled ?? false;
-  }, [curriculum, gameState?.selected_macro, gameState?.selected_micro_topic_order]);
 
   const fetchNextProblem = useCallback(async (
     currentSessionId: string,
@@ -95,23 +88,9 @@ export default function GameArena() {
       }
 
       try {
-        const curriculumResponse = await getCurriculum();
-        if (!isMounted) return;
-
-        const availableMacros = curriculumResponse.macro_topics || [];
-        if (availableMacros.length === 0) {
-          throw new Error('No curriculum data available');
-        }
-
-        const initialMacro = availableMacros.includes(PREFERRED_MACRO)
-          ? PREFERRED_MACRO
-          : availableMacros[0];
-
-        setCurriculum(curriculumResponse);
-
         const sessionResponse = await startSession({
           username: storedUsername,
-          selected_macro: initialMacro,
+          selected_macro: PREFERRED_MACRO,
         });
         if (!isMounted) return;
 
@@ -121,6 +100,22 @@ export default function GameArena() {
         fetchNextProblem(sessionResponse.session_id);
       } catch (err) {
         if (!isMounted) return;
+
+        try {
+          const fallbackSession = await startSession({
+            username: storedUsername,
+          });
+          if (!isMounted) return;
+
+          localStorage.setItem('session_id', fallbackSession.session_id);
+          setGameState(fallbackSession);
+          setError(null);
+          fetchNextProblem(fallbackSession.session_id);
+          return;
+        } catch {
+          // Fall through to the original error message.
+        }
+
         const errorMsg = err instanceof Error ? err.message : 'Failed to start session';
         setError(errorMsg);
         console.error('Error starting session:', err);
@@ -206,7 +201,7 @@ export default function GameArena() {
     }
   };
 
-  const handleNavigate = useCallback(async (macro: string, microTopicOrder: number, level: number) => {
+  const handleNavigate = useCallback(async (intent: NavigateIntent) => {
     if (!sessionId) {
       return;
     }
@@ -223,9 +218,7 @@ export default function GameArena() {
     try {
       const nextState = await navigateSession({
         session_id: sessionId,
-        selected_macro: macro,
-        selected_micro_topic_order: microTopicOrder,
-        selected_level: level,
+        ...intent,
       });
 
       setGameState(nextState);
@@ -382,6 +375,7 @@ export default function GameArena() {
   const showAdvance = gameState.can_advance && feedback !== null;
   const canSubmit = gameState.can_submit && !isSubmitting;
   const adminMode = gameState.admin_mode ?? false;
+  const textModeDisabled = gameState.navigation?.text_mode_disabled ?? false;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
@@ -389,21 +383,19 @@ export default function GameArena() {
       <div className="relative z-10 flex w-full flex-col items-center">
       <XPBar gameState={gameState} onLogout={handleLogout} />
 
-      {curriculum && (
+      {gameState.navigation && (
         <TopicToolbar
-          curriculum={curriculum}
           gameState={gameState}
           isNavigating={isNavigating}
           onNavigate={handleNavigate}
           onReset={handleReset}
-          adminMode={adminMode}
         />
       )}
 
-      {curriculum && (
+      {gameState.navigation && (
         <>
-          <ProgressBar gameState={gameState} curriculum={curriculum} type="macro" />
-          <ProgressBar gameState={gameState} curriculum={curriculum} type="micro" />
+          <ProgressBar gameState={gameState} type="macro" />
+          <ProgressBar gameState={gameState} type="micro" />
         </>
       )}
 
@@ -416,7 +408,6 @@ export default function GameArena() {
           selectedMacro={gameState.selected_macro}
           isLoading={!problem}
           gameState={gameState}
-          curriculum={curriculum}
         />
 
         {problem && (

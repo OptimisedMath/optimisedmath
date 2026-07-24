@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import backend.config as config
 import backend.engine as engine
+import backend.navigation as navigation
 import backend.state_manager as state_manager
 from backend.core import db
 from backend.core.utils import clean_latex, clean_mobile_input
@@ -45,7 +46,10 @@ def _get_session(session_id: str) -> GameState:
 
 
 def _respond(state: GameState) -> GameState:
-    return state.for_response(_public_problem)
+    curriculum = engine.get_curriculum()
+    response = state.for_response(_public_problem)
+    response.navigation = navigation.build_navigation_view(response, curriculum)
+    return response
 
 
 def _is_safe_svg_fragment(value: str) -> bool:
@@ -224,7 +228,9 @@ async def session_start(request: SessionStartRequest):
 async def session_navigate(request: SessionNavigateRequest):
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
-    macro_topic = request.selected_macro or state.selected_macro
+    macro_topic, micro_topic_order, selected_level = navigation.resolve_navigate_request(
+        state, curriculum, request
+    )
 
     if not macro_topic or macro_topic not in curriculum:
         raise HTTPException(
@@ -240,22 +246,6 @@ async def session_navigate(request: SessionNavigateRequest):
         )
 
     available_orders = [int(t["micro_topic_order"]) for t in topic_list]
-    micro_topic_order = request.selected_micro_topic_order
-
-    if micro_topic_order is None:
-        if request.selected_macro and request.selected_macro != state.selected_macro:
-            micro_topic_order = state_manager.StateManager._get_first_micro_topic_order(
-                curriculum, macro_topic
-            )
-        else:
-            micro_topic_order = (
-                state.selected_micro_topic_order
-                or state_manager.StateManager._get_first_micro_topic_order(
-                    curriculum, macro_topic
-                )
-            )
-
-    micro_topic_order = int(micro_topic_order)
     if micro_topic_order not in available_orders:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -265,12 +255,6 @@ async def session_navigate(request: SessionNavigateRequest):
     topic_map = engine.build_topic_map(curriculum, macro_topic)
     selected_topic = topic_map[micro_topic_order]
     max_level = int(selected_topic["max_level"])
-    selected_level = (
-        request.selected_level
-        if request.selected_level is not None
-        else state.selected_level
-    )
-    selected_level = int(selected_level)
 
     if selected_level < 1 or selected_level > max_level:
         raise HTTPException(
