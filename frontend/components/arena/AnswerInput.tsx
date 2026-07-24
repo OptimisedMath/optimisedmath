@@ -1,10 +1,11 @@
 'use client';
 
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
+import { useDocumentKeydown } from '@/hooks/useDocumentKeydown';
 import type { Problem, SubmitAnswerHandler } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
@@ -38,17 +39,44 @@ function AnswerInput({
     onSubmit(value);
   };
 
-  const handleRadioKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && value.trim() !== '' && canSubmit && !disabled && !showFeedback) {
-      e.preventDefault();
-      onSubmit(value);
-    }
-  };
-
   const rawInputMode = problem?.input_mode ?? currentInputMode;
   const inputMode =
     textModeDisabled || rawInputMode === 'radio' ? 'radio' : rawInputMode;
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleRadioShortcuts = useCallback(
+    (e: KeyboardEvent) => {
+      if (
+        inputMode !== 'radio' ||
+        !problem?.answer_options ||
+        showFeedback ||
+        !canSubmit ||
+        disabled
+      ) {
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.key === 'Enter' && value.trim() !== '' && !e.repeat) {
+        e.preventDefault();
+        onSubmit(value);
+        return;
+      }
+
+      const num = parseInt(e.key, 10);
+      if (num >= 1 && num <= problem.answer_options.length) {
+        e.preventDefault();
+        setValue(problem.answer_options[num - 1]);
+      }
+    },
+    [inputMode, problem, showFeedback, canSubmit, disabled, value, onSubmit]
+  );
+
+  useDocumentKeydown(handleRadioShortcuts, [handleRadioShortcuts]);
 
   const appendChar = (char: string) => {
     const input = inputRef.current;
@@ -65,28 +93,6 @@ function AnswerInput({
       input.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
   };
-
-  useEffect(() => {
-    const handleGlobalRadioKey = (e: KeyboardEvent) => {
-      if (inputMode !== 'radio' || !problem?.answer_options || showFeedback || disabled) return;
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
-      if (e.key === 'Enter' && value.trim() !== '') {
-        e.preventDefault();
-        onSubmit(value);
-        return;
-      }
-
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= problem.answer_options.length) {
-        e.preventDefault();
-        setValue(problem.answer_options[num - 1]);
-      }
-    };
-    window.addEventListener('keydown', handleGlobalRadioKey);
-    return () => window.removeEventListener('keydown', handleGlobalRadioKey);
-  }, [inputMode, problem, showFeedback, disabled, value, onSubmit]);
 
   const keyboardType = problem?.keyboard_type || 'default';
   const submitDisabled = value.trim() === '' || !canSubmit || disabled;
@@ -109,17 +115,12 @@ function AnswerInput({
 
   if (inputMode === 'radio' && problem?.answer_options) {
     return (
-      <div className="flex flex-col items-center gap-4" onKeyDown={handleRadioKeyDown} tabIndex={0}>
+      <div className="flex flex-col items-center gap-4">
         <div className="flex flex-col gap-3 w-full">
           {problem.answer_options.map((option, index) => (
             <button
               key={index}
               onClick={() => setValue(option)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                }
-              }}
               disabled={showFeedback}
               className={`p-3 sm:p-4 text-base sm:text-xl rounded-xl border-2 transition-all shadow-sm ${
                 showFeedback && feedback

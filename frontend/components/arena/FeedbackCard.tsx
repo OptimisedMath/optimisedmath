@@ -1,4 +1,4 @@
-import { memo, type RefObject } from 'react';
+import { memo, useEffect, useRef, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { InlineMath } from 'react-katex';
 import type { Feedback, Problem } from '@/lib/types';
@@ -27,6 +27,18 @@ function FeedbackCard({
   nextButtonRef,
   problem,
 }: FeedbackCardProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const showNextButton = !(topicCompleted && !hasNextTopic);
+
+  useEffect(() => {
+    if (!feedback) return;
+    if (!showNextButton || disabled) {
+      wrapperRef.current?.focus();
+      return;
+    }
+    nextButtonRef?.current?.focus();
+  }, [feedback, showNextButton, disabled, nextButtonRef]);
+
   if (!feedback) {
     return null;
   }
@@ -42,8 +54,22 @@ function FeedbackCard({
     buttonLabel = 'Następny poziom ➡️';
   }
 
+  const handleAdvanceKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled || !showNextButton) return;
+    if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onNextProblem();
+    }
+  };
+
   return (
-    <div className="w-full flex flex-col items-center gap-4 mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 animate-[fadeSlideIn_0.3s_ease-out] dark:border-slate-700 dark:bg-slate-950/50">
+    <div
+      ref={wrapperRef}
+      tabIndex={-1}
+      onKeyDown={handleAdvanceKeyDown}
+      className="w-full flex flex-col items-center gap-4 mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 animate-[fadeSlideIn_0.3s_ease-out] dark:border-slate-700 dark:bg-slate-950/50 outline-none"
+    >
       {showCelebration && (
         <div className="text-5xl sm:text-6xl animate-bounce drop-shadow">
           🎉

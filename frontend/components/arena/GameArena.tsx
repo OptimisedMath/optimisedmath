@@ -278,25 +278,6 @@ export default function GameArena() {
     return () => cancelAnimationFrame(frameId);
   }, [feedback]);
 
-  useEffect(() => {
-    const handleAdvanceKey = (e: KeyboardEvent) => {
-      if (
-        e.key === 'Enter' &&
-        gameState?.can_advance &&
-        feedback &&
-        !e.repeat &&
-        !isAdvancingRef.current &&
-        !isFetchingRef.current
-      ) {
-        e.preventDefault();
-        void handleAdvance();
-      }
-    };
-
-    window.addEventListener('keydown', handleAdvanceKey);
-    return () => window.removeEventListener('keydown', handleAdvanceKey);
-  }, [gameState?.can_advance, feedback, handleAdvance]);
-
   const handleReset = useCallback(async () => {
     if (!gameState?.session_id) {
       return;
