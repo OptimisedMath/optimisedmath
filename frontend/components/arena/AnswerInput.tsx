@@ -105,7 +105,7 @@ export default function AnswerInput({
           {problem.answer_options.map((option, index) => (
             <button
               key={index}
-              onClick={() => !showFeedback && onChange(option)}
+              onClick={() => onChange(option)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -181,7 +181,6 @@ export default function AnswerInput({
           inputMode={keyboardType === 'decimal' ? 'decimal' : 'numeric'}
           className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-slate-950 dark:text-white rounded-xl w-full max-w-xs sm:w-64 text-center bg-white dark:bg-slate-950/70 border-slate-200 dark:border-slate-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-200 dark:focus:ring-sky-500/30"
           autoFocus
-          disabled={showFeedback}
           ref={inputRef}
         />
       )}
