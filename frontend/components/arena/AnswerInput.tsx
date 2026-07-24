@@ -122,7 +122,7 @@ function AnswerInput({
               key={index}
               onClick={() => setValue(option)}
               disabled={showFeedback}
-              className={`p-3 sm:p-4 text-base sm:text-xl rounded-xl border-2 transition-all shadow-sm ${
+              className={`p-3 sm:p-4 text-base sm:text-xl rounded-xl border-2 transition-all shadow-sm active:scale-[0.98] ${
                 showFeedback && feedback
                   ? value === option && feedback.correct
                     ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
@@ -132,9 +132,9 @@ function AnswerInput({
                     ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                     : 'border-slate-200 bg-slate-100 text-slate-500 opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                   : value === option
-                    ? 'border-sky-500 bg-sky-50 text-sky-700 ring-4 ring-sky-100 dark:bg-sky-500/20 dark:text-sky-200 dark:ring-sky-500/20'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:bg-slate-800'
-              } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    ? 'border-sky-500 bg-sky-50 text-sky-700 ring-4 ring-sky-100 hover:-translate-y-0.5 dark:bg-sky-500/20 dark:text-sky-200 dark:ring-sky-500/20'
+                    : 'border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:shadow-md dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:bg-slate-800'
+              } ${showFeedback ? '' : 'cursor-pointer'}`}
             >
               <span className="inline-flex items-center gap-2">
                 <kbd className="hidden sm:inline-block text-xs px-1.5 py-0.5 rounded bg-slate-600/50 text-slate-400 font-mono border border-slate-500/50">
@@ -151,7 +151,7 @@ function AnswerInput({
             <Button
               onClick={() => onSubmit(value)}
               disabled={submitDisabled}
-              className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
+              className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:-translate-y-0.5 hover:shadow-sky-500/30 active:translate-y-0 active:scale-[0.98]"
             >
               <Check className="mr-2 h-5 w-5" aria-hidden="true" />
               Sprawdź odpowiedź
@@ -161,7 +161,7 @@ function AnswerInput({
                 onClick={onAutoSolve}
                 disabled={disabled}
                 variant="outline"
-                className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:-translate-y-0.5 active:scale-[0.98] dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 🪄 Auto-Solve
               </Button>
@@ -201,7 +201,7 @@ function AnswerInput({
             type="button"
             variant="outline"
             onClick={() => appendChar('/')}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100 px-5 py-3 text-xl font-mono dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] px-5 py-3 text-xl font-mono dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             /
           </Button>
@@ -209,7 +209,7 @@ function AnswerInput({
             type="button"
             variant="outline"
             onClick={() => appendChar(' ')}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100 px-5 py-3 text-xl dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] px-5 py-3 text-xl dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             spacja
           </Button>
@@ -221,7 +221,7 @@ function AnswerInput({
           <Button
             type="submit"
             disabled={submitDisabled}
-            className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
+            className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:-translate-y-0.5 hover:shadow-sky-500/30 active:translate-y-0 active:scale-[0.98]"
           >
             <Check className="mr-2 h-5 w-5" aria-hidden="true" />
             Sprawdź odpowiedź
@@ -232,7 +232,7 @@ function AnswerInput({
               onClick={onAutoSolve}
               disabled={disabled}
               variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:-translate-y-0.5 active:scale-[0.98] dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               🪄 Auto-Solve
             </Button>

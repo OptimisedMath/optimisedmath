@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { BlockMath } from 'react-katex';
+import { Spinner } from '@/components/ui/spinner';
 import type { Problem } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
@@ -20,8 +21,9 @@ function ProblemDisplay({
 }: ProblemDisplayProps) {
   if (isLoading) {
     return (
-      <div className="py-16 text-xl font-semibold text-slate-500 animate-pulse dark:text-slate-400">
-        Loading problem...
+      <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500 dark:text-slate-400">
+        <Spinner className="h-8 w-8 text-sky-500 dark:text-sky-400" />
+        <span className="text-lg font-semibold">Ładowanie zadania...</span>
       </div>
     );
   }

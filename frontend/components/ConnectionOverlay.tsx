@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function ConnectionOverlay({ children }: { children: React.ReactNode }) {
   const [disconnected, setDisconnected] = useState(false);
@@ -65,8 +66,10 @@ export default function ConnectionOverlay({ children }: { children: React.ReactN
       {children}
       {disconnected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-sm mx-4 text-center shadow-2xl border border-slate-200 dark:border-slate-700">
-            <div className="text-4xl mb-4">🔌</div>
+          <div className="glass-card-strong animate-scale-in rounded-2xl p-8 max-w-sm mx-4 text-center">
+            <div className="gradient-xp mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-3xl shadow-lg shadow-amber-500/30">
+              🔌
+            </div>
             <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">
               Utracono połączenie
             </h2>
@@ -74,17 +77,14 @@ export default function ConnectionOverlay({ children }: { children: React.ReactN
               Nie można połączyć się z serwerem. Próbuję ponownie...
             </p>
             {retrying ? (
-              <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+              <div className="flex items-center justify-center gap-2 text-sky-600 dark:text-sky-400">
+                <Spinner className="h-5 w-5" />
                 Łączenie...
               </div>
             ) : (
               <button
                 onClick={handleRetryNow}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold transition-colors"
+                className="gradient-primary text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 active:scale-[0.98]"
               >
                 Spróbuj ponownie
               </button>

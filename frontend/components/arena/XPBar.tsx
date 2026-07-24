@@ -16,13 +16,18 @@ function XPBar({ xp, flawlessEligible, onLogout }: XPBarProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="w-full max-w-3xl rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_16px_50px_rgba(15,23,42,0.12)] backdrop-blur-xl mb-4 sm:mb-6 dark:border-white/10 dark:bg-slate-900/75">
+    <div className="glass-card w-full max-w-3xl rounded-2xl p-3 mb-4 sm:mb-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-base sm:text-xl text-slate-900 dark:text-white font-semibold">
-        XP:{' '}
-        <span className="text-yellow-500 dark:text-yellow-400 font-bold tabular-nums">
-          {animatedXP}
-        </span>
+      <div className="flex items-center gap-3">
+        <div className="gradient-xp flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-md shadow-amber-500/30">
+          ⭐
+        </div>
+        <div className="text-base sm:text-xl text-slate-900 dark:text-white font-semibold">
+          XP:{' '}
+          <span className="text-amber-500 dark:text-amber-400 font-bold tabular-nums">
+            {animatedXP}
+          </span>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <div className="text-sm sm:text-base text-slate-700 dark:text-slate-200">

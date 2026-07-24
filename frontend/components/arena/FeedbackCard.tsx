@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
+import { Check, X } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import type { Feedback, Problem } from '@/lib/types';
 import 'katex/dist/katex.min.css';
@@ -68,14 +69,25 @@ function FeedbackCard({
       ref={wrapperRef}
       tabIndex={-1}
       onKeyDown={handleAdvanceKeyDown}
-      className="w-full flex flex-col items-center gap-4 mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 animate-[fadeSlideIn_0.3s_ease-out] dark:border-slate-700 dark:bg-slate-950/50 outline-none"
+      className="glass-card w-full flex flex-col items-center gap-4 mt-4 rounded-2xl p-4 animate-[fadeSlideIn_0.3s_ease-out] outline-none"
     >
       {showCelebration && (
         <div className="text-5xl sm:text-6xl animate-bounce drop-shadow">
           🎉
         </div>
       )}
-      <div className={`text-lg sm:text-2xl font-bold ${feedback.correct ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+      <div
+        className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-base sm:text-xl font-bold ${
+          feedback.correct
+            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300'
+            : 'bg-red-100 text-red-700 dark:bg-red-400/15 dark:text-red-300'
+        }`}
+      >
+        {feedback.correct ? (
+          <Check className="h-5 w-5 shrink-0" aria-hidden="true" />
+        ) : (
+          <X className="h-5 w-5 shrink-0" aria-hidden="true" />
+        )}
         {feedback.message}
       </div>
       {correctAnswer && (
@@ -100,7 +112,7 @@ function FeedbackCard({
           type="button"
           onClick={onNextProblem}
           disabled={disabled}
-          className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-slate-900/20 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
+          className="gradient-primary text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40 active:translate-y-0 active:scale-[0.98] disabled:hover:translate-y-0"
         >
           {buttonLabel}
         </Button>

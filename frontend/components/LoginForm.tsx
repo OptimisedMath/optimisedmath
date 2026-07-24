@@ -4,7 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { startSession } from '@/lib/api';
+
+const FLOATING_SYMBOLS = [
+  { symbol: '∑', top: '12%', left: '10%', delay: '0s', size: 'text-5xl' },
+  { symbol: 'π', top: '20%', left: '82%', delay: '0.6s', size: 'text-4xl' },
+  { symbol: '÷', top: '68%', left: '8%', delay: '1.2s', size: 'text-4xl' },
+  { symbol: '√', top: '78%', left: '85%', delay: '0.3s', size: 'text-5xl' },
+  { symbol: '×', top: '8%', left: '52%', delay: '1.5s', size: 'text-3xl' },
+  { symbol: '∞', top: '85%', left: '48%', delay: '0.9s', size: 'text-4xl' },
+];
 
 export default function LoginForm() {
   const router = useRouter();
@@ -38,14 +48,33 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">🧮 Optymalna nauka matematyki :D</h1>
-        <h2 className="text-xl font-semibold text-center mb-6 text-slate-300">Zaloguj się</h2>
+    <div className="gradient-bg relative min-h-screen overflow-hidden flex items-center justify-center p-4 text-slate-900 dark:text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        {FLOATING_SYMBOLS.map(({ symbol, top, left, delay, size }, index) => (
+          <span
+            key={index}
+            className={`animate-float absolute select-none font-bold text-sky-500/20 dark:text-sky-300/15 ${size}`}
+            style={{ top, left, animationDelay: delay }}
+          >
+            {symbol}
+          </span>
+        ))}
+      </div>
+
+      <div className="glass-card-strong animate-scale-in relative z-10 w-full max-w-md rounded-2xl p-6 sm:p-8">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary text-3xl shadow-lg shadow-sky-500/30">
+          🧮
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2 text-slate-900 dark:text-white">
+          Optymalna nauka matematyki
+        </h1>
+        <h2 className="text-lg font-semibold text-center mb-6 text-slate-500 dark:text-slate-300">
+          Zaloguj się
+        </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="username" className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">
               Twoje imię:
             </label>
             <Input
@@ -54,7 +83,7 @@ export default function LoginForm() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="np. Janek"
-              className="bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              className="bg-white/70 dark:bg-slate-900/60 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-4 focus:ring-sky-200 dark:focus:ring-sky-500/30"
               disabled={isLoading}
               autoFocus
             />
@@ -69,9 +98,16 @@ export default function LoginForm() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-600 text-white font-bold py-3 rounded-lg transition-all"
+            className="gradient-primary w-full text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40 active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            {isLoading ? 'Ładowanie...' : 'Rozpocznij naukę'}
+            {isLoading ? (
+              <span className="inline-flex items-center gap-2">
+                <Spinner className="h-4 w-4" />
+                Ładowanie...
+              </span>
+            ) : (
+              'Rozpocznij naukę'
+            )}
           </Button>
         </form>
       </div>

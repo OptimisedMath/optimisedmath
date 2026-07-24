@@ -11,6 +11,7 @@ import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 import { startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
 import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
+import { Spinner } from '@/components/ui/spinner';
 import type { GameState, Feedback, SubmitAnswerHandler, SessionNavigateRequest } from '@/lib/types';
 
 const PREFERRED_MACRO = 'Ułamki Zwykłe';
@@ -308,7 +309,7 @@ export default function GameArena() {
     } finally {
       setIsNavigating(false);
     }
-  }, [gameState?.session_id, fetchNextProblem]);
+  }, [gameState, fetchNextProblem]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('username');
@@ -318,18 +319,21 @@ export default function GameArena() {
 
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white p-8">
-        <div className="max-w-md bg-red-100 dark:bg-red-900 border-2 border-red-400 dark:border-red-600 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold mb-4 text-red-700 dark:text-red-200">Error</h2>
-          <p className="text-lg mb-6">{error}</p>
+      <div className="gradient-bg flex h-screen items-center justify-center p-8 text-slate-900 dark:text-white">
+        <div className="glass-card-strong animate-scale-in max-w-md rounded-2xl p-6 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-3xl dark:bg-red-400/15">
+            ⚠️
+          </div>
+          <h2 className="text-2xl font-bold mb-4 text-red-600 dark:text-red-300">Wystąpił błąd</h2>
+          <p className="text-lg mb-6 text-slate-600 dark:text-slate-300">{error}</p>
           <button
             onClick={() => {
               setError(null);
               window.location.reload();
             }}
-            className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg font-bold"
+            className="bg-red-600 hover:bg-red-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-red-500/30"
           >
-            Try Again
+            Spróbuj ponownie
           </button>
         </div>
       </div>
@@ -338,8 +342,11 @@ export default function GameArena() {
 
   if (!gameState) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
-        {needsLogin ? 'Redirecting to login...' : 'Connecting to Python Brain...'}
+      <div className="gradient-bg flex h-screen flex-col items-center justify-center gap-4 text-slate-900 dark:text-white">
+        <Spinner className="h-8 w-8 text-sky-500 dark:text-sky-400" />
+        <span className="text-lg font-semibold text-slate-600 dark:text-slate-300">
+          {needsLogin ? 'Przekierowywanie do logowania...' : 'Łączenie z serwerem...'}
+        </span>
       </div>
     );
   }
@@ -350,26 +357,30 @@ export default function GameArena() {
   const textModeDisabled = gameState.navigation?.text_mode_disabled ?? false;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
+    <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
-      <XPBar
-        xp={gameState.xp}
-        flawlessEligible={gameState.flawless_eligible}
-        onLogout={handleLogout}
-      />
+      <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '0ms' }}>
+        <XPBar
+          xp={gameState.xp}
+          flawlessEligible={gameState.flawless_eligible}
+          onLogout={handleLogout}
+        />
+      </div>
 
       {gameState.navigation && (
-        <TopicToolbar
-          gameState={gameState}
-          isNavigating={isNavigating}
-          onNavigate={handleNavigate}
-          onReset={handleReset}
-        />
+        <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '80ms' }}>
+          <TopicToolbar
+            gameState={gameState}
+            isNavigating={isNavigating}
+            onNavigate={handleNavigate}
+            onReset={handleReset}
+          />
+        </div>
       )}
 
       {gameState.navigation && (
-        <>
+        <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
           <ProgressBar
             type="macro"
             selectedMacro={gameState.selected_macro}
@@ -381,17 +392,22 @@ export default function GameArena() {
             microProgress={gameState.navigation.micro_progress}
             currentTopicName={gameState.navigation.current_topic_name}
           />
-        </>
+        </div>
       )}
 
-      <MasteryScoreboard
-        streak={gameState.streak}
-        maxStreak={gameState.max_streak}
-        problemAnswered={gameState.problem_answered}
-        showCelebration={gameState.show_celebration}
-      />
+      <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '240ms' }}>
+        <MasteryScoreboard
+          streak={gameState.streak}
+          maxStreak={gameState.max_streak}
+          problemAnswered={gameState.problem_answered}
+          showCelebration={gameState.show_celebration}
+        />
+      </div>
 
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-white/70 bg-white/85 p-4 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-slate-900/78 dark:shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+      <div
+        className="glass-card-strong animate-fade-slide-up relative w-full max-w-3xl overflow-hidden rounded-2xl p-4 text-center sm:p-8"
+        style={{ animationDelay: '320ms' }}
+      >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-300" />
         <ProblemDisplay
           problem={problem}
