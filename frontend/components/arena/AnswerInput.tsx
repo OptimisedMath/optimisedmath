@@ -53,8 +53,19 @@ export default function AnswerInput({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const appendChar = (char: string) => {
-    onChange(value + char);
-    setTimeout(() => inputRef.current?.focus(), 0);
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? value.length;
+    const end = input?.selectionEnd ?? value.length;
+    const newValue = value.slice(0, start) + char + value.slice(end);
+    const newCursorPos = start + char.length;
+
+    onChange(newValue);
+
+    setTimeout(() => {
+      if (!input) return;
+      input.focus();
+      input.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
   };
 
   useEffect(() => {
