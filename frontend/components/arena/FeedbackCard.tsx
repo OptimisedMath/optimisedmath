@@ -1,42 +1,50 @@
-import { type RefObject } from 'react';
+import { memo, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { InlineMath } from 'react-katex';
-import type { Feedback, GameState, Problem } from '@/lib/types';
+import type { Feedback, Problem } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
 interface FeedbackCardProps {
   feedback: Feedback | null;
   onNextProblem: () => void;
   topicCompleted?: boolean;
-  gameState: GameState;
+  showCelebration: boolean;
+  hasNextTopic: boolean;
+  currentInputMode: string;
   disabled?: boolean;
   nextButtonRef?: RefObject<HTMLButtonElement | null>;
   problem?: Problem | null;
 }
 
-export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, gameState, disabled = false, nextButtonRef, problem }: FeedbackCardProps) {
+function FeedbackCard({
+  feedback,
+  onNextProblem,
+  topicCompleted,
+  showCelebration,
+  hasNextTopic,
+  currentInputMode,
+  disabled = false,
+  nextButtonRef,
+  problem,
+}: FeedbackCardProps) {
   if (!feedback) {
     return null;
   }
 
-  const showBalloons = gameState.show_celebration;
-
-  const hasNextTopic = gameState.navigation?.has_next_unlocked_topic ?? false;
-
-  const inputMode = problem?.input_mode ?? gameState.current_input_mode;
+  const inputMode = problem?.input_mode ?? currentInputMode;
   const correctAnswer =
     !feedback.correct && inputMode !== 'radio' ? problem?.correct_answer : undefined;
 
   let buttonLabel = 'Następne zadanie ➡️';
   if (topicCompleted) {
     buttonLabel = 'Następny temat ➡️';
-  } else if (showBalloons) {
+  } else if (showCelebration) {
     buttonLabel = 'Następny poziom ➡️';
   }
 
   return (
     <div className="w-full flex flex-col items-center gap-4 mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 animate-[fadeSlideIn_0.3s_ease-out] dark:border-slate-700 dark:bg-slate-950/50">
-      {showBalloons && (
+      {showCelebration && (
         <div className="text-5xl sm:text-6xl animate-bounce drop-shadow">
           🎉
         </div>
@@ -74,3 +82,5 @@ export default function FeedbackCard({ feedback, onNextProblem, topicCompleted, 
     </div>
   );
 }
+
+export default memo(FeedbackCard);

@@ -31,6 +31,8 @@ export default function GameArena() {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const isFetchingRef = useRef(false);
   const isAdvancingRef = useRef(false);
+  const userAnswerRef = useRef(userAnswer);
+  userAnswerRef.current = userAnswer;
   const feedbackRef = useRef<HTMLDivElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
@@ -129,12 +131,24 @@ export default function GameArena() {
     };
   }, [fetchNextProblem, router]);
 
-  const handleSubmit: SubmitAnswerHandler = async (answerOverride) => {
+  const applySubmissionResponse = useCallback((response: { state: GameState; is_correct: boolean; feedback: string }) => {
+    const nextState = response.state;
+    setGameState(nextState);
+    setError(null);
+    setFeedback({
+      correct: response.is_correct,
+      message: response.feedback,
+      feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
+      is_locked: nextState.can_advance,
+    });
+  }, []);
+
+  const handleSubmit = useCallback<SubmitAnswerHandler>(async (answerOverride) => {
     if (isSubmitting || !gameState?.can_submit) {
       return;
     }
 
-    const answer = (answerOverride ?? userAnswer).trim();
+    const answer = (answerOverride ?? userAnswerRef.current).trim();
     if (!gameState?.session_id || !problem?.problem_id || answer === '') {
       return;
     }
@@ -161,21 +175,9 @@ export default function GameArena() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [isSubmitting, gameState, problem, applySubmissionResponse]);
 
-  const applySubmissionResponse = (response: { state: GameState; is_correct: boolean; feedback: string }) => {
-    const nextState = response.state;
-    setGameState(nextState);
-    setError(null);
-    setFeedback({
-      correct: response.is_correct,
-      message: response.feedback,
-      feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
-      is_locked: nextState.can_advance,
-    });
-  };
-
-  const handleAutoSolve = async () => {
+  const handleAutoSolve = useCallback(async () => {
     if (isSubmitting || !gameState?.can_submit || !gameState.admin_mode) {
       return;
     }
@@ -199,7 +201,7 @@ export default function GameArena() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [isSubmitting, gameState, problem, applySubmissionResponse]);
 
   const handleNavigate = useCallback(async (intent: NavigateIntent) => {
     if (!sessionId) {
@@ -305,7 +307,7 @@ export default function GameArena() {
     return () => window.removeEventListener('keydown', handleAdvanceKey);
   }, [gameState?.can_advance, feedback, handleAdvance]);
 
-  const handleReset = async () => {
+  const handleReset = useCallback(async () => {
     if (!gameState?.session_id) {
       return;
     }
@@ -336,13 +338,13 @@ export default function GameArena() {
     } finally {
       setIsNavigating(false);
     }
-  };
+  }, [gameState?.session_id, fetchNextProblem]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('username');
     localStorage.removeItem('session_id');
     router.push('/login');
-  };
+  }, [router]);
 
   if (error) {
     return (
@@ -381,7 +383,11 @@ export default function GameArena() {
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.20),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.16),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_48%,_#f8fafc_100%)] p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(251,191,36,0.12),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#0f172a_52%,_#111827_100%)] dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
-      <XPBar gameState={gameState} onLogout={handleLogout} />
+      <XPBar
+        xp={gameState.xp}
+        flawlessEligible={gameState.flawless_eligible}
+        onLogout={handleLogout}
+      />
 
       {gameState.navigation && (
         <TopicToolbar
@@ -394,20 +400,35 @@ export default function GameArena() {
 
       {gameState.navigation && (
         <>
-          <ProgressBar gameState={gameState} type="macro" />
-          <ProgressBar gameState={gameState} type="micro" />
+          <ProgressBar
+            type="macro"
+            selectedMacro={gameState.selected_macro}
+            macroProgress={gameState.navigation.macro_progress}
+          />
+          <ProgressBar
+            type="micro"
+            selectedLevel={gameState.selected_level}
+            microProgress={gameState.navigation.micro_progress}
+            currentTopicName={gameState.navigation.current_topic_name}
+          />
         </>
       )}
 
-      <MasteryScoreboard gameState={gameState} />
+      <MasteryScoreboard
+        streak={gameState.streak}
+        maxStreak={gameState.max_streak}
+        problemAnswered={gameState.problem_answered}
+        showCelebration={gameState.show_celebration}
+      />
 
       <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-white/70 bg-white/85 p-4 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-xl sm:p-8 dark:border-white/10 dark:bg-slate-900/78 dark:shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-300" />
         <ProblemDisplay
           problem={problem}
           selectedMacro={gameState.selected_macro}
+          selectedLevel={gameState.selected_level}
+          microTopicName={gameState.navigation?.current_topic_name ?? 'Current topic'}
           isLoading={!problem}
-          gameState={gameState}
         />
 
         {problem && (
@@ -440,7 +461,9 @@ export default function GameArena() {
                 feedback={feedback}
                 onNextProblem={handleAdvance}
                 topicCompleted={gameState.topic_completed}
-                gameState={gameState}
+                showCelebration={gameState.show_celebration}
+                hasNextTopic={gameState.navigation?.has_next_unlocked_topic ?? false}
+                currentInputMode={gameState.current_input_mode}
                 disabled={isAdvancing}
                 nextButtonRef={nextButtonRef}
                 problem={problem}

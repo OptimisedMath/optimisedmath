@@ -1,23 +1,30 @@
-import type { GameState } from '@/lib/types';
+import { memo } from 'react';
+import type { NavigationProgress } from '@/lib/types';
 
 interface ProgressBarProps {
-  gameState: GameState;
   type: 'macro' | 'micro';
+  selectedMacro?: string | null;
+  selectedLevel?: number;
+  macroProgress?: NavigationProgress | null;
+  microProgress?: NavigationProgress | null;
+  currentTopicName?: string | null;
 }
 
-export default function ProgressBar({ gameState, type }: ProgressBarProps) {
-  const navigation = gameState.navigation;
-  if (!navigation) {
-    return null;
-  }
-
-  if (type === 'macro' && gameState.selected_macro && navigation.macro_progress) {
-    const { completed, total, percentage } = navigation.macro_progress;
+function ProgressBar({
+  type,
+  selectedMacro,
+  selectedLevel,
+  macroProgress,
+  microProgress,
+  currentTopicName,
+}: ProgressBarProps) {
+  if (type === 'macro' && selectedMacro && macroProgress) {
+    const { completed, total, percentage } = macroProgress;
 
     return (
       <div className="w-full max-w-3xl mb-4 rounded-xl border border-white/70 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/55">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">🏆 {gameState.selected_macro}</span>
+          <span className="truncate font-medium">🏆 {selectedMacro}</span>
           <span className="shrink-0 tabular-nums">{completed}/{total} tematów ukończonych</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -30,14 +37,13 @@ export default function ProgressBar({ gameState, type }: ProgressBarProps) {
     );
   }
 
-  if (type === 'micro' && navigation.micro_progress) {
-    const { total, percentage } = navigation.micro_progress;
-    const selectedLevel = gameState.selected_level;
+  if (type === 'micro' && microProgress && selectedLevel !== undefined) {
+    const { total, percentage } = microProgress;
 
     return (
       <div className="w-full max-w-3xl mb-4 rounded-xl border border-white/70 bg-white/70 p-3 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/55">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">📚 {navigation.current_topic_name || 'Current topic'}</span>
+          <span className="truncate font-medium">📚 {currentTopicName || 'Current topic'}</span>
           <span className="shrink-0 tabular-nums">Level {selectedLevel}/{total}</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -52,3 +58,5 @@ export default function ProgressBar({ gameState, type }: ProgressBarProps) {
 
   return null;
 }
+
+export default memo(ProgressBar);

@@ -1,17 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import type { GameState } from '@/lib/types';
+import { memo, useEffect, useRef, useState } from 'react';
 
 interface MasteryScoreboardProps {
-  gameState: GameState;
+  streak: number;
+  maxStreak: number;
+  problemAnswered: boolean;
+  showCelebration: boolean;
 }
 
-export default function MasteryScoreboard({ gameState }: MasteryScoreboardProps) {
-  const { streak, max_streak } = gameState;
-  const completedStreakPendingAdvance =
-    gameState.problem_answered && gameState.show_celebration && streak === 0;
-  const displayStreak = completedStreakPendingAdvance ? max_streak : streak;
+function MasteryScoreboard({
+  streak,
+  maxStreak,
+  problemAnswered,
+  showCelebration,
+}: MasteryScoreboardProps) {
+  const completedStreakPendingAdvance = problemAnswered && showCelebration && streak === 0;
+  const displayStreak = completedStreakPendingAdvance ? maxStreak : streak;
   const prevDisplayStreak = useRef(displayStreak);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 
@@ -31,7 +36,7 @@ export default function MasteryScoreboard({ gameState }: MasteryScoreboardProps)
         Postęp do kolejnego poziomu:
       </div>
       <div className="text-center text-3xl sm:text-4xl tracking-wider flex justify-center gap-1.5">
-        {Array.from({ length: max_streak }).map((_, i) => (
+        {Array.from({ length: maxStreak }).map((_, i) => (
           <span
             key={i}
             className={`inline-block rounded-lg transition-transform duration-300 ${
@@ -44,8 +49,10 @@ export default function MasteryScoreboard({ gameState }: MasteryScoreboardProps)
         ))}
       </div>
       <div className="text-center text-slate-500 dark:text-slate-400 text-xs mt-2">
-        {displayStreak}/{max_streak} gwiazdek
+        {displayStreak}/{maxStreak} gwiazdek
       </div>
     </div>
   );
 }
+
+export default memo(MasteryScoreboard);

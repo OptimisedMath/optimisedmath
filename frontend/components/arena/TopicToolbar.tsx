@@ -1,4 +1,4 @@
-import { type ChangeEvent } from 'react';
+import { memo, type ChangeEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GameState, SessionNavigateRequest } from '@/lib/types';
@@ -15,7 +15,7 @@ interface TopicToolbarProps {
   onReset: () => void;
 }
 
-export default function TopicToolbar({
+function TopicToolbar({
   gameState,
   isNavigating,
   onNavigate,
@@ -118,3 +118,5 @@ export default function TopicToolbar({
     </div>
   );
 }
+
+export default memo(TopicToolbar);

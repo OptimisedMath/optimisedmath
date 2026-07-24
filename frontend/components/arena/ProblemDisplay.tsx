@@ -1,15 +1,23 @@
+import { memo } from 'react';
 import { BlockMath } from 'react-katex';
-import type { Problem, GameState } from '@/lib/types';
+import type { Problem } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
 interface ProblemDisplayProps {
   problem: Problem | null;
   selectedMacro: string | null;
+  selectedLevel: number;
+  microTopicName: string;
   isLoading?: boolean;
-  gameState: GameState;
 }
 
-export default function ProblemDisplay({ problem, selectedMacro, isLoading, gameState }: ProblemDisplayProps) {
+function ProblemDisplay({
+  problem,
+  selectedMacro,
+  selectedLevel,
+  microTopicName,
+  isLoading,
+}: ProblemDisplayProps) {
   if (isLoading) {
     return (
       <div className="py-16 text-xl font-semibold text-slate-500 animate-pulse dark:text-slate-400">
@@ -21,9 +29,6 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
   if (!problem) {
     return null;
   }
-
-  const selectedLevel = gameState.selected_level;
-  const microTopicName = gameState.navigation?.current_topic_name || 'Current topic';
 
   return (
     <div className="mb-6 text-slate-700 dark:text-slate-300">
@@ -44,3 +49,5 @@ export default function ProblemDisplay({ problem, selectedMacro, isLoading, game
     </div>
   );
 }
+
+export default memo(ProblemDisplay);

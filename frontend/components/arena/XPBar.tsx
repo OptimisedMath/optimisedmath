@@ -1,17 +1,18 @@
 'use client';
 
+import { memo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import type { GameState } from '@/lib/types';
 import { useAnimatedNumber } from '@/lib/hooks';
 import { useTheme } from '@/components/ThemeProvider';
 
 interface XPBarProps {
-  gameState: GameState;
+  xp: number;
+  flawlessEligible: boolean;
   onLogout?: () => void;
 }
 
-export default function XPBar({ gameState, onLogout }: XPBarProps) {
-  const animatedXP = useAnimatedNumber(gameState.xp);
+function XPBar({ xp, flawlessEligible, onLogout }: XPBarProps) {
+  const animatedXP = useAnimatedNumber(xp);
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -27,10 +28,10 @@ export default function XPBar({ gameState, onLogout }: XPBarProps) {
         <div className="text-sm sm:text-base text-slate-700 dark:text-slate-200">
           Bonus:{' '}
           <Badge
-            variant={gameState.flawless_eligible ? 'default' : 'destructive'}
+            variant={flawlessEligible ? 'default' : 'destructive'}
             className="ml-1 sm:ml-2 shadow-sm"
           >
-            {gameState.flawless_eligible ? 'Aktywny 💎' : 'Stracony ❌'}
+            {flawlessEligible ? 'Aktywny 💎' : 'Stracony ❌'}
           </Badge>
         </div>
         <button
@@ -53,3 +54,5 @@ export default function XPBar({ gameState, onLogout }: XPBarProps) {
     </div>
   );
 }
+
+export default memo(XPBar);
