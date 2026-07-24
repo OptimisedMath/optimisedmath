@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useAppNavigation } from '@/lib/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -17,10 +17,14 @@ const FLOATING_SYMBOLS = [
 ];
 
 export default function LoginForm() {
-  const router = useRouter();
+  const { prefetchArena, enterArena } = useAppNavigation();
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    prefetchArena();
+  }, [prefetchArena]);
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,7 +41,7 @@ export default function LoginForm() {
       const sessionResponse = await startSession({ username: username.trim() });
       localStorage.setItem('username', username.trim());
       localStorage.setItem('session_id', sessionResponse.session_id);
-      router.push('/arena');
+      enterArena();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to start session';
       setError(errorMsg);

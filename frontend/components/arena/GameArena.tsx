@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAppNavigation } from '@/lib/navigation';
 import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
 import ProblemDisplay from './ProblemDisplay';
@@ -22,7 +22,7 @@ type NavigateIntent = Pick<
 >;
 
 export default function GameArena() {
-  const router = useRouter();
+  const { exitToLogin, prefetchLogin } = useAppNavigation();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export default function GameArena() {
 
       if (!storedUsername || !storedSessionId) {
         setNeedsLogin(true);
-        router.push('/login');
+        exitToLogin();
         return;
       }
 
@@ -125,7 +125,11 @@ export default function GameArena() {
     return () => {
       isMounted = false;
     };
-  }, [fetchNextProblem, router]);
+  }, [fetchNextProblem, exitToLogin]);
+
+  useEffect(() => {
+    prefetchLogin();
+  }, [prefetchLogin]);
 
   const applySubmissionResponse = useCallback((response: { state: GameState; is_correct: boolean; feedback: string }) => {
     const nextState = response.state;
@@ -311,12 +315,6 @@ export default function GameArena() {
     }
   }, [gameState, fetchNextProblem]);
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('username');
-    localStorage.removeItem('session_id');
-    router.push('/login');
-  }, [router]);
-
   if (error) {
     return (
       <div className="gradient-bg flex h-screen items-center justify-center p-8 text-slate-900 dark:text-white">
@@ -361,11 +359,10 @@ export default function GameArena() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '0ms' }}>
-        <XPBar
-          xp={gameState.xp}
-          flawlessEligible={gameState.flawless_eligible}
-          onLogout={handleLogout}
-        />
+      <XPBar
+        xp={gameState.xp}
+        flawlessEligible={gameState.flawless_eligible}
+      />
       </div>
 
       {gameState.navigation && (

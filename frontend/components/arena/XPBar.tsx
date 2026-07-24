@@ -4,14 +4,14 @@ import { memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useAnimatedNumber } from '@/lib/hooks';
 import { useTheme } from '@/components/ThemeProvider';
+import LogoutLink from '@/components/navigation/LogoutLink';
 
 interface XPBarProps {
   xp: number;
   flawlessEligible: boolean;
-  onLogout?: () => void;
 }
 
-function XPBar({ xp, flawlessEligible, onLogout }: XPBarProps) {
+function XPBar({ xp, flawlessEligible }: XPBarProps) {
   const animatedXP = useAnimatedNumber(xp);
   const { theme, toggleTheme } = useTheme();
 
@@ -46,14 +46,7 @@ function XPBar({ xp, flawlessEligible, onLogout }: XPBarProps) {
         >
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="bg-slate-100/90 dark:bg-slate-800/90 hover:bg-rose-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all border border-slate-200 dark:border-slate-700 whitespace-nowrap shadow-sm hover:border-rose-200"
-          >
-            Wyloguj
-          </button>
-        )}
+        <LogoutLink className="bg-slate-100/90 dark:bg-slate-800/90 hover:bg-rose-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-all border border-slate-200 dark:border-slate-700 whitespace-nowrap shadow-sm hover:border-rose-200" />
       </div>
       </div>
     </div>
