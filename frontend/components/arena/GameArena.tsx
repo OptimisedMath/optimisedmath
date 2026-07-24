@@ -23,7 +23,6 @@ type NavigateIntent = Pick<
 export default function GameArena() {
   const router = useRouter();
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -31,8 +30,6 @@ export default function GameArena() {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const isFetchingRef = useRef(false);
   const isAdvancingRef = useRef(false);
-  const userAnswerRef = useRef(userAnswer);
-  userAnswerRef.current = userAnswer;
   const feedbackRef = useRef<HTMLDivElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
@@ -51,7 +48,6 @@ export default function GameArena() {
 
     if (clearBeforeFetch) {
       setFeedback(null);
-      setUserAnswer('');
       setGameState((prev) =>
         prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
       );
@@ -63,7 +59,6 @@ export default function GameArena() {
       const response = await getNextProblem(currentSessionId);
       setGameState(response.state);
       setFeedback(null);
-      setUserAnswer('');
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
       return true;
     } catch (err) {
@@ -143,18 +138,14 @@ export default function GameArena() {
     });
   }, []);
 
-  const handleSubmit = useCallback<SubmitAnswerHandler>(async (answerOverride) => {
+  const handleSubmit = useCallback<SubmitAnswerHandler>(async (answer) => {
     if (isSubmitting || !gameState?.can_submit) {
       return;
     }
 
-    const answer = (answerOverride ?? userAnswerRef.current).trim();
-    if (!gameState?.session_id || !problem?.problem_id || answer === '') {
+    const trimmed = answer.trim();
+    if (!gameState?.session_id || !problem?.problem_id || trimmed === '') {
       return;
-    }
-
-    if (answerOverride !== undefined) {
-      setUserAnswer(answerOverride);
     }
 
     setIsSubmitting(true);
@@ -164,7 +155,7 @@ export default function GameArena() {
       const response = await submitAnswer({
         session_id: gameState.session_id,
         problem_id: problem.problem_id,
-        user_input: answer,
+        user_input: trimmed,
         is_text_mode: isTextMode,
       });
       applySubmissionResponse(response);
@@ -211,7 +202,6 @@ export default function GameArena() {
     const scrollY = window.scrollY;
     setIsNavigating(true);
     setFeedback(null);
-    setUserAnswer('');
     setGameState((prev) =>
       prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
     );
@@ -318,7 +308,6 @@ export default function GameArena() {
 
     setIsNavigating(true);
     setFeedback(null);
-    setUserAnswer('');
     setGameState((prev) =>
       prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
     );
@@ -434,14 +423,13 @@ export default function GameArena() {
         {problem && (
           <>
             <AnswerInput
-              value={userAnswer}
-              onChange={setUserAnswer}
+              key={problem.problem_id}
               onSubmit={handleSubmit}
               disabled={!canSubmit}
               canSubmit={canSubmit}
               showFeedback={showAdvance}
               problem={problem}
-              gameState={gameState}
+              currentInputMode={gameState.current_input_mode}
               feedback={feedback}
               textModeDisabled={textModeDisabled}
               onAutoSolve={adminMode ? handleAutoSolve : undefined}

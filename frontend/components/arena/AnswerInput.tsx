@@ -1,53 +1,51 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
-import type { Problem, GameState, SubmitAnswerHandler } from '@/lib/types';
+import type { Problem, SubmitAnswerHandler } from '@/lib/types';
 import 'katex/dist/katex.min.css';
 
 interface AnswerInputProps {
-  value: string;
-  onChange: (value: string) => void;
   onSubmit: SubmitAnswerHandler;
   disabled: boolean;
   showFeedback: boolean;
   canSubmit: boolean;
   problem: Problem | null;
-  gameState: GameState;
+  currentInputMode: string;
   feedback?: { correct: boolean } | null;
   textModeDisabled?: boolean;
   onAutoSolve?: () => void;
 }
 
-export default function AnswerInput({
-  value,
-  onChange,
+function AnswerInput({
   onSubmit,
   disabled,
   showFeedback,
   canSubmit,
   problem,
-  gameState,
+  currentInputMode,
   feedback,
   textModeDisabled = false,
   onAutoSolve,
 }: AnswerInputProps) {
+  const [value, setValue] = useState('');
+
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit();
+    onSubmit(value);
   };
 
   const handleRadioKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && value.trim() !== '' && canSubmit && !disabled && !showFeedback) {
       e.preventDefault();
-      onSubmit();
+      onSubmit(value);
     }
   };
 
-  const rawInputMode = problem?.input_mode ?? gameState.current_input_mode;
+  const rawInputMode = problem?.input_mode ?? currentInputMode;
   const inputMode =
     textModeDisabled || rawInputMode === 'radio' ? 'radio' : rawInputMode;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +57,7 @@ export default function AnswerInput({
     const newValue = value.slice(0, start) + char + value.slice(end);
     const newCursorPos = start + char.length;
 
-    onChange(newValue);
+    setValue(newValue);
 
     setTimeout(() => {
       if (!input) return;
@@ -76,19 +74,19 @@ export default function AnswerInput({
 
       if (e.key === 'Enter' && value.trim() !== '') {
         e.preventDefault();
-        onSubmit();
+        onSubmit(value);
         return;
       }
 
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= problem.answer_options.length) {
         e.preventDefault();
-        onChange(problem.answer_options[num - 1]);
+        setValue(problem.answer_options[num - 1]);
       }
     };
     window.addEventListener('keydown', handleGlobalRadioKey);
     return () => window.removeEventListener('keydown', handleGlobalRadioKey);
-  }, [inputMode, problem, showFeedback, disabled, value, onChange, onSubmit]);
+  }, [inputMode, problem, showFeedback, disabled, value, onSubmit]);
 
   const keyboardType = problem?.keyboard_type || 'default';
   const submitDisabled = value.trim() === '' || !canSubmit || disabled;
@@ -116,7 +114,7 @@ export default function AnswerInput({
           {problem.answer_options.map((option, index) => (
             <button
               key={index}
-              onClick={() => onChange(option)}
+              onClick={() => setValue(option)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -150,7 +148,7 @@ export default function AnswerInput({
         {!showFeedback && (
             <div className="flex flex-wrap items-center justify-center gap-3">
             <Button
-              onClick={() => onSubmit()}
+              onClick={() => onSubmit(value)}
               disabled={submitDisabled}
               className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:shadow-sky-500/30"
             >
@@ -187,7 +185,7 @@ export default function AnswerInput({
         <Input
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => setValue(e.target.value)}
           placeholder="Wpisz wynik..."
           inputMode={keyboardType === 'decimal' ? 'decimal' : 'numeric'}
           className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-slate-950 dark:text-white rounded-xl w-full max-w-xs sm:w-64 text-center bg-white dark:bg-slate-950/70 border-slate-200 dark:border-slate-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-200 dark:focus:ring-sky-500/30"
@@ -243,3 +241,5 @@ export default function AnswerInput({
     </form>
   );
 }
+
+export default memo(AnswerInput);

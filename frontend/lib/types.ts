@@ -122,4 +122,4 @@ export interface Feedback {
   is_locked: boolean;
 }
 
-export type SubmitAnswerHandler = (answerOverride?: string) => void;
+export type SubmitAnswerHandler = (answer: string) => void | Promise<void>;
