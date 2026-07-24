@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ROUTES } from './routes';
 
@@ -14,12 +15,26 @@ export function clearSessionStorage() {
 export function useAppNavigation() {
   const router = useRouter();
 
+  const prefetchArena = useCallback(() => {
+    router.prefetch(ROUTES.arena);
+  }, [router]);
+
+  const prefetchLogin = useCallback(() => {
+    router.prefetch(ROUTES.login);
+  }, [router]);
+
+  const enterArena = useCallback(() => {
+    router.replace(ROUTES.arena);
+  }, [router]);
+
+  const exitToLogin = useCallback(() => {
+    router.replace(ROUTES.login);
+  }, [router]);
+
   return {
-    prefetchArena: () => router.prefetch(ROUTES.arena),
-    prefetchLogin: () => router.prefetch(ROUTES.login),
-
-    enterArena: () => router.replace(ROUTES.arena),
-
-    exitToLogin: () => router.replace(ROUTES.login),
+    prefetchArena,
+    prefetchLogin,
+    enterArena,
+    exitToLogin,
   };
 }
