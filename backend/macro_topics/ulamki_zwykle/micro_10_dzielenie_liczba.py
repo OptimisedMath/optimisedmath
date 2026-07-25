@@ -10,12 +10,12 @@ def frac_div_num_1() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} : {k}"
 
-    c_str, _, _ = format_answers(n, d * k)
-    t1, _, _ = format_answers(n * k, d)
-    t2, _, _ = format_answers(n, d)
+    c_str, _ = format_answers(n, d * k)
+    t1, _ = format_answers(n * k, d)
+    t2, _ = format_answers(n, d)
     if d % k == 0:
-        t2, _, _ = format_answers(n, d // k)
-    w1, _, _ = format_answers(n + k, d * k)
+        t2, _ = format_answers(n, d // k)
+    w1, _ = format_answers(n + k, d * k)
 
     result = build_problem_dict(
         q_str,
@@ -36,10 +36,10 @@ def frac_div_num_2() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {k} : {format_fraction_question(n, d)}"
 
-    c_str, _, _ = format_answers(k * d, n)
-    t1, _, _ = format_answers(k * n, d)
-    t2, _, _ = format_answers(n, k * d)
-    w1, _, _ = format_answers((k * d) + 1, n)
+    c_str, _ = format_answers(k * d, n)
+    t1, _ = format_answers(k * n, d)
+    t2, _ = format_answers(n, k * d)
+    w1, _ = format_answers((k * d) + 1, n)
 
     result = build_problem_dict(
         q_str,
@@ -64,10 +64,10 @@ def frac_div_num_3() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d, w)} : {k}"
 
     correct_num = (w * d) + n
-    c_str, _, _ = format_answers(correct_num, d * k)
-    t1, _, _ = format_answers(n, d, w // k)
-    t2, _, _ = format_answers(correct_num * k, d)
-    w1, _, _ = format_answers(correct_num + 1, d * k)
+    c_str, _ = format_answers(correct_num, d * k)
+    t1, _ = format_answers(n, d, w // k)
+    t2, _ = format_answers(correct_num * k, d)
+    w1, _ = format_answers(correct_num + 1, d * k)
 
     result = build_problem_dict(
         q_str,

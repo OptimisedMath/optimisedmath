@@ -12,10 +12,10 @@ def frac_frac_of_int_1() -> dict | None:
         rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \text{{ z liczby }} {k}"
     )
 
-    c_str, _, _ = format_answers((k // d) * n, 1)
-    t1, _, _ = format_answers(k * d + n, d)
-    t2, _, _ = format_answers(k // n * d, 1)
-    w1, _, _ = format_answers((k // d) * n + 1, 1)
+    c_str, _ = format_answers((k // d) * n, 1)
+    t1, _ = format_answers(k * d + n, d)
+    t2, _ = format_answers(k // n * d, 1)
+    w1, _ = format_answers((k // d) * n + 1, 1)
 
     result = build_problem_dict(
         q_str,
@@ -40,10 +40,10 @@ def frac_frac_of_int_2() -> dict | None:
         rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \text{{ z liczby }} {k}"
     )
 
-    c_str, _, _ = format_answers(n * k, d)
-    t1, _, _ = format_answers(k * d, n)
-    t2, _, _ = format_answers(n * k, d * k)
-    w1, _, _ = format_answers(n * k + 1, d)
+    c_str, _ = format_answers(n * k, d)
+    t1, _ = format_answers(k * d, n)
+    t2, _ = format_answers(n * k, d * k)
+    w1, _ = format_answers(n * k + 1, d)
 
     result = build_problem_dict(
         q_str,

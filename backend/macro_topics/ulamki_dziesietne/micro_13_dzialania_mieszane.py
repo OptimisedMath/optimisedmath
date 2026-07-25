@@ -15,11 +15,11 @@ def dec_mix_1() -> dict | None:
 
     c_num = (n * d2) + (n2 * d)
     c_den = d * d2
-    c_str, _, _ = format_answers(c_num, c_den)
+    c_str, _ = format_answers(c_num, c_den)
 
-    t1, _, _ = format_answers(n + n2, d + d2)
-    t2, _, _ = format_answers(n + n2, d * d2)
-    w1, _, _ = format_answers(c_num + 1, c_den)
+    t1, _ = format_answers(n + n2, d + d2)
+    t2, _ = format_answers(n + n2, d * d2)
+    w1, _ = format_answers(c_num + 1, c_den)
 
     result = build_problem_dict(
         q_str,
@@ -46,11 +46,11 @@ def dec_mix_2() -> dict | None:
 
     c_num = (n1 * d2) + (n2 * d1)
     c_den = d1 * d2
-    c_str, _, _ = format_answers(c_num, c_den)
+    c_str, _ = format_answers(c_num, c_den)
 
-    t1, _, _ = format_answers(n1 + n2, d1 + 10)
+    t1, _ = format_answers(n1 + n2, d1 + 10)
     t2 = fmt_dec(round(n1 / d1 + dec_val, 2))  # Trap (t2): Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zw...
-    w1, _, _ = format_answers(c_num + 1, c_den)
+    w1, _ = format_answers(c_num + 1, c_den)
 
     result = build_problem_dict(
         q_str,
@@ -76,16 +76,16 @@ def dec_mix_3() -> dict | None:
         q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} \cdot {fmt_dec(dec_val)}"
         c_num = n1 * n2
         c_den = d1 * d2
-        t1, _, _ = format_answers(n1 + n2, d1 * d2)
+        t1, _ = format_answers(n1 + n2, d1 * d2)
     else:
         q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} : {fmt_dec(dec_val)}"
         c_num = n1 * d2
         c_den = d1 * n2
-        t1, _, _ = format_answers(n1 * n2, d1 * d2)
+        t1, _ = format_answers(n1 * n2, d1 * d2)
 
-    c_str, _, _ = format_answers(c_num, c_den)
-    t2, _, _ = format_answers(c_num + 1, c_den)
-    w1, _, _ = format_answers(c_num, c_den + 1)
+    c_str, _ = format_answers(c_num, c_den)
+    t2, _ = format_answers(c_num + 1, c_den)
+    w1, _ = format_answers(c_num, c_den + 1)
 
     result = build_problem_dict(
         q_str,

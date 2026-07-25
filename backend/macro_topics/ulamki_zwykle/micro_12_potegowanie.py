@@ -12,13 +12,13 @@ def frac_pow_1() -> dict | None:
         rf"\text{{Oblicz: }} \left( {format_fraction_question(n, d)} \right)^{{{p}}}"
     )
 
-    c_str, _, _ = format_answers(n**p, d**p)
+    c_str, _ = format_answers(n**p, d**p)
 
     # Trap 1: Squared only numerator
-    t1, _, _ = format_answers(n**p, d)
+    t1, _ = format_answers(n**p, d)
     # Trap 2: Multiplied by 2 instead of squaring
-    t2, _, _ = format_answers(n * p, d * p)
-    w1, _, _ = format_answers((n**p) + 1, d**p)
+    t2, _ = format_answers(n * p, d * p)
+    w1, _ = format_answers((n**p) + 1, d**p)
 
     result = build_problem_dict(
         q_str,
@@ -42,13 +42,13 @@ def frac_pow_2() -> dict | None:
         rf"\text{{Oblicz: }} \left( {format_fraction_question(n, d)} \right)^{{{p}}}"
     )
 
-    c_str, _, _ = format_answers(n**p, d**p)
+    c_str, _ = format_answers(n**p, d**p)
 
     # Trap 1: Cubed only numerator
-    t1, _, _ = format_answers(n**p, d)
+    t1, _ = format_answers(n**p, d)
     # Trap 2: Multiplied by 3 instead of cubing
-    t2, _, _ = format_answers(n * p, d * p)
-    w1, _, _ = format_answers((n**p) + 1, d**p)
+    t2, _ = format_answers(n * p, d * p)
+    w1, _ = format_answers((n**p) + 1, d**p)
 
     result = build_problem_dict(
         q_str,
@@ -74,13 +74,13 @@ def frac_pow_3() -> dict | None:
     )
 
     num = (w * d) + n
-    c_str, _, _ = format_answers(num**p, d**p)
+    c_str, _ = format_answers(num**p, d**p)
 
     # Trap 1: Applied power to whole number and fraction separately
-    t1, _, _ = format_answers(n**p, d**p, w**p)
+    t1, _ = format_answers(n**p, d**p, w**p)
     # Trap 2: Applied power to numerator but forgot denominator
-    t2, _, _ = format_answers(num**p, d)
-    w1, _, _ = format_answers(num**p + 1, d**p)
+    t2, _ = format_answers(num**p, d)
+    w1, _ = format_answers(num**p + 1, d**p)
 
     result = build_problem_dict(
         q_str,

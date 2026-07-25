@@ -12,10 +12,10 @@ def frac_mult_1() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2)}"
 
-    c_str, _, _ = format_answers(n1 * n2, d1 * d2)
-    t1, _, _ = format_answers(n1 * d2, d1 * n2)  # Trap (t1): Pomnożyłeś na krzyż
-    t2, _, _ = format_answers(n1 * n2, d1)  # Trap (t2): Zostawiłeś mianownik bez zmian
-    t3, _, _ = format_answers(n1 + n2, d1 + d2)  # Trap (t3): Dodałeś zamiast pomnożyć
+    c_str, _ = format_answers(n1 * n2, d1 * d2)
+    t1, _ = format_answers(n1 * d2, d1 * n2)  # Trap (t1): Pomnożyłeś na krzyż
+    t2, _ = format_answers(n1 * n2, d1)  # Trap (t2): Zostawiłeś mianownik bez zmian
+    t3, _ = format_answers(n1 + n2, d1 + d2)  # Trap (t3): Dodałeś zamiast pomnożyć
 
     result = build_problem_dict(
         q_str,
@@ -37,10 +37,10 @@ def frac_mult_2() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2)}"
 
-    c_str, _, _ = format_answers(n1 * n2, d1 * d2)
+    c_str, _ = format_answers(n1 * n2, d1 * d2)
     t1 = format_fraction_answer(n1 * n2, d1 * d2, simplify=False)
-    t2, _, _ = format_answers(1, d1 * d2)
-    w1, _, _ = format_answers(n1 * n2, d1 * d2 + 1)
+    t2, _ = format_answers(1, d1 * d2)
+    w1, _ = format_answers(n1 * n2, d1 * d2 + 1)
 
     result = build_problem_dict(
         q_str,
@@ -61,10 +61,10 @@ def frac_mult_3() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1)} \cdot {format_fraction_question(n2, d2, w)}"
 
-    c_str, _, _ = format_answers(n1 * ((w * d2) + n2), d1 * d2)
-    t1, _, _ = format_answers(n1 * n2, d1 * d2, w)
-    t2, _, _ = format_answers(n1 + ((w * d2) + n2), d1 + d2)
-    w1, _, _ = format_answers(n1 * ((w * d2) + n2) + 1, d1 * d2)
+    c_str, _ = format_answers(n1 * ((w * d2) + n2), d1 * d2)
+    t1, _ = format_answers(n1 * n2, d1 * d2, w)
+    t2, _ = format_answers(n1 + ((w * d2) + n2), d1 + d2)
+    w1, _ = format_answers(n1 * ((w * d2) + n2) + 1, d1 * d2)
 
     result = build_problem_dict(
         q_str,
@@ -86,10 +86,10 @@ def frac_mult_4() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d1, w1)} \cdot {format_fraction_question(n2, d2, w2)}"
 
     num1, num2 = (w1 * d1) + n1, (w2 * d2) + n2
-    c_str, _, _ = format_answers(num1 * num2, d1 * d2)
-    t1, _, _ = format_answers(n1 * n2, d1 * d2, w1 * w2)
-    t2, _, _ = format_answers(n1 * n2, d1 * d2, w1 + w2)
-    w1_str, _, _ = format_answers(num1 * num2 + 1, d1 * d2)
+    c_str, _ = format_answers(num1 * num2, d1 * d2)
+    t1, _ = format_answers(n1 * n2, d1 * d2, w1 * w2)
+    t2, _ = format_answers(n1 * n2, d1 * d2, w1 + w2)
+    w1_str, _ = format_answers(num1 * num2 + 1, d1 * d2)
 
     result = build_problem_dict(
         q_str,

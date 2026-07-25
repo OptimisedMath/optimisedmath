@@ -1,43 +1,51 @@
-import math
 import uuid
 import re
-from fractions import Fraction
 import random
+from decimal import Decimal
+from fractions import Fraction
+
+
+def _format_improper_unsimplified(num, den):
+    if den == 1:
+        return str(num)
+    return rf"\frac{{{num}}}{{{den}}}"
+
+
+def _format_mixed(value: Fraction) -> str:
+    if value.denominator == 1:
+        return str(value.numerator)
+
+    n, d = value.numerator, value.denominator
+    whole = int(value)
+    rem = abs(n) % d
+
+    if rem == 0:
+        return str(whole)
+
+    if whole == 0:
+        sign = "-" if n < 0 else ""
+        return rf"{sign}\frac{{{rem}}}{{{d}}}"
+
+    sign = "-" if n < 0 else ""
+    return rf"{sign}{abs(whole)}\frac{{{rem}}}{{{d}}}"
 
 
 def format_answers(num, den, whole=0):
     total_num = (whole * den) + num
-    u_str = str(total_num) if den == 1 else rf"\frac{{{total_num}}}{{{den}}}"
-
-    divisor = math.gcd(total_num, den)
-    simp_num = total_num // divisor
-    simp_den = den // divisor
-
-    i_str = str(simp_num) if simp_den == 1 else rf"\frac{{{simp_num}}}{{{simp_den}}}"
-
-    final_whole = simp_num // simp_den
-    final_num = simp_num % simp_den
-
-    if final_num == 0:
-        c_str = str(final_whole)
-    elif final_whole > 0:
-        c_str = rf"{final_whole}\frac{{{final_num}}}{{{simp_den}}}"
-    else:
-        c_str = rf"\frac{{{final_num}}}{{{simp_den}}}"
-
-    return c_str, i_str, u_str
+    u_str = _format_improper_unsimplified(total_num, den)
+    c_str = _format_mixed(Fraction(total_num, den))
+    return c_str, u_str
 
 
 def format_fraction_question(n, d, w=None):
     if w is not None and w > 0:
         return rf"{w}\frac{{{n}}}{{{d}}}"
-    else:
-        return rf"\frac{{{n}}}{{{d}}}"
+    return rf"\frac{{{n}}}{{{d}}}"
 
 
 def format_fraction_answer(num, den, whole=0, *, simplify=True) -> str:
     if simplify:
-        c_str, _, _ = format_answers(num, den, whole)
+        c_str, _ = format_answers(num, den, whole)
         return c_str
     if whole:
         return format_fraction_question(num, den, whole)
@@ -47,8 +55,6 @@ def format_fraction_answer(num, den, whole=0, *, simplify=True) -> str:
 def build_problem_dict(
     q_str,
     c_str,
-    i_str=None,
-    u_str=None,
     t1=None,
     t2=None,
     t3=None,
@@ -88,8 +94,6 @@ def build_problem_dict(
         "question": q_str,
         "image_html": image_html,
         "correct": c_str,
-        "improper": i_str,
-        "unsimplified": u_str,
         "options": options,
         "options_map": options_map,
         "grading_policy": grading_policy,
@@ -97,106 +101,91 @@ def build_problem_dict(
     }
 
 
-def generate_fraction_svg(n, d, start_val=0):
-    """Draws a mathematical number line for fractions with white lines."""
-    width = 600
-    height = 140
-    svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">'
-    svg += '<line x1="40" y1="80" x2="560" y2="80" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>'
-    svg += '<polygon points="555,72 570,80 555,88" fill="#ffffff" />'
-
-    start_x = 80
-    end_x = 520
-    spacing = (end_x - start_x) / d
-
-    for i in range(d + 1):
-        x = start_x + i * spacing
-        svg += f'<line x1="{x}" y1="70" x2="{x}" y2="90" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>'
-        if i == 0:
-            svg += f'<text x="{x}" y="125" font-family="sans-serif" font-size="26" font-weight="bold" fill="#ffffff" text-anchor="middle">{start_val}</text>'
-        elif i == d:
-            svg += f'<text x="{x}" y="125" font-family="sans-serif" font-size="26" font-weight="bold" fill="#ffffff" text-anchor="middle">{start_val + 1}</text>'
-
-        if i == n:
-            svg += f'<line x1="{x}" y1="20" x2="{x}" y2="55" stroke="#e74c3c" stroke-width="4" stroke-linecap="round"/>'
-            svg += f'<polygon points="{x-8},50 {x+8},50 {x},65" fill="#e74c3c" />'
-            svg += f'<text x="{x}" y="15" font-family="sans-serif" font-size="32" font-weight="bold" fill="#e74c3c" text-anchor="middle">?</text>'
-    svg += "</svg>"
-    return svg
-
-
 def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
     """Draws a mathematical number line with custom intervals and labels."""
     width = 4000
     height = 900
     svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">'
-    
-    # Main line - solid color for visibility
+
     svg += f'<line x1="250" y1="500" x2="3750" y2="500" stroke="#cbd5e1" stroke-width="15" stroke-linecap="round"/>'
-    
-    # Right arrow only
     svg += '<polygon points="3725,463 3775,500 3725,537" fill="#cbd5e1" />'
 
     start_x = 500
     end_x = 3500
     spacing = (end_x - start_x) / ticks_count
+    filter_id = f"glow-{uuid.uuid4().hex[:8]}"
+    target_x = start_x + target_tick * spacing
+
+    svg += (
+        f'<defs><filter id="{filter_id}">'
+        f'<feGaussianBlur stdDeviation="10" result="coloredBlur"/>'
+        f"<feMerge><feMergeNode in=\"coloredBlur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge>"
+        f"</filter></defs>"
+    )
+    svg += (
+        f'<line x1="{target_x}" y1="125" x2="{target_x}" y2="375" stroke="#f43f5e" '
+        f'stroke-width="20" stroke-linecap="round" filter="url(#{filter_id})"/>'
+    )
+    svg += (
+        f'<polygon points="{target_x - 50},350 {target_x + 50},350 {target_x},425" '
+        f'fill="#f43f5e" filter="url(#{filter_id})" />'
+    )
 
     for i in range(ticks_count + 1):
         x = start_x + i * spacing
-        # Labeled ticks are longer and thicker for readability
         tick_len = 125 if i in labeled_ticks else 75
         tick_width = 15 if i in labeled_ticks else 10
         y1 = 500 - tick_len / 2
         y2 = 500 + tick_len / 2
 
-        # Tick color based on whether it's labeled
         tick_color = "#e2e8f0" if i in labeled_ticks else "#64748b"
         svg += f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{tick_color}" stroke-width="{tick_width}" stroke-linecap="round"/>'
 
         if i in labeled_ticks:
             svg += f'<text x="{x}" y="750" font-family="system-ui, -apple-system, sans-serif" font-size="100" font-weight="600" fill="#f1f5f9" text-anchor="middle">{labeled_ticks[i]}</text>'
 
-        if i == target_tick:
-            # Target marker with glow effect
-            svg += f'<defs><filter id="glow"><feGaussianBlur stdDeviation="10" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
-            svg += f'<line x1="{x}" y1="125" x2="{x}" y2="375" stroke="#f43f5e" stroke-width="20" stroke-linecap="round" filter="url(#glow)"/>'
-            svg += f'<polygon points="{x-50},350 {x+50},350 {x},425" fill="#f43f5e" filter="url(#glow)" />'
-
     svg += "</svg>"
     return svg
 
 
 def clean_latex(latex_str):
-    s = latex_str.replace("$\\displaystyle", "").replace("$", "").strip()
+    s = str(latex_str).replace("$", "").strip()
+    s = re.sub(r"\\displaystyle\s*", "", s)
+    s = re.sub(r"(-?\d)\\(?:d|t)?frac", r"\1 \\frac", s)
 
-    # FIX: Injects a space between a whole number and a fraction so 1\frac{3}{4} doesn't become 13/4
-    s = re.sub(r"(\d)\\frac", r"\1 \\frac", s)
+    while True:
+        new_s = s
+        new_s = re.sub(r"-\\(?:d|t)?frac\{(\d+)\}\{(\d+)\}", r"-\1/\2", new_s)
+        new_s = re.sub(r"\\(?:d|t)?frac\{(-?\d+)\}\{(\d+)\}", r"\1/\2", new_s)
+        if new_s == s:
+            break
+        s = new_s
 
-    s = re.sub(r"\\frac\{(\d+)\}\{(\d+)\}", r"\1/\2", s)
     return s.strip()
+
+
+def _standardize_spacing(s):
+    s = re.sub(r"\s*([/,])\s*", r"\1", str(s))
+    return " ".join(s.split())
 
 
 def check_text_answer(correct_latex, user_text):
     """Checks if the user's text matches the correct answer string."""
     clean_correct = clean_latex(correct_latex)
-
-    # DRY Helper: Standardize spacing for BOTH strings to ensure a fair match
-    def standardize_spacing(s):
-        # Remove spaces around slashes and commas, but KEEP spaces between numbers!
-        s = re.sub(r"\s*([/,])\s*", r"\1", str(s))
-        # Squash all other whitespace to a single space
-        return " ".join(s.split())
-
-    return standardize_spacing(clean_correct) == standardize_spacing(user_text)
+    return _standardize_spacing(clean_correct) == _standardize_spacing(user_text)
 
 
 def parse_to_fraction(val_str):
     try:
-        if "," in val_str or "." in val_str:
+        val_str = str(val_str).strip()
+
+        if re.search(r"\d,\d+/", val_str):
+            val_str = re.sub(r"(\d),(\d+/)", r"\1 \2", val_str)
+        elif "," in val_str or "." in val_str:
             clean_val = val_str.replace(",", ".").replace(" ", "").strip()
             return Fraction(clean_val)
 
-        if "displaystyle" in val_str or "\\frac" in val_str:
+        if "displaystyle" in val_str or "\\frac" in val_str or "\\dfrac" in val_str:
             val_str = clean_latex(val_str)
 
         val_str = val_str.strip()
@@ -210,10 +199,9 @@ def parse_to_fraction(val_str):
                     return Fraction(
                         whole * frac.denominator + frac.numerator, frac.denominator
                     )
-                else:
-                    return Fraction(
-                        whole * frac.denominator - frac.numerator, frac.denominator
-                    )
+                return Fraction(
+                    whole * frac.denominator - frac.numerator, frac.denominator
+                )
 
         return Fraction(val_str)
     except Exception:
@@ -221,27 +209,26 @@ def parse_to_fraction(val_str):
 
 
 def fmt_dec(val):
-    s = f"{float(val):.10f}"
-    s = s.rstrip("0").rstrip(".")
-    if not s:
+    d = Decimal(str(val))
+    s = format(d, "f")
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    if not s or s == "-0":
         s = "0"
     return s.replace(".", ",")
+
 
 def clean_mobile_input(user_string):
     """Sanitizes user input to match engine expectations and fix hardware laziness."""
     if not user_string:
         return ""
-        
+
     s = str(user_string).strip().lower()
-    
-    # 1. Normalize to Polish decimals
+
     s = s.replace(".", ",")
-    
-    # 2. Fix mobile fraction shortcuts (e.g., 1-1/2 or 1,1/2 -> 1 1/2)
-    # The regex looks for a dash OR comma followed by digits and a slash.
-    s = re.sub(r'(\d)[-\,](\d+/)', r'\1 \2', s)
-    
-    # 3. Squash aggressive autocorrect spaces
-    s = re.sub(r'\s+', ' ', s)
-    
+
+    s = re.sub(r"(\d)[-\,](\d+/)", r"\1 \2", s)
+
+    s = re.sub(r"\s+", " ", s)
+
     return s.strip()

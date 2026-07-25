@@ -13,10 +13,10 @@ def frac_mult_num_1() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \cdot {k}"
 
-    c_str, _, _ = format_answers(n * k, d)
-    t1, _, _ = format_answers(n * k, d * k)
-    t2, _, _ = format_answers(n, d * k)
-    w1, _, _ = format_answers(n * k + 1, d)
+    c_str, _ = format_answers(n * k, d)
+    t1, _ = format_answers(n * k, d * k)
+    t2, _ = format_answers(n, d * k)
+    w1, _ = format_answers(n * k + 1, d)
 
     result = build_problem_dict(
         q_str,
@@ -40,10 +40,10 @@ def frac_mult_num_2() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} \cdot {k}"
 
-    c_str, _, _ = format_answers(n * k, d)
+    c_str, _ = format_answers(n * k, d)
     t1 = rf"\frac{{{n * k}}}{{{d}}}"  # Trap (t1): Wynik jest dobry, ale nieskrócony
-    t2, _, _ = format_answers(1, factor)
-    w1, _, _ = format_answers(n * k + 1, d)
+    t2, _ = format_answers(1, factor)
+    w1, _ = format_answers(n * k + 1, d)
 
     result = build_problem_dict(
         q_str,
@@ -65,10 +65,10 @@ def frac_mult_num_3() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d, w)} \cdot {k}"
 
-    c_str, _, _ = format_answers(((w * d) + n) * k, d)
-    t1, _, _ = format_answers(n * k, d, w)
-    t2, _, _ = format_answers(((w * d) + n) * k, d * k)
-    w1, _, _ = format_answers(((w * d) + n) * k + 1, d)
+    c_str, _ = format_answers(((w * d) + n) * k, d)
+    t1, _ = format_answers(n * k, d, w)
+    t2, _ = format_answers(((w * d) + n) * k, d * k)
+    w1, _ = format_answers(((w * d) + n) * k + 1, d)
 
     result = build_problem_dict(
         q_str,

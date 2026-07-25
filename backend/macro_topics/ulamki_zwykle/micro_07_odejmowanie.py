@@ -11,10 +11,10 @@ def frac_sub_1() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d}}} - \frac{{{n2}}}{{{d}}}"
 
-    c_str, _, _ = format_answers(n1 - n2, d)
+    c_str, _ = format_answers(n1 - n2, d)
     t1 = "0"  # Trap (t1): Odjąłeś od siebie mianowniki
-    w1, _, _ = format_answers(max(1, n1 - n2 - 1), d)
-    w2, _, _ = format_answers(n1 - n2 + 1, d)
+    w1, _ = format_answers(max(1, n1 - n2 - 1), d)
+    w2, _ = format_answers(n1 - n2 + 1, d)
 
     result = build_problem_dict(
         q_str,
@@ -38,10 +38,10 @@ def frac_sub_2() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
 
-    c_str, _, _ = format_answers((n1 * factor) - n2, d2)
-    t1, _, _ = format_answers(abs(n1 - n2), d2)
-    t2, _, _ = format_answers(abs(n1 - n2), abs(d1 - d2) if d1 != d2 else 1)
-    w1, _, _ = format_answers((n1 * factor) - n2 + 1, d2)
+    c_str, _ = format_answers((n1 * factor) - n2, d2)
+    t1, _ = format_answers(abs(n1 - n2), d2)
+    t2, _ = format_answers(abs(n1 - n2), abs(d1 - d2) if d1 != d2 else 1)
+    w1, _ = format_answers((n1 * factor) - n2 + 1, d2)
 
     result = build_problem_dict(
         q_str,
@@ -65,10 +65,10 @@ def frac_sub_3() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
 
-    c_str, _, _ = format_answers((n1 * d2) - (n2 * d1), d1 * d2)
-    t1, _, _ = format_answers(abs(n1 - n2), abs(d1 - d2))
-    t2, _, _ = format_answers(abs(n1 - n2), d1 * d2)
-    t3, _, _ = format_answers((n1 * d2) + (n2 * d1), d1 * d2)
+    c_str, _ = format_answers((n1 * d2) - (n2 * d1), d1 * d2)
+    t1, _ = format_answers(abs(n1 - n2), abs(d1 - d2))
+    t2, _ = format_answers(abs(n1 - n2), d1 * d2)
+    t3, _ = format_answers((n1 * d2) + (n2 * d1), d1 * d2)
 
     result = build_problem_dict(
         q_str,
@@ -93,10 +93,10 @@ def frac_sub_4() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, w1)} - {format_fraction_question(n2, d, w2)}"
 
-    c_str, _, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
-    t1, _, _ = format_answers(n1 - n2, 1, w1 - w2)
-    t2, _, _ = format_answers(n1 - n2, d)
-    w1_str, _, _ = format_answers((w1 * d + n1) - (w2 * d + n2) + d, d)
+    c_str, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
+    t1, _ = format_answers(n1 - n2, 1, w1 - w2)
+    t2, _ = format_answers(n1 - n2, d)
+    w1_str, _ = format_answers((w1 * d + n1) - (w2 * d + n2) + d, d)
 
     result = build_problem_dict(
         q_str,
@@ -121,10 +121,10 @@ def frac_sub_5() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, w1)} - {format_fraction_question(n2, d, w2)}"
 
-    c_str, _, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
-    t1, _, _ = format_answers(n2 - n1, d, w1 - w2)
-    t2, _, _ = format_answers((n1 + 10) - n2, d, (w1 - 1) - w2)
-    t3, _, _ = format_answers((d + n1) - n2, d, w1 - w2)
+    c_str, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
+    t1, _ = format_answers(n2 - n1, d, w1 - w2)
+    t2, _ = format_answers((n1 + 10) - n2, d, (w1 - 1) - w2)
+    t3, _ = format_answers((d + n1) - n2, d, w1 - w2)
 
     result = build_problem_dict(
         q_str,

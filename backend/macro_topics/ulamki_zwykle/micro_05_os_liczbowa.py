@@ -11,10 +11,10 @@ def frac_number_line_1() -> dict | None:
     # Standard 0 to 1
     svg_graphic = generate_universal_number_line(d, {0: "0", d: "1"}, n)
 
-    c_str, _, _ = format_answers(n, d)
-    t1, _, _ = format_answers(n + 1, d + 1)
-    t2, _, _ = format_answers(n, d + 1)
-    w1, _, _ = format_answers(d - n, d)
+    c_str, _ = format_answers(n, d)
+    t1, _ = format_answers(n + 1, d + 1)
+    t2, _ = format_answers(n, d + 1)
+    w1, _ = format_answers(d - n, d)
 
     result = build_problem_dict(
         q_str,
@@ -39,10 +39,10 @@ def frac_number_line_2() -> dict | None:
     # Mixed number between W and W+1
     svg_graphic = generate_universal_number_line(d, {0: str(W), d: str(W + 1)}, n)
 
-    c_str, _, _ = format_answers(n, d, W)
-    t1, _, _ = format_answers(n + 1, d + 1, W)
-    t2, _, _ = format_answers(n, d, W + 1)
-    w1, _, _ = format_answers(d - n, d, W)
+    c_str, _ = format_answers(n, d, W)
+    t1, _ = format_answers(n + 1, d + 1, W)
+    t2, _ = format_answers(n, d, W + 1)
+    w1, _ = format_answers(d - n, d, W)
 
     result = build_problem_dict(
         q_str,
@@ -90,7 +90,7 @@ def frac_number_line_3() -> dict | None:
     whole = W + (ticks_from_W // d)
     num = ticks_from_W % d
 
-    c_str, _, _ = format_answers(num, d, whole)
+    c_str, _ = format_answers(num, d, whole)
 
     # Trap 1: Assumed the gap between the two labels is just "1" whole number
     t1_num = ticks_from_W
@@ -98,7 +98,7 @@ def frac_number_line_3() -> dict | None:
     if t1_num > gap:
         t1_whole += t1_num // gap
         t1_num = t1_num % gap
-    t1, _, _ = format_answers(t1_num, gap, t1_whole)
+    t1, _ = format_answers(t1_num, gap, t1_whole)
 
     # Trap 2: Off by one tick
     num2 = num + 1
@@ -106,11 +106,11 @@ def frac_number_line_3() -> dict | None:
     if num2 == d:
         num2 = 1
         whole2 += 1
-    t2, _, _ = format_answers(num2, d, whole2)
+    t2, _ = format_answers(num2, d, whole2)
 
     # Trap 3: Guessed the wrong whole number
     w1_whole = W if whole != W else W + 1
-    w1, _, _ = format_answers(num, d, w1_whole)
+    w1, _ = format_answers(num, d, w1_whole)
 
     if len({c_str, t1, t2, w1}) == 4:
         result = build_problem_dict(
@@ -154,14 +154,14 @@ def frac_number_line_4() -> dict | None:
     whole = W + (ticks_from_W // d)
     num = ticks_from_W % d
 
-    c_str, _, _ = format_answers(num, d, whole)
+    c_str, _ = format_answers(num, d, whole)
 
     # Trap 1: Started counting from the visual start of the axis instead of idx1
     t1_whole = W + (target // d)
     t1_num = target % d
     if t1_num == 0:
         t1_num = 1
-    t1, _, _ = format_answers(t1_num, d, t1_whole)
+    t1, _ = format_answers(t1_num, d, t1_whole)
 
     # Trap 2: Off by one tick
     num2 = num + 1
@@ -169,14 +169,14 @@ def frac_number_line_4() -> dict | None:
     if num2 == d:
         num2 = 1
         whole2 += 1
-    t2, _, _ = format_answers(num2, d, whole2)
+    t2, _ = format_answers(num2, d, whole2)
 
     # Trap 3: Used total ticks on screen as denominator
     t3_num = num
     t3_whole = whole
     if t3_num >= total_ticks:
         t3_num = total_ticks - 1
-    w1, _, _ = format_answers(t3_num, total_ticks, t3_whole)
+    w1, _ = format_answers(t3_num, total_ticks, t3_whole)
 
     if len({c_str, t1, t2, w1}) == 4:
         result = build_problem_dict(
