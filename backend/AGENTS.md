@@ -12,8 +12,14 @@ Pure Python FastAPI service — no UI framework imports.
 
 ## Curriculum & problems
 
-- Curriculum YAML: `backend/data/` (e.g. `Ułamki_Zwykłe.yaml`)
-- Problem generators: `backend/macro_topics/<topic>/micro_*.py`
+- Curriculum YAML: `backend/data/` (one file per macro topic, e.g. `Ułamki_Zwykłe.yaml`)
+- YAML schema (root keys): `macro_topic`, `order`, `keyboard_type`, `micro_topics`
+- Filename convention: `{macro_topic with spaces → underscores}.yaml` (must match `macro_topic`)
+- Macro `order` controls dropdown sequence (lower first)
+- Each `micro_topics[]` entry: `order`, `name`, optional `text_mode_disabled`, `levels[]`
+- Each level: `level`, `name`, `function`, optional `published`, `traps`
+- Problem generators: `backend/macro_topics/<slug>/micro_*.py` — functions named `frac_*` or `dec_*`
+- Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache); `backend/engine.py` (problem generation)
 
 ## Database
 

@@ -1,6 +1,6 @@
 ---
 description: Curriculum hierarchy (Macro/Micro/Level), Dynamic Mastery Loop rules ("Power of 3" streak logic, ABCD to Text pipeline), Answer Taxonomy (Traps vs Wrong Answers), and Fast API/Next.js client-server boundary rules.
-globs: backend/macro_topics/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/navigation.py,backend/state_manager.py,backend/models.py
+globs: backend/macro_topics/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/curriculum_loader.py,backend/navigation.py,backend/state_manager.py,backend/models.py
 alwaysApply: false
 ---
 
@@ -16,6 +16,18 @@ The curriculum is organized into a three-tier nesting system to ensure granular 
 - **Macro Topic:** The broad mathematical domain (e.g., *Fractions*).
 - **Micro Topic:** A specific skill set within a Macro Topic (e.g., *Adding Fractions with Different Denominators*).
 - **Level:** The difficulty staging within a Micro Topic (e.g., Level 1, Level 2, Level 3).
+
+---
+
+## 1b. Curriculum YAML (`backend/data/`)
+
+One YAML file per macro topic. Root keys: `macro_topic`, `order` (macro dropdown sort), `keyboard_type`, `micro_topics`.
+
+- Filename must be `{macro_topic with spaces as underscores}.yaml`
+- Each `micro_topics[]` entry: `order`, `name`, optional `text_mode_disabled`, `levels[]`
+- Each level: `level`, `name`, `function` (generator name), optional `published`, `traps`
+- Generators live in `backend/macro_topics/` and must be named `frac_*` or `dec_*`
+- Loaded and validated by `backend/curriculum_loader.py`
 
 ---
 

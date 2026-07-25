@@ -73,7 +73,7 @@ export interface CurriculumTopic {
 
 export interface CurriculumResponse {
   macro_topics: string[];
-  topics: Record<string, CurriculumTopic[]>;
+  micro_topics: Record<string, CurriculumTopic[]>;
 }
 
 export interface SessionStartRequest {

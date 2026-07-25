@@ -160,45 +160,6 @@ class StateManager:
         StateManager.reset_turn(state, topic_map)
         StateManager.sync_to_db(state)
 
-    @staticmethod
-    def get_macro_progress(state: GameState, macro_topic, curriculum_map):
-        """Calculate macro-topic completion based on unlocked_micro_topic_order."""
-        if not macro_topic or macro_topic not in curriculum_map:
-            return 0.0, 0, 1
-
-        topics_dict = curriculum_map.get(macro_topic, {})
-
-        if isinstance(topics_dict, list):
-            total_micro = len(topics_dict)
-            if total_micro == 0:
-                return 0.0, 0, 1
-            return 0.0, 0, total_micro
-
-        if not isinstance(topics_dict, dict):
-            return 0.0, 0, 1
-
-        topic_orders = sorted(
-            [order for order in topics_dict.keys() if isinstance(order, int)]
-        )
-        total_micro = len(topic_orders)
-
-        if total_micro == 0:
-            return 0.0, 0, 1
-
-        macro_progress = state.progress.get(macro_topic)
-        unlocked_order = (
-            macro_progress.unlocked_micro_topic_order if macro_progress else 1
-        )
-
-        completed_micro = sum(1 for order in topic_orders if order < unlocked_order)
-        completed_micro = max(0, min(completed_micro, total_micro))
-
-        if state.topic_completed:
-            completed_micro = total_micro
-
-        percentage = completed_micro / total_micro
-        return percentage, completed_micro, total_micro
-
     @classmethod
     def process_submission(cls, state: GameState, problem, user_input, is_text_mode, topic_map):
         """Process user submission: evaluate, log telemetry, handle rewards and progression."""

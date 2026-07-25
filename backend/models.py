@@ -169,7 +169,7 @@ class CurriculumTopic(BaseModel):
 
 class CurriculumResponse(BaseModel):
     macro_topics: list[str]
-    topics: Dict[str, list[CurriculumTopic]]
+    micro_topics: Dict[str, list[CurriculumTopic]]
 
 
 class ProblemResponse(BaseModel):

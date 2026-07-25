@@ -1,6 +1,7 @@
 macro_topic: "Ułamki Dziesiętne"
+order: 20
 keyboard_type: "decimal"
-topics:
+micro_topics:
   - order: 10
     name: "Zamiana ułamków"
     levels:
