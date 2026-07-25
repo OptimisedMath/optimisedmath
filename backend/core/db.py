@@ -4,25 +4,12 @@ import sqlite3
 from fastapi.encoders import jsonable_encoder
 
 from backend.config import DB_PATH
-from backend.models import GameState, TopicProgress, heal_legacy_state
+from backend.models import GameState, TopicProgress
 
 
 def get_connection():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(DB_PATH)
-
-
-def _migrate_schema(cursor) -> None:
-    """Apply one-time schema migrations for renamed columns."""
-    cursor.execute("PRAGMA table_info(users)")
-    columns = {row[1] for row in cursor.fetchall()}
-    if (
-        "selected_topic_order" in columns
-        and "selected_micro_topic_order" not in columns
-    ):
-        cursor.execute(
-            "ALTER TABLE users RENAME COLUMN selected_topic_order TO selected_micro_topic_order"
-        )
 
 
 def init_db():
@@ -66,7 +53,6 @@ def init_db():
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         """)
-        _migrate_schema(cursor)
         conn.commit()
 
 
@@ -128,8 +114,10 @@ def load_user(username):
             raw_progress = json.loads(row[5]) if row[5] else {}
             progress = {}
             for macro, prog_data in raw_progress.items():
-                healed = heal_legacy_state(prog_data if isinstance(prog_data, dict) else {})
-                progress[macro] = TopicProgress(**healed)
+                if isinstance(prog_data, dict):
+                    progress[macro] = TopicProgress(**prog_data)
+                else:
+                    progress[macro] = prog_data
 
             return {
                 "xp": row[0],

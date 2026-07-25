@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 import backend.main as main
 from backend.core import db
-from backend.models import GameState, heal_legacy_state
+from backend.models import GameState
 
 
 def run(coro):
@@ -382,24 +382,6 @@ def test_locked_navigation_is_rejected():
         )
 
     assert exc.value.status_code == 403
-
-
-def test_legacy_state_key_healing():
-    legacy = {
-        "session_id": "legacy-session",
-        "selected_topic_order": 20,
-        "progress": {
-            "Ułamki Zwykłe": {"unlocked_order": 30, "unlocked_level": 2},
-        },
-    }
-    healed = heal_legacy_state(legacy)
-    assert healed["selected_micro_topic_order"] == 20
-    assert "selected_topic_order" not in healed
-    assert healed["progress"]["Ułamki Zwykłe"]["unlocked_micro_topic_order"] == 30
-
-    state = GameState.from_storage(legacy)
-    assert state.selected_micro_topic_order == 20
-    assert state.progress["Ułamki Zwykłe"].unlocked_micro_topic_order == 30
 
 
 def test_text_mode_disabled_keeps_radio_input():

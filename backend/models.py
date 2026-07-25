@@ -11,25 +11,6 @@ from pydantic import BaseModel, ConfigDict, Field
 import backend.config as config
 
 
-def heal_legacy_state(data: dict) -> dict:
-    """Normalize legacy dict keys from older saves into current field names."""
-    healed = dict(data)
-
-    if "selected_topic_order" in healed and "selected_micro_topic_order" not in healed:
-        healed["selected_micro_topic_order"] = healed.pop("selected_topic_order")
-
-    if "unlocked_order" in healed and "unlocked_micro_topic_order" not in healed:
-        healed["unlocked_micro_topic_order"] = healed.pop("unlocked_order")
-
-    progress = healed.get("progress")
-    if isinstance(progress, dict):
-        for macro, prog in progress.items():
-            if isinstance(prog, dict):
-                progress[macro] = heal_legacy_state(prog)
-
-    return healed
-
-
 class TopicProgress(BaseModel):
     """Progress for a single macro topic."""
 
@@ -133,16 +114,8 @@ class GameState(BaseModel):
 
     @classmethod
     def from_storage(cls, data: dict) -> GameState:
-        """Build a GameState from persisted JSON, healing legacy keys."""
-        healed = heal_legacy_state(data)
-        progress = {}
-        for macro, prog_data in healed.get("progress", {}).items():
-            if isinstance(prog_data, dict):
-                progress[macro] = TopicProgress(**heal_legacy_state(prog_data))
-            else:
-                progress[macro] = prog_data
-        healed["progress"] = progress
-        return cls.model_validate(healed)
+        """Build a GameState from persisted JSON."""
+        return cls.model_validate(data)
 
     def for_response(
         self,
