@@ -56,25 +56,23 @@ def build_problem_dict(
     w2=None,
     grading_policy="standard",
     image_html=None,
-    deconstruction = None
+    deconstruction=None,
 ):
+    option_entries = [
+        (c_str, "correct"),
+        (t1, "t1"),
+        (t2, "t2"),
+        (t3, "t3"),
+        (w1, "w1"),
+        (w2, "w2"),
+    ]
 
     options_map = {}
-    if c_str is not None:
-        options_map[c_str] = "correct"
-    if t1 is not None:
-        options_map[t1] = "t1"
-    if t2 is not None:
-        options_map[t2] = "t2"
-    if t3 is not None:
-        options_map[t3] = "t3"
-    if w1 is not None:
-        options_map[w1] = "w1"
-    if w2 is not None:
-        options_map[w2] = "w2"
+    for value, label in option_entries:
+        if value is not None:
+            options_map[value] = label
 
-    expected_count = 1 + sum(1 for x in [t1, t2, t3, w1, w2] if x is not None)
-    if len(options_map) != expected_count:
+    if len(options_map) != sum(value is not None for value, _ in option_entries):
         return None
 
     options = list(options_map.keys())
@@ -95,7 +93,7 @@ def build_problem_dict(
         "options": options,
         "options_map": options_map,
         "grading_policy": grading_policy,
-        "desconstruction": deconstruction
+        "deconstruction": deconstruction,
     }
 
 
