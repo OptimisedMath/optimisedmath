@@ -127,11 +127,6 @@ class GameState(BaseModel):
             copy.current_problem = public_problem_fn(copy.current_problem, copy)
         copy.can_submit = bool(copy.current_problem and not copy.problem_answered)
         copy.can_advance = bool(copy.problem_answered)
-        if not isinstance(copy.show_celebration, bool):
-            if isinstance(copy.show_celebration, str):
-                copy.show_celebration = copy.show_celebration.lower() == "true"
-            else:
-                copy.show_celebration = False
         copy.problem_start_time = None
         copy.admin_mode = config.is_admin_user(copy.username)
         return copy
