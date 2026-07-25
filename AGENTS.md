@@ -10,6 +10,7 @@ Single-root monorepo: Python FastAPI backend + Next.js frontend. Open the **repo
 | `frontend/` | Next.js App Router UI; calls backend via `/api` proxy |
 | `tests/` | pytest suite — run from repo root |
 | `tools/` | Legacy Streamlit admin fragments (not part of the main app) |
+| `docs/` | Local-only reference material (gitignored, not version-controlled) |
 
 ## Run commands
 

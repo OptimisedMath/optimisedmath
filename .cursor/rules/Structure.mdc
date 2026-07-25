@@ -1,5 +1,6 @@
 ---
 description: Curriculum hierarchy (Macro/Micro/Level), Dynamic Mastery Loop rules ("Power of 3" streak logic, ABCD to Text pipeline), Answer Taxonomy (Traps vs Wrong Answers), and Fast API/Next.js client-server boundary rules.
+globs: backend/macro_topics/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/navigation.py,backend/state_manager.py,backend/models.py
 alwaysApply: false
 ---
 

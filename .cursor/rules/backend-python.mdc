@@ -1,6 +1,6 @@
 ---
 description: Python and FastAPI conventions for backend and tests
-globs: "{backend,tests}/**/*.py"
+globs: backend/**/*.py,tests/**/*.py
 alwaysApply: false
 ---
 
