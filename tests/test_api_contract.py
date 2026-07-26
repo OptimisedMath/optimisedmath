@@ -606,6 +606,73 @@ def test_navigation_progress_counts():
     )
 
 
+def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
+    import backend.engine as engine
+
+    curriculum = main.engine.get_curriculum()
+    macro = next(iter(curriculum))
+    topic = curriculum[macro][0]
+    session_id = str(uuid.uuid4())
+    state = GameState()
+    main.state_manager.StateManager.init_defaults(state, list(curriculum), curriculum)
+    state.session_id = session_id
+    state.username = f"test-{session_id}"
+    state.selected_macro = macro
+    state.selected_micro_topic_order = int(topic["micro_topic_order"])
+    state.selected_level = 1
+    main.ACTIVE_SESSIONS[session_id] = state
+
+    duplicate_problem = {
+        "problem_id": "dup-1",
+        "question": "same question",
+        "correct": "1",
+        "options": ["1", "2"],
+        "options_map": {"1": "correct", "2": "w1"},
+        "messages": {},
+        "level": 1,
+        "level_name": "Test",
+        "level_display": "Test (Lvl 1)",
+        "keyboard_type": "default",
+    }
+    duplicate_fingerprint = engine.problem_fingerprint(duplicate_problem)
+    state.recent_problem_fingerprints = [duplicate_fingerprint]
+
+    call_count = {"value": 0}
+
+    def fake_generate_level_problem(_macro, _micro, _level):
+        call_count["value"] += 1
+        return {
+            **duplicate_problem,
+            "problem_id": f"dup-{call_count['value']}",
+        }
+
+    unique_problem = {
+        **duplicate_problem,
+        "question": "different question",
+        "problem_id": "unique-1",
+    }
+
+    def fake_generate_with_unique_second(_macro, _micro, _level):
+        call_count["value"] += 1
+        if call_count["value"] == 1:
+            return {
+                **duplicate_problem,
+                "problem_id": "dup-attempt",
+            }
+        return unique_problem
+
+    monkeypatch.setattr(
+        engine, "generate_level_problem", fake_generate_with_unique_second
+    )
+
+    response = run(main.problem_next(session_id))
+
+    assert call_count["value"] == 2
+    assert response["problem"]["question"] == "different question"
+    assert duplicate_fingerprint in state.recent_problem_fingerprints
+    assert engine.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
+
+
 def test_generator_messages_override_yaml_traps(monkeypatch):
     from backend.core.utils import build_problem_dict
     import backend.engine as engine
@@ -619,7 +686,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
     monkeypatch.setitem(engine.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
 
-    problem = engine.get_problem_from_db("Ułamki Dziesiętne", "Porównywanie", 1)
+    problem = engine.generate_level_problem("Ułamki Dziesiętne", "Porównywanie", 1)
     assert problem is not None
     assert problem["messages"]["t1"] == branch_message
     assert (

@@ -1,6 +1,8 @@
+import hashlib
 import importlib
 import logging
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import TypedDict
 
@@ -18,23 +20,60 @@ import backend.config as config
 BASE_DIR = Path(__file__).resolve().parent
 logger = logging.getLogger(__name__)
 
-# --- THE AUTOLOADER ---
-FUNCTION_REGISTRY: dict[str, object] = {}
-macro_path = Path(__file__).parent / "macro_topics"
-for file_path in macro_path.rglob("*.py"):
-    if file_path.name.startswith("__"):
-        continue
-    module_path = ".".join(
-        file_path.relative_to(Path(__file__).parent.parent).with_suffix("").parts
+GENERATOR_PREFIXES = ("frac_", "dec_")
+
+
+class GeneratorRegistryError(Exception):
+    """Raised when generator registration fails."""
+
+
+class ProblemGenerationError(Exception):
+    """Raised when a level problem cannot be generated."""
+
+
+def _is_generator(name: str, value: object) -> bool:
+    return callable(value) and not name.startswith("_") and name.startswith(
+        GENERATOR_PREFIXES
     )
-    module = importlib.import_module(module_path)
 
-    for k, v in module.__dict__.items():
-        if callable(v) and not k.startswith("_") and (
-            k.startswith("frac_") or k.startswith("dec_")
-        ):
-            FUNCTION_REGISTRY[k] = v
 
+def _register_generator(
+    registry: dict[str, Callable[..., object]],
+    sources: dict[str, str],
+    name: str,
+    func: Callable[..., object],
+    module_path: str,
+) -> None:
+    if name in registry:
+        raise GeneratorRegistryError(
+            f"Duplicate generator '{name}' in {module_path} "
+            f"(already registered from {sources[name]})"
+        )
+    registry[name] = func
+    sources[name] = module_path
+
+
+def _load_generator_registry(macro_topics_dir: Path) -> dict[str, Callable[..., object]]:
+    registry: dict[str, Callable[..., object]] = {}
+    sources: dict[str, str] = {}
+
+    for file_path in macro_topics_dir.rglob("*.py"):
+        if file_path.name.startswith("__"):
+            continue
+        module_path = ".".join(
+            file_path.relative_to(BASE_DIR.parent).with_suffix("").parts
+        )
+        module = importlib.import_module(module_path)
+
+        for name, value in module.__dict__.items():
+            if _is_generator(name, value):
+                _register_generator(registry, sources, name, value, module_path)
+
+    return registry
+
+
+# --- THE AUTOLOADER ---
+FUNCTION_REGISTRY = _load_generator_registry(BASE_DIR / "macro_topics")
 set_function_registry(FUNCTION_REGISTRY)
 
 
@@ -81,45 +120,57 @@ def get_micro_topic_name(
     return None
 
 
-def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
+def problem_fingerprint(problem: dict) -> str:
+    """Stable identity for a generated problem instance (excludes problem_id)."""
+    options = "|".join(sorted(str(opt) for opt in problem.get("options", [])))
+    payload = f"{problem.get('question', '')}|{problem.get('correct', '')}|{options}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> dict:
+    """Generate a problem for a curriculum level."""
     data = get_macro_yaml(macro_topic)
     if not data:
-        return {"error": f"Missing database file for: {macro_topic}"}
+        raise ProblemGenerationError(f"Missing curriculum file for: {macro_topic}")
 
     topic_entry = next(
         (t for t in data.get("micro_topics", []) if t["name"] == micro_topic),
         None,
     )
     if topic_entry is None:
-        return None
+        raise ProblemGenerationError(
+            f"Micro topic '{micro_topic}' not found in '{macro_topic}'"
+        )
 
     level_entry = next(
         (lvl for lvl in topic_entry.get("levels", []) if lvl["level"] == int(level)),
         None,
     )
     if level_entry is None or not level_entry.get("published", True):
-        return None
+        raise ProblemGenerationError(
+            f"Level {level} is not available for '{micro_topic}' in '{macro_topic}'"
+        )
 
     func_name = level_entry["function"]
     problem_func = FUNCTION_REGISTRY.get(func_name)
-
     if not problem_func:
-        return {"error": f"Function {func_name} not found"}
+        raise ProblemGenerationError(f"Function {func_name} not found")
 
     try:
         problem_dict = generate_problem(problem_func)
-        problem_dict["level"] = int(level)
-        problem_dict["level_name"] = level_entry["name"]
-        problem_dict["problem_id"] = str(uuid.uuid4())
-    except RuntimeError as e:
-        return {"error": str(e)}
+    except RuntimeError as exc:
+        raise ProblemGenerationError(str(exc)) from exc
 
-    DEFAULT_MSG = config.DEFAULT_WRONG_MESSAGE
+    problem_dict["level"] = int(level)
+    problem_dict["level_name"] = level_entry["name"]
+    problem_dict["problem_id"] = str(uuid.uuid4())
+
+    default_msg = config.DEFAULT_WRONG_MESSAGE
     traps = level_entry.get("traps", {})
     yaml_messages = {
-        "t1": traps.get("t1") or DEFAULT_MSG,
-        "t2": traps.get("t2") or DEFAULT_MSG,
-        "t3": traps.get("t3") or DEFAULT_MSG,
+        "t1": traps.get("t1") or default_msg,
+        "t2": traps.get("t2") or default_msg,
+        "t3": traps.get("t3") or default_msg,
     }
     gen_messages = problem_dict.pop("messages", {})
     problem_dict["messages"] = {**yaml_messages, **gen_messages}
@@ -167,14 +218,15 @@ def check_format_mismatch(user_text, correct_latex):
 
 
 def evaluate_answer(user_input, problem, is_text_mode=False):
+    options_map = problem.get("options_map", {})
 
     # --- 1. MULTIPLE CHOICE MODE ---
     if not is_text_mode and "options" in problem and len(problem["options"]) > 0:
-        is_correct = problem["options_map"].get(user_input) == "correct"
+        is_correct = options_map.get(user_input) == "correct"
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
         else:
-            msg_key = problem["options_map"].get(user_input, "w1")
+            msg_key = options_map.get(user_input, "w1")
             msg_text = problem.get("messages", {}).get(
                 msg_key, "Niepoprawna odpowiedź, spróbuj ponownie."
             )
@@ -231,7 +283,7 @@ def evaluate_answer(user_input, problem, is_text_mode=False):
             }
 
     # --- 3. TEXT MODE TRAP SCANNER ---
-    for opt_str, opt_type in problem["options_map"].items():
+    for opt_str, opt_type in options_map.items():
         if opt_type in ["t1", "t2", "t3", "w1", "w2"]:
             opt_val = parse_to_fraction(opt_str)
             if check_text_answer(opt_str, user_input) or (

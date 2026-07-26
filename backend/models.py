@@ -73,6 +73,10 @@ class GameState(BaseModel):
 
     current_problem: Optional[Dict[str, Any]] = None
     problem_start_time: Optional[float] = None
+    recent_problem_fingerprints: list[str] = Field(
+        default_factory=list,
+        description="Recent generated problem fingerprints for duplicate avoidance",
+    )
 
     can_submit: bool = False
     can_advance: bool = False
@@ -128,6 +132,7 @@ class GameState(BaseModel):
         copy.can_submit = bool(copy.current_problem and not copy.problem_answered)
         copy.can_advance = bool(copy.problem_answered)
         copy.problem_start_time = None
+        copy.recent_problem_fingerprints = []
         copy.admin_mode = config.is_admin_user(copy.username)
         return copy
 

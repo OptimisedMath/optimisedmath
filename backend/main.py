@@ -328,18 +328,37 @@ async def problem_next(session_id: str):
     )
 
     level = state.selected_level
-    problem = engine.get_problem_from_db(macro_topic, micro_topic, level)
+    recent_fingerprints = list(state.recent_problem_fingerprints)
+    problem = None
 
-    if not problem:
+    for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
+        try:
+            candidate = engine.generate_level_problem(macro_topic, micro_topic, level)
+        except engine.ProblemGenerationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(exc),
+            ) from exc
+
+        fingerprint = engine.problem_fingerprint(candidate)
+        if fingerprint not in recent_fingerprints:
+            problem = candidate
+            recent_fingerprints.append(fingerprint)
+            break
+        problem = candidate
+
+    if problem is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Could not generate problem for {macro_topic}/{micro_topic}/{level}",
+            detail=(
+                f"Could not generate problem for "
+                f"{macro_topic}/{micro_topic}/{level}"
+            ),
         )
 
-    if "error" in problem:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=problem["error"]
-        )
+    state.recent_problem_fingerprints = recent_fingerprints[
+        -config.MAX_RETRIES_DUPLICATE_CHECK :
+    ]
 
     state.problem_answered = False
     state.feedback_type = None
