@@ -604,3 +604,30 @@ def test_navigation_progress_counts():
     assert state.navigation.micro_progress.percentage == pytest.approx(
         ((state.selected_level - 1) / max_level * 100) if max_level else 0.0
     )
+
+
+def test_generator_messages_override_yaml_traps(monkeypatch):
+    from backend.core.utils import build_problem_dict
+    import backend.engine as engine
+
+    branch_message = "branch-specific trap feedback"
+
+    def fake_compare():
+        result = build_problem_dict(r"\text{q}", "<", t1=">", t2="=")
+        result["messages"] = {"t1": branch_message}
+        return result
+
+    monkeypatch.setitem(engine.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
+
+    problem = engine.get_problem_from_db("Ułamki Dziesiętne", "Porównywanie", 1)
+    assert problem is not None
+    assert problem["messages"]["t1"] == branch_message
+    assert (
+        problem["messages"]["t2"]
+        == "Liczby nie są równe — nie wybieraj znaku równości!"
+    )
+
+    eval_result = engine.evaluate_answer(">", problem, is_text_mode=False)
+    assert eval_result["trap_id"] == "t1"
+    assert eval_result["feedback_msg"] == branch_message
+

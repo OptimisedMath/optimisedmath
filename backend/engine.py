@@ -116,11 +116,13 @@ def get_problem_from_db(macro_topic, micro_topic, level) -> dict | None:
 
     DEFAULT_MSG = config.DEFAULT_WRONG_MESSAGE
     traps = level_entry.get("traps", {})
-    problem_dict["messages"] = {
+    yaml_messages = {
         "t1": traps.get("t1") or DEFAULT_MSG,
         "t2": traps.get("t2") or DEFAULT_MSG,
         "t3": traps.get("t3") or DEFAULT_MSG,
     }
+    gen_messages = problem_dict.pop("messages", {})
+    problem_dict["messages"] = {**yaml_messages, **gen_messages}
     problem_dict["level_display"] = f"{level_entry['name']} (Lvl {level})"
     problem_dict["keyboard_type"] = data.get("keyboard_type", "default")
     return problem_dict

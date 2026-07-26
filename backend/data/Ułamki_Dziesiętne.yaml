@@ -42,22 +42,29 @@ micro_topics:
         name: "Różne cyfry, te same pozycje"
         function: "dec_compare_1"
         traps:
-          t1: "Spójrz najpierw na najwyższy rząd (całości, potem części dziesiąte). Cyfra z przodu ma zawsze największą wagę!"
+          t1: "Porównaj cyfry po przecinku od lewej strony."
           t2: "Liczby nie są równe — nie wybieraj znaku równości!"
       - level: 2
         name: "Różna liczba miejsc po przecinku"
         function: "dec_compare_2"
         traps:
-          t1: "Dałeś się złapać! 'Dłuższa' liczba wcale nie jest większa. Dopisz niewidzialne zera na końcu, aby obie liczby miały tyle samo miejsc po przecinku, i porównaj jeszcze raz."
-          t2: "Liczby są równe — wybierz znak równości!"
+          t1: "Porównaj cyfry po przecinku od lewej strony."
+          t2: "Liczby nie są równe — nie wybieraj znaku równości!"
           t3: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
       - level: 3
         name: "Zdradliwe zera"
         function: "dec_compare_3"
         traps:
-          t1: "Pamiętaj, zero zaraz po przecinku jest bardzo ważne (zmniejsza ułamek), ale zera na samym końcu można wykreślić!"
-          t2: "Liczby są równe — wybierz znak równości!"
+          t1: "Porównaj cyfry po przecinku od lewej strony."
+          t2: "Liczby nie są równe — nie wybieraj znaku równości!"
           t3: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
+      - level: 4
+        name: "Rozwinięcie nieskończone"
+        function: "dec_compare_4"
+        traps:
+          t1: "Porównaj cyfry po przecinku od lewej strony."
+          t2: "Liczby nie są równe — nie wybieraj znaku równości!"
+          t3: "Gdy okresy są różne, liczby nie są równe — nie wybieraj znaku równości!"
 
   - order: 30
     name: "Oś liczbowa"
