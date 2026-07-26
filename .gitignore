@@ -9,6 +9,5 @@ storage/*.db
 .venv/
 frontend/node_modules/
 frontend/dist/
-start.command
 backend/storage/users.db
 .pip_packages/
