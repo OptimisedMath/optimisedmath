@@ -18,7 +18,7 @@ Pure Python FastAPI service — no UI framework imports.
 - Macro `order` controls dropdown sequence (lower first)
 - Each `micro_topics[]` entry: `order`, `name`, optional `text_mode_disabled`, `levels[]`
 - Each level: `level`, `name`, `function`, optional `published`, `traps`
-- Problem generators: `backend/macro_topics/<slug>/micro_*.py` — functions named `frac_*` or `dec_*`
+- Problem generators: public functions defined in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; helpers use `_` prefix)
 - Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache); `backend/engine.py` (problem generation)
 
 ## Database
@@ -56,7 +56,7 @@ Document symbols where behavior is not obvious from the signature alone. Referen
 
 - Private `_helpers` under ~5 lines
 - Trivial one-liners (`get_level_options`, `fmt_dec`)
-- Macro generators (`frac_*` / `dec_*`) — use Polish pedagogical one-liners there
+- Macro generators in `micro_*.py` — use Polish pedagogical one-liners there
 - Individual `test_*` functions — descriptive names + parametrize tables are enough
 
 **Style:**

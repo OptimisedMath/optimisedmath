@@ -22,9 +22,6 @@ import backend.config as config
 BASE_DIR = Path(__file__).resolve().parent
 logger = logging.getLogger(__name__)
 
-GENERATOR_PREFIXES = ("frac_", "dec_")
-
-
 class GeneratorRegistryError(Exception):
     """Raised when generator registration fails."""
 
@@ -33,9 +30,11 @@ class ProblemGenerationError(Exception):
     """Raised when a level problem cannot be generated."""
 
 
-def _is_generator(name: str, value: object) -> bool:
-    return callable(value) and not name.startswith("_") and name.startswith(
-        GENERATOR_PREFIXES
+def _is_generator(name: str, value: object, module_name: str) -> bool:
+    return (
+        callable(value)
+        and not name.startswith("_")
+        and getattr(value, "__module__", None) == module_name
     )
 
 
@@ -59,16 +58,14 @@ def _load_generator_registry(macro_topics_dir: Path) -> dict[str, Callable[..., 
     registry: dict[str, Callable[..., object]] = {}
     sources: dict[str, str] = {}
 
-    for file_path in macro_topics_dir.rglob("*.py"):
-        if file_path.name.startswith("__"):
-            continue
+    for file_path in macro_topics_dir.rglob("micro_*.py"):
         module_path = ".".join(
             file_path.relative_to(BASE_DIR.parent).with_suffix("").parts
         )
         module = importlib.import_module(module_path)
 
         for name, value in module.__dict__.items():
-            if _is_generator(name, value):
+            if _is_generator(name, value, module.__name__):
                 _register_generator(registry, sources, name, value, module_path)
 
     return registry

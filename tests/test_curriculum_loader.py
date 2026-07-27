@@ -43,8 +43,9 @@ def test_curriculum_response_uses_micro_topics_field():
 
 
 def test_function_registry_contains_only_generators():
-    for name in engine.FUNCTION_REGISTRY:
-        assert name.startswith("frac_") or name.startswith("dec_")
+    for name, func in engine.FUNCTION_REGISTRY.items():
+        assert not name.startswith("_")
+        assert getattr(func, "__module__", "").startswith("backend.macro_topics")
 
 
 def test_rejects_missing_micro_topics_key(tmp_path, monkeypatch):

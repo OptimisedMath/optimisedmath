@@ -1,33 +1,13 @@
-"""Parametrized smoke tests for all frac_* and dec_* problem generators."""
+"""Parametrized smoke tests for all problem generators in FUNCTION_REGISTRY."""
 
-import sys
-import importlib
 import pytest
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.append(str(BASE_DIR))
-sys.path.append(str(BASE_DIR / "backend"))
+import backend.engine as engine
 
 
 def get_all_math_functions():
-    """Discover all frac_* and dec_* generator callables under backend/macro_topics/."""
-    functions_to_test = []
-    macro_path = BASE_DIR / "backend" / "macro_topics"
-
-    for file_path in macro_path.rglob("*.py"):
-        if file_path.name.startswith("__"):
-            continue
-
-        module_path = ".".join(file_path.relative_to(BASE_DIR).parts)[:-3]  # e.g. backend.macro_topics.xxx
-        module = importlib.import_module(module_path)
-
-        for name, func in module.__dict__.items():
-            # FIX 1: Only test actual math functions, ignore imported helpers!
-            if callable(func) and (name.startswith("dec_") or name.startswith("frac_")):
-                functions_to_test.append((name, func))
-
-    return functions_to_test
+    """Return every auto-registered generator from backend.engine."""
+    return list(engine.FUNCTION_REGISTRY.items())
 
 
 @pytest.mark.parametrize("func_name, math_func", get_all_math_functions())
@@ -35,7 +15,7 @@ def test_universal_math_structure(func_name, math_func):
     successful_runs = 0
     attempts = 0
 
-    # FIX 2: Try up to 100 times to get 10 perfect math problems
+    # Try up to 100 times to get 10 perfect math problems
     while successful_runs < 10 and attempts < 100:
         attempts += 1
         try:

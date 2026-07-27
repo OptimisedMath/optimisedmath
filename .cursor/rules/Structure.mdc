@@ -26,7 +26,7 @@ One YAML file per macro topic. Root keys: `macro_topic`, `order` (macro dropdown
 - Filename must be `{macro_topic with spaces as underscores}.yaml`
 - Each `micro_topics[]` entry: `order`, `name`, optional `text_mode_disabled`, `levels[]`
 - Each level: `level`, `name`, `function` (generator name), optional `published`, `traps`
-- Generators live in `backend/macro_topics/` and must be named `frac_*` or `dec_*`
+- Generators are public functions defined in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; private helpers use `_` prefix)
 - Loaded and validated by `backend/curriculum_loader.py`
 
 ---
