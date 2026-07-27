@@ -6,7 +6,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from backend.core.utils import check_text_answer, parse_to_fraction
 from backend.curriculum_loader import (
@@ -30,6 +30,9 @@ class ProblemGenerationError(Exception):
     """Raised when a level problem cannot be generated."""
 
 
+GeneratorFunc = Callable[[], dict[str, Any] | None]
+
+
 def _is_generator(name: str, value: object, module_name: str) -> bool:
     return (
         callable(value)
@@ -39,10 +42,10 @@ def _is_generator(name: str, value: object, module_name: str) -> bool:
 
 
 def _register_generator(
-    registry: dict[str, Callable[..., object]],
+    registry: dict[str, GeneratorFunc],
     sources: dict[str, str],
     name: str,
-    func: Callable[..., object],
+    func: GeneratorFunc,
     module_path: str,
 ) -> None:
     if name in registry:
@@ -54,8 +57,8 @@ def _register_generator(
     sources[name] = module_path
 
 
-def _load_generator_registry(macro_topics_dir: Path) -> dict[str, Callable[..., object]]:
-    registry: dict[str, Callable[..., object]] = {}
+def _load_generator_registry(macro_topics_dir: Path) -> dict[str, GeneratorFunc]:
+    registry: dict[str, GeneratorFunc] = {}
     sources: dict[str, str] = {}
 
     for file_path in macro_topics_dir.rglob("micro_*.py"):
@@ -130,7 +133,7 @@ def problem_fingerprint(problem: dict) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> dict:
+def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> dict[str, Any]:
     """Generate a problem for a curriculum level."""
     data = get_macro_yaml(macro_topic)
     if not data:
@@ -182,7 +185,7 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> di
     return problem_dict
 
 
-def generate_problem(topic_function):
+def generate_problem(topic_function: GeneratorFunc) -> dict[str, Any]:
     """Generate a problem using the given topic function, with retry logic for valid problems.
 
     Args:
