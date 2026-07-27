@@ -1,3 +1,5 @@
+"""FastAPI integration tests for session flow, grading, and API contract."""
+
 import asyncio
 import uuid
 
@@ -23,6 +25,7 @@ def isolated_state(tmp_path, monkeypatch):
 
 
 def make_state(problem, *, streak=0, input_mode="radio"):
+    """Build a GameState with an active problem and register it in ACTIVE_SESSIONS."""
     curriculum = main.engine.get_curriculum()
     macro = next(iter(curriculum))
     topic = curriculum[macro][0]

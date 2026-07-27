@@ -46,6 +46,7 @@ def _get_session(session_id: str) -> GameState:
 
 
 def _respond(state: GameState) -> GameState:
+    """Build an API-safe GameState with navigation attached."""
     curriculum = engine.get_curriculum()
     response = state.for_response(_public_problem)
     response.navigation = navigation.build_navigation_view(response, curriculum)
@@ -89,6 +90,7 @@ def _validate_unlocked_navigation(
     selected_level: int,
     topic_map: dict,
 ) -> None:
+    """Reject navigation to locked micro-topics or levels unless admin."""
     if config.is_admin_user(state.username):
         return
 
@@ -154,11 +156,13 @@ app.add_middleware(
 
 @app.get("/health", tags=["System"])
 async def health_check():
+    """Return service health status."""
     return {"status": "ok", "service": "math-learning-api"}
 
 
 @app.get("/", tags=["System"])
 async def root():
+    """Return API metadata and documentation link."""
     return {
         "message": "Optimized Math Learning API",
         "version": "1.0.0",
@@ -179,6 +183,7 @@ async def curriculum_index():
 
 @app.post("/session/start", response_model=GameState, tags=["Session"])
 async def session_start(request: SessionStartRequest):
+    """Create a session, load user progress, and return GameState with navigation."""
     curriculum = engine.get_curriculum()
     macro_topics = list(curriculum.keys())
 
@@ -226,6 +231,7 @@ async def session_start(request: SessionStartRequest):
 
 @app.post("/session/navigate", response_model=GameState, tags=["Session"])
 async def session_navigate(request: SessionNavigateRequest):
+    """Change macro topic, micro-topic, or level with unlock validation."""
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
     macro_topic, micro_topic_order, selected_level = navigation.resolve_navigate_request(
@@ -282,6 +288,7 @@ async def session_navigate(request: SessionNavigateRequest):
 
 @app.post("/session/reset", response_model=GameState, tags=["Session"])
 async def session_reset(request: SessionResetRequest):
+    """Hard-reset session progress and return a fresh GameState."""
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
     macro_topics = list(curriculum.keys())
@@ -296,6 +303,7 @@ async def session_reset(request: SessionResetRequest):
 
 @app.get("/problem/next", response_model=ProblemResponse, tags=["Problem"])
 async def problem_next(session_id: str):
+    """Generate the next problem, dedupe recent instances, and update input mode."""
     state = _get_session(session_id)
     curriculum = engine.get_curriculum()
     macro_topic = state.selected_macro
@@ -379,6 +387,7 @@ async def problem_next(session_id: str):
 
 @app.post("/problem/submit", response_model=SubmissionResponse, tags=["Problem"])
 async def problem_submit(request: ProblemSubmissionRequest):
+    """Grade an answer, update streak and XP, and persist session state."""
     state = _get_session(request.session_id)
 
     if not state.current_problem:
@@ -437,6 +446,7 @@ async def problem_submit(request: ProblemSubmissionRequest):
 
 @app.post("/problem/auto-solve", response_model=SubmissionResponse, tags=["Problem"])
 async def problem_auto_solve(request: AutoSolveRequest):
+    """Submit the correct answer for admin or dev testing."""
     state = _get_session(request.session_id)
 
     if not config.ENABLE_DEV_TOOLS and not config.is_admin_user(state.username):

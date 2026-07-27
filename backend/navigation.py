@@ -42,6 +42,7 @@ def _get_unlocked(state: GameState, macro: str, topics: list[dict[str, Any]]) ->
 def get_topic_options(
     topics: list[dict[str, Any]], unlocked_order: int, admin_mode: bool
 ) -> list[dict[str, Any]]:
+    """Return micro-topics available in dropdowns, filtered by unlock progress."""
     if admin_mode:
         available = topics
     else:
@@ -57,6 +58,7 @@ def get_level_limit(
     unlocked_level: int,
     admin_mode: bool,
 ) -> int:
+    """Return the highest selectable level for the current unlock state."""
     if not selected_topic:
         return 1
     order = int(selected_topic["micro_topic_order"])
@@ -73,6 +75,7 @@ def get_level_options(level_limit: int) -> list[int]:
 def resolve_macro_change(
     state: GameState, curriculum: dict[str, list[dict[str, Any]]], next_macro: str
 ) -> tuple[str, int, int]:
+    """Pick default micro-topic and level when switching macro topic."""
     next_topics = _get_topics(curriculum, next_macro)
     next_progress = state.progress.get(next_macro)
     next_micro_order = (
@@ -94,6 +97,7 @@ def resolve_topic_change(
     macro: str,
     next_micro_order: int,
 ) -> tuple[int, int]:
+    """Pick default level when switching micro-topic within a macro."""
     topics = _get_topics(curriculum, macro)
     unlocked_order, unlocked_level = _get_unlocked(state, macro, topics)
     next_topic = _find_topic(topics, next_micro_order)
@@ -144,6 +148,7 @@ def resolve_navigate_request(
 def build_navigation_view(
     state: GameState, curriculum: dict[str, list[dict[str, Any]]]
 ) -> NavigationView:
+    """Build dropdown options, progress counts, and level limits for the frontend."""
     macro_topics = list(curriculum.keys())
     selected_macro = state.selected_macro or (macro_topics[0] if macro_topics else "")
     topics = _get_topics(curriculum, selected_macro)

@@ -179,6 +179,7 @@ def log_telemetry(
     time_spent_seconds=None,
     equation_state=None,
 ):
+    """Record one answer attempt for analytics and debugging."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(

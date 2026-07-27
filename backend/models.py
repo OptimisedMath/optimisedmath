@@ -25,17 +25,23 @@ class TopicProgress(BaseModel):
 
 
 class NavigationMicroTopicOption(BaseModel):
+    """One micro-topic entry in navigation dropdowns."""
+
     micro_topic_order: int
     name: str
 
 
 class NavigationProgress(BaseModel):
+    """Completed vs total counts for macro or micro progress bars."""
+
     completed: int
     total: int
     percentage: float
 
 
 class NavigationView(BaseModel):
+    """Computed navigation state attached to every GameState API response."""
+
     macro_topics: list[str]
     current_topic_name: Optional[str] = None
     available_micro_topics: list[NavigationMicroTopicOption]
@@ -138,11 +144,15 @@ class GameState(BaseModel):
 
 
 class SessionStartRequest(BaseModel):
+    """Start or resume a session for a username."""
+
     username: str
     selected_macro: Optional[str] = None
 
 
 class SessionNavigateRequest(BaseModel):
+    """Partial navigation intent; omitted fields keep current selection."""
+
     session_id: str
     selected_macro: Optional[str] = None
     selected_micro_topic_order: Optional[int] = None
@@ -159,6 +169,8 @@ class AutoSolveRequest(BaseModel):
 
 
 class ProblemSubmissionRequest(BaseModel):
+    """Submit an answer for the active problem in a session."""
+
     session_id: str
     user_input: str
     is_text_mode: bool = False
@@ -166,6 +178,8 @@ class ProblemSubmissionRequest(BaseModel):
 
 
 class CurriculumTopic(BaseModel):
+    """One micro-topic in the curriculum index response."""
+
     micro_topic_order: int
     name: str
     max_level: int
@@ -173,16 +187,22 @@ class CurriculumTopic(BaseModel):
 
 
 class CurriculumResponse(BaseModel):
+    """Full curriculum metadata for macro and micro topics."""
+
     macro_topics: list[str]
     micro_topics: Dict[str, list[CurriculumTopic]]
 
 
 class ProblemResponse(BaseModel):
+    """Next problem payload plus updated session state."""
+
     problem: Dict[str, Any]
     state: GameState
 
 
 class SubmissionResponse(BaseModel):
+    """Grading outcome plus updated session state."""
+
     state: GameState
     is_correct: bool
     feedback: str

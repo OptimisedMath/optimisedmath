@@ -1,3 +1,5 @@
+"""Parametrized smoke tests for all frac_* and dec_* problem generators."""
+
 import sys
 import importlib
 import pytest
@@ -9,6 +11,7 @@ sys.path.append(str(BASE_DIR / "backend"))
 
 
 def get_all_math_functions():
+    """Discover all frac_* and dec_* generator callables under backend/macro_topics/."""
     functions_to_test = []
     macro_path = BASE_DIR / "backend" / "macro_topics"
 

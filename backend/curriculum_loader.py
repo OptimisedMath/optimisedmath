@@ -23,6 +23,8 @@ class CurriculumLoadError(Exception):
 
 
 class MicroTopicDict(TypedDict):
+    """Navigation metadata for one micro-topic derived from curriculum YAML."""
+
     micro_topic_order: int
     name: str
     max_level: int
@@ -31,6 +33,8 @@ class MicroTopicDict(TypedDict):
 
 @dataclass(frozen=True)
 class MacroTopicBundle:
+    """Cached parsed YAML plus derived navigation metadata for one macro topic."""
+
     macro_topic: str
     order: int
     keyboard_type: str
@@ -138,7 +142,7 @@ def _validate_micro_topics(
             )
 
 
-def _validate_file(file_path: Path, data: dict[str, Any]) -> MacroTopicBundle:
+def _validate_file(file_path: Path, data: Any) -> MacroTopicBundle:
     file_name = file_path.name
 
     if not isinstance(data, dict):

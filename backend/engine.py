@@ -1,3 +1,5 @@
+"""Problem generation, generator registry, and answer grading."""
+
 import hashlib
 import importlib
 import logging
@@ -78,6 +80,8 @@ set_function_registry(FUNCTION_REGISTRY)
 
 
 class TopicMeta(TypedDict):
+    """Navigation metadata for one micro-topic within a macro topic."""
+
     name: str
     max_level: int
     text_mode_disabled: bool
@@ -98,6 +102,7 @@ def get_curriculum_response() -> CurriculumResponse:
 def build_topic_map(
     curriculum: dict[str, list[MicroTopicDict]], macro_topic: str
 ) -> dict[int, TopicMeta]:
+    """Map micro-topic order to name, max level, and text-mode flag for one macro topic."""
     topic_map: dict[int, TopicMeta] = {}
     for topic in curriculum.get(macro_topic, []):
         order = topic["micro_topic_order"]
@@ -114,6 +119,7 @@ def get_micro_topic_name(
     macro_topic: str,
     micro_topic_order: int,
 ) -> str | None:
+    """Return the display name for a micro-topic order, or None if not found."""
     for topic in curriculum.get(macro_topic, []):
         if topic["micro_topic_order"] == micro_topic_order:
             return topic["name"]
@@ -218,6 +224,15 @@ def check_format_mismatch(user_text, correct_latex):
 
 
 def evaluate_answer(user_input, problem, is_text_mode=False):
+    """Grade a submission against a generated problem.
+
+    Handles multiple-choice (options_map), open-text (parse + grading_policy),
+    trap/wrong feedback, and format-mismatch warnings.
+
+    Returns:
+        Dict with keys like is_correct, lock_answer, feedback_type,
+        feedback_msg, trap_id (subset depends on outcome).
+    """
     options_map = problem.get("options_map", {})
 
     # --- 1. MULTIPLE CHOICE MODE ---

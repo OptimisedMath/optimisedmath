@@ -39,3 +39,28 @@ Tests isolate the DB via pytest fixtures (`tests/test_api_contract.py` uses `tmp
 ## API contract
 
 When changing request/response shapes, update `backend/models.py` and mirror in `frontend/lib/types.ts`.
+
+## Docstrings
+
+Document symbols where behavior is not obvious from the signature alone. Reference: `backend/state_manager.py`.
+
+**Add docstrings to:**
+
+- FastAPI route handlers (surfaces in OpenAPI `/docs`)
+- Multi-branch business logic (e.g. `evaluate_answer`)
+- Public helpers with non-obvious contracts or side effects
+- Pydantic models that shape the API contract
+- Module docstrings on core entry-point files
+
+**Skip:**
+
+- Private `_helpers` under ~5 lines
+- Trivial one-liners (`get_level_options`, `fmt_dec`)
+- Macro generators (`frac_*` / `dec_*`) — use Polish pedagogical one-liners there
+- Individual `test_*` functions — descriptive names + parametrize tables are enough
+
+**Style:**
+
+- Default: imperative one-liner — `"""Verb + what it does."""`
+- Complex functions: add `Args` / `Returns` / `Raises` when helpful (see `generate_problem`)
+- Language: English for infrastructure; Polish for problem generators

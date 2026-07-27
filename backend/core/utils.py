@@ -1,3 +1,5 @@
+"""Shared formatting, parsing, and problem-dict utilities for generators."""
+
 import uuid
 import re
 import random
@@ -64,6 +66,7 @@ def build_problem_dict(
     image_html=None,
     deconstruction=None,
 ):
+    """Build the canonical problem dict with options, options_map, and grading_policy."""
     option_entries = [
         (c_str, "correct"),
         (t1, "t1"),
@@ -149,6 +152,7 @@ def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
 
 
 def clean_latex(latex_str):
+    """Normalize LaTeX to plain text for string comparison."""
     s = str(latex_str).replace("$", "").strip()
     s = re.sub(r"\\displaystyle\s*", "", s)
     s = re.sub(r"(-?\d)\\(?:d|t)?frac", r"\1 \\frac", s)
@@ -176,6 +180,7 @@ def check_text_answer(correct_latex, user_text):
 
 
 def parse_to_fraction(val_str):
+    """Parse forgiving student input into a Fraction, or None on failure."""
     try:
         val_str = str(val_str).strip()
 
