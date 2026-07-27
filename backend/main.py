@@ -13,6 +13,7 @@ import backend.navigation as navigation
 import backend.state_manager as state_manager
 from backend.core import db
 from backend.core.utils import clean_latex, clean_mobile_input
+from backend.curriculum_loader import MicroTopicDict
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
@@ -45,9 +46,8 @@ def _get_session(session_id: str) -> GameState:
     )
 
 
-def _respond(state: GameState) -> GameState:
+def _respond(state: GameState, curriculum: dict[str, list[MicroTopicDict]]) -> GameState:
     """Build an API-safe GameState with navigation attached."""
-    curriculum = engine.get_curriculum()
     response = state.for_response(_public_problem)
     response.navigation = navigation.build_navigation_view(response, curriculum)
     return response
@@ -226,7 +226,7 @@ async def session_start(request: SessionStartRequest):
     state_manager.StateManager.sync_to_db(state)
     state.problem_start_time = time.time()
 
-    return _respond(state)
+    return _respond(state, curriculum)
 
 
 @app.post("/session/navigate", response_model=GameState, tags=["Session"])
@@ -283,7 +283,7 @@ async def session_navigate(request: SessionNavigateRequest):
         topic_map=topic_map,
     )
 
-    return _respond(state)
+    return _respond(state, curriculum)
 
 
 @app.post("/session/reset", response_model=GameState, tags=["Session"])
@@ -293,7 +293,7 @@ async def session_reset(request: SessionResetRequest):
     curriculum = engine.get_curriculum()
     macro_topics = list(curriculum.keys())
     state_manager.StateManager.hard_reset(state, macro_topics, curriculum)
-    return _respond(state)
+    return _respond(state, curriculum)
 
 
 # ============================================================================
@@ -377,7 +377,7 @@ async def problem_next(session_id: str):
 
     state_manager.StateManager.sync_to_db(state)
 
-    return {"problem": _public_problem(problem, state), "state": _respond(state)}
+    return {"problem": _public_problem(problem, state), "state": _respond(state, curriculum)}
 
 
 # ============================================================================
@@ -438,7 +438,7 @@ async def problem_submit(request: ProblemSubmissionRequest):
         )
 
     return {
-        "state": _respond(state),
+        "state": _respond(state, curriculum),
         "is_correct": eval_result.get("is_correct", False),
         "feedback": state.feedback_msg,
     }
@@ -503,7 +503,7 @@ async def problem_auto_solve(request: AutoSolveRequest):
         )
 
     return {
-        "state": _respond(state),
+        "state": _respond(state, curriculum),
         "is_correct": eval_result.get("is_correct", False),
         "feedback": state.feedback_msg,
     }

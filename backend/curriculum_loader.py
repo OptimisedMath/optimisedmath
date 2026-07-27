@@ -31,6 +31,25 @@ class MicroTopicDict(TypedDict):
     text_mode_disabled: bool
 
 
+class TopicMeta(TypedDict):
+    """Navigation metadata for one micro-topic within a macro topic."""
+
+    name: str
+    max_level: int
+    text_mode_disabled: bool
+
+
+@dataclass(frozen=True)
+class LevelConfig:
+    """Precomputed level metadata for problem generation."""
+
+    level: int
+    name: str
+    function: str
+    traps: dict[str, str]
+    published: bool
+
+
 @dataclass(frozen=True)
 class MacroTopicBundle:
     """Cached parsed YAML plus derived navigation metadata for one macro topic."""
@@ -39,8 +58,23 @@ class MacroTopicBundle:
     order: int
     keyboard_type: str
     raw: dict[str, Any]
-    micro_topics_meta: list[MicroTopicDict]
+    micro_topics_meta: tuple[MicroTopicDict, ...]
+    topic_map: dict[int, TopicMeta]
+    level_configs: dict[tuple[str, int], LevelConfig]
+    micro_topic_name_by_order: dict[int, str]
 
+
+@dataclass(frozen=True)
+class CurriculumStore:
+    """Fully loaded curriculum with precomputed lookup indexes."""
+
+    bundles: tuple[MacroTopicBundle, ...]
+    curriculum: dict[str, list[MicroTopicDict]]
+    macro_topics: list[str]
+    bundles_by_macro: dict[str, MacroTopicBundle]
+
+
+_EMPTY_STORE = CurriculumStore(bundles=(), curriculum={}, macro_topics=[], bundles_by_macro={})
 
 _function_registry: dict[str, Callable[..., Any]] | None = None
 
@@ -74,6 +108,43 @@ def _derive_micro_topics_meta(data: dict[str, Any]) -> list[MicroTopicDict]:
                 }
             )
     return micro_topics
+
+
+def _derive_topic_map(micro_topics_meta: list[MicroTopicDict]) -> dict[int, TopicMeta]:
+    return {
+        int(topic["micro_topic_order"]): {
+            "name": topic["name"],
+            "max_level": int(topic["max_level"]),
+            "text_mode_disabled": topic.get("text_mode_disabled", False),
+        }
+        for topic in micro_topics_meta
+    }
+
+
+def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[str, int], LevelConfig]:
+    configs: dict[tuple[str, int], LevelConfig] = {}
+    for topic in data.get("micro_topics", []):
+        topic_name = topic["name"]
+        for level in topic.get("levels", []):
+            configs[(topic_name, int(level["level"]))] = LevelConfig(
+                level=int(level["level"]),
+                name=str(level["name"]),
+                function=str(level["function"]),
+                traps={
+                    str(key): str(value)
+                    for key, value in level.get("traps", {}).items()
+                },
+                published=bool(level.get("published", True)),
+            )
+    return configs
+
+
+def _derive_micro_topic_name_by_order(
+    micro_topics_meta: list[MicroTopicDict],
+) -> dict[int, str]:
+    return {
+        int(topic["micro_topic_order"]): topic["name"] for topic in micro_topics_meta
+    }
 
 
 def _validate_micro_topics(
@@ -184,14 +255,31 @@ def _validate_file(file_path: Path, data: Any) -> MacroTopicBundle:
         order=order,
         keyboard_type=str(data.get("keyboard_type", "default")),
         raw=data,
-        micro_topics_meta=micro_topics_meta,
+        micro_topics_meta=tuple(micro_topics_meta),
+        topic_map=_derive_topic_map(micro_topics_meta),
+        level_configs=_derive_level_configs(data),
+        micro_topic_name_by_order=_derive_micro_topic_name_by_order(micro_topics_meta),
+    )
+
+
+def _build_store(bundles: list[MacroTopicBundle]) -> CurriculumStore:
+    bundles.sort(key=lambda bundle: (bundle.order, bundle.macro_topic))
+    bundle_tuple = tuple(bundles)
+    return CurriculumStore(
+        bundles=bundle_tuple,
+        curriculum={
+            bundle.macro_topic: list(bundle.micro_topics_meta)
+            for bundle in bundle_tuple
+        },
+        macro_topics=[bundle.macro_topic for bundle in bundle_tuple],
+        bundles_by_macro={bundle.macro_topic: bundle for bundle in bundle_tuple},
     )
 
 
 @functools.lru_cache(maxsize=1)
-def _load_curriculum_store() -> tuple[MacroTopicBundle, ...]:
+def _load_curriculum_store() -> CurriculumStore:
     if not DATA_DIR.exists():
-        return ()
+        return _EMPTY_STORE
 
     bundles: list[MacroTopicBundle] = []
     seen_macros: set[str] = set()
@@ -213,26 +301,50 @@ def _load_curriculum_store() -> tuple[MacroTopicBundle, ...]:
         seen_macros.add(bundle.macro_topic)
         bundles.append(bundle)
 
-    bundles.sort(key=lambda b: (b.order, b.macro_topic))
-    return tuple(bundles)
+    return _build_store(bundles)
 
 
 def get_macro_topics_ordered() -> list[str]:
     """Return macro topic names sorted by YAML `order`."""
-    return [bundle.macro_topic for bundle in _load_curriculum_store()]
+    return _load_curriculum_store().macro_topics
 
 
 def get_curriculum() -> dict[str, list[MicroTopicDict]]:
     """Return navigation metadata keyed by macro topic (insertion order = macro order)."""
-    return {
-        bundle.macro_topic: list(bundle.micro_topics_meta)
-        for bundle in _load_curriculum_store()
-    }
+    return _load_curriculum_store().curriculum
 
 
 def get_macro_yaml(macro_topic: str) -> dict[str, Any]:
     """Return full parsed YAML for one macro topic."""
-    for bundle in _load_curriculum_store():
-        if bundle.macro_topic == macro_topic:
-            return bundle.raw
-    return {}
+    bundle = _load_curriculum_store().bundles_by_macro.get(macro_topic)
+    return bundle.raw if bundle else {}
+
+
+def get_topic_map(macro_topic: str) -> dict[int, TopicMeta]:
+    """Return precomputed micro-topic order lookup for one macro topic."""
+    bundle = _load_curriculum_store().bundles_by_macro.get(macro_topic)
+    return dict(bundle.topic_map) if bundle else {}
+
+
+def get_micro_topic_name(macro_topic: str, micro_topic_order: int) -> str | None:
+    """Return the display name for a micro-topic order, or None if not found."""
+    bundle = _load_curriculum_store().bundles_by_macro.get(macro_topic)
+    if not bundle:
+        return None
+    return bundle.micro_topic_name_by_order.get(int(micro_topic_order))
+
+
+def get_level_config(
+    macro_topic: str, micro_topic_name: str, level: int
+) -> LevelConfig | None:
+    """Return precomputed level metadata for problem generation."""
+    bundle = _load_curriculum_store().bundles_by_macro.get(macro_topic)
+    if not bundle:
+        return None
+    return bundle.level_configs.get((micro_topic_name, int(level)))
+
+
+def get_macro_keyboard_type(macro_topic: str) -> str:
+    """Return keyboard type configured for a macro topic."""
+    bundle = _load_curriculum_store().bundles_by_macro.get(macro_topic)
+    return bundle.keyboard_type if bundle else "default"

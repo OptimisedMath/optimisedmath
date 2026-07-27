@@ -102,19 +102,25 @@ def test_rejects_duplicate_macro_topic(tmp_path, monkeypatch):
     path1.write_text("placeholder", encoding="utf-8")
     path2.write_text("placeholder", encoding="utf-8")
 
+    micro_topics_meta = (
+        {
+            "micro_topic_order": 10,
+            "name": "Skill",
+            "max_level": 1,
+            "text_mode_disabled": False,
+        },
+    )
     bundle = loader.MacroTopicBundle(
         macro_topic="Dup Macro",
         order=1,
         keyboard_type="default",
         raw={},
-        micro_topics_meta=[
-            {
-                "micro_topic_order": 10,
-                "name": "Skill",
-                "max_level": 1,
-                "text_mode_disabled": False,
-            }
-        ],
+        micro_topics_meta=micro_topics_meta,
+        topic_map=loader._derive_topic_map(list(micro_topics_meta)),
+        level_configs={},
+        micro_topic_name_by_order=loader._derive_micro_topic_name_by_order(
+            list(micro_topics_meta)
+        ),
     )
 
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)

@@ -6,14 +6,18 @@ import logging
 import uuid
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 from backend.core.utils import check_text_answer, parse_to_fraction
 from backend.curriculum_loader import (
     MicroTopicDict,
+    TopicMeta,
     get_curriculum,
-    get_macro_yaml,
+    get_level_config,
+    get_macro_keyboard_type,
     get_macro_topics_ordered,
+    get_micro_topic_name as lookup_micro_topic_name,
+    get_topic_map,
     set_function_registry,
 )
 from backend.models import CurriculumResponse, CurriculumTopic
@@ -79,14 +83,6 @@ FUNCTION_REGISTRY = _load_generator_registry(BASE_DIR / "macro_topics")
 set_function_registry(FUNCTION_REGISTRY)
 
 
-class TopicMeta(TypedDict):
-    """Navigation metadata for one micro-topic within a macro topic."""
-
-    name: str
-    max_level: int
-    text_mode_disabled: bool
-
-
 def get_curriculum_response() -> CurriculumResponse:
     """Return curriculum metadata formatted for the API."""
     curriculum = get_curriculum()
@@ -103,15 +99,8 @@ def build_topic_map(
     curriculum: dict[str, list[MicroTopicDict]], macro_topic: str
 ) -> dict[int, TopicMeta]:
     """Map micro-topic order to name, max level, and text-mode flag for one macro topic."""
-    topic_map: dict[int, TopicMeta] = {}
-    for topic in curriculum.get(macro_topic, []):
-        order = topic["micro_topic_order"]
-        topic_map[int(order)] = {
-            "name": topic["name"],
-            "max_level": int(topic["max_level"]),
-            "text_mode_disabled": topic.get("text_mode_disabled", False),
-        }
-    return topic_map
+    del curriculum
+    return get_topic_map(macro_topic)
 
 
 def get_micro_topic_name(
@@ -120,10 +109,8 @@ def get_micro_topic_name(
     micro_topic_order: int,
 ) -> str | None:
     """Return the display name for a micro-topic order, or None if not found."""
-    for topic in curriculum.get(macro_topic, []):
-        if topic["micro_topic_order"] == micro_topic_order:
-            return topic["name"]
-    return None
+    del curriculum
+    return lookup_micro_topic_name(macro_topic, micro_topic_order)
 
 
 def problem_fingerprint(problem: dict) -> str:
@@ -135,29 +122,23 @@ def problem_fingerprint(problem: dict) -> str:
 
 def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> dict[str, Any]:
     """Generate a problem for a curriculum level."""
-    data = get_macro_yaml(macro_topic)
-    if not data:
+    topic_map = get_topic_map(macro_topic)
+    if not topic_map:
         raise ProblemGenerationError(f"Missing curriculum file for: {macro_topic}")
 
-    topic_entry = next(
-        (t for t in data.get("micro_topics", []) if t["name"] == micro_topic),
-        None,
-    )
-    if topic_entry is None:
+    known_names = {meta["name"] for meta in topic_map.values()}
+    if micro_topic not in known_names:
         raise ProblemGenerationError(
             f"Micro topic '{micro_topic}' not found in '{macro_topic}'"
         )
 
-    level_entry = next(
-        (lvl for lvl in topic_entry.get("levels", []) if lvl["level"] == int(level)),
-        None,
-    )
-    if level_entry is None or not level_entry.get("published", True):
+    level_config = get_level_config(macro_topic, micro_topic, level)
+    if level_config is None or not level_config.published:
         raise ProblemGenerationError(
             f"Level {level} is not available for '{micro_topic}' in '{macro_topic}'"
         )
 
-    func_name = level_entry["function"]
+    func_name = level_config.function
     problem_func = FUNCTION_REGISTRY.get(func_name)
     if not problem_func:
         raise ProblemGenerationError(f"Function {func_name} not found")
@@ -168,11 +149,11 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> di
         raise ProblemGenerationError(str(exc)) from exc
 
     problem_dict["level"] = int(level)
-    problem_dict["level_name"] = level_entry["name"]
+    problem_dict["level_name"] = level_config.name
     problem_dict["problem_id"] = str(uuid.uuid4())
 
     default_msg = config.DEFAULT_WRONG_MESSAGE
-    traps = level_entry.get("traps", {})
+    traps = level_config.traps
     yaml_messages = {
         "t1": traps.get("t1") or default_msg,
         "t2": traps.get("t2") or default_msg,
@@ -180,8 +161,8 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> di
     }
     gen_messages = problem_dict.pop("messages", {})
     problem_dict["messages"] = {**yaml_messages, **gen_messages}
-    problem_dict["level_display"] = f"{level_entry['name']} (Lvl {level})"
-    problem_dict["keyboard_type"] = data.get("keyboard_type", "default")
+    problem_dict["level_display"] = f"{level_config.name} (Lvl {level})"
+    problem_dict["keyboard_type"] = get_macro_keyboard_type(macro_topic)
     return problem_dict
 
 
