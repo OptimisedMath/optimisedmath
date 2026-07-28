@@ -1,8 +1,9 @@
 """FastAPI backend for the Optimized Math Learning app."""
 
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, Dict
+from typing import Any, cast
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,9 +13,10 @@ import backend.engine as engine
 import backend.navigation as navigation
 import backend.state_manager as state_manager
 from backend.core import db
-from backend.core.utils import clean_latex, clean_mobile_input
+from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
 from backend.curriculum_loader import (
     MicroTopicDict,
+    TopicMeta,
     get_micro_topic_name,
     get_topic_map,
 )
@@ -32,7 +34,7 @@ from backend.models import (
 
 # --- Session storage ---
 
-ACTIVE_SESSIONS: Dict[str, GameState] = {}
+ACTIVE_SESSIONS: dict[str, GameState] = {}
 
 # --- Request helpers ---
 
@@ -58,7 +60,7 @@ def _is_safe_svg_fragment(value: str) -> bool:
     return not any(token in lowered for token in blocked_tokens)
 
 
-def _public_problem(problem: Dict[str, Any], state: GameState) -> Dict[str, Any]:
+def _public_problem(problem: ProblemDict, state: GameState) -> dict[str, Any]:
     """Return only fields needed by the visual layer."""
     public_keys = {
         "problem_id",
@@ -92,7 +94,7 @@ def _validate_unlocked_navigation(
     macro_topic: str,
     micro_topic_order: int,
     selected_level: int,
-    topic_map: dict,
+    topic_map: dict[int, TopicMeta],
 ) -> None:
     """Reject navigation to locked micro-topics or levels unless admin."""
     if config.is_admin_user(state.username):
@@ -120,7 +122,7 @@ def _validate_unlocked_navigation(
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     print("🚀 Math Learning API started")
     db.init_db()
     yield
@@ -151,13 +153,13 @@ app.add_middleware(
 
 
 @app.get("/health", tags=["System"])
-async def health_check():
+async def health_check() -> dict[str, str]:
     """Return service health status."""
     return {"status": "ok", "service": "math-learning-api"}
 
 
 @app.get("/", tags=["System"])
-async def root():
+async def root() -> dict[str, str]:
     """Return API metadata and documentation link."""
     return {
         "message": "Optimized Math Learning API",
@@ -167,7 +169,7 @@ async def root():
 
 
 @app.get("/curriculum", response_model=CurriculumResponse, tags=["Curriculum"])
-async def curriculum_index():
+async def curriculum_index() -> CurriculumResponse:
     """Return available macro topics and their micro-topic metadata."""
     return engine.get_curriculum_response()
 
@@ -176,7 +178,7 @@ async def curriculum_index():
 
 
 @app.post("/session/start", response_model=GameState, tags=["Session"])
-async def session_start(request: SessionStartRequest):
+async def session_start(request: SessionStartRequest) -> GameState:
     """Create a session, load user progress, and return GameState with navigation."""
     curriculum = engine.get_curriculum()
     macro_topics = list(curriculum.keys())
@@ -224,7 +226,7 @@ async def session_start(request: SessionStartRequest):
 
 
 @app.post("/session/navigate", response_model=GameState, tags=["Session"])
-async def session_navigate(request: SessionNavigateRequest):
+async def session_navigate(request: SessionNavigateRequest) -> GameState:
     """Change macro topic, micro-topic, or level with unlock validation."""
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
@@ -281,7 +283,7 @@ async def session_navigate(request: SessionNavigateRequest):
 
 
 @app.post("/session/reset", response_model=GameState, tags=["Session"])
-async def session_reset(request: SessionResetRequest):
+async def session_reset(request: SessionResetRequest) -> GameState:
     """Hard-reset session progress and return a fresh GameState."""
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
@@ -294,7 +296,7 @@ async def session_reset(request: SessionResetRequest):
 
 
 @app.get("/problem/next", response_model=ProblemResponse, tags=["Problem"])
-async def problem_next(session_id: str):
+async def problem_next(session_id: str) -> ProblemResponse:
     """Generate the next problem, dedupe recent instances, and update input mode."""
     state = _get_session(session_id)
     curriculum = engine.get_curriculum()
@@ -367,11 +369,17 @@ async def problem_next(session_id: str):
 
     state_manager.StateManager.sync_to_db(state)
 
-    return {"problem": _public_problem(problem, state), "state": _respond(state, curriculum)}
+    return cast(
+        ProblemResponse,
+        {
+            "problem": _public_problem(problem, state),
+            "state": _respond(state, curriculum),
+        },
+    )
 
 
 @app.post("/problem/submit", response_model=SubmissionResponse, tags=["Problem"])
-async def problem_submit(request: ProblemSubmissionRequest):
+async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionResponse:
     """Grade an answer, update streak and XP, and persist session state."""
     state = _get_session(request.session_id)
 
@@ -422,15 +430,18 @@ async def problem_submit(request: ProblemSubmissionRequest):
             detail=f"Error processing submission: {str(e)}",
         )
 
-    return {
-        "state": _respond(state, curriculum),
-        "is_correct": eval_result.get("is_correct", False),
-        "feedback": state.feedback_msg,
-    }
+    return cast(
+        SubmissionResponse,
+        {
+            "state": _respond(state, curriculum),
+            "is_correct": eval_result.get("is_correct", False),
+            "feedback": state.feedback_msg,
+        },
+    )
 
 
 @app.post("/problem/auto-solve", response_model=SubmissionResponse, tags=["Problem"])
-async def problem_auto_solve(request: AutoSolveRequest):
+async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
     """Submit the correct answer for admin or dev testing."""
     state = _get_session(request.session_id)
 
@@ -487,11 +498,14 @@ async def problem_auto_solve(request: AutoSolveRequest):
             detail=f"Error processing auto-solve: {str(e)}",
         )
 
-    return {
-        "state": _respond(state, curriculum),
-        "is_correct": eval_result.get("is_correct", False),
-        "feedback": state.feedback_msg,
-    }
+    return cast(
+        SubmissionResponse,
+        {
+            "state": _respond(state, curriculum),
+            "is_correct": eval_result.get("is_correct", False),
+            "feedback": state.feedback_msg,
+        },
+    )
 
 
 if __name__ == "__main__":

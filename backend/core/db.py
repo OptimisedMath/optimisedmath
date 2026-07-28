@@ -2,23 +2,35 @@
 
 import json
 import sqlite3
+from typing import TypedDict
 
 from fastapi.encoders import jsonable_encoder
 
 from backend.config import DB_PATH
 from backend.models import GameState, TopicProgress
 
+# --- Types ---
+
+
+class UserData(TypedDict):
+    xp: int
+    streak: int
+    selected_macro: str | None
+    selected_micro_topic_order: int | None
+    selected_level: int
+    progress: dict[str, TopicProgress]
+
 # --- Connection ---
 
 
-def get_connection():
+def get_connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 # --- Schema ---
 
 
-def init_db():
+def init_db() -> None:
     """Initializes the database schema if it doesn't exist."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -64,7 +76,7 @@ def init_db():
 # --- Sessions ---
 
 
-def save_session(session_id, username, state: GameState):
+def save_session(session_id: str, username: str, state: GameState) -> None:
     """Persists a full session state to SQLite."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -82,7 +94,7 @@ def save_session(session_id, username, state: GameState):
         conn.commit()
 
 
-def load_session(session_id) -> GameState | None:
+def load_session(session_id: str) -> GameState | None:
     """Loads a session state from SQLite. Returns None if not found."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -96,7 +108,7 @@ def load_session(session_id) -> GameState | None:
         return None
 
 
-def delete_session(session_id):
+def delete_session(session_id: str) -> None:
     """Removes a session from the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -106,7 +118,7 @@ def delete_session(session_id):
 # --- Users ---
 
 
-def load_user(username):
+def load_user(username: str) -> UserData | None:
     """Loads a user's state. Returns None if the user doesn't exist."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -122,7 +134,7 @@ def load_user(username):
 
         if row:
             raw_progress = json.loads(row[5]) if row[5] else {}
-            progress = {}
+            progress: dict[str, TopicProgress] = {}
             for macro, prog_data in raw_progress.items():
                 if isinstance(prog_data, dict):
                     progress[macro] = TopicProgress(**prog_data)
@@ -140,7 +152,7 @@ def load_user(username):
         return None
 
 
-def save_user(username, state: GameState):
+def save_user(username: str, state: GameState) -> None:
     """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -179,18 +191,18 @@ def save_user(username, state: GameState):
 
 
 def log_telemetry(
-    session_id,
-    username,
-    macro_topic,
-    micro_topic,
-    level_number,
-    is_text_mode,
-    is_correct,
-    user_input=None,
-    trap_id=None,
-    time_spent_seconds=None,
-    equation_state=None,
-):
+    session_id: str,
+    username: str,
+    macro_topic: str,
+    micro_topic: str,
+    level_number: int,
+    is_text_mode: bool,
+    is_correct: bool,
+    user_input: str | None = None,
+    trap_id: str | None = None,
+    time_spent_seconds: int | None = None,
+    equation_state: str | None = None,
+) -> None:
     """Record one answer attempt for analytics and debugging."""
     with get_connection() as conn:
         cursor = conn.cursor()

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import backend.state_manager as state_manager
+from backend.curriculum_loader import MicroTopicDict
 from backend.models import (
     GameState,
     NavigationMicroTopicOption,
@@ -16,24 +15,24 @@ from backend.models import (
 # --- Private helpers ---
 
 
-def _get_topics(curriculum: dict[str, list[dict[str, Any]]], macro: str) -> list[dict[str, Any]]:
+def _get_topics(curriculum: dict[str, list[MicroTopicDict]], macro: str) -> list[MicroTopicDict]:
     return curriculum.get(macro, [])
 
 
-def _find_topic(topics: list[dict[str, Any]], micro_topic_order: int) -> dict[str, Any] | None:
+def _find_topic(topics: list[MicroTopicDict], micro_topic_order: int) -> MicroTopicDict | None:
     for topic in topics:
         if int(topic["micro_topic_order"]) == micro_topic_order:
             return topic
     return None
 
 
-def _first_topic_order(topics: list[dict[str, Any]]) -> int:
+def _first_topic_order(topics: list[MicroTopicDict]) -> int:
     if topics:
         return int(topics[0]["micro_topic_order"])
     return 1
 
 
-def _get_unlocked(state: GameState, macro: str, topics: list[dict[str, Any]]) -> tuple[int, int]:
+def _get_unlocked(state: GameState, macro: str, topics: list[MicroTopicDict]) -> tuple[int, int]:
     progress = state.progress.get(macro)
     first_order = _first_topic_order(topics)
     unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
@@ -44,8 +43,8 @@ def _get_unlocked(state: GameState, macro: str, topics: list[dict[str, Any]]) ->
 
 
 def get_topic_options(
-    topics: list[dict[str, Any]], unlocked_order: int, admin_mode: bool
-) -> list[dict[str, Any]]:
+    topics: list[MicroTopicDict], unlocked_order: int, admin_mode: bool
+) -> list[MicroTopicDict]:
     """Return micro-topics available in dropdowns, filtered by unlock progress."""
     if admin_mode:
         available = topics
@@ -57,7 +56,7 @@ def get_topic_options(
 
 
 def get_level_limit(
-    selected_topic: dict[str, Any] | None,
+    selected_topic: MicroTopicDict | None,
     unlocked_order: int,
     unlocked_level: int,
     admin_mode: bool,
@@ -79,7 +78,7 @@ def get_level_options(level_limit: int) -> list[int]:
 
 
 def resolve_macro_change(
-    state: GameState, curriculum: dict[str, list[dict[str, Any]]], next_macro: str
+    state: GameState, curriculum: dict[str, list[MicroTopicDict]], next_macro: str
 ) -> tuple[str, int, int]:
     """Pick default micro-topic and level when switching macro topic."""
     next_topics = _get_topics(curriculum, next_macro)
@@ -99,7 +98,7 @@ def resolve_macro_change(
 
 def resolve_topic_change(
     state: GameState,
-    curriculum: dict[str, list[dict[str, Any]]],
+    curriculum: dict[str, list[MicroTopicDict]],
     macro: str,
     next_micro_order: int,
 ) -> tuple[int, int]:
@@ -116,7 +115,7 @@ def resolve_topic_change(
 
 def resolve_navigate_request(
     state: GameState,
-    curriculum: dict[str, list[dict[str, Any]]],
+    curriculum: dict[str, list[MicroTopicDict]],
     request: SessionNavigateRequest,
 ) -> tuple[str, int, int]:
     """Resolve partial navigation intents into a full macro/order/level target."""
@@ -154,7 +153,7 @@ def resolve_navigate_request(
 
 
 def build_navigation_view(
-    state: GameState, curriculum: dict[str, list[dict[str, Any]]]
+    state: GameState, curriculum: dict[str, list[MicroTopicDict]]
 ) -> NavigationView:
     """Build dropdown options, progress counts, and level limits for the frontend."""
     macro_topics = list(curriculum.keys())

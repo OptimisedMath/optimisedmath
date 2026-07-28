@@ -6,9 +6,9 @@ import logging
 import uuid
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
-from backend.core.utils import check_text_answer, parse_to_fraction
+from backend.core.utils import ProblemDict, check_text_answer, parse_to_fraction
 from backend.curriculum_loader import (
     get_curriculum,
     get_level_config,
@@ -34,7 +34,15 @@ class ProblemGenerationError(Exception):
     """Raised when a level problem cannot be generated."""
 
 
-GeneratorFunc = Callable[[], dict[str, Any] | None]
+class EvalResult(TypedDict, total=False):
+    is_correct: bool
+    lock_answer: bool
+    feedback_type: str
+    feedback_msg: str
+    trap_id: str
+
+
+GeneratorFunc = Callable[[], ProblemDict | None]
 
 # --- Generator registry ---
 
@@ -100,7 +108,7 @@ def get_curriculum_response() -> CurriculumResponse:
 # --- Problem generation ---
 
 
-def generate_problem(topic_function: GeneratorFunc) -> dict[str, Any]:
+def generate_problem(topic_function: GeneratorFunc) -> ProblemDict:
     """Generate a problem using the given topic function, with retry logic for valid problems.
 
     Args:
@@ -128,7 +136,7 @@ def generate_problem(topic_function: GeneratorFunc) -> dict[str, Any]:
     )
 
 
-def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> dict[str, Any]:
+def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> ProblemDict:
     """Generate a problem for a curriculum level."""
     topic_map = get_topic_map(macro_topic)
     if not topic_map:
@@ -174,7 +182,7 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> di
     return problem_dict
 
 
-def problem_fingerprint(problem: dict) -> str:
+def problem_fingerprint(problem: ProblemDict) -> str:
     """Stable identity for a generated problem instance (excludes problem_id)."""
     options = "|".join(sorted(str(opt) for opt in problem.get("options", [])))
     payload = f"{problem.get('question', '')}|{problem.get('correct', '')}|{options}"
@@ -183,7 +191,7 @@ def problem_fingerprint(problem: dict) -> str:
 # --- Answer grading ---
 
 
-def check_format_mismatch(user_text, correct_latex):
+def check_format_mismatch(user_text: str, correct_latex: str) -> str | None:
     """Intercepts answers that are mathematically correct but use the wrong notation system."""
     user_str = str(user_text)
     if "/" in user_str and "," in correct_latex:
@@ -193,7 +201,9 @@ def check_format_mismatch(user_text, correct_latex):
     return None
 
 
-def evaluate_answer(user_input, problem, is_text_mode=False):
+def evaluate_answer(
+    user_input: str, problem: ProblemDict, is_text_mode: bool = False
+) -> EvalResult:
     """Grade a submission against a generated problem.
 
     Handles multiple-choice (options_map), open-text (parse + grading_policy),

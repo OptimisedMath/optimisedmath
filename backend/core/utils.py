@@ -5,11 +5,14 @@ import re
 import random
 from decimal import Decimal
 from fractions import Fraction
+from typing import Any
+
+ProblemDict = dict[str, Any]
 
 # --- Fraction formatting ---
 
 
-def _format_improper_unsimplified(num, den):
+def _format_improper_unsimplified(num: int, den: int) -> str:
     if den == 1:
         return str(num)
     return rf"\frac{{{num}}}{{{den}}}"
@@ -34,20 +37,20 @@ def _format_mixed(value: Fraction) -> str:
     return rf"{sign}{abs(whole)}\frac{{{rem}}}{{{d}}}"
 
 
-def format_answers(num, den, whole=0):
+def format_answers(num: int, den: int, whole: int = 0) -> tuple[str, str]:
     total_num = (whole * den) + num
     u_str = _format_improper_unsimplified(total_num, den)
     c_str = _format_mixed(Fraction(total_num, den))
     return c_str, u_str
 
 
-def format_fraction_question(n, d, w=None):
+def format_fraction_question(n: int, d: int, w: int | None = None) -> str:
     if w is not None and w > 0:
         return rf"{w}\frac{{{n}}}{{{d}}}"
     return rf"\frac{{{n}}}{{{d}}}"
 
 
-def format_fraction_answer(num, den, whole=0, *, simplify=True) -> str:
+def format_fraction_answer(num: int, den: int, whole: int = 0, *, simplify: bool = True) -> str:
     if simplify:
         c_str, _ = format_answers(num, den, whole)
         return c_str
@@ -60,17 +63,17 @@ def format_fraction_answer(num, den, whole=0, *, simplify=True) -> str:
 
 
 def build_problem_dict(
-    q_str,
-    c_str,
-    t1=None,
-    t2=None,
-    t3=None,
-    w1=None,
-    w2=None,
-    grading_policy="standard",
-    image_html=None,
-    deconstruction=None,
-):
+    q_str: str,
+    c_str: str,
+    t1: str | None = None,
+    t2: str | None = None,
+    t3: str | None = None,
+    w1: str | None = None,
+    w2: str | None = None,
+    grading_policy: str = "standard",
+    image_html: str | None = None,
+    deconstruction: str | None = None,
+) -> ProblemDict | None:
     """Build the canonical problem dict with options, options_map, and grading_policy."""
     option_entries = [
         (c_str, "correct"),
@@ -81,7 +84,7 @@ def build_problem_dict(
         (w2, "w2"),
     ]
 
-    options_map = {}
+    options_map: dict[str, str] = {}
     for value, label in option_entries:
         if value is not None:
             options_map[value] = label
@@ -112,7 +115,9 @@ def build_problem_dict(
 # --- Number line SVG ---
 
 
-def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
+def generate_universal_number_line(
+    ticks_count: int, labeled_ticks: dict[int, str], target_tick: int
+) -> str:
     """Draws a mathematical number line with custom intervals and labels."""
     width = 4000
     height = 900
@@ -162,7 +167,7 @@ def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
 # --- LaTeX normalization & answer checking ---
 
 
-def clean_latex(latex_str):
+def clean_latex(latex_str: str) -> str:
     """Normalize LaTeX to plain text for string comparison."""
     s = str(latex_str).replace("$", "").strip()
     s = re.sub(r"\\displaystyle\s*", "", s)
@@ -179,18 +184,18 @@ def clean_latex(latex_str):
     return s.strip()
 
 
-def _standardize_spacing(s):
+def _standardize_spacing(s: str) -> str:
     s = re.sub(r"\s*([/,])\s*", r"\1", str(s))
     return " ".join(s.split())
 
 
-def check_text_answer(correct_latex, user_text):
+def check_text_answer(correct_latex: str, user_text: str) -> bool:
     """Checks if the user's text matches the correct answer string."""
     clean_correct = clean_latex(correct_latex)
     return _standardize_spacing(clean_correct) == _standardize_spacing(user_text)
 
 
-def parse_to_fraction(val_str):
+def parse_to_fraction(val_str: str) -> Fraction | None:
     """Parse forgiving student input into a Fraction, or None on failure."""
     try:
         val_str = str(val_str).strip()
@@ -227,7 +232,7 @@ def parse_to_fraction(val_str):
 # --- Decimal & mobile input ---
 
 
-def fmt_dec(val):
+def fmt_dec(val: int | float | Decimal | str) -> str:
     d = Decimal(str(val))
     s = format(d, "f")
     if "." in s:
@@ -237,7 +242,7 @@ def fmt_dec(val):
     return s.replace(".", ",")
 
 
-def clean_mobile_input(user_string):
+def clean_mobile_input(user_string: str) -> str:
     """Sanitizes user input to match engine expectations and fix hardware laziness."""
     if not user_string:
         return ""

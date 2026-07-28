@@ -7,7 +7,9 @@ import uuid
 import backend.config as config
 import backend.engine as engine
 from backend.core import db
-from backend.curriculum_loader import get_topic_map
+from backend.core.utils import ProblemDict
+from backend.curriculum_loader import MicroTopicDict, TopicMeta, get_topic_map
+from backend.engine import EvalResult
 from backend.models import GameState, TopicProgress
 
 
@@ -17,14 +19,16 @@ class StateManager:
     # --- Private helpers ---
 
     @staticmethod
-    def _get_first_micro_topic_order(curriculum, macro_topic):
+    def _get_first_micro_topic_order(
+        curriculum: dict[str, list[MicroTopicDict]], macro_topic: str | None
+    ) -> int:
         """Extract the first micro-topic order for a macro topic, with safe fallback."""
         if macro_topic and curriculum.get(macro_topic):
             return curriculum[macro_topic][0]["micro_topic_order"]
         return 1
 
     @staticmethod
-    def _resolve_input_mode(state: GameState, topic_map: dict) -> str:
+    def _resolve_input_mode(state: GameState, topic_map: dict[int, TopicMeta]) -> str:
         """Determine input mode respecting streak threshold and text_mode_disabled."""
         micro_order = state.selected_micro_topic_order
         if micro_order is None:
@@ -41,7 +45,11 @@ class StateManager:
     # --- Session initialization ---
 
     @staticmethod
-    def init_defaults(state: GameState, macro_topics, curriculum) -> None:
+    def init_defaults(
+        state: GameState,
+        macro_topics: list[str],
+        curriculum: dict[str, list[MicroTopicDict]],
+    ) -> None:
         """Initialize session state with defaults. Heals broken saves from old versions."""
         if not state.session_id:
             state.session_id = str(uuid.uuid4())
@@ -82,7 +90,7 @@ class StateManager:
     # --- Turn lifecycle ---
 
     @staticmethod
-    def reset_turn(state: GameState, topic_map: dict | None = None) -> None:
+    def reset_turn(state: GameState, topic_map: dict[int, TopicMeta] | None = None) -> None:
         """Clears the current problem state when navigating or advancing."""
         state.streak = 0
         state.flawless_eligible = True
@@ -117,7 +125,12 @@ class StateManager:
     # --- Profile & navigation ---
 
     @staticmethod
-    def load_profile(state: GameState, username, macro_topics, curriculum) -> None:
+    def load_profile(
+        state: GameState,
+        username: str,
+        macro_topics: list[str],
+        curriculum: dict[str, list[MicroTopicDict]],
+    ) -> None:
         """Loads user data from DB or initializes a fresh profile."""
         state.username = username
         user_data = db.load_user(username)
@@ -135,7 +148,11 @@ class StateManager:
             StateManager.hard_reset(state, macro_topics, curriculum)
 
     @staticmethod
-    def hard_reset(state: GameState, macro_topics, curriculum) -> None:
+    def hard_reset(
+        state: GameState,
+        macro_topics: list[str],
+        curriculum: dict[str, list[MicroTopicDict]],
+    ) -> None:
         """Wipes all progress and resets to initial state."""
         state.xp = 0
         state.progress = {
@@ -158,10 +175,10 @@ class StateManager:
     @staticmethod
     def navigate_to(
         state: GameState,
-        macro=None,
-        micro_topic_order=None,
-        level=None,
-        topic_map: dict | None = None,
+        macro: str | None = None,
+        micro_topic_order: int | None = None,
+        level: int | None = None,
+        topic_map: dict[int, TopicMeta] | None = None,
     ) -> None:
         """Navigate to a different macro/micro-topic/level, resetting turn and syncing."""
         if macro is not None:
@@ -176,7 +193,14 @@ class StateManager:
     # --- Submission processing ---
 
     @classmethod
-    def process_submission(cls, state: GameState, problem, user_input, is_text_mode, topic_map):
+    def process_submission(
+        cls,
+        state: GameState,
+        problem: ProblemDict,
+        user_input: str,
+        is_text_mode: bool,
+        topic_map: dict[int, TopicMeta],
+    ) -> EvalResult:
         """Process user submission: evaluate, log telemetry, handle rewards and progression."""
         eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
         is_correct = eval_result.get("is_correct", False)
@@ -188,11 +212,16 @@ class StateManager:
         if not is_correct and state.feedback_type != "info":
             state.flawless_eligible = False
 
+        username = state.username
+        macro_topic = state.selected_macro
+        micro_order = state.selected_micro_topic_order
+        if username is None or macro_topic is None or micro_order is None:
+            raise RuntimeError("Session missing required context for submission")
+
         time_spent = None
         if state.problem_start_time is not None:
             time_spent = int(time.time() - state.problem_start_time)
 
-        micro_order = int(state.selected_micro_topic_order)
         current_micro_topic = topic_map[micro_order]["name"]
 
         keys_to_remove = [
@@ -212,8 +241,8 @@ class StateManager:
 
         db.log_telemetry(
             session_id=state.session_id,
-            username=state.username,
-            macro_topic=state.selected_macro,
+            username=username,
+            macro_topic=macro_topic,
             micro_topic=current_micro_topic,
             level_number=state.selected_level,
             is_text_mode=is_text_mode,
@@ -238,7 +267,7 @@ class StateManager:
             if state.streak < config.MAX_STREAK:
                 state.streak += 1
 
-            prog = state.progress[state.selected_macro]
+            prog = state.progress[macro_topic]
             if (
                 state.streak == config.STARS_FOR_UNLOCK
                 and state.selected_level == prog.unlocked_level
@@ -267,7 +296,7 @@ class StateManager:
                     state.streak = 0
                     state.flawless_eligible = True
 
-                    current_order = int(state.selected_micro_topic_order)
+                    current_order = micro_order
                     next_topics = sorted(
                         int(o) for o in topic_map if int(o) > current_order
                     )
