@@ -168,7 +168,7 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> di
         "t3": traps.get("t3") or default_msg,
     }
     gen_messages = problem_dict.pop("messages", {})
-    problem_dict["messages"] = {**yaml_messages, **gen_messages}
+    problem_dict["messages"] = yaml_messages | gen_messages
     problem_dict["level_display"] = f"{level_config.name} (Lvl {level})"
     problem_dict["keyboard_type"] = get_macro_keyboard_type(macro_topic)
     return problem_dict
