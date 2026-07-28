@@ -414,7 +414,7 @@ def test_text_mode_disabled_keeps_radio_input():
     state = make_state(problem, streak=0, input_mode="radio")
     state.selected_macro = disabled_macro
     state.selected_micro_topic_order = disabled_topic["micro_topic_order"]
-    topic_map = main.engine.build_topic_map(curriculum, disabled_macro)
+    topic_map = main.get_topic_map(disabled_macro)
 
     main.state_manager.StateManager.process_submission(
         state, problem, "a", False, topic_map

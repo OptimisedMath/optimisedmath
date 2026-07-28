@@ -5,6 +5,7 @@ import uuid
 import backend.config as config
 import backend.engine as engine
 from backend.core import db
+from backend.curriculum_loader import get_topic_map
 from backend.models import GameState, TopicProgress
 
 
@@ -102,7 +103,7 @@ class StateManager:
             state.selected_micro_topic_order = user_data["selected_micro_topic_order"]
             state.selected_level = user_data["selected_level"]
             state.progress = user_data["progress"]
-            topic_map = engine.build_topic_map(curriculum, state.selected_macro or "")
+            topic_map = get_topic_map(state.selected_macro or "")
             StateManager.reset_turn(state, topic_map)
         else:
             StateManager.hard_reset(state, macro_topics, curriculum)

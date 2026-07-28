@@ -10,13 +10,10 @@ from typing import Any
 
 from backend.core.utils import check_text_answer, parse_to_fraction
 from backend.curriculum_loader import (
-    MicroTopicDict,
-    TopicMeta,
     get_curriculum,
     get_level_config,
     get_macro_keyboard_type,
     get_macro_topics_ordered,
-    get_micro_topic_name as lookup_micro_topic_name,
     get_topic_map,
     set_function_registry,
 )
@@ -93,24 +90,6 @@ def get_curriculum_response() -> CurriculumResponse:
             for macro_topic, topic_list in curriculum.items()
         },
     )
-
-
-def build_topic_map(
-    curriculum: dict[str, list[MicroTopicDict]], macro_topic: str
-) -> dict[int, TopicMeta]:
-    """Map micro-topic order to name, max level, and text-mode flag for one macro topic."""
-    del curriculum
-    return get_topic_map(macro_topic)
-
-
-def get_micro_topic_name(
-    curriculum: dict[str, list[MicroTopicDict]],
-    macro_topic: str,
-    micro_topic_order: int,
-) -> str | None:
-    """Return the display name for a micro-topic order, or None if not found."""
-    del curriculum
-    return lookup_micro_topic_name(macro_topic, micro_topic_order)
 
 
 def problem_fingerprint(problem: dict) -> str:

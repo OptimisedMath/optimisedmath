@@ -13,7 +13,11 @@ import backend.navigation as navigation
 import backend.state_manager as state_manager
 from backend.core import db
 from backend.core.utils import clean_latex, clean_mobile_input
-from backend.curriculum_loader import MicroTopicDict
+from backend.curriculum_loader import (
+    MicroTopicDict,
+    get_micro_topic_name,
+    get_topic_map,
+)
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
@@ -258,7 +262,7 @@ async def session_navigate(request: SessionNavigateRequest):
             detail=f"Micro-topic order {micro_topic_order} not found in curriculum",
         )
 
-    topic_map = engine.build_topic_map(curriculum, macro_topic)
+    topic_map = get_topic_map(macro_topic)
     selected_topic = topic_map[micro_topic_order]
     max_level = int(selected_topic["max_level"])
 
@@ -321,16 +325,14 @@ async def problem_next(session_id: str):
             detail=f"Macro topic '{macro_topic}' not found in curriculum",
         )
 
-    micro_topic = engine.get_micro_topic_name(
-        curriculum, macro_topic, micro_topic_order
-    )
+    micro_topic = get_micro_topic_name(macro_topic, micro_topic_order)
     if not micro_topic:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Micro-topic order {micro_topic_order} not found in curriculum",
         )
 
-    topic_map = engine.build_topic_map(curriculum, macro_topic)
+    topic_map = get_topic_map(macro_topic)
     state.current_input_mode = state_manager.StateManager._resolve_input_mode(
         state, topic_map
     )
@@ -419,7 +421,7 @@ async def problem_submit(request: ProblemSubmissionRequest):
             detail=f"Macro topic '{macro_topic}' not found",
         )
 
-    topic_map = engine.build_topic_map(curriculum, macro_topic)
+    topic_map = get_topic_map(macro_topic)
     user_input = (
         clean_mobile_input(request.user_input)
         if request.is_text_mode
@@ -489,7 +491,7 @@ async def problem_auto_solve(request: AutoSolveRequest):
             detail=f"Macro topic '{macro_topic}' not found",
         )
 
-    topic_map = engine.build_topic_map(curriculum, macro_topic)
+    topic_map = get_topic_map(macro_topic)
 
     try:
         eval_result = state_manager.StateManager.process_submission(
