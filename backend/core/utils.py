@@ -6,6 +6,8 @@ import random
 from decimal import Decimal
 from fractions import Fraction
 
+# --- Fraction formatting ---
+
 
 def _format_improper_unsimplified(num, den):
     if den == 1:
@@ -52,6 +54,9 @@ def format_fraction_answer(num, den, whole=0, *, simplify=True) -> str:
     if whole:
         return format_fraction_question(num, den, whole)
     return str(num) if den == 1 else rf"\frac{{{num}}}{{{den}}}"
+
+
+# --- Problem dict builder ---
 
 
 def build_problem_dict(
@@ -104,6 +109,9 @@ def build_problem_dict(
     }
 
 
+# --- Number line SVG ---
+
+
 def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
     """Draws a mathematical number line with custom intervals and labels."""
     width = 4000
@@ -149,6 +157,9 @@ def generate_universal_number_line(ticks_count, labeled_ticks, target_tick):
 
     svg += "</svg>"
     return svg
+
+
+# --- LaTeX normalization & answer checking ---
 
 
 def clean_latex(latex_str):
@@ -211,6 +222,9 @@ def parse_to_fraction(val_str):
         return Fraction(val_str)
     except Exception:
         return None
+
+
+# --- Decimal & mobile input ---
 
 
 def fmt_dec(val):

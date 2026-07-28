@@ -1,3 +1,5 @@
+"""Session state mutations for the FastAPI backend."""
+
 import json
 import time
 import uuid
@@ -11,6 +13,8 @@ from backend.models import GameState, TopicProgress
 
 class StateManager:
     """Centralizes all session state mutations for the FastAPI backend."""
+
+    # --- Private helpers ---
 
     @staticmethod
     def _get_first_micro_topic_order(curriculum, macro_topic):
@@ -33,6 +37,8 @@ class StateManager:
         ):
             return "text"
         return "radio"
+
+    # --- Session initialization ---
 
     @staticmethod
     def init_defaults(state: GameState, macro_topics, curriculum) -> None:
@@ -73,6 +79,8 @@ class StateManager:
         ):
             state.selected_micro_topic_order = first_curr
 
+    # --- Turn lifecycle ---
+
     @staticmethod
     def reset_turn(state: GameState, topic_map: dict | None = None) -> None:
         """Clears the current problem state when navigating or advancing."""
@@ -89,6 +97,24 @@ class StateManager:
             )
         else:
             state.current_input_mode = "radio"
+
+    # --- Persistence ---
+
+    @staticmethod
+    def sync_to_db(state: GameState) -> None:
+        """Pushes current session state to the database."""
+        if state.username:
+            try:
+                db.save_user(state.username, state)
+            except Exception as e:
+                print(f"Error syncing to database for user {state.username}: {e}")
+        if state.session_id and state.username:
+            try:
+                db.save_session(state.session_id, state.username, state)
+            except Exception as e:
+                print(f"Error saving session {state.session_id}: {e}")
+
+    # --- Profile & navigation ---
 
     @staticmethod
     def load_profile(state: GameState, username, macro_topics, curriculum) -> None:
@@ -107,20 +133,6 @@ class StateManager:
             StateManager.reset_turn(state, topic_map)
         else:
             StateManager.hard_reset(state, macro_topics, curriculum)
-
-    @staticmethod
-    def sync_to_db(state: GameState) -> None:
-        """Pushes current session state to the database."""
-        if state.username:
-            try:
-                db.save_user(state.username, state)
-            except Exception as e:
-                print(f"Error syncing to database for user {state.username}: {e}")
-        if state.session_id and state.username:
-            try:
-                db.save_session(state.session_id, state.username, state)
-            except Exception as e:
-                print(f"Error saving session {state.session_id}: {e}")
 
     @staticmethod
     def hard_reset(state: GameState, macro_topics, curriculum) -> None:
@@ -160,6 +172,8 @@ class StateManager:
             state.selected_level = level
         StateManager.reset_turn(state, topic_map)
         StateManager.sync_to_db(state)
+
+    # --- Submission processing ---
 
     @classmethod
     def process_submission(cls, state: GameState, problem, user_input, is_text_mode, topic_map):

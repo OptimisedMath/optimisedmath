@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import backend.config as config
 
+# --- Progress & navigation ---
+
 
 class TopicProgress(BaseModel):
     """Progress for a single macro topic."""
@@ -50,6 +52,9 @@ class NavigationView(BaseModel):
     text_mode_disabled: bool
     macro_progress: Optional[NavigationProgress] = None
     micro_progress: Optional[NavigationProgress] = None
+
+
+# --- Session state ---
 
 
 class GameState(BaseModel):
@@ -143,6 +148,9 @@ class GameState(BaseModel):
         return copy
 
 
+# --- Request models ---
+
+
 class SessionStartRequest(BaseModel):
     """Start or resume a session for a username."""
 
@@ -175,6 +183,9 @@ class ProblemSubmissionRequest(BaseModel):
     user_input: str
     is_text_mode: bool = False
     problem_id: Optional[str] = None
+
+
+# --- Response models ---
 
 
 class CurriculumTopic(BaseModel):

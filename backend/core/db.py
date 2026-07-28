@@ -1,3 +1,5 @@
+"""SQLite persistence for users, sessions, and telemetry."""
+
 import json
 import sqlite3
 
@@ -6,10 +8,14 @@ from fastapi.encoders import jsonable_encoder
 from backend.config import DB_PATH
 from backend.models import GameState, TopicProgress
 
+# --- Connection ---
+
 
 def get_connection():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return sqlite3.connect(DB_PATH)
+
+# --- Schema ---
 
 
 def init_db():
@@ -55,6 +61,8 @@ def init_db():
         """)
         conn.commit()
 
+# --- Sessions ---
+
 
 def save_session(session_id, username, state: GameState):
     """Persists a full session state to SQLite."""
@@ -94,6 +102,8 @@ def delete_session(session_id):
         cursor = conn.cursor()
         cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
         conn.commit()
+
+# --- Users ---
 
 
 def load_user(username):
@@ -164,6 +174,8 @@ def save_user(username, state: GameState):
             ),
         )
         conn.commit()
+
+# --- Telemetry ---
 
 
 def log_telemetry(

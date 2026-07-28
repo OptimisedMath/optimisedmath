@@ -13,6 +13,8 @@ from backend.models import (
     SessionNavigateRequest,
 )
 
+# --- Private helpers ---
+
 
 def _get_topics(curriculum: dict[str, list[dict[str, Any]]], macro: str) -> list[dict[str, Any]]:
     return curriculum.get(macro, [])
@@ -37,6 +39,8 @@ def _get_unlocked(state: GameState, macro: str, topics: list[dict[str, Any]]) ->
     unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
     unlocked_level = progress.unlocked_level if progress else 1
     return unlocked_order, unlocked_level
+
+# --- Dropdown builders ---
 
 
 def get_topic_options(
@@ -70,6 +74,8 @@ def get_level_limit(
 
 def get_level_options(level_limit: int) -> list[int]:
     return list(range(1, max(level_limit, 1) + 1))
+
+# --- Navigation resolution ---
 
 
 def resolve_macro_change(
@@ -143,6 +149,8 @@ def resolve_navigate_request(
         curriculum, macro
     )
     return macro, int(micro_order), int(state.selected_level)
+
+# --- API view builder ---
 
 
 def build_navigation_view(

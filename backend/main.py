@@ -30,11 +30,11 @@ from backend.models import (
     SubmissionResponse,
 )
 
-# ============================================================================
-# In-Memory Session Storage (with SQLite fallback)
-# ============================================================================
+# --- Session storage ---
 
 ACTIVE_SESSIONS: Dict[str, GameState] = {}
+
+# --- Request helpers ---
 
 
 def _get_session(session_id: str) -> GameState:
@@ -48,13 +48,6 @@ def _get_session(session_id: str) -> GameState:
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
     )
-
-
-def _respond(state: GameState, curriculum: dict[str, list[MicroTopicDict]]) -> GameState:
-    """Build an API-safe GameState with navigation attached."""
-    response = state.for_response(_public_problem)
-    response.navigation = navigation.build_navigation_view(response, curriculum)
-    return response
 
 
 def _is_safe_svg_fragment(value: str) -> bool:
@@ -87,6 +80,13 @@ def _public_problem(problem: Dict[str, Any], state: GameState) -> Dict[str, Any]
     return public
 
 
+def _respond(state: GameState, curriculum: dict[str, list[MicroTopicDict]]) -> GameState:
+    """Build an API-safe GameState with navigation attached."""
+    response = state.for_response(_public_problem)
+    response.navigation = navigation.build_navigation_view(response, curriculum)
+    return response
+
+
 def _validate_unlocked_navigation(
     state: GameState,
     macro_topic: str,
@@ -116,9 +116,7 @@ def _validate_unlocked_navigation(
         )
 
 
-# ============================================================================
-# Lifespan Context Manager
-# ============================================================================
+# --- App lifecycle ---
 
 
 @asynccontextmanager
@@ -128,10 +126,6 @@ async def lifespan(app: FastAPI):
     yield
     print("🛑 Math Learning API shutting down")
 
-
-# ============================================================================
-# FastAPI App Initialization
-# ============================================================================
 
 app = FastAPI(
     title="Optimized Math Learning API",
@@ -153,9 +147,7 @@ app.add_middleware(
 )
 
 
-# ============================================================================
-# HEALTH CHECK & ROOT ENDPOINTS
-# ============================================================================
+# --- System endpoints ---
 
 
 @app.get("/health", tags=["System"])
@@ -180,9 +172,7 @@ async def curriculum_index():
     return engine.get_curriculum_response()
 
 
-# ============================================================================
-# SESSION ENDPOINTS
-# ============================================================================
+# --- Session endpoints ---
 
 
 @app.post("/session/start", response_model=GameState, tags=["Session"])
@@ -300,9 +290,7 @@ async def session_reset(request: SessionResetRequest):
     return _respond(state, curriculum)
 
 
-# ============================================================================
-# PROBLEM ENDPOINTS
-# ============================================================================
+# --- Problem endpoints ---
 
 
 @app.get("/problem/next", response_model=ProblemResponse, tags=["Problem"])
@@ -380,11 +368,6 @@ async def problem_next(session_id: str):
     state_manager.StateManager.sync_to_db(state)
 
     return {"problem": _public_problem(problem, state), "state": _respond(state, curriculum)}
-
-
-# ============================================================================
-# SUBMISSION ENDPOINTS
-# ============================================================================
 
 
 @app.post("/problem/submit", response_model=SubmissionResponse, tags=["Problem"])

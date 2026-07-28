@@ -17,6 +17,8 @@ DATA_DIR = BASE_DIR / "data"
 
 REQUIRED_ROOT_KEYS = ("macro_topic", "micro_topics", "keyboard_type")
 
+# --- Exceptions & types ---
+
 
 class CurriculumLoadError(Exception):
     """Raised when curriculum YAML fails validation."""
@@ -76,6 +78,8 @@ class CurriculumStore:
 
 _EMPTY_STORE = CurriculumStore(bundles=(), curriculum={}, macro_topics=[], bundles_by_macro={})
 
+# --- Generator registry hook ---
+
 _function_registry: dict[str, Callable[..., Any]] | None = None
 
 
@@ -84,6 +88,9 @@ def set_function_registry(registry: dict[str, Callable[..., Any]]) -> None:
     global _function_registry
     _function_registry = registry
     _load_curriculum_store.cache_clear()
+
+
+# --- Derivation helpers ---
 
 
 def _expected_filename(macro_topic: str) -> str:
@@ -145,6 +152,9 @@ def _derive_micro_topic_name_by_order(
     return {
         int(topic["micro_topic_order"]): topic["name"] for topic in micro_topics_meta
     }
+
+
+# --- Validation ---
 
 
 def _validate_micro_topics(
@@ -262,6 +272,9 @@ def _validate_file(file_path: Path, data: Any) -> MacroTopicBundle:
     )
 
 
+# --- Loading & cache ---
+
+
 def _build_store(bundles: list[MacroTopicBundle]) -> CurriculumStore:
     bundles.sort(key=lambda bundle: (bundle.order, bundle.macro_topic))
     bundle_tuple = tuple(bundles)
@@ -302,6 +315,9 @@ def _load_curriculum_store() -> CurriculumStore:
         bundles.append(bundle)
 
     return _build_store(bundles)
+
+
+# --- Public API ---
 
 
 def get_macro_topics_ordered() -> list[str]:
