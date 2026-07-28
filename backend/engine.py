@@ -23,6 +23,9 @@ import backend.config as config
 BASE_DIR = Path(__file__).resolve().parent
 logger = logging.getLogger(__name__)
 
+# --- Exceptions & types ---
+
+
 class GeneratorRegistryError(Exception):
     """Raised when generator registration fails."""
 
@@ -32,6 +35,8 @@ class ProblemGenerationError(Exception):
 
 
 GeneratorFunc = Callable[[], dict[str, Any] | None]
+
+# --- Generator registry ---
 
 
 def _is_generator(name: str, value: object, module_name: str) -> bool:
@@ -75,9 +80,10 @@ def _load_generator_registry(macro_topics_dir: Path) -> dict[str, GeneratorFunc]
     return registry
 
 
-# --- THE AUTOLOADER ---
 FUNCTION_REGISTRY = _load_generator_registry(BASE_DIR / "macro_topics")
 set_function_registry(FUNCTION_REGISTRY)
+
+# --- Curriculum API ---
 
 
 def get_curriculum_response() -> CurriculumResponse:
@@ -91,12 +97,35 @@ def get_curriculum_response() -> CurriculumResponse:
         },
     )
 
+# --- Problem generation ---
 
-def problem_fingerprint(problem: dict) -> str:
-    """Stable identity for a generated problem instance (excludes problem_id)."""
-    options = "|".join(sorted(str(opt) for opt in problem.get("options", [])))
-    payload = f"{problem.get('question', '')}|{problem.get('correct', '')}|{options}"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+def generate_problem(topic_function: GeneratorFunc) -> dict[str, Any]:
+    """Generate a problem using the given topic function, with retry logic for valid problems.
+
+    Args:
+        topic_function: A callable that generates a problem dict
+
+    Raises:
+        RuntimeError: If problem generation fails after max retries
+    """
+    for attempt in range(config.MAX_RETRIES_GENERATE):
+        try:
+            problem = topic_function()
+            if problem is not None:
+                return problem
+        except Exception:
+            logger.exception(
+                "Problem generator %s failed on attempt %s",
+                topic_function.__name__,
+                attempt + 1,
+            )
+            continue
+
+    raise RuntimeError(
+        f"Failed to generate valid problem for {topic_function.__name__} "
+        f"after {config.MAX_RETRIES_GENERATE} attempts"
+    )
 
 
 def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> dict[str, Any]:
@@ -145,32 +174,13 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> di
     return problem_dict
 
 
-def generate_problem(topic_function: GeneratorFunc) -> dict[str, Any]:
-    """Generate a problem using the given topic function, with retry logic for valid problems.
+def problem_fingerprint(problem: dict) -> str:
+    """Stable identity for a generated problem instance (excludes problem_id)."""
+    options = "|".join(sorted(str(opt) for opt in problem.get("options", [])))
+    payload = f"{problem.get('question', '')}|{problem.get('correct', '')}|{options}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    Args:
-        topic_function: A callable that generates a problem dict
-
-    Raises:
-        RuntimeError: If problem generation fails after max retries
-    """
-    for attempt in range(config.MAX_RETRIES_GENERATE):
-        try:
-            problem = topic_function()
-            if problem is not None:
-                return problem
-        except Exception:
-            logger.exception(
-                "Problem generator %s failed on attempt %s",
-                topic_function.__name__,
-                attempt + 1,
-            )
-            continue
-
-    raise RuntimeError(
-        f"Failed to generate valid problem for {topic_function.__name__} "
-        f"after {config.MAX_RETRIES_GENERATE} attempts"
-    )
+# --- Answer grading ---
 
 
 def check_format_mismatch(user_text, correct_latex):
