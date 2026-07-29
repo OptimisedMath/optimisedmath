@@ -4,8 +4,6 @@ import json
 import sqlite3
 from typing import TypedDict
 
-from fastapi.encoders import jsonable_encoder
-
 from backend.config import DB_PATH
 from backend.models import GameState, TopicProgress
 
@@ -98,7 +96,7 @@ def save_session(session_id: str, username: str, state: GameState) -> None:
     """Persists a full session state to SQLite."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        state_json = json.dumps(jsonable_encoder(state.model_dump(mode="json")))
+        state_json = state.to_storage()
         cursor.execute(
             """
             INSERT INTO sessions (session_id, username, state_json, updated_at)
@@ -121,8 +119,7 @@ def load_session(session_id: str) -> GameState | None:
         )
         row = cursor.fetchone()
         if row:
-            data = json.loads(row[0])
-            return GameState.from_storage(data)
+            return GameState.model_validate_json(row[0])
         return None
 
 
@@ -175,7 +172,7 @@ def save_user(username: str, state: GameState) -> None:
     with get_connection() as conn:
         cursor = conn.cursor()
         progress_str = json.dumps(
-            jsonable_encoder({k: v.model_dump() for k, v in state.progress.items()})
+            {k: v.model_dump(mode="json") for k, v in state.progress.items()}
         )
 
         cursor.execute(

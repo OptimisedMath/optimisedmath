@@ -132,6 +132,10 @@ class GameState(BaseModel):
         """Build a GameState from persisted JSON."""
         return cls.model_validate(data)
 
+    def to_storage(self) -> str:
+        """Serialize session state for SQLite persistence."""
+        return self.model_dump_json(mode="json", exclude={"navigation"})
+
     def for_response(
         self,
         public_problem_fn: Callable[[Dict[str, Any], GameState], Dict[str, Any]],
