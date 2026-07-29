@@ -104,11 +104,36 @@ class TestTextGrading:
     def test_exact_match_only_policy(self):
         problem = _sample_problem(
             correct=r"\frac{1}{2}",
+            options=["1", "2"],
+            options_map={
+                "1": "correct",
+                "2": "w1",
+            },
             grading_policy="exact_match_only",
         )
         result = evaluate_answer("2/4", problem, is_text_mode=True)
         assert result["trap_id"] == "exact_match_violation"
         assert result["lock_answer"] is True
+
+    def test_exact_match_equivalent_trap_shows_trap_message(self):
+        problem = _sample_problem(
+            correct=r"\frac{3}{7}",
+            options=[r"\frac{3}{7}", r"\frac{9}{21}", "1"],
+            options_map={
+                r"\frac{3}{7}": "correct",
+                r"\frac{9}{21}": "t1",
+                "1": "w1",
+            },
+            messages={
+                "t1": "Partially simplified trap",
+                "w1": "Wrong one",
+            },
+            grading_policy="exact_match_only",
+        )
+        result = evaluate_answer("9/21", problem, is_text_mode=True)
+        assert result["trap_id"] == "t1"
+        assert result["feedback_msg"] == "Partially simplified trap"
+        assert "is_correct" not in result
 
     def test_text_trap_match(self):
         problem = _sample_problem(correct="1")

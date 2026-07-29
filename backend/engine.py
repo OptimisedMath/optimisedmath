@@ -5,6 +5,7 @@ import importlib
 import logging
 import uuid
 from collections.abc import Callable
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -191,6 +192,31 @@ def problem_fingerprint(problem: ProblemDict) -> str:
 # --- Answer grading ---
 
 
+def _match_trap_feedback(
+    user_input: str, student_val: Fraction, problem: ProblemDict
+) -> EvalResult | None:
+    """Return trap/wrong feedback if user input matches a known distractor."""
+    options_map = problem.get("options_map", {})
+    for opt_str, opt_type in options_map.items():
+        if opt_type not in ("t1", "t2", "t3", "w1", "w2"):
+            continue
+        matched = check_text_answer(opt_str, user_input)
+        if not matched:
+            opt_val = parse_to_fraction(opt_str)
+            matched = opt_val is not None and student_val == opt_val
+        if matched:
+            msg_text = problem.get("messages", {}).get(
+                opt_type, "Niepoprawna odpowiedź, spróbuj ponownie."
+            )
+            return {
+                "lock_answer": True,
+                "feedback_type": "warning",
+                "feedback_msg": msg_text,
+                "trap_id": opt_type,
+            }
+    return None
+
+
 def check_format_mismatch(user_text: str, correct_latex: str) -> str | None:
     """Intercepts answers that are mathematically correct but use the wrong notation system."""
     user_str = str(user_text)
@@ -261,10 +287,13 @@ def evaluate_answer(
             }
 
         if policy == "exact_match_only":
+            trap_result = _match_trap_feedback(user_input, student_val, problem)
+            if trap_result:
+                return trap_result
             return {
                 "lock_answer": True,
                 "feedback_type": "warning",
-                "feedback_msg": "W tym zadaniu wartość matematyczna to nie wszystko. Musisz zapisać ułamek w dokładnie takiej postaci, o jaką prosi polecenie!",
+                "feedback_msg": "Zapisz ułamek w dokładnie takiej postaci, o jaką prosi polecenie!",
                 "trap_id": "exact_match_violation",
             }
         elif policy == "equivalent_accepted":
@@ -278,21 +307,9 @@ def evaluate_answer(
             }
 
     # --- 3. TEXT MODE TRAP SCANNER ---
-    for opt_str, opt_type in options_map.items():
-        if opt_type in ["t1", "t2", "t3", "w1", "w2"]:
-            opt_val = parse_to_fraction(opt_str)
-            if check_text_answer(opt_str, user_input) or (
-                opt_val is not None and student_val == opt_val
-            ):
-                msg_text = problem.get("messages", {}).get(
-                    opt_type, "Niepoprawna odpowiedź, spróbuj ponownie."
-                )
-                return {
-                    "lock_answer": True,
-                    "feedback_type": "warning",
-                    "feedback_msg": msg_text,
-                    "trap_id": opt_type,
-                }
+    trap_result = _match_trap_feedback(user_input, student_val, problem)
+    if trap_result:
+        return trap_result
 
     msg_text = problem.get("messages", {}).get(
         "w1", "Niepoprawna odpowiedź, spróbuj ponownie."
