@@ -25,10 +25,13 @@ class UserData(TypedDict):
 DB_TIMEOUT_SECONDS = 30.0
 
 
+def _configure_connection(conn: sqlite3.Connection) -> None:
+    conn.execute("PRAGMA foreign_keys=ON")
+
+
 def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
+    _configure_connection(conn)
     return conn
 
 # --- Schema ---
@@ -38,6 +41,7 @@ def init_db() -> None:
     """Initializes the database schema if it doesn't exist."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
@@ -76,6 +80,15 @@ def init_db() -> None:
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         """)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_telemetry_username ON telemetry_logs(username)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_telemetry_session_id ON telemetry_logs(session_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_logs(timestamp)"
+        )
         conn.commit()
 
 # --- Sessions ---
