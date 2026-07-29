@@ -22,16 +22,21 @@ class UserData(TypedDict):
 
 # --- Connection ---
 
+DB_TIMEOUT_SECONDS = 30.0
+
 
 def get_connection() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=DB_TIMEOUT_SECONDS)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+    return conn
 
 # --- Schema ---
 
 
 def init_db() -> None:
     """Initializes the database schema if it doesn't exist."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
