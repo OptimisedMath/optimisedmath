@@ -5,7 +5,7 @@ import sqlite3
 from typing import TypedDict
 
 from backend.config import DB_PATH
-from backend.models import GameState, TopicProgress
+from backend.models import GameState, MacroTopicProgress
 
 # --- Types ---
 
@@ -16,7 +16,7 @@ class UserData(TypedDict):
     selected_macro: str | None
     selected_micro_topic_order: int | None
     selected_level: int
-    progress: dict[str, TopicProgress]
+    macro_progress: dict[str, MacroTopicProgress]
 
 # --- Connection ---
 
@@ -149,12 +149,12 @@ def load_user(username: str) -> UserData | None:
 
         if row:
             raw_progress = json.loads(row[5]) if row[5] else {}
-            progress: dict[str, TopicProgress] = {}
+            macro_progress: dict[str, MacroTopicProgress] = {}
             for macro, prog_data in raw_progress.items():
                 if isinstance(prog_data, dict):
-                    progress[macro] = TopicProgress(**prog_data)
+                    macro_progress[macro] = MacroTopicProgress(**prog_data)
                 else:
-                    progress[macro] = prog_data
+                    macro_progress[macro] = prog_data
 
             return {
                 "xp": row[0],
@@ -162,7 +162,7 @@ def load_user(username: str) -> UserData | None:
                 "selected_macro": row[2],
                 "selected_micro_topic_order": row[3],
                 "selected_level": row[4],
-                "progress": progress,
+                "macro_progress": macro_progress,
             }
         return None
 
@@ -172,7 +172,7 @@ def save_user(username: str, state: GameState) -> None:
     with get_connection() as conn:
         cursor = conn.cursor()
         progress_str = json.dumps(
-            {k: v.model_dump(mode="json") for k, v in state.progress.items()}
+            {k: v.model_dump(mode="json") for k, v in state.macro_progress.items()}
         )
 
         cursor.execute(

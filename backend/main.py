@@ -100,7 +100,7 @@ def _validate_unlocked_navigation(
     if config.is_admin_user(state.username):
         return
 
-    progress = state.progress.get(macro_topic)
+    progress = state.macro_progress.get(macro_topic)
     first_order = min(topic_map) if topic_map else 1
     unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
     unlocked_level = progress.unlocked_level if progress else 1
@@ -205,17 +205,17 @@ async def session_start(request: SessionStartRequest) -> GameState:
         prev_macro = state.selected_macro
         state.selected_macro = request.selected_macro
         if request.selected_macro != prev_macro:
-            macro_progress = state.progress.get(request.selected_macro)
+            topic_progress = state.macro_progress.get(request.selected_macro)
             first_order = state_manager.StateManager._get_first_micro_topic_order(
                 curriculum, request.selected_macro
             )
             state.selected_micro_topic_order = (
-                macro_progress.unlocked_micro_topic_order
-                if macro_progress
+                topic_progress.unlocked_micro_topic_order
+                if topic_progress
                 else first_order
             )
             state.selected_level = (
-                macro_progress.unlocked_level if macro_progress else 1
+                topic_progress.unlocked_level if topic_progress else 1
             )
 
     ACTIVE_SESSIONS[state.session_id] = state

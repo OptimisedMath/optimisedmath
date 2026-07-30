@@ -6,14 +6,14 @@ import uuid
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 import backend.config as config
 
 # --- Progress & navigation ---
 
 
-class TopicProgress(BaseModel):
+class MacroTopicProgress(BaseModel):
     """Progress for a single macro topic."""
 
     unlocked_micro_topic_order: int = Field(
@@ -80,7 +80,7 @@ class GameState(BaseModel):
     feedback_msg: str = ""
     show_celebration: bool = False
 
-    progress: Dict[str, TopicProgress] = Field(default_factory=dict)
+    macro_progress: Dict[str, MacroTopicProgress] = Field(default_factory=dict)
 
     current_problem: Optional[Dict[str, Any]] = None
     problem_start_time: Optional[float] = None
@@ -117,7 +117,7 @@ class GameState(BaseModel):
                 "feedback_type": None,
                 "feedback_msg": "",
                 "show_celebration": False,
-                "progress": {
+                "macro_progress": {
                     "Ułamki Zwykłe": {
                         "unlocked_micro_topic_order": 30,
                         "unlocked_level": 2,
@@ -126,6 +126,14 @@ class GameState(BaseModel):
             }
         }
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_legacy_progress_key(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "progress" in data and "macro_progress" not in data:
+            data = dict(data)
+            data["macro_progress"] = data.pop("progress")
+        return data
 
     @classmethod
     def from_storage(cls, data: dict) -> GameState:

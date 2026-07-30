@@ -33,7 +33,7 @@ def _first_topic_order(topics: list[MicroTopicDict]) -> int:
 
 
 def _get_unlocked(state: GameState, macro: str, topics: list[MicroTopicDict]) -> tuple[int, int]:
-    progress = state.progress.get(macro)
+    progress = state.macro_progress.get(macro)
     first_order = _first_topic_order(topics)
     unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
     unlocked_level = progress.unlocked_level if progress else 1
@@ -82,7 +82,7 @@ def resolve_macro_change(
 ) -> tuple[str, int, int]:
     """Pick default micro-topic and level when switching macro topic."""
     next_topics = _get_topics(curriculum, next_macro)
-    next_progress = state.progress.get(next_macro)
+    next_progress = state.macro_progress.get(next_macro)
     next_micro_order = (
         next_progress.unlocked_micro_topic_order
         if next_progress
@@ -185,9 +185,9 @@ def build_navigation_view(
     available_levels = get_level_options(level_limit)
 
     has_next = (
-        selected_macro in state.progress
+        selected_macro in state.macro_progress
         and state.selected_micro_topic_order is not None
-        and state.progress[selected_macro].unlocked_micro_topic_order
+        and state.macro_progress[selected_macro].unlocked_micro_topic_order
         > (state.selected_micro_topic_order or 0)
     )
 

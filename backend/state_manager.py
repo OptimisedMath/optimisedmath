@@ -10,7 +10,7 @@ from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum_loader import MicroTopicDict, TopicMeta, get_topic_map
 from backend.engine import EvalResult
-from backend.models import GameState, TopicProgress
+from backend.models import GameState, MacroTopicProgress
 
 
 class StateManager:
@@ -53,7 +53,7 @@ class StateManager:
         """Initialize session state with defaults. Heals broken saves from old versions."""
         if not state.session_id:
             state.session_id = str(uuid.uuid4())
-        if state.xp == 0 and state.streak == 0 and not state.progress:
+        if state.xp == 0 and state.streak == 0 and not state.macro_progress:
             state.flawless_eligible = True
             state.max_streak = config.MAX_STREAK
             state.selected_macro = macro_topics[0] if macro_topics else None
@@ -70,14 +70,14 @@ class StateManager:
 
         for mt in macro_topics:
             first_order = StateManager._get_first_micro_topic_order(curriculum, mt)
-            if mt not in state.progress:
-                state.progress[mt] = TopicProgress(
+            if mt not in state.macro_progress:
+                state.macro_progress[mt] = MacroTopicProgress(
                     unlocked_micro_topic_order=first_order,
                     unlocked_level=1,
                 )
-            elif state.progress[mt].unlocked_micro_topic_order < first_order:
-                state.progress[mt].unlocked_micro_topic_order = first_order
-                state.progress[mt].unlocked_level = 1
+            elif state.macro_progress[mt].unlocked_micro_topic_order < first_order:
+                state.macro_progress[mt].unlocked_micro_topic_order = first_order
+                state.macro_progress[mt].unlocked_level = 1
 
         curr_macro = state.selected_macro
         first_curr = StateManager._get_first_micro_topic_order(curriculum, curr_macro)
@@ -141,7 +141,7 @@ class StateManager:
             state.selected_macro = user_data["selected_macro"]
             state.selected_micro_topic_order = user_data["selected_micro_topic_order"]
             state.selected_level = user_data["selected_level"]
-            state.progress = user_data["progress"]
+            state.macro_progress = user_data["macro_progress"]
             topic_map = get_topic_map(state.selected_macro or "")
             StateManager.reset_turn(state, topic_map)
         else:
@@ -155,8 +155,8 @@ class StateManager:
     ) -> None:
         """Wipes all progress and resets to initial state."""
         state.xp = 0
-        state.progress = {
-            mt: TopicProgress(
+        state.macro_progress = {
+            mt: MacroTopicProgress(
                 unlocked_micro_topic_order=StateManager._get_first_micro_topic_order(
                     curriculum, mt
                 ),
@@ -267,7 +267,7 @@ class StateManager:
             if state.streak < config.MAX_STREAK:
                 state.streak += 1
 
-            prog = state.progress[macro_topic]
+            prog = state.macro_progress[macro_topic]
             if (
                 state.streak == config.STARS_FOR_UNLOCK
                 and state.selected_level == prog.unlocked_level

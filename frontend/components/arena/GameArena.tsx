@@ -239,7 +239,7 @@ export default function GameArena() {
     try {
       if (gameState.topic_completed) {
         const macro = gameState.selected_macro!;
-        const nextOrder = gameState.progress[macro]?.unlocked_micro_topic_order;
+        const nextOrder = gameState.macro_progress[macro]?.unlocked_micro_topic_order;
         if (nextOrder === undefined) return;
 
         setIsNavigating(true);

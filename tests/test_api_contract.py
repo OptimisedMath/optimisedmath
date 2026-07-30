@@ -454,7 +454,7 @@ def test_navigation_available_topics_respect_locks():
     if len(topics) < 2:
         pytest.skip("Need at least two topics for lock navigation test")
 
-    unlocked_order = state.progress[macro].unlocked_micro_topic_order
+    unlocked_order = state.macro_progress[macro].unlocked_micro_topic_order
     available_orders = {t.micro_topic_order for t in state.navigation.available_micro_topics}
     expected = {
         int(t["micro_topic_order"])
@@ -487,9 +487,9 @@ def test_navigate_macro_change_resolves_to_unlocked_topic():
         )
     )
     target_macro = macro_topics[1] if state.selected_macro == macro_topics[0] else macro_topics[0]
-    expected_order = state.progress[target_macro].unlocked_micro_topic_order
+    expected_order = state.macro_progress[target_macro].unlocked_micro_topic_order
     expected_level = min(
-        state.progress[target_macro].unlocked_level,
+        state.macro_progress[target_macro].unlocked_level,
         int(curriculum[target_macro][0]["max_level"])
         if not any(
             int(t["micro_topic_order"]) == expected_order for t in curriculum[target_macro]
@@ -526,7 +526,7 @@ def test_navigate_topic_change_to_completed_resets_level_to_one():
     if len(topics) < 2:
         pytest.skip("Need at least two topics")
 
-    unlocked_order = state.progress[macro].unlocked_micro_topic_order
+    unlocked_order = state.macro_progress[macro].unlocked_micro_topic_order
     completed_topics = [
         t for t in topics if int(t["micro_topic_order"]) < unlocked_order
     ]
@@ -563,7 +563,7 @@ def test_navigation_has_next_unlocked_topic():
     first_order = int(topics[0]["micro_topic_order"])
     second_order = int(topics[1]["micro_topic_order"])
     state.selected_micro_topic_order = first_order
-    state.progress[macro].unlocked_micro_topic_order = second_order
+    state.macro_progress[macro].unlocked_micro_topic_order = second_order
 
     nav = main.navigation.build_navigation_view(
         state.for_response(main._public_problem),
@@ -571,7 +571,7 @@ def test_navigation_has_next_unlocked_topic():
     )
     assert nav.has_next_unlocked_topic is True
 
-    state.progress[macro].unlocked_micro_topic_order = first_order
+    state.macro_progress[macro].unlocked_micro_topic_order = first_order
     nav = main.navigation.build_navigation_view(
         state.for_response(main._public_problem),
         main.engine.get_curriculum(),
@@ -587,7 +587,7 @@ def test_navigation_progress_counts():
     )
     macro = state.selected_macro
     topics = main.engine.get_curriculum()[macro]
-    unlocked_order = state.progress[macro].unlocked_micro_topic_order
+    unlocked_order = state.macro_progress[macro].unlocked_micro_topic_order
     completed = sum(1 for t in topics if int(t["micro_topic_order"]) < unlocked_order)
     total = len(topics)
 

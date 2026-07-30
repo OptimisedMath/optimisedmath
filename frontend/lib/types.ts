@@ -1,6 +1,6 @@
 // TypeScript types matching FastAPI Pydantic models
 
-export interface TopicProgress {
+export interface MacroTopicProgress {
   unlocked_micro_topic_order: number;
   unlocked_level: number;
 }
@@ -43,7 +43,7 @@ export interface GameState {
   feedback_type: string | null;
   feedback_msg: string;
   show_celebration: boolean;
-  progress: Record<string, TopicProgress>;
+  macro_progress: Record<string, MacroTopicProgress>;
   current_problem: Problem | null;
   can_submit: boolean;
   can_advance: boolean;
