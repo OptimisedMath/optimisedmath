@@ -39,6 +39,29 @@ def _get_unlocked(state: GameState, macro: str, topics: list[MicroTopicDict]) ->
     unlocked_level = progress.unlocked_level if progress else 1
     return unlocked_order, unlocked_level
 
+
+def _clamp_level(level: int | None, topic: MicroTopicDict | None) -> int:
+    """Return level capped to the micro-topic's max_level (defensive for stale saves)."""
+    effective = level if level is not None else 1
+    max_level = int(topic["max_level"]) if topic else 1
+    return min(effective, max_level)
+
+
+def clamp_selected_level(
+    state: GameState, curriculum: dict[str, list[MicroTopicDict]]
+) -> None:
+    """Clamp session selected_level to the current micro-topic's max_level."""
+    macro = state.selected_macro
+    if not macro:
+        return
+    topics = _get_topics(curriculum, macro)
+    if not topics:
+        return
+    first_topic = topics[0]
+    micro_order = state.selected_micro_topic_order or _first_topic_order(topics)
+    topic = _find_topic(topics, micro_order) or first_topic
+    state.selected_level = _clamp_level(state.selected_level, topic)
+
 # --- Dropdown builders ---
 
 
@@ -82,16 +105,16 @@ def resolve_macro_change(
 ) -> tuple[str, int, int]:
     """Pick default micro-topic and level when switching macro topic."""
     next_topics = _get_topics(curriculum, next_macro)
-    next_progress = state.macro_progress.get(next_macro)
+    next_macro_progress = state.macro_progress.get(next_macro)
     next_micro_order = (
-        next_progress.unlocked_micro_topic_order
-        if next_progress
+        next_macro_progress.unlocked_micro_topic_order
+        if next_macro_progress
         else _first_topic_order(next_topics)
     )
     next_topic = _find_topic(next_topics, next_micro_order) or (next_topics[0] if next_topics else None)
-    next_level = min(
-        next_progress.unlocked_level if next_progress else 1,
-        int(next_topic["max_level"]) if next_topic else 1,
+    next_level = _clamp_level(
+        next_macro_progress.unlocked_level if next_macro_progress else 1,
+        next_topic,
     )
     return next_macro, next_micro_order, next_level
 
@@ -109,7 +132,7 @@ def resolve_topic_change(
     if next_micro_order < unlocked_order:
         next_level = 1
     else:
-        next_level = min(unlocked_level, int(next_topic["max_level"]) if next_topic else 1)
+        next_level = _clamp_level(unlocked_level, next_topic)
     return next_micro_order, next_level
 
 
@@ -164,10 +187,7 @@ def build_navigation_view(
 
     selected_micro_order = state.selected_micro_topic_order or first_order
     selected_topic = _find_topic(topics, selected_micro_order) or first_topic
-    selected_level = min(
-        state.selected_level or 1,
-        int(selected_topic["max_level"]) if selected_topic else 1,
-    )
+    selected_level = _clamp_level(state.selected_level, selected_topic)
 
     unlocked_order, unlocked_level = _get_unlocked(state, selected_macro, topics)
     admin_mode = state.admin_mode

@@ -515,6 +515,29 @@ def test_navigate_macro_change_resolves_to_unlocked_topic():
     assert next_state.selected_level == expected_level
 
 
+def test_session_start_clamps_stale_selected_level():
+    username = "stale-level-user"
+    state = run(
+        main.session_start(
+            main.SessionStartRequest(username=username, selected_macro=None)
+        )
+    )
+    macro = state.selected_macro
+    topic = main.engine.get_curriculum()[macro][0]
+    max_level = int(topic["max_level"])
+
+    state.selected_level = max_level + 10
+    main.state_manager.StateManager.sync_to_db(state)
+
+    reloaded = run(
+        main.session_start(
+            main.SessionStartRequest(username=username, selected_macro=None)
+        )
+    )
+
+    assert reloaded.selected_level == max_level
+
+
 def test_navigate_topic_change_to_completed_resets_level_to_one():
     state = run(
         main.session_start(

@@ -200,23 +200,17 @@ async def session_start(request: SessionStartRequest) -> GameState:
     state_manager.StateManager.load_profile(
         state, request.username, macro_topics, curriculum
     )
+    navigation.clamp_selected_level(state, curriculum)
 
     if request.selected_macro:
         prev_macro = state.selected_macro
         state.selected_macro = request.selected_macro
         if request.selected_macro != prev_macro:
-            topic_progress = state.macro_progress.get(request.selected_macro)
-            first_order = state_manager.StateManager._get_first_micro_topic_order(
-                curriculum, request.selected_macro
+            _, micro_order, level = navigation.resolve_macro_change(
+                state, curriculum, request.selected_macro
             )
-            state.selected_micro_topic_order = (
-                topic_progress.unlocked_micro_topic_order
-                if topic_progress
-                else first_order
-            )
-            state.selected_level = (
-                topic_progress.unlocked_level if topic_progress else 1
-            )
+            state.selected_micro_topic_order = micro_order
+            state.selected_level = level
 
     ACTIVE_SESSIONS[state.session_id] = state
     state_manager.StateManager.sync_to_db(state)
