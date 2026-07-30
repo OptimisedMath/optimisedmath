@@ -134,7 +134,7 @@ class GameState(BaseModel):
 
     def to_storage(self) -> str:
         """Serialize session state for SQLite persistence."""
-        return self.model_dump_json(mode="json", exclude={"navigation"})
+        return self.model_dump_json(exclude={"navigation"})
 
     def for_response(
         self,
