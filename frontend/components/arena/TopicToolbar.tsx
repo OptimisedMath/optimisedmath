@@ -5,7 +5,7 @@ import type { GameState, SessionNavigateRequest } from '@/lib/types';
 
 type NavigateIntent = Pick<
   SessionNavigateRequest,
-  'selected_macro' | 'selected_micro_topic_order' | 'selected_level'
+  'selected_chapter_id' | 'selected_topic_id' | 'selected_level'
 >;
 
 interface TopicToolbarProps {
@@ -26,16 +26,16 @@ function TopicToolbar({
     return null;
   }
 
-  const selectedMacro = gameState.selected_macro ?? '';
-  const selectedMicroTopicOrder = gameState.selected_micro_topic_order ?? 1;
+  const selectedChapterId = gameState.selected_chapter_id ?? navigation.available_chapters[0]?.chapter_id ?? 0;
+  const selectedTopicId = gameState.selected_topic_id ?? navigation.available_topics[0]?.topic_id ?? 1;
   const selectedLevel = gameState.selected_level;
 
-  const handleMacroChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate({ selected_macro: event.target.value });
+  const handleChapterChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    onNavigate({ selected_chapter_id: Number(event.target.value) });
   };
 
   const handleTopicChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate({ selected_micro_topic_order: Number(event.target.value) });
+    onNavigate({ selected_topic_id: Number(event.target.value) });
   };
 
   const handleLevelChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -64,31 +64,31 @@ function TopicToolbar({
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <label className={labelClasses}>
-            Macro topic
+            Dział
             <select
-              value={selectedMacro}
-              onChange={handleMacroChange}
+              value={selectedChapterId}
+              onChange={handleChapterChange}
               disabled={isNavigating}
               className={selectClasses}
             >
-              {navigation.macro_topics.map((macro) => (
-                <option key={macro} value={macro}>
-                  {macro}
+              {navigation.available_chapters.map((chapter) => (
+                <option key={chapter.chapter_id} value={chapter.chapter_id}>
+                  {chapter.name}
                 </option>
               ))}
             </select>
           </label>
 
           <label className={labelClasses}>
-            Micro topic
+            Temat
             <select
-              value={selectedMicroTopicOrder}
+              value={selectedTopicId}
               onChange={handleTopicChange}
-              disabled={isNavigating || navigation.available_micro_topics.length === 0}
+              disabled={isNavigating || navigation.available_topics.length === 0}
               className={selectClasses}
             >
-              {navigation.available_micro_topics.map((topic, index) => (
-                <option key={topic.micro_topic_order} value={topic.micro_topic_order}>
+              {navigation.available_topics.map((topic, index) => (
+                <option key={topic.topic_id} value={topic.topic_id}>
                   {index + 1}. {topic.name}
                 </option>
               ))}
@@ -96,7 +96,7 @@ function TopicToolbar({
           </label>
 
           <label className={`${labelClasses} lg:w-28 lg:flex-none`}>
-            Level
+            Poziom
             <select
               value={selectedLevel}
               onChange={handleLevelChange}
@@ -113,9 +113,9 @@ function TopicToolbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <Badge variant="secondary">{navigation.current_topic_name || 'No topic selected'}</Badge>
-          <span>Level {selectedLevel}</span>
-          {isNavigating && <span className="text-sky-500 dark:text-sky-300">Loading topic...</span>}
+          <Badge variant="secondary">{navigation.current_topic_name || 'Brak tematu'}</Badge>
+          <span>Poziom {selectedLevel}</span>
+          {isNavigating && <span className="text-sky-500 dark:text-sky-300">Ładowanie tematu...</span>}
           {gameState.admin_mode && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
               <span className="relative flex h-2 w-2">

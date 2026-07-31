@@ -11,14 +11,15 @@ from typing import Any, TypedDict
 
 from backend.core.utils import ProblemDict, check_text_answer, parse_to_fraction
 from backend.curriculum_loader import (
+    get_chapter_keyboard_type,
+    get_chapters,
     get_curriculum,
     get_level_config,
-    get_macro_keyboard_type,
-    get_macro_topics_ordered,
-    get_topic_map,
+    get_topic_name,
+    get_topics_by_id,
     set_function_registry,
 )
-from backend.models import CurriculumResponse, CurriculumTopic
+from backend.models import ChapterSummary, CurriculumResponse, TopicSummary
 import backend.config as config
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -98,61 +99,67 @@ set_function_registry(FUNCTION_REGISTRY)
 def get_curriculum_response() -> CurriculumResponse:
     """Return curriculum metadata formatted for the API."""
     curriculum = get_curriculum()
-    return CurriculumResponse(
-        macro_topics=get_macro_topics_ordered(),
-        micro_topics={
-            macro_topic: [CurriculumTopic(**topic) for topic in topic_list]
-            for macro_topic, topic_list in curriculum.items()
-        },
-    )
+    chapters: list[ChapterSummary] = []
+    for chapter in get_chapters():
+        topic_list = curriculum.get(chapter.chapter_id, [])
+        chapters.append(
+            ChapterSummary(
+                chapter_id=chapter.chapter_id,
+                name=chapter.name,
+                topics=[TopicSummary(**topic_entry) for topic_entry in topic_list],
+            )
+        )
+    return CurriculumResponse(chapters=chapters)
+
 
 # --- Problem generation ---
 
 
-def generate_problem(topic_function: GeneratorFunc) -> ProblemDict:
-    """Generate a problem using the given topic function, with retry logic for valid problems.
+def generate_problem(generator_func: GeneratorFunc) -> ProblemDict:
+    """Generate a problem using the given generator function, with retry logic.
 
     Args:
-        topic_function: A callable that generates a problem dict
+        generator_func: A callable that generates a problem dict
 
     Raises:
         RuntimeError: If problem generation fails after max retries
     """
     for attempt in range(config.MAX_RETRIES_GENERATE):
         try:
-            problem = topic_function()
+            problem = generator_func()
             if problem is not None:
                 return problem
         except Exception:
             logger.exception(
                 "Problem generator %s failed on attempt %s",
-                topic_function.__name__,
+                generator_func.__name__,
                 attempt + 1,
             )
             continue
 
     raise RuntimeError(
-        f"Failed to generate valid problem for {topic_function.__name__} "
+        f"Failed to generate valid problem for {generator_func.__name__} "
         f"after {config.MAX_RETRIES_GENERATE} attempts"
     )
 
 
-def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> ProblemDict:
+def generate_level_problem(chapter_id: int, topic_id: int, level: int) -> ProblemDict:
     """Generate a problem for a curriculum level."""
-    topic_map = get_topic_map(macro_topic)
-    if not topic_map:
-        raise ProblemGenerationError(f"Missing curriculum file for: {macro_topic}")
+    topics_by_id = get_topics_by_id(chapter_id)
+    if not topics_by_id:
+        raise ProblemGenerationError(f"Missing curriculum for chapter id: {chapter_id}")
 
-    known_names = {meta["name"] for meta in topic_map.values()}
-    if micro_topic not in known_names:
+    if topic_id not in topics_by_id:
+        topic_name = get_topic_name(chapter_id, topic_id)
         raise ProblemGenerationError(
-            f"Micro topic '{micro_topic}' not found in '{macro_topic}'"
+            f"Topic id {topic_id} ({topic_name!r}) not found in chapter {chapter_id}"
         )
 
-    level_config = get_level_config(macro_topic, micro_topic, level)
+    level_config = get_level_config(chapter_id, topic_id, level)
     if level_config is None or not level_config.published:
+        topic_name = get_topic_name(chapter_id, topic_id) or str(topic_id)
         raise ProblemGenerationError(
-            f"Level {level} is not available for '{micro_topic}' in '{macro_topic}'"
+            f"Level {level} is not available for topic '{topic_name}' in chapter {chapter_id}"
         )
 
     func_name = level_config.function
@@ -179,7 +186,7 @@ def generate_level_problem(macro_topic: str, micro_topic: str, level: int) -> Pr
     gen_messages = problem_dict.pop("messages", {})
     problem_dict["messages"] = yaml_messages | gen_messages
     problem_dict["level_display"] = f"{level_config.name} (Lvl {level})"
-    problem_dict["keyboard_type"] = get_macro_keyboard_type(macro_topic)
+    problem_dict["keyboard_type"] = get_chapter_keyboard_type(chapter_id)
     return problem_dict
 
 
@@ -188,6 +195,7 @@ def problem_fingerprint(problem: ProblemDict) -> str:
     options = "|".join(sorted(str(opt) for opt in problem.get("options", [])))
     payload = f"{problem.get('question', '')}|{problem.get('correct', '')}|{options}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
 
 # --- Answer grading ---
 

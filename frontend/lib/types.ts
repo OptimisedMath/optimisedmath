@@ -1,12 +1,17 @@
 // TypeScript types matching FastAPI Pydantic models
 
-export interface MacroTopicProgress {
-  unlocked_micro_topic_order: number;
+export interface ChapterProgress {
+  unlocked_topic_id: number;
   unlocked_level: number;
 }
 
-export interface NavigationMicroTopicOption {
-  micro_topic_order: number;
+export interface NavigationChapterOption {
+  chapter_id: number;
+  name: string;
+}
+
+export interface NavigationTopicOption {
+  topic_id: number;
   name: string;
 }
 
@@ -17,14 +22,14 @@ export interface NavigationProgress {
 }
 
 export interface NavigationView {
-  macro_topics: string[];
+  available_chapters: NavigationChapterOption[];
   current_topic_name: string | null;
-  available_micro_topics: NavigationMicroTopicOption[];
+  available_topics: NavigationTopicOption[];
   available_levels: number[];
   has_next_unlocked_topic: boolean;
   text_mode_disabled: boolean;
-  macro_progress: NavigationProgress | null;
-  micro_progress: NavigationProgress | null;
+  chapter_progress: NavigationProgress | null;
+  topic_progress: NavigationProgress | null;
 }
 
 export interface GameState {
@@ -34,8 +39,8 @@ export interface GameState {
   streak: number;
   flawless_eligible: boolean;
   max_streak: number;
-  selected_macro: string | null;
-  selected_micro_topic_order: number | null;
+  selected_chapter_id: number | null;
+  selected_topic_id: number | null;
   selected_level: number;
   problem_answered: boolean;
   current_input_mode: string;
@@ -43,7 +48,7 @@ export interface GameState {
   feedback_type: string | null;
   feedback_msg: string;
   show_celebration: boolean;
-  macro_progress: Record<string, MacroTopicProgress>;
+  chapter_progress: Record<number, ChapterProgress>;
   current_problem: Problem | null;
   can_submit: boolean;
   can_advance: boolean;
@@ -64,27 +69,32 @@ export interface Problem {
   image_html?: string;
 }
 
-export interface CurriculumTopic {
-  micro_topic_order: number;
+export interface TopicSummary {
+  topic_id: number;
   name: string;
   max_level: number;
   text_mode_disabled?: boolean;
 }
 
+export interface ChapterSummary {
+  chapter_id: number;
+  name: string;
+  topics: TopicSummary[];
+}
+
 export interface CurriculumResponse {
-  macro_topics: string[];
-  micro_topics: Record<string, CurriculumTopic[]>;
+  chapters: ChapterSummary[];
 }
 
 export interface SessionStartRequest {
   username: string;
-  selected_macro?: string;
+  selected_chapter_id?: number;
 }
 
 export interface SessionNavigateRequest {
   session_id: string;
-  selected_macro?: string;
-  selected_micro_topic_order?: number;
+  selected_chapter_id?: number;
+  selected_topic_id?: number;
   selected_level?: number;
 }
 

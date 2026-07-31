@@ -17,29 +17,28 @@ def reset_curriculum_cache():
     loader.set_function_registry(engine.FUNCTION_REGISTRY)
 
 
-def test_loads_real_curriculum_with_micro_topics():
+def test_loads_real_curriculum_with_topics():
     curriculum = loader.get_curriculum()
-    assert "Ułamki Zwykłe" in curriculum
-    assert "Ułamki Dziesiętne" in curriculum
-    assert curriculum["Ułamki Zwykłe"][0]["name"] == "Zapisywanie"
+    assert 10 in curriculum
+    assert 20 in curriculum
+    assert curriculum[10][0]["name"] == "Zapisywanie"
 
 
-def test_macro_topics_ordered_by_yaml_order():
-    ordered = loader.get_macro_topics_ordered()
-    assert ordered.index("Ułamki Zwykłe") < ordered.index("Ułamki Dziesiętne")
+def test_chapters_ordered_by_yaml_id():
+    chapters = loader.get_chapters()
+    assert chapters[0].chapter_id < chapters[1].chapter_id
 
 
-def test_get_macro_yaml_uses_micro_topics_key():
-    data = loader.get_macro_yaml("Ułamki Zwykłe")
-    assert "micro_topics" in data
-    assert "topics" not in data
+def test_get_chapter_yaml_uses_topics_key():
+    data = loader.get_chapter_yaml(10)
+    assert "topics" in data
+    assert "chapter" in data
 
 
-def test_curriculum_response_uses_micro_topics_field():
+def test_curriculum_response_uses_chapters_field():
     response = engine.get_curriculum_response()
-    assert response.macro_topics[0] == "Ułamki Zwykłe"
-    assert "Ułamki Zwykłe" in response.micro_topics
-    assert response.micro_topics["Ułamki Zwykłe"][0].name == "Zapisywanie"
+    assert response.chapters[0].name == "Ułamki Zwykłe"
+    assert response.chapters[0].topics[0].name == "Zapisywanie"
 
 
 def test_function_registry_contains_only_generators():
@@ -48,16 +47,16 @@ def test_function_registry_contains_only_generators():
         assert getattr(func, "__module__", "").startswith("backend.macro_topics")
 
 
-def test_rejects_missing_micro_topics_key(tmp_path, monkeypatch):
+def test_rejects_missing_topics_key(tmp_path, monkeypatch):
     bad_yaml = tmp_path / "Bad_Topic.yaml"
     bad_yaml.write_text(
         """
-macro_topic: "Bad Topic"
-order: 1
+chapter: "Bad Topic"
+id: 1
 keyboard_type: "default"
-topics:
-  - order: 10
-    name: "Legacy key"
+skills:
+  - id: 10
+    name: "No topics key"
     levels:
       - level: 1
         name: "Lvl 1"
@@ -68,7 +67,7 @@ topics:
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
     loader._load_curriculum_store.cache_clear()
 
-    with pytest.raises(loader.CurriculumLoadError, match="micro_topics"):
+    with pytest.raises(loader.CurriculumLoadError, match="topics"):
         loader.get_curriculum()
 
 
@@ -76,11 +75,11 @@ def test_rejects_unknown_generator_function(tmp_path, monkeypatch):
     bad_yaml = tmp_path / "Bad_Topic.yaml"
     bad_yaml.write_text(
         """
-macro_topic: "Bad Topic"
-order: 1
+chapter: "Bad Topic"
+id: 1
 keyboard_type: "default"
-micro_topics:
-  - order: 10
+topics:
+  - id: 10
     name: "Broken"
     levels:
       - level: 1
@@ -96,50 +95,48 @@ micro_topics:
         loader.get_curriculum()
 
 
-def test_rejects_duplicate_macro_topic(tmp_path, monkeypatch):
+def test_rejects_duplicate_chapter_name(tmp_path, monkeypatch):
     path1 = tmp_path / "a.yaml"
     path2 = tmp_path / "b.yaml"
     path1.write_text("placeholder", encoding="utf-8")
     path2.write_text("placeholder", encoding="utf-8")
 
-    micro_topics_meta = (
+    topics_meta = (
         {
-            "micro_topic_order": 10,
+            "topic_id": 10,
             "name": "Skill",
             "max_level": 1,
             "text_mode_disabled": False,
         },
     )
-    bundle = loader.MacroTopicBundle(
-        macro_topic="Dup Macro",
-        order=1,
+    bundle = loader.ChapterBundle(
+        chapter_id=1,
+        chapter_name="Dup Chapter",
         keyboard_type="default",
         raw={},
-        micro_topics_meta=micro_topics_meta,
-        topic_map=loader._derive_topic_map(list(micro_topics_meta)),
+        topics_meta=topics_meta,
+        topics_by_id=loader._derive_topics_by_id(list(topics_meta)),
         level_configs={},
-        micro_topic_name_by_order=loader._derive_micro_topic_name_by_order(
-            list(micro_topics_meta)
-        ),
+        topic_name_by_id=loader._derive_topic_name_by_id(list(topics_meta)),
     )
 
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
     monkeypatch.setattr(loader, "_validate_file", lambda _fp, _data: bundle)
     loader._load_curriculum_store.cache_clear()
 
-    with pytest.raises(loader.CurriculumLoadError, match="Duplicate macro_topic"):
+    with pytest.raises(loader.CurriculumLoadError, match="Duplicate chapter id"):
         loader.get_curriculum()
 
 
-def test_rejects_filename_macro_mismatch(tmp_path, monkeypatch):
+def test_rejects_filename_chapter_mismatch(tmp_path, monkeypatch):
     bad_yaml = tmp_path / "Wrong_Name.yaml"
     bad_yaml.write_text(
         """
-macro_topic: "Correct Name"
-order: 1
+chapter: "Correct Name"
+id: 1
 keyboard_type: "default"
-micro_topics:
-  - order: 10
+topics:
+  - id: 10
     name: "Skill"
     levels:
       - level: 1
@@ -153,3 +150,28 @@ micro_topics:
 
     with pytest.raises(loader.CurriculumLoadError, match="filename must be"):
         loader.get_curriculum()
+
+
+def test_legacy_yaml_keys_are_accepted(tmp_path, monkeypatch):
+    legacy_yaml = tmp_path / "Legacy_Chapter.yaml"
+    legacy_yaml.write_text(
+        """
+macro_topic: "Legacy Chapter"
+order: 5
+keyboard_type: "default"
+micro_topics:
+  - order: 10
+    name: "Legacy Skill"
+    levels:
+      - level: 1
+        name: "Lvl 1"
+        function: "frac_write_1"
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
+    loader._load_curriculum_store.cache_clear()
+
+    curriculum = loader.get_curriculum()
+    assert 5 in curriculum
+    assert curriculum[5][0]["topic_id"] == 10

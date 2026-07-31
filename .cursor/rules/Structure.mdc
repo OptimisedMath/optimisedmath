@@ -1,5 +1,5 @@
 ---
-description: Curriculum hierarchy (Macro/Micro/Level), Dynamic Mastery Loop rules ("Power of 3" streak logic, ABCD to Text pipeline), Answer Taxonomy (Traps vs Wrong Answers), and Fast API/Next.js client-server boundary rules.
+description: Curriculum hierarchy (Chapter/Topic/Level), Dynamic Mastery Loop rules ("Power of 3" streak logic, ABCD to Text pipeline), Answer Taxonomy (Traps vs Wrong Answers), and Fast API/Next.js client-server boundary rules.
 globs: backend/macro_topics/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/curriculum_loader.py,backend/navigation.py,backend/state_manager.py,backend/models.py
 alwaysApply: false
 ---
@@ -13,21 +13,24 @@ alwaysApply: false
 
 The curriculum is organized into a three-tier nesting system to ensure granular progress tracking and mastery.
 
-- **Macro Topic:** The broad mathematical domain (e.g., *Fractions*).
-- **Micro Topic:** A specific skill set within a Macro Topic (e.g., *Adding Fractions with Different Denominators*).
-- **Level:** The difficulty staging within a Micro Topic (e.g., Level 1, Level 2, Level 3).
+- **Chapter:** The broad mathematical domain (e.g., *Fractions*).
+- **Topic:** A specific skill set within a Chapter (e.g., *Adding Fractions with Different Denominators*).
+- **Level:** The difficulty staging within a Topic (e.g., Level 1, Level 2, Level 3).
+
+Session navigation uses numeric IDs: `selected_chapter_id`, `selected_topic_id`, `selected_level`.
 
 ---
 
 ## 1b. Curriculum YAML (`backend/data/`)
 
-One YAML file per macro topic. Root keys: `macro_topic`, `order` (macro dropdown sort), `keyboard_type`, `micro_topics`.
+One YAML file per chapter. Root keys: `chapter`, `id`, `keyboard_type`, `topics`.
 
-- Filename must be `{macro_topic with spaces as underscores}.yaml`
-- Each `micro_topics[]` entry: `order`, `name`, optional `text_mode_disabled`, `levels[]`
+- Filename must be `{chapter with spaces as underscores}.yaml`
+- Each `topics[]` entry: `id`, `name`, optional `text_mode_disabled`, `levels[]`
 - Each level: `level`, `name`, `function` (generator name), optional `published`, `traps`
 - Generators are public functions defined in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; private helpers use `_` prefix)
 - Loaded and validated by `backend/curriculum_loader.py`
+- Legacy keys (`macro_topic`, `micro_topics`, `order`) are accepted with deprecation warnings during migration
 
 ---
 

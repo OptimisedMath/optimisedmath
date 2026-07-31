@@ -5,7 +5,7 @@ import sqlite3
 from typing import TypedDict
 
 from backend.config import DB_PATH
-from backend.models import GameState, MacroTopicProgress
+from backend.models import ChapterProgress, GameState
 
 # --- Types ---
 
@@ -13,10 +13,10 @@ from backend.models import GameState, MacroTopicProgress
 class UserData(TypedDict):
     xp: int
     streak: int
-    selected_macro: str | None
-    selected_micro_topic_order: int | None
+    selected_chapter_id: int | None
+    selected_topic_id: int | None
     selected_level: int
-    macro_progress: dict[str, MacroTopicProgress]
+    chapter_progress: dict[int, ChapterProgress]
 
 # --- Connection ---
 
@@ -32,6 +32,85 @@ def get_connection() -> sqlite3.Connection:
     _configure_connection(conn)
     return conn
 
+
+def _user_column_names(conn: sqlite3.Connection) -> set[str]:
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(users)")
+    return {row[1] for row in cursor.fetchall()}
+
+
+def _migrate_users_schema(conn: sqlite3.Connection) -> None:
+    """Migrate legacy macro/micro columns to chapter/topic ids."""
+    from backend.curriculum_loader import get_chapter_id_by_name
+
+    columns = _user_column_names(conn)
+    cursor = conn.cursor()
+
+    if "selected_chapter_id" not in columns:
+        conn.execute("ALTER TABLE users ADD COLUMN selected_chapter_id INTEGER")
+
+    if "selected_topic_id" not in columns:
+        if "selected_micro_topic_order" in columns:
+            conn.execute(
+                "ALTER TABLE users RENAME COLUMN selected_micro_topic_order TO selected_topic_id"
+            )
+        else:
+            conn.execute("ALTER TABLE users ADD COLUMN selected_topic_id INTEGER")
+
+    columns = _user_column_names(conn)
+    if "selected_macro" in columns:
+        cursor.execute(
+            "SELECT username, selected_macro, selected_chapter_id FROM users"
+        )
+        for username, macro_name, existing_id in cursor.fetchall():
+            if existing_id is not None:
+                continue
+            if macro_name:
+                chapter_id = get_chapter_id_by_name(str(macro_name))
+                if chapter_id is not None:
+                    cursor.execute(
+                        "UPDATE users SET selected_chapter_id = ? WHERE username = ?",
+                        (chapter_id, username),
+                    )
+        try:
+            conn.execute("ALTER TABLE users DROP COLUMN selected_macro")
+        except sqlite3.OperationalError:
+            pass
+
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, progress_json FROM users WHERE progress_json IS NOT NULL")
+    for username, progress_json in cursor.fetchall():
+        if not progress_json:
+            continue
+        raw_progress = json.loads(progress_json)
+        if not isinstance(raw_progress, dict):
+            continue
+        needs_migration = any(
+            not str(key).isdigit()
+            or (
+                isinstance(value, dict)
+                and "unlocked_micro_topic_order" in value
+            )
+            for key, value in raw_progress.items()
+        )
+        if not needs_migration:
+            continue
+        migrated_state = GameState.model_validate(
+            {"username": username, "chapter_progress": raw_progress}
+        )
+        progress_str = json.dumps(
+            {
+                str(k): v.model_dump(mode="json")
+                for k, v in migrated_state.chapter_progress.items()
+            }
+        )
+        cursor.execute(
+            "UPDATE users SET progress_json = ? WHERE username = ?",
+            (progress_str, username),
+        )
+
+    conn.commit()
+
 # --- Schema ---
 
 
@@ -46,8 +125,8 @@ def init_db() -> None:
                 username TEXT PRIMARY KEY,
                 xp INTEGER DEFAULT 0,
                 streak INTEGER DEFAULT 0,
-                selected_macro TEXT,
-                selected_micro_topic_order INTEGER,
+                selected_chapter_id INTEGER,
+                selected_topic_id INTEGER,
                 selected_level INTEGER,
                 progress_json TEXT
             )
@@ -87,6 +166,7 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_logs(timestamp)"
         )
+        _migrate_users_schema(conn)
         conn.commit()
 
 # --- Sessions ---
@@ -137,32 +217,43 @@ def load_user(username: str) -> UserData | None:
     """Loads a user's state. Returns None if the user doesn't exist."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT xp, streak, selected_macro, selected_micro_topic_order,
-                   selected_level, progress_json
-            FROM users WHERE username = ?
-            """,
-            (username,),
-        )
+        columns = _user_column_names(conn)
+        if "selected_chapter_id" in columns:
+            cursor.execute(
+                """
+                SELECT xp, streak, selected_chapter_id, selected_topic_id,
+                       selected_level, progress_json
+                FROM users WHERE username = ?
+                """,
+                (username,),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT xp, streak, selected_macro, selected_micro_topic_order,
+                       selected_level, progress_json
+                FROM users WHERE username = ?
+                """,
+                (username,),
+            )
         row = cursor.fetchone()
 
         if row:
             raw_progress = json.loads(row[5]) if row[5] else {}
-            macro_progress: dict[str, MacroTopicProgress] = {}
-            for macro, prog_data in raw_progress.items():
-                if isinstance(prog_data, dict):
-                    macro_progress[macro] = MacroTopicProgress(**prog_data)
-                else:
-                    macro_progress[macro] = prog_data
-
+            migrated = GameState.model_validate(
+                {
+                    "selected_chapter_id": row[2],
+                    "selected_topic_id": row[3],
+                    "chapter_progress": raw_progress,
+                }
+            )
             return {
                 "xp": row[0],
                 "streak": row[1],
-                "selected_macro": row[2],
-                "selected_micro_topic_order": row[3],
+                "selected_chapter_id": migrated.selected_chapter_id,
+                "selected_topic_id": migrated.selected_topic_id,
                 "selected_level": row[4],
-                "macro_progress": macro_progress,
+                "chapter_progress": migrated.chapter_progress,
             }
         return None
 
@@ -172,21 +263,24 @@ def save_user(username: str, state: GameState) -> None:
     with get_connection() as conn:
         cursor = conn.cursor()
         progress_str = json.dumps(
-            {k: v.model_dump(mode="json") for k, v in state.macro_progress.items()}
+            {
+                str(k): v.model_dump(mode="json")
+                for k, v in state.chapter_progress.items()
+            }
         )
 
         cursor.execute(
             """
             INSERT INTO users (
-                username, xp, streak, selected_macro,
-                selected_micro_topic_order, selected_level, progress_json
+                username, xp, streak, selected_chapter_id,
+                selected_topic_id, selected_level, progress_json
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
                 xp=excluded.xp,
                 streak=excluded.streak,
-                selected_macro=excluded.selected_macro,
-                selected_micro_topic_order=excluded.selected_micro_topic_order,
+                selected_chapter_id=excluded.selected_chapter_id,
+                selected_topic_id=excluded.selected_topic_id,
                 selected_level=excluded.selected_level,
                 progress_json=excluded.progress_json
         """,
@@ -194,8 +288,8 @@ def save_user(username: str, state: GameState) -> None:
                 username,
                 state.xp,
                 state.streak,
-                state.selected_macro,
-                state.selected_micro_topic_order,
+                state.selected_chapter_id,
+                state.selected_topic_id,
                 state.selected_level,
                 progress_str,
             ),
@@ -208,8 +302,8 @@ def save_user(username: str, state: GameState) -> None:
 def log_telemetry(
     session_id: str,
     username: str,
-    macro_topic: str,
-    micro_topic: str,
+    chapter_name: str,
+    topic_name: str,
     level_number: int,
     is_text_mode: bool,
     is_correct: bool,
@@ -231,8 +325,8 @@ def log_telemetry(
             (
                 session_id,
                 username,
-                macro_topic,
-                micro_topic,
+                chapter_name,
+                topic_name,
                 level_number,
                 is_text_mode,
                 trap_id,

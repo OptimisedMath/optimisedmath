@@ -14,11 +14,11 @@ import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
 import { Spinner } from '@/components/ui/spinner';
 import type { GameState, Feedback, SubmitAnswerHandler, SessionNavigateRequest } from '@/lib/types';
 
-const PREFERRED_MACRO = 'Ułamki Zwykłe';
+const PREFERRED_CHAPTER_ID = 10;
 
 type NavigateIntent = Pick<
   SessionNavigateRequest,
-  'selected_macro' | 'selected_micro_topic_order' | 'selected_level'
+  'selected_chapter_id' | 'selected_topic_id' | 'selected_level'
 >;
 
 export default function GameArena() {
@@ -88,7 +88,7 @@ export default function GameArena() {
       try {
         const sessionResponse = await startSession({
           username: storedUsername,
-          selected_macro: PREFERRED_MACRO,
+          selected_chapter_id: PREFERRED_CHAPTER_ID,
         });
         if (!isMounted) return;
 
@@ -238,9 +238,9 @@ export default function GameArena() {
 
     try {
       if (gameState.topic_completed) {
-        const macro = gameState.selected_macro!;
-        const nextOrder = gameState.macro_progress[macro]?.unlocked_micro_topic_order;
-        if (nextOrder === undefined) return;
+        const chapterId = gameState.selected_chapter_id!;
+        const nextTopicId = gameState.chapter_progress[chapterId]?.unlocked_topic_id;
+        if (nextTopicId === undefined) return;
 
         setIsNavigating(true);
         setError(null);
@@ -248,8 +248,8 @@ export default function GameArena() {
         try {
           const nextState = await navigateSession({
             session_id: gameState.session_id,
-            selected_macro: macro,
-            selected_micro_topic_order: nextOrder,
+            selected_chapter_id: chapterId,
+            selected_topic_id: nextTopicId,
             selected_level: 1,
           });
 
@@ -379,14 +379,18 @@ export default function GameArena() {
       {gameState.navigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
           <ProgressBar
-            type="macro"
-            selectedMacro={gameState.selected_macro}
-            macroProgress={gameState.navigation.macro_progress}
+            type="chapter"
+            selectedChapterName={
+              gameState.navigation.available_chapters.find(
+                (chapter) => chapter.chapter_id === gameState.selected_chapter_id
+              )?.name
+            }
+            chapterProgress={gameState.navigation.chapter_progress}
           />
           <ProgressBar
-            type="micro"
+            type="topic"
             selectedLevel={gameState.selected_level}
-            microProgress={gameState.navigation.micro_progress}
+            topicProgress={gameState.navigation.topic_progress}
             currentTopicName={gameState.navigation.current_topic_name}
           />
         </div>
@@ -408,9 +412,13 @@ export default function GameArena() {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-300" />
         <ProblemDisplay
           problem={problem}
-          selectedMacro={gameState.selected_macro}
+          selectedChapterName={
+            gameState.navigation?.available_chapters.find(
+              (chapter) => chapter.chapter_id === gameState.selected_chapter_id
+            )?.name ?? null
+          }
           selectedLevel={gameState.selected_level}
-          microTopicName={gameState.navigation?.current_topic_name ?? 'Current topic'}
+          topicName={gameState.navigation?.current_topic_name ?? 'Aktualny temat'}
           isLoading={!problem}
         />
 

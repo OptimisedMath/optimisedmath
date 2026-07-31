@@ -14,12 +14,7 @@ import backend.navigation as navigation
 import backend.state_manager as state_manager
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
-from backend.curriculum_loader import (
-    MicroTopicDict,
-    TopicMeta,
-    get_micro_topic_name,
-    get_topic_map,
-)
+from backend.curriculum_loader import TopicDict, TopicMeta, get_chapters, get_topics_by_id
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
@@ -82,7 +77,7 @@ def _public_problem(problem: ProblemDict, state: GameState) -> dict[str, Any]:
     return public
 
 
-def _respond(state: GameState, curriculum: dict[str, list[MicroTopicDict]]) -> GameState:
+def _respond(state: GameState, curriculum: dict[int, list[TopicDict]]) -> GameState:
     """Build an API-safe GameState with navigation attached."""
     response = state.for_response(_public_problem)
     response.navigation = navigation.build_navigation_view(response, curriculum)
@@ -91,27 +86,27 @@ def _respond(state: GameState, curriculum: dict[str, list[MicroTopicDict]]) -> G
 
 def _validate_unlocked_navigation(
     state: GameState,
-    macro_topic: str,
-    micro_topic_order: int,
+    chapter_id: int,
+    topic_id: int,
     selected_level: int,
-    topic_map: dict[int, TopicMeta],
+    topics_by_id: dict[int, TopicMeta],
 ) -> None:
-    """Reject navigation to locked micro-topics or levels unless admin."""
+    """Reject navigation to locked topics or levels unless admin."""
     if config.is_admin_user(state.username):
         return
 
-    progress = state.macro_progress.get(macro_topic)
-    first_order = min(topic_map) if topic_map else 1
-    unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
+    progress = state.chapter_progress.get(chapter_id)
+    first_topic_id = min(topics_by_id) if topics_by_id else 1
+    unlocked_topic_id = progress.unlocked_topic_id if progress else first_topic_id
     unlocked_level = progress.unlocked_level if progress else 1
 
-    if micro_topic_order > unlocked_order:
+    if topic_id > unlocked_topic_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Topic is locked",
         )
 
-    if micro_topic_order == unlocked_order and selected_level > unlocked_level:
+    if topic_id == unlocked_topic_id and selected_level > unlocked_level:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Level is locked",
@@ -170,7 +165,7 @@ async def root() -> dict[str, str]:
 
 @app.get("/curriculum", response_model=CurriculumResponse, tags=["Curriculum"])
 async def curriculum_index() -> CurriculumResponse:
-    """Return available macro topics and their micro-topic metadata."""
+    """Return available chapters and their topic metadata."""
     return engine.get_curriculum_response()
 
 
@@ -181,35 +176,35 @@ async def curriculum_index() -> CurriculumResponse:
 async def session_start(request: SessionStartRequest) -> GameState:
     """Create a session, load user progress, and return GameState with navigation."""
     curriculum = engine.get_curriculum()
-    macro_topics = list(curriculum.keys())
+    chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
 
-    if not macro_topics:
+    if not chapter_ids:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="No curriculum data available",
         )
 
-    if request.selected_macro and request.selected_macro not in macro_topics:
+    if request.selected_chapter_id is not None and request.selected_chapter_id not in curriculum:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Macro topic '{request.selected_macro}' not found in curriculum",
+            detail=f"Chapter id {request.selected_chapter_id} not found in curriculum",
         )
 
     state = GameState()
-    state_manager.StateManager.init_defaults(state, macro_topics, curriculum)
+    state_manager.StateManager.init_defaults(state, chapter_ids, curriculum)
     state_manager.StateManager.load_profile(
-        state, request.username, macro_topics, curriculum
+        state, request.username, chapter_ids, curriculum
     )
     navigation.clamp_selected_level(state, curriculum)
 
-    if request.selected_macro:
-        prev_macro = state.selected_macro
-        state.selected_macro = request.selected_macro
-        if request.selected_macro != prev_macro:
-            _, micro_order, level = navigation.resolve_macro_change(
-                state, curriculum, request.selected_macro
+    if request.selected_chapter_id is not None:
+        prev_chapter_id = state.selected_chapter_id
+        state.selected_chapter_id = request.selected_chapter_id
+        if request.selected_chapter_id != prev_chapter_id:
+            _, topic_id, level = navigation.resolve_chapter_change(
+                state, curriculum, request.selected_chapter_id
             )
-            state.selected_micro_topic_order = micro_order
+            state.selected_topic_id = topic_id
             state.selected_level = level
 
     ACTIVE_SESSIONS[state.session_id] = state
@@ -221,56 +216,55 @@ async def session_start(request: SessionStartRequest) -> GameState:
 
 @app.post("/session/navigate", response_model=GameState, tags=["Session"])
 async def session_navigate(request: SessionNavigateRequest) -> GameState:
-    """Change macro topic, micro-topic, or level with unlock validation."""
+    """Change chapter, topic, or level with unlock validation."""
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
-    macro_topic, micro_topic_order, selected_level = navigation.resolve_navigate_request(
+    chapter_id, topic_id, selected_level = navigation.resolve_navigate_request(
         state, curriculum, request
     )
 
-    if not macro_topic or macro_topic not in curriculum:
+    if chapter_id not in curriculum:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Macro topic '{macro_topic}' not found in curriculum",
+            detail=f"Chapter id {chapter_id} not found in curriculum",
         )
 
-    topic_list = curriculum[macro_topic]
-    if not topic_list:
+    chapter_topics = curriculum[chapter_id]
+    if not chapter_topics:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Macro topic '{macro_topic}' has no available topics",
+            detail=f"Chapter id {chapter_id} has no available topics",
         )
 
-    available_orders = [int(t["micro_topic_order"]) for t in topic_list]
-    if micro_topic_order not in available_orders:
+    available_topic_ids = [int(topic_entry["topic_id"]) for topic_entry in chapter_topics]
+    if topic_id not in available_topic_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Micro-topic order {micro_topic_order} not found in curriculum",
+            detail=f"Topic id {topic_id} not found in curriculum",
         )
 
-    topic_map = get_topic_map(macro_topic)
-    selected_topic = topic_map[micro_topic_order]
-    max_level = int(selected_topic["max_level"])
+    topics_by_id = get_topics_by_id(chapter_id)
+    selected_topic_meta = topics_by_id[topic_id]
+    max_level = int(selected_topic_meta["max_level"])
 
     if selected_level < 1 or selected_level > max_level:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f"Level {selected_level} is not available for micro-topic "
-                f"order {micro_topic_order}"
+                f"Level {selected_level} is not available for topic id {topic_id}"
             ),
         )
 
     _validate_unlocked_navigation(
-        state, macro_topic, micro_topic_order, selected_level, topic_map
+        state, chapter_id, topic_id, selected_level, topics_by_id
     )
 
     state_manager.StateManager.navigate_to(
         state,
-        macro=macro_topic,
-        micro_topic_order=micro_topic_order,
+        chapter_id=chapter_id,
+        topic_id=topic_id,
         level=selected_level,
-        topic_map=topic_map,
+        topics_by_id=topics_by_id,
     )
 
     return _respond(state, curriculum)
@@ -281,8 +275,8 @@ async def session_reset(request: SessionResetRequest) -> GameState:
     """Hard-reset session progress and return a fresh GameState."""
     state = _get_session(request.session_id)
     curriculum = engine.get_curriculum()
-    macro_topics = list(curriculum.keys())
-    state_manager.StateManager.hard_reset(state, macro_topics, curriculum)
+    chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
+    state_manager.StateManager.hard_reset(state, chapter_ids, curriculum)
     return _respond(state, curriculum)
 
 
@@ -294,31 +288,30 @@ async def problem_next(session_id: str) -> ProblemResponse:
     """Generate the next problem, dedupe recent instances, and update input mode."""
     state = _get_session(session_id)
     curriculum = engine.get_curriculum()
-    macro_topic = state.selected_macro
-    micro_topic_order = state.selected_micro_topic_order
+    chapter_id = state.selected_chapter_id
+    topic_id = state.selected_topic_id
 
-    if not macro_topic or micro_topic_order is None:
+    if chapter_id is None or topic_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Session has no macro/micro-topic selected",
+            detail="Session has no chapter/topic selected",
         )
 
-    if macro_topic not in curriculum:
+    if chapter_id not in curriculum:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Macro topic '{macro_topic}' not found in curriculum",
+            detail=f"Chapter id {chapter_id} not found in curriculum",
         )
 
-    micro_topic = get_micro_topic_name(macro_topic, micro_topic_order)
-    if not micro_topic:
+    topics_by_id = get_topics_by_id(chapter_id)
+    if topic_id not in topics_by_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Micro-topic order {micro_topic_order} not found in curriculum",
+            detail=f"Topic id {topic_id} not found in curriculum",
         )
 
-    topic_map = get_topic_map(macro_topic)
     state.current_input_mode = state_manager.StateManager._resolve_input_mode(
-        state, topic_map
+        state, topics_by_id
     )
 
     level = state.selected_level
@@ -327,7 +320,7 @@ async def problem_next(session_id: str) -> ProblemResponse:
 
     for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
         try:
-            candidate = engine.generate_level_problem(macro_topic, micro_topic, level)
+            candidate = engine.generate_level_problem(chapter_id, topic_id, level)
         except engine.ProblemGenerationError as exc:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -346,7 +339,7 @@ async def problem_next(session_id: str) -> ProblemResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
                 f"Could not generate problem for "
-                f"{macro_topic}/{micro_topic}/{level}"
+                f"chapter {chapter_id}/topic {topic_id}/level {level}"
             ),
         )
 
@@ -398,15 +391,15 @@ async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionRespons
         )
 
     curriculum = engine.get_curriculum()
-    macro_topic = state.selected_macro
+    chapter_id = state.selected_chapter_id
 
-    if macro_topic not in curriculum:
+    if chapter_id is None or chapter_id not in curriculum:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Macro topic '{macro_topic}' not found",
+            detail=f"Chapter id {chapter_id} not found",
         )
 
-    topic_map = get_topic_map(macro_topic)
+    topics_by_id = get_topics_by_id(chapter_id)
     user_input = (
         clean_mobile_input(request.user_input)
         if request.is_text_mode
@@ -415,7 +408,7 @@ async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionRespons
 
     try:
         eval_result = state_manager.StateManager.process_submission(
-            state, problem, user_input, request.is_text_mode, topic_map
+            state, problem, user_input, request.is_text_mode, topics_by_id
         )
     except Exception as e:
         print(f"Error in process_submission: {e}")
@@ -471,19 +464,19 @@ async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
     )
 
     curriculum = engine.get_curriculum()
-    macro_topic = state.selected_macro
+    chapter_id = state.selected_chapter_id
 
-    if macro_topic not in curriculum:
+    if chapter_id is None or chapter_id not in curriculum:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Macro topic '{macro_topic}' not found",
+            detail=f"Chapter id {chapter_id} not found",
         )
 
-    topic_map = get_topic_map(macro_topic)
+    topics_by_id = get_topics_by_id(chapter_id)
 
     try:
         eval_result = state_manager.StateManager.process_submission(
-            state, problem, user_input, is_text_mode, topic_map
+            state, problem, user_input, is_text_mode, topics_by_id
         )
     except Exception as e:
         print(f"Error in auto-solve process_submission: {e}")

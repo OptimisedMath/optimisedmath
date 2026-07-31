@@ -9,32 +9,40 @@ from typing import Any, Callable, Dict, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 import backend.config as config
+from backend.curriculum_loader import get_chapter_id_by_name
 
 # --- Progress & navigation ---
 
 
-class MacroTopicProgress(BaseModel):
-    """Progress for a single macro topic."""
+class ChapterProgress(BaseModel):
+    """Progress for a single chapter."""
 
-    unlocked_micro_topic_order: int = Field(
+    unlocked_topic_id: int = Field(
         default=1,
-        description="Highest micro-topic order unlocked for this macro topic",
+        description="Highest topic id unlocked for this chapter",
     )
     unlocked_level: int = Field(
         default=1,
-        description="Highest level unlocked for the current micro-topic",
+        description="Highest level unlocked for the current topic",
     )
 
 
-class NavigationMicroTopicOption(BaseModel):
-    """One micro-topic entry in navigation dropdowns."""
+class NavigationChapterOption(BaseModel):
+    """One chapter entry in navigation dropdowns."""
 
-    micro_topic_order: int
+    chapter_id: int
+    name: str
+
+
+class NavigationTopicOption(BaseModel):
+    """One topic entry in navigation dropdowns."""
+
+    topic_id: int
     name: str
 
 
 class NavigationProgress(BaseModel):
-    """Completed vs total counts for macro or micro progress bars."""
+    """Completed vs total counts for chapter or topic progress bars."""
 
     completed: int
     total: int
@@ -44,14 +52,14 @@ class NavigationProgress(BaseModel):
 class NavigationView(BaseModel):
     """Computed navigation state attached to every GameState API response."""
 
-    macro_topics: list[str]
+    available_chapters: list[NavigationChapterOption]
     current_topic_name: Optional[str] = None
-    available_micro_topics: list[NavigationMicroTopicOption]
+    available_topics: list[NavigationTopicOption]
     available_levels: list[int]
     has_next_unlocked_topic: bool
     text_mode_disabled: bool
-    macro_progress: Optional[NavigationProgress] = None
-    micro_progress: Optional[NavigationProgress] = None
+    chapter_progress: Optional[NavigationProgress] = None
+    topic_progress: Optional[NavigationProgress] = None
 
 
 # --- Session state ---
@@ -68,8 +76,8 @@ class GameState(BaseModel):
     flawless_eligible: bool = True
     max_streak: int = Field(default=3, ge=1)
 
-    selected_macro: Optional[str] = None
-    selected_micro_topic_order: Optional[int] = None
+    selected_chapter_id: Optional[int] = None
+    selected_topic_id: Optional[int] = None
     selected_level: int = Field(default=1, ge=1)
 
     problem_answered: bool = False
@@ -80,7 +88,7 @@ class GameState(BaseModel):
     feedback_msg: str = ""
     show_celebration: bool = False
 
-    macro_progress: Dict[str, MacroTopicProgress] = Field(default_factory=dict)
+    chapter_progress: Dict[int, ChapterProgress] = Field(default_factory=dict)
 
     current_problem: Optional[Dict[str, Any]] = None
     problem_start_time: Optional[float] = None
@@ -93,7 +101,7 @@ class GameState(BaseModel):
     can_advance: bool = False
     admin_mode: bool = Field(
         default=False,
-        description="Whether the user has admin privileges (all topics + auto-solve)",
+        description="Whether the user has admin privileges (all chapters + auto-solve)",
     )
     navigation: Optional[NavigationView] = Field(
         default=None,
@@ -108,8 +116,8 @@ class GameState(BaseModel):
                 "xp": 1500,
                 "streak": 3,
                 "flawless_eligible": True,
-                "selected_macro": "Ułamki Zwykłe",
-                "selected_micro_topic_order": 20,
+                "selected_chapter_id": 10,
+                "selected_topic_id": 20,
                 "selected_level": 2,
                 "problem_answered": False,
                 "current_input_mode": "radio",
@@ -117,9 +125,9 @@ class GameState(BaseModel):
                 "feedback_type": None,
                 "feedback_msg": "",
                 "show_celebration": False,
-                "macro_progress": {
-                    "Ułamki Zwykłe": {
-                        "unlocked_micro_topic_order": 30,
+                "chapter_progress": {
+                    10: {
+                        "unlocked_topic_id": 30,
                         "unlocked_level": 2,
                     },
                 },
@@ -129,10 +137,77 @@ class GameState(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _accept_legacy_progress_key(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "progress" in data and "macro_progress" not in data:
-            data = dict(data)
-            data["macro_progress"] = data.pop("progress")
+    def _migrate_legacy_storage(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        data = dict(data)
+
+        if "progress" in data and "chapter_progress" not in data:
+            data["chapter_progress"] = data.pop("progress")
+
+        if "macro_progress" in data and "chapter_progress" not in data:
+            raw_progress = data.pop("macro_progress")
+            migrated: dict[int, ChapterProgress] = {}
+            for key, value in raw_progress.items():
+                chapter_id: int | None
+                if isinstance(key, int):
+                    chapter_id = key
+                elif isinstance(key, str):
+                    chapter_id = get_chapter_id_by_name(key)
+                else:
+                    continue
+                if chapter_id is None:
+                    continue
+                if isinstance(value, dict):
+                    unlocked_topic_id = value.get("unlocked_topic_id")
+                    if unlocked_topic_id is None:
+                        unlocked_topic_id = value.get("unlocked_micro_topic_order", 1)
+                    migrated[chapter_id] = ChapterProgress(
+                        unlocked_topic_id=int(unlocked_topic_id),
+                        unlocked_level=int(value.get("unlocked_level", 1)),
+                    )
+                else:
+                    migrated[chapter_id] = value
+            data["chapter_progress"] = migrated
+
+        if "selected_chapter_id" not in data:
+            if "selected_macro_id" in data:
+                data["selected_chapter_id"] = data.pop("selected_macro_id")
+            elif "selected_macro" in data and data["selected_macro"]:
+                chapter_id = get_chapter_id_by_name(str(data.pop("selected_macro")))
+                if chapter_id is not None:
+                    data["selected_chapter_id"] = chapter_id
+
+        if "selected_topic_id" not in data:
+            if "selected_micro_id" in data:
+                data["selected_topic_id"] = data.pop("selected_micro_id")
+            elif "selected_micro_topic_order" in data:
+                data["selected_topic_id"] = data.pop("selected_micro_topic_order")
+
+        if "chapter_progress" in data and isinstance(data["chapter_progress"], dict):
+            chapter_progress = data["chapter_progress"]
+            needs_migration = any(
+                isinstance(entry, dict) and "unlocked_micro_topic_order" in entry
+                for entry in chapter_progress.values()
+            )
+            if needs_migration:
+                migrated_progress: dict[int, ChapterProgress] = {}
+                for key, value in chapter_progress.items():
+                    chapter_id = int(key) if not isinstance(key, int) else key
+                    if isinstance(value, dict):
+                        unlocked_topic_id = value.get(
+                            "unlocked_topic_id",
+                            value.get("unlocked_micro_topic_order", 1),
+                        )
+                        migrated_progress[chapter_id] = ChapterProgress(
+                            unlocked_topic_id=int(unlocked_topic_id),
+                            unlocked_level=int(value.get("unlocked_level", 1)),
+                        )
+                    else:
+                        migrated_progress[chapter_id] = value
+                data["chapter_progress"] = migrated_progress
+
         return data
 
     @classmethod
@@ -167,15 +242,15 @@ class SessionStartRequest(BaseModel):
     """Start or resume a session for a username."""
 
     username: str
-    selected_macro: Optional[str] = None
+    selected_chapter_id: Optional[int] = None
 
 
 class SessionNavigateRequest(BaseModel):
     """Partial navigation intent; omitted fields keep current selection."""
 
     session_id: str
-    selected_macro: Optional[str] = None
-    selected_micro_topic_order: Optional[int] = None
+    selected_chapter_id: Optional[int] = None
+    selected_topic_id: Optional[int] = None
     selected_level: Optional[int] = Field(default=None, ge=1)
 
 
@@ -200,20 +275,27 @@ class ProblemSubmissionRequest(BaseModel):
 # --- Response models ---
 
 
-class CurriculumTopic(BaseModel):
-    """One micro-topic in the curriculum index response."""
+class TopicSummary(BaseModel):
+    """One topic in the curriculum index response."""
 
-    micro_topic_order: int
+    topic_id: int
     name: str
     max_level: int
     text_mode_disabled: bool = False
 
 
-class CurriculumResponse(BaseModel):
-    """Full curriculum metadata for macro and micro topics."""
+class ChapterSummary(BaseModel):
+    """One chapter in the curriculum index response."""
 
-    macro_topics: list[str]
-    micro_topics: Dict[str, list[CurriculumTopic]]
+    chapter_id: int
+    name: str
+    topics: list[TopicSummary]
+
+
+class CurriculumResponse(BaseModel):
+    """Full curriculum metadata for chapters and topics."""
+
+    chapters: list[ChapterSummary]
 
 
 class ProblemResponse(BaseModel):

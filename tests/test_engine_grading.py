@@ -166,20 +166,20 @@ class TestFormatMismatch:
 
 class TestGenerateLevelProblem:
     def test_generates_real_fraction_problem(self):
-        problem = generate_level_problem("Ułamki Zwykłe", "Zapisywanie", 1)
+        problem = generate_level_problem(10, 10, 1)
         assert problem["question"]
         assert problem["correct"]
         assert problem["problem_id"]
         assert "error" not in problem
 
-    def test_missing_macro_raises(self):
+    def test_missing_chapter_raises(self):
         with pytest.raises(ProblemGenerationError, match="Missing curriculum"):
-            generate_level_problem("Unknown Macro", "Zapisywanie", 1)
+            generate_level_problem(999, 10, 1)
 
-    def test_missing_micro_topic_raises(self):
-        with pytest.raises(ProblemGenerationError, match="Micro topic"):
-            generate_level_problem("Ułamki Zwykłe", "Does Not Exist", 1)
+    def test_missing_topic_raises(self):
+        with pytest.raises(ProblemGenerationError, match="Topic id"):
+            generate_level_problem(10, 99999, 1)
 
     def test_missing_level_raises(self):
         with pytest.raises(ProblemGenerationError, match="Level 999"):
-            generate_level_problem("Ułamki Zwykłe", "Zapisywanie", 999)
+            generate_level_problem(10, 10, 999)

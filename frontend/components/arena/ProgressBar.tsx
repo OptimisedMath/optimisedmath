@@ -2,29 +2,29 @@ import { memo } from 'react';
 import type { NavigationProgress } from '@/lib/types';
 
 interface ProgressBarProps {
-  type: 'macro' | 'micro';
-  selectedMacro?: string | null;
+  type: 'chapter' | 'topic';
+  selectedChapterName?: string | null;
   selectedLevel?: number;
-  macroProgress?: NavigationProgress | null;
-  microProgress?: NavigationProgress | null;
+  chapterProgress?: NavigationProgress | null;
+  topicProgress?: NavigationProgress | null;
   currentTopicName?: string | null;
 }
 
 function ProgressBar({
   type,
-  selectedMacro,
+  selectedChapterName,
   selectedLevel,
-  macroProgress,
-  microProgress,
+  chapterProgress,
+  topicProgress,
   currentTopicName,
 }: ProgressBarProps) {
-  if (type === 'macro' && selectedMacro && macroProgress) {
-    const { completed, total, percentage } = macroProgress;
+  if (type === 'chapter' && selectedChapterName && chapterProgress) {
+    const { completed, total, percentage } = chapterProgress;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">🏆 {selectedMacro}</span>
+          <span className="truncate font-medium">🏆 {selectedChapterName}</span>
           <span className="shrink-0 tabular-nums">{completed}/{total} tematów ukończonych</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -37,14 +37,14 @@ function ProgressBar({
     );
   }
 
-  if (type === 'micro' && microProgress && selectedLevel !== undefined) {
-    const { total, percentage } = microProgress;
+  if (type === 'topic' && topicProgress && selectedLevel !== undefined) {
+    const { total, percentage } = topicProgress;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">📚 {currentTopicName || 'Current topic'}</span>
-          <span className="shrink-0 tabular-nums">Level {selectedLevel}/{total}</span>
+          <span className="truncate font-medium">📚 {currentTopicName || 'Aktualny temat'}</span>
+          <span className="shrink-0 tabular-nums">Poziom {selectedLevel}/{total}</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div

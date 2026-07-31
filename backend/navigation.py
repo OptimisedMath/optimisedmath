@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import backend.state_manager as state_manager
-from backend.curriculum_loader import MicroTopicDict
+from backend.curriculum_loader import TopicDict, get_chapters
 from backend.models import (
     GameState,
-    NavigationMicroTopicOption,
+    NavigationChapterOption,
     NavigationProgress,
+    NavigationTopicOption,
     NavigationView,
     SessionNavigateRequest,
 )
@@ -15,81 +16,92 @@ from backend.models import (
 # --- Private helpers ---
 
 
-def _get_topics(curriculum: dict[str, list[MicroTopicDict]], macro: str) -> list[MicroTopicDict]:
-    return curriculum.get(macro, [])
+def _topics_for_chapter(
+    curriculum: dict[int, list[TopicDict]], chapter_id: int
+) -> list[TopicDict]:
+    return curriculum.get(chapter_id, [])
 
 
-def _find_topic(topics: list[MicroTopicDict], micro_topic_order: int) -> MicroTopicDict | None:
-    for topic in topics:
-        if int(topic["micro_topic_order"]) == micro_topic_order:
-            return topic
+def _find_topic_by_id(
+    chapter_topics: list[TopicDict], topic_id: int
+) -> TopicDict | None:
+    for topic_entry in chapter_topics:
+        if int(topic_entry["topic_id"]) == topic_id:
+            return topic_entry
     return None
 
 
-def _first_topic_order(topics: list[MicroTopicDict]) -> int:
-    if topics:
-        return int(topics[0]["micro_topic_order"])
+def _first_topic_id(chapter_topics: list[TopicDict]) -> int:
+    if chapter_topics:
+        return int(chapter_topics[0]["topic_id"])
     return 1
 
 
-def _get_unlocked(state: GameState, macro: str, topics: list[MicroTopicDict]) -> tuple[int, int]:
-    progress = state.macro_progress.get(macro)
-    first_order = _first_topic_order(topics)
-    unlocked_order = progress.unlocked_micro_topic_order if progress else first_order
+def _get_unlocked(
+    state: GameState, chapter_id: int, chapter_topics: list[TopicDict]
+) -> tuple[int, int]:
+    progress = state.chapter_progress.get(chapter_id)
+    first_topic_id = _first_topic_id(chapter_topics)
+    unlocked_topic_id = progress.unlocked_topic_id if progress else first_topic_id
     unlocked_level = progress.unlocked_level if progress else 1
-    return unlocked_order, unlocked_level
+    return unlocked_topic_id, unlocked_level
 
 
-def _clamp_level(level: int | None, topic: MicroTopicDict | None) -> int:
-    """Return level capped to the micro-topic's max_level (defensive for stale saves)."""
+def _clamp_level(level: int | None, topic_entry: TopicDict | None) -> int:
+    """Return level capped to the topic's max_level (defensive for stale saves)."""
     effective = level if level is not None else 1
-    max_level = int(topic["max_level"]) if topic else 1
+    max_level = int(topic_entry["max_level"]) if topic_entry else 1
     return min(effective, max_level)
 
 
 def clamp_selected_level(
-    state: GameState, curriculum: dict[str, list[MicroTopicDict]]
+    state: GameState, curriculum: dict[int, list[TopicDict]]
 ) -> None:
-    """Clamp session selected_level to the current micro-topic's max_level."""
-    macro = state.selected_macro
-    if not macro:
+    """Clamp session selected_level to the current topic's max_level."""
+    chapter_id = state.selected_chapter_id
+    if chapter_id is None:
         return
-    topics = _get_topics(curriculum, macro)
-    if not topics:
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    if not chapter_topics:
         return
-    first_topic = topics[0]
-    micro_order = state.selected_micro_topic_order or _first_topic_order(topics)
-    topic = _find_topic(topics, micro_order) or first_topic
-    state.selected_level = _clamp_level(state.selected_level, topic)
+    first_topic_entry = chapter_topics[0]
+    topic_id = state.selected_topic_id or _first_topic_id(chapter_topics)
+    topic_entry = _find_topic_by_id(chapter_topics, topic_id) or first_topic_entry
+    state.selected_level = _clamp_level(state.selected_level, topic_entry)
+
 
 # --- Dropdown builders ---
 
 
 def get_topic_options(
-    topics: list[MicroTopicDict], unlocked_order: int, admin_mode: bool
-) -> list[MicroTopicDict]:
-    """Return micro-topics available in dropdowns, filtered by unlock progress."""
+    chapter_topics: list[TopicDict], unlocked_topic_id: int, admin_mode: bool
+) -> list[TopicDict]:
+    """Return topics available in dropdowns, filtered by unlock progress."""
     if admin_mode:
-        available = topics
+        available = chapter_topics
     else:
-        available = [t for t in topics if int(t["micro_topic_order"]) <= unlocked_order]
+        available = [
+            topic_entry
+            for topic_entry in chapter_topics
+            if int(topic_entry["topic_id"]) <= unlocked_topic_id
+        ]
     if available:
         return available
-    return topics[:1]
+    return chapter_topics[:1]
 
 
 def get_level_limit(
-    selected_topic: MicroTopicDict | None,
-    unlocked_order: int,
+    active_topic_entry: TopicDict | None,
+    unlocked_topic_id: int,
     unlocked_level: int,
     admin_mode: bool,
 ) -> int:
     """Return the highest selectable level for the current unlock state."""
-    if not selected_topic:
+    if not active_topic_entry:
         return 1
-    order = int(selected_topic["micro_topic_order"])
-    max_level = int(selected_topic["max_level"])
-    if admin_mode or order < unlocked_order:
+    topic_id = int(active_topic_entry["topic_id"])
+    max_level = int(active_topic_entry["max_level"])
+    if admin_mode or topic_id < unlocked_topic_id:
         return max_level
     return min(unlocked_level, max_level)
 
@@ -97,151 +109,175 @@ def get_level_limit(
 def get_level_options(level_limit: int) -> list[int]:
     return list(range(1, max(level_limit, 1) + 1))
 
+
 # --- Navigation resolution ---
 
 
-def resolve_macro_change(
-    state: GameState, curriculum: dict[str, list[MicroTopicDict]], next_macro: str
-) -> tuple[str, int, int]:
-    """Pick default micro-topic and level when switching macro topic."""
-    next_topics = _get_topics(curriculum, next_macro)
-    next_macro_progress = state.macro_progress.get(next_macro)
-    next_micro_order = (
-        next_macro_progress.unlocked_micro_topic_order
-        if next_macro_progress
-        else _first_topic_order(next_topics)
+def resolve_chapter_change(
+    state: GameState, curriculum: dict[int, list[TopicDict]], next_chapter_id: int
+) -> tuple[int, int, int]:
+    """Pick default topic and level when switching chapter."""
+    next_chapter_topics = _topics_for_chapter(curriculum, next_chapter_id)
+    next_chapter_progress = state.chapter_progress.get(next_chapter_id)
+    next_topic_id = (
+        next_chapter_progress.unlocked_topic_id
+        if next_chapter_progress
+        else _first_topic_id(next_chapter_topics)
     )
-    next_topic = _find_topic(next_topics, next_micro_order) or (next_topics[0] if next_topics else None)
+    next_topic_entry = (
+        _find_topic_by_id(next_chapter_topics, next_topic_id)
+        or (next_chapter_topics[0] if next_chapter_topics else None)
+    )
     next_level = _clamp_level(
-        next_macro_progress.unlocked_level if next_macro_progress else 1,
-        next_topic,
+        next_chapter_progress.unlocked_level if next_chapter_progress else 1,
+        next_topic_entry,
     )
-    return next_macro, next_micro_order, next_level
+    return next_chapter_id, next_topic_id, next_level
 
 
 def resolve_topic_change(
     state: GameState,
-    curriculum: dict[str, list[MicroTopicDict]],
-    macro: str,
-    next_micro_order: int,
+    curriculum: dict[int, list[TopicDict]],
+    chapter_id: int,
+    next_topic_id: int,
 ) -> tuple[int, int]:
-    """Pick default level when switching micro-topic within a macro."""
-    topics = _get_topics(curriculum, macro)
-    unlocked_order, unlocked_level = _get_unlocked(state, macro, topics)
-    next_topic = _find_topic(topics, next_micro_order)
-    if next_micro_order < unlocked_order:
+    """Pick default level when switching topic within a chapter."""
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    unlocked_topic_id, unlocked_level = _get_unlocked(state, chapter_id, chapter_topics)
+    next_topic_entry = _find_topic_by_id(chapter_topics, next_topic_id)
+    if next_topic_id < unlocked_topic_id:
         next_level = 1
     else:
-        next_level = _clamp_level(unlocked_level, next_topic)
-    return next_micro_order, next_level
+        next_level = _clamp_level(unlocked_level, next_topic_entry)
+    return next_topic_id, next_level
 
 
 def resolve_navigate_request(
     state: GameState,
-    curriculum: dict[str, list[MicroTopicDict]],
+    curriculum: dict[int, list[TopicDict]],
     request: SessionNavigateRequest,
-) -> tuple[str, int, int]:
-    """Resolve partial navigation intents into a full macro/order/level target."""
+) -> tuple[int, int, int]:
+    """Resolve partial navigation intents into a full chapter/topic/level target."""
     if (
-        request.selected_macro is not None
-        and request.selected_macro != state.selected_macro
+        request.selected_chapter_id is not None
+        and request.selected_chapter_id != state.selected_chapter_id
     ):
-        return resolve_macro_change(state, curriculum, request.selected_macro)
+        return resolve_chapter_change(state, curriculum, request.selected_chapter_id)
 
-    macro = request.selected_macro or state.selected_macro
-    if not macro:
-        macro_topics = list(curriculum.keys())
-        macro = macro_topics[0] if macro_topics else ""
+    chapter_id = request.selected_chapter_id or state.selected_chapter_id
+    if chapter_id is None:
+        chapter_summaries = get_chapters()
+        chapter_id = chapter_summaries[0].chapter_id if chapter_summaries else 0
 
-    if request.selected_micro_topic_order is not None:
-        micro_order, level = resolve_topic_change(
-            state, curriculum, macro, int(request.selected_micro_topic_order)
+    if request.selected_topic_id is not None:
+        topic_id, level = resolve_topic_change(
+            state, curriculum, chapter_id, int(request.selected_topic_id)
         )
         if request.selected_level is not None:
             level = int(request.selected_level)
-        return macro, micro_order, level
+        return chapter_id, topic_id, level
 
     if request.selected_level is not None:
-        micro_order = state.selected_micro_topic_order or state_manager.StateManager._get_first_micro_topic_order(
-            curriculum, macro
+        topic_id = state.selected_topic_id or state_manager.StateManager._get_first_topic_id(
+            curriculum, chapter_id
         )
-        return macro, int(micro_order), int(request.selected_level)
+        return chapter_id, int(topic_id), int(request.selected_level)
 
-    micro_order = state.selected_micro_topic_order or state_manager.StateManager._get_first_micro_topic_order(
-        curriculum, macro
+    topic_id = state.selected_topic_id or state_manager.StateManager._get_first_topic_id(
+        curriculum, chapter_id
     )
-    return macro, int(micro_order), int(state.selected_level)
+    return chapter_id, int(topic_id), int(state.selected_level)
+
 
 # --- API view builder ---
 
 
 def build_navigation_view(
-    state: GameState, curriculum: dict[str, list[MicroTopicDict]]
+    state: GameState, curriculum: dict[int, list[TopicDict]]
 ) -> NavigationView:
     """Build dropdown options, progress counts, and level limits for the frontend."""
-    macro_topics = list(curriculum.keys())
-    selected_macro = state.selected_macro or (macro_topics[0] if macro_topics else "")
-    topics = _get_topics(curriculum, selected_macro)
-    first_topic = topics[0] if topics else None
-    first_order = _first_topic_order(topics)
-
-    selected_micro_order = state.selected_micro_topic_order or first_order
-    selected_topic = _find_topic(topics, selected_micro_order) or first_topic
-    selected_level = _clamp_level(state.selected_level, selected_topic)
-
-    unlocked_order, unlocked_level = _get_unlocked(state, selected_macro, topics)
-    admin_mode = state.admin_mode
-
-    available_topics = get_topic_options(topics, unlocked_order, admin_mode)
-    available_micro = [
-        NavigationMicroTopicOption(
-            micro_topic_order=int(t["micro_topic_order"]),
-            name=str(t["name"]),
-        )
-        for t in available_topics
+    chapter_summaries = get_chapters()
+    available_chapters = [
+        NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
+        for chapter in chapter_summaries
     ]
 
-    level_limit = get_level_limit(selected_topic, unlocked_order, unlocked_level, admin_mode)
+    selected_chapter_id = state.selected_chapter_id or (
+        chapter_summaries[0].chapter_id if chapter_summaries else 0
+    )
+    chapter_topics = _topics_for_chapter(curriculum, selected_chapter_id)
+    first_topic_entry = chapter_topics[0] if chapter_topics else None
+    first_topic_id = _first_topic_id(chapter_topics)
+
+    selected_topic_id = state.selected_topic_id or first_topic_id
+    active_topic_entry = (
+        _find_topic_by_id(chapter_topics, selected_topic_id) or first_topic_entry
+    )
+    selected_level = _clamp_level(state.selected_level, active_topic_entry)
+
+    unlocked_topic_id, unlocked_level = _get_unlocked(
+        state, selected_chapter_id, chapter_topics
+    )
+    admin_mode = state.admin_mode
+
+    available_topic_entries = get_topic_options(
+        chapter_topics, unlocked_topic_id, admin_mode
+    )
+    available_topics = [
+        NavigationTopicOption(
+            topic_id=int(topic_entry["topic_id"]),
+            name=str(topic_entry["name"]),
+        )
+        for topic_entry in available_topic_entries
+    ]
+
+    level_limit = get_level_limit(
+        active_topic_entry, unlocked_topic_id, unlocked_level, admin_mode
+    )
     available_levels = get_level_options(level_limit)
 
     has_next = (
-        selected_macro in state.macro_progress
-        and state.selected_micro_topic_order is not None
-        and state.macro_progress[selected_macro].unlocked_micro_topic_order
-        > (state.selected_micro_topic_order or 0)
+        selected_chapter_id in state.chapter_progress
+        and state.selected_topic_id is not None
+        and state.chapter_progress[selected_chapter_id].unlocked_topic_id
+        > (state.selected_topic_id or 0)
     )
 
-    text_mode_disabled = bool(selected_topic and selected_topic.get("text_mode_disabled"))
+    text_mode_disabled = bool(
+        active_topic_entry and active_topic_entry.get("text_mode_disabled")
+    )
 
-    macro_progress: NavigationProgress | None = None
-    if selected_macro and topics:
+    chapter_progress_view: NavigationProgress | None = None
+    if selected_chapter_id and chapter_topics:
         completed = sum(
-            1 for t in topics if int(t["micro_topic_order"]) < unlocked_order
+            1
+            for topic_entry in chapter_topics
+            if int(topic_entry["topic_id"]) < unlocked_topic_id
         )
-        total = len(topics)
-        macro_progress = NavigationProgress(
+        total = len(chapter_topics)
+        chapter_progress_view = NavigationProgress(
             completed=completed,
             total=total,
             percentage=(completed / total * 100) if total > 0 else 0.0,
         )
 
-    micro_progress: NavigationProgress | None = None
-    if selected_topic:
-        max_level = int(selected_topic["max_level"])
+    topic_progress_view: NavigationProgress | None = None
+    if active_topic_entry:
+        max_level = int(active_topic_entry["max_level"])
         completed_levels = selected_level - 1
-        micro_progress = NavigationProgress(
+        topic_progress_view = NavigationProgress(
             completed=completed_levels,
             total=max_level,
             percentage=(completed_levels / max_level * 100) if max_level > 0 else 0.0,
         )
 
     return NavigationView(
-        macro_topics=macro_topics,
-        current_topic_name=str(selected_topic["name"]) if selected_topic else None,
-        available_micro_topics=available_micro,
+        available_chapters=available_chapters,
+        current_topic_name=str(active_topic_entry["name"]) if active_topic_entry else None,
+        available_topics=available_topics,
         available_levels=available_levels,
         has_next_unlocked_topic=has_next,
         text_mode_disabled=text_mode_disabled,
-        macro_progress=macro_progress,
-        micro_progress=micro_progress,
+        chapter_progress=chapter_progress_view,
+        topic_progress=topic_progress_view,
     )

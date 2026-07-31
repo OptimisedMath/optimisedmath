@@ -12,14 +12,15 @@ Pure Python FastAPI service — no UI framework imports.
 
 ## Curriculum & problems
 
-- Curriculum YAML: `backend/data/` (one file per macro topic, e.g. `Ułamki_Zwykłe.yaml`)
-- YAML schema (root keys): `macro_topic`, `order`, `keyboard_type`, `micro_topics`
-- Filename convention: `{macro_topic with spaces → underscores}.yaml` (must match `macro_topic`)
-- Macro `order` controls dropdown sequence (lower first)
-- Each `micro_topics[]` entry: `order`, `name`, optional `text_mode_disabled`, `levels[]`
+- Curriculum YAML: `backend/data/` (one file per chapter, e.g. `Ułamki_Zwykłe.yaml`)
+- YAML schema (root keys): `chapter`, `id`, `keyboard_type`, `topics`
+- Filename convention: `{chapter with spaces → underscores}.yaml` (must match `chapter`)
+- Chapter `id` controls dropdown sequence (lower first) and is the runtime navigation key
+- Each `topics[]` entry: `id`, `name`, optional `text_mode_disabled`, `levels[]`
 - Each level: `level`, `name`, `function`, optional `published`, `traps`
-- Problem generators: public functions defined in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; helpers use `_` prefix)
+- Problem generators: public functions in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; helpers use `_` prefix)
 - Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache); `backend/engine.py` (problem generation)
+- Navigation state: `selected_chapter_id`, `selected_topic_id`, `selected_level` in `GameState`
 
 ## Database
 

@@ -1,8 +1,8 @@
-macro_topic: "Ułamki Zwykłe"
-order: 10
+chapter: "Ułamki Zwykłe"
+id: 10
 keyboard_type: "default"
-micro_topics:
-  - order: 10
+topics:
+  - id: 10
     name: "Zapisywanie"
     levels:
       - level: 1
@@ -12,7 +12,7 @@ micro_topics:
           t1: "Odwróciłeś liczby! Pierwsza liczba (dzielna) zawsze wędruje na górę do licznika, a druga (dzielnik) na dół do mianownika."
           t2: "Zsumowałeś liczby w mianowniku! Kreska ułamkowa to po prostu inny zapis znaku dzielenia, nie dodawania."
 
-  - order: 20
+  - id: 20
     name: "Rozszerzanie i skracanie"
     levels:
       - level: 1
@@ -43,7 +43,7 @@ micro_topics:
           t2: "Skróciłeś tylko dół! Pamiętaj o podzieleniu licznika."
           t3: "Skróciłeś tylko górę! Pamiętaj o podzieleniu mianownika."
 
-  - order: 30
+  - id: 30
     name: "Liczby mieszane"
     levels:
       - level: 1
@@ -60,7 +60,7 @@ micro_topics:
           t1: "Gdzie podział się ułamek? Wyciągnąłeś całości poprawnie, ale zapomniałeś zapisać to, co zostało jako reszta."
           t2: "Odwróciłeś ułamek! Mianownik zawsze zostaje ten sam, a reszta ląduje w liczniku."
 
-  - order: 40
+  - id: 40
     name: "Porównywanie"
     text_mode_disabled: true
     levels:
@@ -82,7 +82,7 @@ micro_topics:
           t2: "Liczby są równe — wybierz znak równości!"
           t3: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
 
-  - order: 50
+  - id: 50
     name: "Oś liczbowa"
     levels:
       - level: 1
@@ -110,7 +110,7 @@ micro_topics:
           t1: "Pomyłka! Najpierw oblicz wartość jednego małego skoku."
           t2: "Błąd w liczeniu skoków między etykietami."
 
-  - order: 60
+  - id: 60
     name: "Dodawanie"
     levels:
       - level: 1
@@ -145,7 +145,7 @@ micro_topics:
           t2: "Zapomniałeś dodać całości! Zrobiłeś trudną część z ułamkami, ale zgubiłeś liczby z przodu."
           t3: "Nie wyciągnąłeś całości z wyniku! Na końcu powstał ułamek niewłaściwy."
 
-  - order: 70
+  - id: 70
     name: "Odejmowanie"
     levels:
       - level: 1
@@ -181,7 +181,7 @@ micro_topics:
           t2: "Rozszerzyłeś dół, ale zapomniałeś o górze! Mnożymy proporcjonalnie."
           t3: "Zły znak! Najpierw sprowadź do wspólnego mianownika."
 
-  - order: 80
+  - id: 80
     name: "Mnożenie przez liczbę"
     levels:
       - level: 1
@@ -206,7 +206,7 @@ micro_topics:
           t2: "Najbezpieczniej jest zamienić liczbę mieszaną na ułamek niewłaściwy, a dopiero potem mnożyć!"
           t3: "Wciągnąłeś liczbę całkowitą na dół ułamka! Całości zostają u góry."
 
-  - order: 90
+  - id: 90
     name: "Mnożenie ułamków"
     levels:
       - level: 1
@@ -236,7 +236,7 @@ micro_topics:
           t1: "Zapomniałeś skrócić! Przy dużych liczbach zawsze najpierw skracaj na krzyż, inaczej powstanie gigant."
           t2: "Skróciłeś źle! Pamiętaj, że obie liczby na krzyż musisz podzielić przez TO SAMO."
 
-  - order: 100
+  - id: 100
     name: "Dzielenie przez liczbę"
     levels:
       - level: 1
@@ -258,7 +258,7 @@ micro_topics:
           t1: "Podzieliłeś tylko ułamek, a zapomniałeś o całościach!"
           t2: "Musisz ZAWSZE najpierw zamienić liczbę mieszaną na ułamek niewłaściwy, a dopiero potem odwracać do mnożenia."
 
-  - order: 110
+  - id: 110
     name: "Dzielenie ułamków"
     levels:
       - level: 1
@@ -280,7 +280,7 @@ micro_topics:
           t1: "Najpierw bezwzględnie zamień wszystkie liczby na ułamki niewłaściwe. Dopiero potem obróć drugi ułamek!"
           t2: "Odwróciłeś tylko część ułamkową liczby mieszanej! Musisz wciągnąć całości do ułamka zanim go odwrócisz."
 
-  - order: 120
+  - id: 120
     name: "Potęgowanie"
     levels:
       - level: 1
@@ -302,7 +302,7 @@ micro_topics:
           t1: "Podniosłeś do potęgi osobno całości i ułamek! BŁĄD. Zanim użyjesz potęgi, ZAWSZE wciągaj całości do ułamka niewłaściwego."
           t2: "Pomnożyłeś przez 2 zamiast potęgować!"
 
-  - order: 130
+  - id: 130
     name: "Kolejność wykonywania działań"
     levels:
       - level: 1
@@ -348,7 +348,7 @@ micro_topics:
           t2: "Pomnożyłeś nawias przez 2 zamiast potęgować."
           t3: "Podniosłeś do kwadratu ułamki w nawiasie osobno zamiast zsumować."
 
-  - order: 140
+  - id: 140
     name: "Ułamek z liczby"
     levels:
       - level: 1

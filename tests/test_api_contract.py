@@ -27,15 +27,16 @@ def isolated_state(tmp_path, monkeypatch):
 def make_state(problem, *, streak=0, input_mode="radio"):
     """Build a GameState with an active problem and register it in ACTIVE_SESSIONS."""
     curriculum = main.engine.get_curriculum()
-    macro = next(iter(curriculum))
-    topic = curriculum[macro][0]
+    chapter_ids = list(curriculum.keys())
+    chapter_id = chapter_ids[0]
+    topic_entry = curriculum[chapter_id][0]
     session_id = str(uuid.uuid4())
     state = GameState()
-    main.state_manager.StateManager.init_defaults(state, list(curriculum), curriculum)
+    main.state_manager.StateManager.init_defaults(state, chapter_ids, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
-    state.selected_macro = macro
-    state.selected_micro_topic_order = int(topic["micro_topic_order"])
+    state.selected_chapter_id = chapter_id
+    state.selected_topic_id = int(topic_entry["topic_id"])
     state.selected_level = 1
     state.streak = streak
     state.current_input_mode = input_mode
@@ -108,7 +109,7 @@ def test_wrong_text_submit_reveals_correct_answer():
 def test_next_problem_hides_answer_contract_fields():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="contract-user", selected_macro=None)
+            main.SessionStartRequest(username="contract-user", selected_chapter_id=None)
         )
     )
 
@@ -364,22 +365,22 @@ def test_stale_and_duplicate_submissions_are_rejected():
 def test_locked_navigation_is_rejected():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="locked-user", selected_macro=None)
+            main.SessionStartRequest(username="locked-user", selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topics = main.engine.get_curriculum()[macro]
-    if len(topics) < 2:
+    chapter_id = state.selected_chapter_id
+    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics for locked navigation test")
 
-    locked_order = int(topics[1]["micro_topic_order"])
+    locked_topic_id = int(chapter_topics[1]["topic_id"])
     with pytest.raises(HTTPException) as exc:
         run(
             main.session_navigate(
                 main.SessionNavigateRequest(
                     session_id=state.session_id,
-                    selected_macro=macro,
-                    selected_micro_topic_order=locked_order,
+                    selected_chapter_id=chapter_id,
+                    selected_topic_id=locked_topic_id,
                     selected_level=1,
                 )
             )
@@ -391,12 +392,12 @@ def test_locked_navigation_is_rejected():
 def test_text_mode_disabled_keeps_radio_input():
     curriculum = main.engine.get_curriculum()
     disabled_topic = None
-    disabled_macro = None
-    for macro, topics in curriculum.items():
-        for topic in topics:
-            if topic.get("text_mode_disabled"):
-                disabled_topic = topic
-                disabled_macro = macro
+    disabled_chapter_id = None
+    for chapter_id_key, chapter_topics in curriculum.items():
+        for topic_entry in chapter_topics:
+            if topic_entry.get("text_mode_disabled"):
+                disabled_topic = topic_entry
+                disabled_chapter_id = chapter_id_key
                 break
         if disabled_topic:
             break
@@ -413,12 +414,14 @@ def test_text_mode_disabled_keeps_radio_input():
         "messages": {},
     }
     state = make_state(problem, streak=0, input_mode="radio")
-    state.selected_macro = disabled_macro
-    state.selected_micro_topic_order = disabled_topic["micro_topic_order"]
-    topic_map = main.get_topic_map(disabled_macro)
+    state.selected_chapter_id = disabled_chapter_id
+    state.selected_topic_id = disabled_topic["topic_id"]
+    from backend.curriculum_loader import get_topics_by_id
+
+    topics_by_id = get_topics_by_id(disabled_chapter_id)
 
     main.state_manager.StateManager.process_submission(
-        state, problem, "a", False, topic_map
+        state, problem, "a", False, topics_by_id
     )
 
     assert state.streak == 1
@@ -428,76 +431,81 @@ def test_text_mode_disabled_keeps_radio_input():
 def test_game_state_includes_navigation_view():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="nav-user", selected_macro=None)
+            main.SessionStartRequest(username="nav-user", selected_chapter_id=None)
         )
     )
     nav = state.navigation
     assert nav is not None
-    assert len(nav.macro_topics) > 0
-    assert len(nav.available_micro_topics) > 0
+    assert len(nav.available_chapters) > 0
+    assert len(nav.available_topics) > 0
     assert len(nav.available_levels) > 0
     assert nav.current_topic_name is not None
     assert isinstance(nav.has_next_unlocked_topic, bool)
     assert isinstance(nav.text_mode_disabled, bool)
-    assert nav.macro_progress is not None
-    assert nav.micro_progress is not None
+    assert nav.chapter_progress is not None
+    assert nav.topic_progress is not None
 
 
 def test_navigation_available_topics_respect_locks():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="lock-nav-user", selected_macro=None)
+            main.SessionStartRequest(username="lock-nav-user", selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topics = main.engine.get_curriculum()[macro]
-    if len(topics) < 2:
+    chapter_id = state.selected_chapter_id
+    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics for lock navigation test")
 
-    unlocked_order = state.macro_progress[macro].unlocked_micro_topic_order
-    available_orders = {t.micro_topic_order for t in state.navigation.available_micro_topics}
+    unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
+    available_topic_ids = {t.topic_id for t in state.navigation.available_topics}
     expected = {
-        int(t["micro_topic_order"])
-        for t in topics
-        if int(t["micro_topic_order"]) <= unlocked_order
+        int(topic_entry["topic_id"])
+        for topic_entry in chapter_topics
+        if int(topic_entry["topic_id"]) <= unlocked_topic_id
     }
-    assert available_orders == expected
+    assert available_topic_ids == expected
 
 
 def test_navigation_admin_sees_all_topics():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="Antoni", selected_macro=None)
+            main.SessionStartRequest(username="Antoni", selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topics = main.engine.get_curriculum()[macro]
-    assert len(state.navigation.available_micro_topics) == len(topics)
+    chapter_id = state.selected_chapter_id
+    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    assert len(state.navigation.available_topics) == len(chapter_topics)
 
 
-def test_navigate_macro_change_resolves_to_unlocked_topic():
+def test_navigate_chapter_change_resolves_to_unlocked_topic():
     curriculum = main.engine.get_curriculum()
-    macro_topics = list(curriculum.keys())
-    if len(macro_topics) < 2:
-        pytest.skip("Need at least two macro topics")
+    chapter_ids = list(curriculum.keys())
+    if len(chapter_ids) < 2:
+        pytest.skip("Need at least two chapters")
 
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="macro-switch-user", selected_macro=None)
+            main.SessionStartRequest(username="chapter-switch-user", selected_chapter_id=None)
         )
     )
-    target_macro = macro_topics[1] if state.selected_macro == macro_topics[0] else macro_topics[0]
-    expected_order = state.macro_progress[target_macro].unlocked_micro_topic_order
+    target_chapter_id = (
+        chapter_ids[1]
+        if state.selected_chapter_id == chapter_ids[0]
+        else chapter_ids[0]
+    )
+    expected_topic_id = state.chapter_progress[target_chapter_id].unlocked_topic_id
     expected_level = min(
-        state.macro_progress[target_macro].unlocked_level,
-        int(curriculum[target_macro][0]["max_level"])
+        state.chapter_progress[target_chapter_id].unlocked_level,
+        int(curriculum[target_chapter_id][0]["max_level"])
         if not any(
-            int(t["micro_topic_order"]) == expected_order for t in curriculum[target_macro]
+            int(topic_entry["topic_id"]) == expected_topic_id
+            for topic_entry in curriculum[target_chapter_id]
         )
         else next(
-            int(t["max_level"])
-            for t in curriculum[target_macro]
-            if int(t["micro_topic_order"]) == expected_order
+            int(topic_entry["max_level"])
+            for topic_entry in curriculum[target_chapter_id]
+            if int(topic_entry["topic_id"]) == expected_topic_id
         ),
     )
 
@@ -505,13 +513,13 @@ def test_navigate_macro_change_resolves_to_unlocked_topic():
         main.session_navigate(
             main.SessionNavigateRequest(
                 session_id=state.session_id,
-                selected_macro=target_macro,
+                selected_chapter_id=target_chapter_id,
             )
         )
     )
 
-    assert next_state.selected_macro == target_macro
-    assert next_state.selected_micro_topic_order == expected_order
+    assert next_state.selected_chapter_id == target_chapter_id
+    assert next_state.selected_topic_id == expected_topic_id
     assert next_state.selected_level == expected_level
 
 
@@ -519,19 +527,19 @@ def test_session_start_clamps_stale_selected_level():
     username = "stale-level-user"
     state = run(
         main.session_start(
-            main.SessionStartRequest(username=username, selected_macro=None)
+            main.SessionStartRequest(username=username, selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topic = main.engine.get_curriculum()[macro][0]
-    max_level = int(topic["max_level"])
+    chapter_id = state.selected_chapter_id
+    topic_entry = main.engine.get_curriculum()[chapter_id][0]
+    max_level = int(topic_entry["max_level"])
 
     state.selected_level = max_level + 10
     main.state_manager.StateManager.sync_to_db(state)
 
     reloaded = run(
         main.session_start(
-            main.SessionStartRequest(username=username, selected_macro=None)
+            main.SessionStartRequest(username=username, selected_chapter_id=None)
         )
     )
 
@@ -541,52 +549,54 @@ def test_session_start_clamps_stale_selected_level():
 def test_navigate_topic_change_to_completed_resets_level_to_one():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="topic-switch-user", selected_macro=None)
+            main.SessionStartRequest(username="topic-switch-user", selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topics = main.engine.get_curriculum()[macro]
-    if len(topics) < 2:
+    chapter_id = state.selected_chapter_id
+    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
-    unlocked_order = state.macro_progress[macro].unlocked_micro_topic_order
+    unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
     completed_topics = [
-        t for t in topics if int(t["micro_topic_order"]) < unlocked_order
+        topic_entry
+        for topic_entry in chapter_topics
+        if int(topic_entry["topic_id"]) < unlocked_topic_id
     ]
     if not completed_topics:
         pytest.skip("Need a completed topic behind the unlocked frontier")
 
-    completed_order = int(completed_topics[0]["micro_topic_order"])
+    completed_topic_id = int(completed_topics[0]["topic_id"])
     state.selected_level = 3
 
     next_state = run(
         main.session_navigate(
             main.SessionNavigateRequest(
                 session_id=state.session_id,
-                selected_micro_topic_order=completed_order,
+                selected_topic_id=completed_topic_id,
             )
         )
     )
 
-    assert next_state.selected_micro_topic_order == completed_order
+    assert next_state.selected_topic_id == completed_topic_id
     assert next_state.selected_level == 1
 
 
 def test_navigation_has_next_unlocked_topic():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="next-topic-user", selected_macro=None)
+            main.SessionStartRequest(username="next-topic-user", selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topics = main.engine.get_curriculum()[macro]
-    if len(topics) < 2:
+    chapter_id = state.selected_chapter_id
+    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
-    first_order = int(topics[0]["micro_topic_order"])
-    second_order = int(topics[1]["micro_topic_order"])
-    state.selected_micro_topic_order = first_order
-    state.macro_progress[macro].unlocked_micro_topic_order = second_order
+    first_topic_id = int(chapter_topics[0]["topic_id"])
+    second_topic_id = int(chapter_topics[1]["topic_id"])
+    state.selected_topic_id = first_topic_id
+    state.chapter_progress[chapter_id].unlocked_topic_id = second_topic_id
 
     nav = main.navigation.build_navigation_view(
         state.for_response(main._public_problem),
@@ -594,7 +604,7 @@ def test_navigation_has_next_unlocked_topic():
     )
     assert nav.has_next_unlocked_topic is True
 
-    state.macro_progress[macro].unlocked_micro_topic_order = first_order
+    state.chapter_progress[chapter_id].unlocked_topic_id = first_topic_id
     nav = main.navigation.build_navigation_view(
         state.for_response(main._public_problem),
         main.engine.get_curriculum(),
@@ -605,30 +615,34 @@ def test_navigation_has_next_unlocked_topic():
 def test_navigation_progress_counts():
     state = run(
         main.session_start(
-            main.SessionStartRequest(username="progress-user", selected_macro=None)
+            main.SessionStartRequest(username="progress-user", selected_chapter_id=None)
         )
     )
-    macro = state.selected_macro
-    topics = main.engine.get_curriculum()[macro]
-    unlocked_order = state.macro_progress[macro].unlocked_micro_topic_order
-    completed = sum(1 for t in topics if int(t["micro_topic_order"]) < unlocked_order)
-    total = len(topics)
+    chapter_id = state.selected_chapter_id
+    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
+    completed = sum(
+        1
+        for topic_entry in chapter_topics
+        if int(topic_entry["topic_id"]) < unlocked_topic_id
+    )
+    total = len(chapter_topics)
 
-    assert state.navigation.macro_progress.completed == completed
-    assert state.navigation.macro_progress.total == total
-    assert state.navigation.macro_progress.percentage == pytest.approx(
+    assert state.navigation.chapter_progress.completed == completed
+    assert state.navigation.chapter_progress.total == total
+    assert state.navigation.chapter_progress.percentage == pytest.approx(
         (completed / total * 100) if total else 0.0
     )
 
     current_topic = next(
-        t
-        for t in topics
-        if int(t["micro_topic_order"]) == state.selected_micro_topic_order
+        topic_entry
+        for topic_entry in chapter_topics
+        if int(topic_entry["topic_id"]) == state.selected_topic_id
     )
     max_level = int(current_topic["max_level"])
-    assert state.navigation.micro_progress.completed == state.selected_level - 1
-    assert state.navigation.micro_progress.total == max_level
-    assert state.navigation.micro_progress.percentage == pytest.approx(
+    assert state.navigation.topic_progress.completed == state.selected_level - 1
+    assert state.navigation.topic_progress.total == max_level
+    assert state.navigation.topic_progress.percentage == pytest.approx(
         ((state.selected_level - 1) / max_level * 100) if max_level else 0.0
     )
 
@@ -637,15 +651,16 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     import backend.engine as engine
 
     curriculum = main.engine.get_curriculum()
-    macro = next(iter(curriculum))
-    topic = curriculum[macro][0]
+    chapter_ids = list(curriculum.keys())
+    chapter_id = chapter_ids[0]
+    topic_entry = curriculum[chapter_id][0]
     session_id = str(uuid.uuid4())
     state = GameState()
-    main.state_manager.StateManager.init_defaults(state, list(curriculum), curriculum)
+    main.state_manager.StateManager.init_defaults(state, chapter_ids, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
-    state.selected_macro = macro
-    state.selected_micro_topic_order = int(topic["micro_topic_order"])
+    state.selected_chapter_id = chapter_id
+    state.selected_topic_id = int(topic_entry["topic_id"])
     state.selected_level = 1
     main.ACTIVE_SESSIONS[session_id] = state
 
@@ -666,7 +681,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
 
     call_count = {"value": 0}
 
-    def fake_generate_level_problem(_macro, _micro, _level):
+    def fake_generate_level_problem(_chapter_id, _topic_id, _level):
         call_count["value"] += 1
         return {
             **duplicate_problem,
@@ -679,7 +694,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         "problem_id": "unique-1",
     }
 
-    def fake_generate_with_unique_second(_macro, _micro, _level):
+    def fake_generate_with_unique_second(_chapter_id, _topic_id, _level):
         call_count["value"] += 1
         if call_count["value"] == 1:
             return {
@@ -700,6 +715,25 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     assert engine.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
 
 
+def test_legacy_game_state_migration():
+    state = GameState.model_validate(
+        {
+            "selected_macro": "Ułamki Zwykłe",
+            "selected_micro_topic_order": 20,
+            "macro_progress": {
+                "Ułamki Zwykłe": {
+                    "unlocked_micro_topic_order": 30,
+                    "unlocked_level": 2,
+                }
+            },
+        }
+    )
+    assert state.selected_chapter_id == 10
+    assert state.selected_topic_id == 20
+    assert state.chapter_progress[10].unlocked_topic_id == 30
+    assert state.chapter_progress[10].unlocked_level == 2
+
+
 def test_generator_messages_override_yaml_traps(monkeypatch):
     from backend.core.utils import build_problem_dict
     import backend.engine as engine
@@ -713,7 +747,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
     monkeypatch.setitem(engine.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
 
-    problem = engine.generate_level_problem("Ułamki Dziesiętne", "Porównywanie", 1)
+    problem = engine.generate_level_problem(20, 20, 1)
     assert problem is not None
     assert problem["messages"]["t1"] == branch_message
     assert (
