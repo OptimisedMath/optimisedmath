@@ -18,7 +18,7 @@ Pure Python FastAPI service — no UI framework imports.
 - Chapter `id` controls dropdown sequence (lower first) and is the runtime navigation key
 - Each `topics[]` entry: `id`, `name`, optional `text_mode_disabled`, `levels[]`
 - Each level: `level`, `name`, `function`, optional `published`, `traps`
-- Problem generators: public functions in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; helpers use `_` prefix)
+- Problem generators: public functions in `backend/chapters/<slug>/topic_{id}_{slug}.py` (auto-registered; helpers use `_` prefix)
 - Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache); `backend/engine.py` (problem generation)
 - Navigation state: `selected_chapter_id`, `selected_topic_id`, `selected_level` in `GameState`
 
@@ -57,7 +57,7 @@ Document symbols where behavior is not obvious from the signature alone. Referen
 
 - Private `_helpers` under ~5 lines
 - Trivial one-liners (`get_level_options`, `fmt_dec`)
-- Macro generators in `micro_*.py` — use Polish pedagogical one-liners there
+- Topic generators in `topic_*.py` — use Polish pedagogical one-liners there
 - Individual `test_*` functions — descriptive names + parametrize tables are enough
 
 **Style:**

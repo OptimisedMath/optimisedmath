@@ -715,25 +715,6 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     assert engine.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
 
 
-def test_legacy_game_state_migration():
-    state = GameState.model_validate(
-        {
-            "selected_macro": "Ułamki Zwykłe",
-            "selected_micro_topic_order": 20,
-            "macro_progress": {
-                "Ułamki Zwykłe": {
-                    "unlocked_micro_topic_order": 30,
-                    "unlocked_level": 2,
-                }
-            },
-        }
-    )
-    assert state.selected_chapter_id == 10
-    assert state.selected_topic_id == 20
-    assert state.chapter_progress[10].unlocked_topic_id == 30
-    assert state.chapter_progress[10].unlocked_level == 2
-
-
 def test_generator_messages_override_yaml_traps(monkeypatch):
     from backend.core.utils import build_problem_dict
     import backend.engine as engine

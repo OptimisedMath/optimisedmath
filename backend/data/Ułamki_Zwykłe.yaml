@@ -152,7 +152,7 @@ topics:
         name: "Ten sam mianownik"
         function: "frac_sub_1"
         traps:
-          t1: "Odjąłeś od siebie mianowniki! Przy odejmowaniu ułamków mianownik ZAWSZE przepisujemy bez zmian."
+          t1: "Zamiast odjąć, dodałeś liczniki — sprawdź znak działania."
       - level: 2
         name: "Liczby mieszane"
         function: "frac_sub_2"

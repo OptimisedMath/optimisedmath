@@ -12,7 +12,7 @@ def frac_sub_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d}}} - \frac{{{n2}}}{{{d}}}"
 
     c_str, _ = format_answers(n1 - n2, d)
-    t1 = "0"  # Trap (t1): Odjąłeś od siebie mianowniki
+    t1, _ = format_answers(n1 + n2, d)  # Trap (t1): Dodałeś zamiast odjąć
     w1, _ = format_answers(max(1, n1 - n2 - 1), d)
     w2, _ = format_answers(n1 - n2 + 1, d)
 

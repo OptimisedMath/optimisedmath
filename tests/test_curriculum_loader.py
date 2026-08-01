@@ -44,7 +44,7 @@ def test_curriculum_response_uses_chapters_field():
 def test_function_registry_contains_only_generators():
     for name, func in engine.FUNCTION_REGISTRY.items():
         assert not name.startswith("_")
-        assert getattr(func, "__module__", "").startswith("backend.macro_topics")
+        assert getattr(func, "__module__", "").startswith("backend.chapters")
 
 
 def test_rejects_missing_topics_key(tmp_path, monkeypatch):
@@ -101,14 +101,13 @@ def test_rejects_duplicate_chapter_name(tmp_path, monkeypatch):
     path1.write_text("placeholder", encoding="utf-8")
     path2.write_text("placeholder", encoding="utf-8")
 
-    topics_meta = (
-        {
-            "topic_id": 10,
-            "name": "Skill",
-            "max_level": 1,
-            "text_mode_disabled": False,
-        },
-    )
+    skill: loader.TopicDict = {
+        "topic_id": 10,
+        "name": "Skill",
+        "max_level": 1,
+        "text_mode_disabled": False,
+    }
+    topics_meta = (skill,)
     bundle = loader.ChapterBundle(
         chapter_id=1,
         chapter_name="Dup Chapter",
@@ -150,28 +149,3 @@ topics:
 
     with pytest.raises(loader.CurriculumLoadError, match="filename must be"):
         loader.get_curriculum()
-
-
-def test_legacy_yaml_keys_are_accepted(tmp_path, monkeypatch):
-    legacy_yaml = tmp_path / "Legacy_Chapter.yaml"
-    legacy_yaml.write_text(
-        """
-macro_topic: "Legacy Chapter"
-order: 5
-keyboard_type: "default"
-micro_topics:
-  - order: 10
-    name: "Legacy Skill"
-    levels:
-      - level: 1
-        name: "Lvl 1"
-        function: "frac_write_1"
-""",
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
-    loader._load_curriculum_store.cache_clear()
-
-    curriculum = loader.get_curriculum()
-    assert 5 in curriculum
-    assert curriculum[5][0]["topic_id"] == 10

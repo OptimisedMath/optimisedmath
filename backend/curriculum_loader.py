@@ -105,41 +105,6 @@ def set_function_registry(registry: dict[str, Callable[..., Any]]) -> None:
     _load_curriculum_store.cache_clear()
 
 
-# --- Legacy YAML normalization ---
-
-
-def _normalize_chapter_yaml(data: dict[str, Any]) -> dict[str, Any]:
-    """Accept legacy macro/micro keys and normalize to chapter/topics vocabulary."""
-    normalized = dict(data)
-
-    if "chapter" not in normalized and "macro_topic" in normalized:
-        normalized["chapter"] = normalized["macro_topic"]
-        logger.warning("YAML uses legacy 'macro_topic'; prefer 'chapter'")
-
-    if "topics" not in normalized and "micro_topics" in normalized:
-        normalized["topics"] = normalized["micro_topics"]
-        logger.warning("YAML uses legacy 'micro_topics'; prefer 'topics'")
-
-    if "id" not in normalized and "order" in normalized:
-        normalized["id"] = normalized["order"]
-        logger.warning("YAML uses legacy root 'order'; prefer 'id'")
-
-    topics_raw = normalized.get("topics", [])
-    if isinstance(topics_raw, list):
-        normalized_topics: list[Any] = []
-        for topic_entry in topics_raw:
-            if not isinstance(topic_entry, dict):
-                normalized_topics.append(topic_entry)
-                continue
-            topic_copy = dict(topic_entry)
-            if "id" not in topic_copy and "order" in topic_copy:
-                topic_copy["id"] = topic_copy["order"]
-            normalized_topics.append(topic_copy)
-        normalized["topics"] = normalized_topics
-
-    return normalized
-
-
 # --- Derivation helpers ---
 
 
@@ -275,8 +240,6 @@ def _validate_file(file_path: Path, data: Any) -> ChapterBundle:
     if not isinstance(data, dict):
         raise CurriculumLoadError(f"{file_name}: root must be a mapping")
 
-    data = _normalize_chapter_yaml(data)
-
     for key in ("chapter", "topics", "keyboard_type"):
         if key not in data:
             raise CurriculumLoadError(f"{file_name}: missing required key '{key}'")
@@ -408,11 +371,6 @@ def get_topic_name(chapter_id: int, topic_id: int) -> str | None:
     if not bundle:
         return None
     return bundle.topic_name_by_id.get(int(topic_id))
-
-
-def get_chapter_id_by_name(chapter_name: str) -> int | None:
-    """Resolve a chapter display name to its id."""
-    return _load_curriculum_store().chapter_id_by_name.get(chapter_name)
 
 
 def get_chapter_name_by_id(chapter_id: int) -> str | None:

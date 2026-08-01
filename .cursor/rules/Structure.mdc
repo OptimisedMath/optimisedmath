@@ -1,6 +1,6 @@
 ---
 description: Curriculum hierarchy (Chapter/Topic/Level), Dynamic Mastery Loop rules ("Power of 3" streak logic, ABCD to Text pipeline), Answer Taxonomy (Traps vs Wrong Answers), and Fast API/Next.js client-server boundary rules.
-globs: backend/macro_topics/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/curriculum_loader.py,backend/navigation.py,backend/state_manager.py,backend/models.py
+globs: backend/chapters/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/curriculum_loader.py,backend/navigation.py,backend/state_manager.py,backend/models.py
 alwaysApply: false
 ---
 
@@ -28,9 +28,8 @@ One YAML file per chapter. Root keys: `chapter`, `id`, `keyboard_type`, `topics`
 - Filename must be `{chapter with spaces as underscores}.yaml`
 - Each `topics[]` entry: `id`, `name`, optional `text_mode_disabled`, `levels[]`
 - Each level: `level`, `name`, `function` (generator name), optional `published`, `traps`
-- Generators are public functions defined in `backend/macro_topics/<slug>/micro_*.py` (auto-registered; private helpers use `_` prefix)
+- Generators are public functions defined in `backend/chapters/<slug>/topic_{id}_{slug}.py` (auto-registered; private helpers use `_` prefix)
 - Loaded and validated by `backend/curriculum_loader.py`
-- Legacy keys (`macro_topic`, `micro_topics`, `order`) are accepted with deprecation warnings during migration
 
 ---
 
@@ -65,7 +64,7 @@ Every question is supported by a 4-option set (for ABCD) or a validation engine 
 ### B. Trap Answers (Misconceptions)
 
 - **Priority 1:** These are answers based on predictable, common student misconceptions (e.g., adding denominators instead of finding a common one).
-- **Generation:** Traps are programmatically generated within specific micro-topic files (e.g., `dec_add_2()` in `micro_05_dodawanie.py`). The system prioritizes generating as many sensible "Trap" answers as the problem allows.
+- **Generation:** Traps are programmatically generated within specific topic files (e.g., `dec_add_2()` in `topic_50_dodawanie.py`). The system prioritizes generating as many sensible "Trap" answers as the problem allows.
 
 ### C. Wrong Answers (Calculation Errors)
 

@@ -73,11 +73,11 @@ def _register_generator(
     sources[name] = module_path
 
 
-def _load_generator_registry(macro_topics_dir: Path) -> dict[str, GeneratorFunc]:
+def _load_generator_registry(chapters_dir: Path) -> dict[str, GeneratorFunc]:
     registry: dict[str, GeneratorFunc] = {}
     sources: dict[str, str] = {}
 
-    for file_path in macro_topics_dir.rglob("micro_*.py"):
+    for file_path in chapters_dir.rglob("topic_*.py"):
         module_path = ".".join(
             file_path.relative_to(BASE_DIR.parent).with_suffix("").parts
         )
@@ -90,7 +90,7 @@ def _load_generator_registry(macro_topics_dir: Path) -> dict[str, GeneratorFunc]
     return registry
 
 
-FUNCTION_REGISTRY = _load_generator_registry(BASE_DIR / "macro_topics")
+FUNCTION_REGISTRY = _load_generator_registry(BASE_DIR / "chapters")
 set_function_registry(FUNCTION_REGISTRY)
 
 # --- Curriculum API ---

@@ -6,10 +6,9 @@ import uuid
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 import backend.config as config
-from backend.curriculum_loader import get_chapter_id_by_name
 
 # --- Progress & navigation ---
 
@@ -134,86 +133,6 @@ class GameState(BaseModel):
             }
         }
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def _migrate_legacy_storage(cls, data: Any) -> Any:
-        if not isinstance(data, dict):
-            return data
-
-        data = dict(data)
-
-        if "progress" in data and "chapter_progress" not in data:
-            data["chapter_progress"] = data.pop("progress")
-
-        if "macro_progress" in data and "chapter_progress" not in data:
-            raw_progress = data.pop("macro_progress")
-            migrated: dict[int, ChapterProgress] = {}
-            for key, value in raw_progress.items():
-                chapter_id: int | None
-                if isinstance(key, int):
-                    chapter_id = key
-                elif isinstance(key, str):
-                    chapter_id = get_chapter_id_by_name(key)
-                else:
-                    continue
-                if chapter_id is None:
-                    continue
-                if isinstance(value, dict):
-                    unlocked_topic_id = value.get("unlocked_topic_id")
-                    if unlocked_topic_id is None:
-                        unlocked_topic_id = value.get("unlocked_micro_topic_order", 1)
-                    migrated[chapter_id] = ChapterProgress(
-                        unlocked_topic_id=int(unlocked_topic_id),
-                        unlocked_level=int(value.get("unlocked_level", 1)),
-                    )
-                else:
-                    migrated[chapter_id] = value
-            data["chapter_progress"] = migrated
-
-        if "selected_chapter_id" not in data:
-            if "selected_macro_id" in data:
-                data["selected_chapter_id"] = data.pop("selected_macro_id")
-            elif "selected_macro" in data and data["selected_macro"]:
-                chapter_id = get_chapter_id_by_name(str(data.pop("selected_macro")))
-                if chapter_id is not None:
-                    data["selected_chapter_id"] = chapter_id
-
-        if "selected_topic_id" not in data:
-            if "selected_micro_id" in data:
-                data["selected_topic_id"] = data.pop("selected_micro_id")
-            elif "selected_micro_topic_order" in data:
-                data["selected_topic_id"] = data.pop("selected_micro_topic_order")
-
-        if "chapter_progress" in data and isinstance(data["chapter_progress"], dict):
-            chapter_progress = data["chapter_progress"]
-            needs_migration = any(
-                isinstance(entry, dict) and "unlocked_micro_topic_order" in entry
-                for entry in chapter_progress.values()
-            )
-            if needs_migration:
-                migrated_progress: dict[int, ChapterProgress] = {}
-                for key, value in chapter_progress.items():
-                    chapter_id = int(key) if not isinstance(key, int) else key
-                    if isinstance(value, dict):
-                        unlocked_topic_id = value.get(
-                            "unlocked_topic_id",
-                            value.get("unlocked_micro_topic_order", 1),
-                        )
-                        migrated_progress[chapter_id] = ChapterProgress(
-                            unlocked_topic_id=int(unlocked_topic_id),
-                            unlocked_level=int(value.get("unlocked_level", 1)),
-                        )
-                    else:
-                        migrated_progress[chapter_id] = value
-                data["chapter_progress"] = migrated_progress
-
-        return data
-
-    @classmethod
-    def from_storage(cls, data: dict) -> GameState:
-        """Build a GameState from persisted JSON."""
-        return cls.model_validate(data)
 
     def to_storage(self) -> str:
         """Serialize session state for SQLite persistence."""

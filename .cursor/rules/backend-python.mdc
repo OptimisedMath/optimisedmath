@@ -8,6 +8,6 @@ alwaysApply: false
 
 - No UI framework imports. Entry point: `backend/main.py`.
 - Config in `backend/config.py` — `PROJECT_ROOT` is the `backend/` directory.
-- Curriculum YAML in `backend/data/`; generators in `backend/macro_topics/`.
+- Curriculum YAML in `backend/data/`; generators in `backend/chapters/`.
 - Run tests from repo root: `python3 -m pytest tests/`. DB is isolated via fixtures in `tests/test_api_contract.py`.
 - Update `backend/models.py` and `frontend/lib/types.ts` together when changing API shapes.
