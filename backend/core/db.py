@@ -36,21 +36,6 @@ def get_connection() -> sqlite3.Connection:
 # --- Schema ---
 
 
-def _migrate_schema(cursor: sqlite3.Cursor) -> None:
-    """Apply lightweight schema migrations for existing databases."""
-    cursor.execute("PRAGMA table_info(telemetry_logs)")
-    telemetry_columns = {row[1] for row in cursor.fetchall()}
-    if "macro_topic" in telemetry_columns and "chapter" not in telemetry_columns:
-        cursor.execute(
-            "ALTER TABLE telemetry_logs RENAME COLUMN macro_topic TO chapter"
-        )
-    if "micro_topic" in telemetry_columns and "topic" not in telemetry_columns:
-        cursor.execute(
-            "ALTER TABLE telemetry_logs RENAME COLUMN micro_topic TO topic"
-        )
-
-
-
 def init_db() -> None:
     """Initializes the database schema if it doesn't exist."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -76,7 +61,6 @@ def init_db() -> None:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        _migrate_schema(cursor)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
