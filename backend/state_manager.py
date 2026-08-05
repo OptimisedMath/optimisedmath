@@ -16,6 +16,7 @@ from backend.curriculum_loader import (
     get_topics_by_id,
 )
 from backend.engine import EvalResult
+from backend.mastery_loop import TurnContext, TurnOutcome, apply_turn
 from backend.models import ChapterProgress, GameState
 
 
@@ -200,6 +201,53 @@ class StateManager:
 
     # --- Submission processing ---
 
+    @staticmethod
+    def _build_turn_context(
+        state: GameState,
+        chapter_id: int,
+        topic_id: int,
+        topics_by_id: dict[int, TopicMeta],
+    ) -> TurnContext:
+        prog = state.chapter_progress[chapter_id]
+        topic_meta = topics_by_id[topic_id]
+        next_topic_ids = tuple(
+            sorted(int(tid) for tid in topics_by_id if int(tid) > topic_id)
+        )
+        return TurnContext(
+            chapter_id=chapter_id,
+            topic_id=topic_id,
+            selected_level=state.selected_level,
+            current_streak=state.streak,
+            flawless_eligible=state.flawless_eligible,
+            unlocked_level=prog.unlocked_level,
+            topic_max_level=int(topic_meta["max_level"]),
+            next_topic_ids=next_topic_ids,
+        )
+
+    @staticmethod
+    def _apply_turn_outcome(
+        state: GameState, chapter_id: int, outcome: TurnOutcome
+    ) -> None:
+        state.streak = outcome.new_streak
+        state.flawless_eligible = outcome.new_flawless_eligible
+        state.xp += outcome.xp_earned
+        if outcome.feedback_type is not None:
+            state.feedback_type = outcome.feedback_type
+        if outcome.feedback_msg is not None:
+            state.feedback_msg = outcome.feedback_msg
+        if outcome.show_celebration:
+            state.show_celebration = True
+        if outcome.topic_completed:
+            state.topic_completed = True
+        if outcome.new_selected_level is not None:
+            state.selected_level = outcome.new_selected_level
+
+        prog = state.chapter_progress[chapter_id]
+        if outcome.new_unlocked_level is not None:
+            prog.unlocked_level = outcome.new_unlocked_level
+        if outcome.unlock_topic_id is not None:
+            prog.unlocked_topic_id = outcome.unlock_topic_id
+
     @classmethod
     def process_submission(
         cls,
@@ -216,9 +264,6 @@ class StateManager:
         state.feedback_type = eval_result.get("feedback_type", None)
         state.feedback_msg = eval_result.get("feedback_msg", "")
         trap_id_hit = eval_result.get("trap_id")
-
-        if not is_correct and state.feedback_type != "info":
-            state.flawless_eligible = False
 
         username = state.username
         chapter_id = state.selected_chapter_id
@@ -262,60 +307,9 @@ class StateManager:
             equation_state=problem_state,
         )
 
-        if is_correct:
-            earned_xp = config.XP_REWARDS.get(
-                state.selected_level, config.DEFAULT_XP_REWARD
-            )
-
-            state.feedback_type = "success"
-            state.feedback_msg = (
-                f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
-            )
-            state.xp += earned_xp
-
-            if state.streak < config.MAX_STREAK:
-                state.streak += 1
-
-            prog = state.chapter_progress[chapter_id]
-            if (
-                state.streak == config.STARS_FOR_UNLOCK
-                and state.selected_level == prog.unlocked_level
-            ):
-                current_topic_max = topics_by_id[topic_id]["max_level"]
-
-                if prog.unlocked_level < current_topic_max:
-                    if state.flawless_eligible:
-                        flawless_bonus = config.FLAWLESS_LEVEL_BONUS
-                        state.xp += flawless_bonus
-                        state.feedback_msg += f" ✨ +{flawless_bonus} Flawless Bonus!"
-
-                    prog.unlocked_level += 1
-                    state.show_celebration = True
-                    state.selected_level = prog.unlocked_level
-                    state.streak = 0
-                    state.flawless_eligible = True
-                else:
-                    if state.flawless_eligible:
-                        flawless_bonus = config.FLAWLESS_LEVEL_BONUS
-                        state.xp += flawless_bonus
-                        state.feedback_msg += f" ✨ +{flawless_bonus} Flawless Bonus!"
-
-                    state.topic_completed = True
-                    state.show_celebration = True
-                    state.streak = 0
-                    state.flawless_eligible = True
-
-                    current_topic_id = topic_id
-                    next_topic_ids = sorted(
-                        int(tid) for tid in topics_by_id if int(tid) > current_topic_id
-                    )
-                    if next_topic_ids:
-                        prog.unlocked_topic_id = next_topic_ids[0]
-                        prog.unlocked_level = 1
-
-        elif not is_correct and state.streak > 0:
-            if state.feedback_type != "info":
-                state.streak -= 1
+        turn_ctx = cls._build_turn_context(state, chapter_id, topic_id, topics_by_id)
+        turn_outcome = apply_turn(eval_result, turn_ctx)
+        cls._apply_turn_outcome(state, chapter_id, turn_outcome)
 
         cls.sync_to_db(state)
         return eval_result
