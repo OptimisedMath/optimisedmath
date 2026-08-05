@@ -7,7 +7,6 @@ from backend.engine import (
     GeneratorRegistryError,
     ProblemGenerationError,
     _register_generator,
-    check_format_mismatch,
     evaluate_answer,
     generate_level_problem,
     problem_fingerprint,
@@ -156,12 +155,22 @@ class TestFormatMismatch:
         ],
     )
     def test_format_mismatch_messages(self, user_text, correct_latex, expected_substring):
-        message = check_format_mismatch(user_text, correct_latex)
-        assert message is not None
-        assert expected_substring in message
+        problem = _sample_problem(
+            correct=correct_latex,
+            grading_policy="equivalent_accepted",
+        )
+        result = evaluate_answer(user_text, problem, is_text_mode=True)
+        assert result["trap_id"] == "format_mismatch"
+        assert expected_substring in result["feedback_msg"]
 
     def test_no_mismatch_for_matching_formats(self):
-        assert check_format_mismatch("1/2", r"\frac{1}{2}") is None
+        problem = _sample_problem(
+            correct=r"\frac{1}{2}",
+            grading_policy="equivalent_accepted",
+        )
+        result = evaluate_answer("1/2", problem, is_text_mode=True)
+        assert result.get("trap_id") != "format_mismatch"
+        assert result["is_correct"] is True
 
 
 class TestGenerateLevelProblem:

@@ -61,3 +61,21 @@ Deep module for gameplay HTTP flows. Routes in `main.py` are thin adapters; orch
 - **start_session / navigate_session / reset_session** — Session lifecycle operations returning enriched `GameState`.
 - **next_problem / submit_problem / auto_solve_problem** — Problem lifecycle operations returning `ProblemResponse` or `SubmissionResponse`.
 - **public_problem / respond** — Strip internal problem fields and attach `NavigationView` to API payloads.
+
+## Problem Generation module (`backend/problem_generation.py`)
+
+Deep module for curriculum-backed problem instances and the generator registry.
+
+- **Generator registry** — Auto-scans `backend/chapters/topic_*.py` at import time; registers public generator functions and hooks `curriculum_loader`.
+- **generate_level_problem(chapter_id, topic_id, level) → ProblemDict** — Resolve YAML level config, run generator, attach metadata.
+- **problem_fingerprint(problem)** — Stable dedupe key (excludes `problem_id`).
+- **get_curriculum_response()** — API-shaped chapter/topic metadata.
+
+## Answer Grading module (`backend/answer_grading.py`)
+
+Deep module for the 3-tier answer taxonomy. Narrow seam: `ProblemDict` in, `EvalResult` out.
+
+- **EvalResult** — Grading outcome: correctness, lock, feedback type/message, trap id.
+- **grade(user_input, problem, *, is_text_mode=False) → EvalResult** — Single interface; trap scan, forgiving parser, and `grading_policy` branches are internal.
+- **evaluate_answer** — Alias for `grade`; kept for existing call sites via `backend.engine`.
+- **Forgiving Parser** — `check_text_answer` / `parse_to_fraction` in `core/utils.py` (implementation detail imported by this module).
