@@ -50,3 +50,14 @@ Deep module for Chapter/Topic/Level access rules. Read and write paths share one
 - **level_limit / accessible_topics** — Navigation dropdown limits.
 - **advance_on_mastery** — Write path; called from Mastery Loop on level mastery.
 - **first_topic_id(chapter_topics)** — First topic in curriculum list order (not numeric min).
+
+## Session Orchestrator module (`backend/session_orchestrator.py`)
+
+Deep module for gameplay HTTP flows. Routes in `main.py` are thin adapters; orchestration and response enrichment live here.
+
+- **Session Orchestrator** — Coordinates session lookup, curriculum guards, unlock validation, problem lifecycle, and navigation-enriched responses for session/problem endpoints.
+- **OrchestratorError** — Domain error with `status_code` and `detail`; mapped to HTTP by `main.py`.
+- **get_session(session_id)** — In-memory lookup with SQLite fallback (same path as before extraction).
+- **start_session / navigate_session / reset_session** — Session lifecycle operations returning enriched `GameState`.
+- **next_problem / submit_problem / auto_solve_problem** — Problem lifecycle operations returning `ProblemResponse` or `SubmissionResponse`.
+- **public_problem / respond** — Strip internal problem fields and attach `NavigationView` to API payloads.

@@ -36,7 +36,7 @@ class StateManager:
         return 1
 
     @staticmethod
-    def _resolve_input_mode(
+    def resolve_input_mode(
         state: GameState, topics_by_id: dict[int, TopicMeta]
     ) -> str:
         """Determine input mode respecting streak threshold and text_mode_disabled."""
@@ -112,7 +112,7 @@ class StateManager:
         state.feedback_msg = ""
         state.current_problem = None
         if topics_by_id is not None:
-            state.current_input_mode = StateManager._resolve_input_mode(
+            state.current_input_mode = StateManager.resolve_input_mode(
                 state, topics_by_id
             )
         else:
