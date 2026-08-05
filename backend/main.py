@@ -3,7 +3,7 @@
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, cast
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +12,7 @@ import backend.config as config
 import backend.engine as engine
 import backend.navigation as navigation
 import backend.state_manager as state_manager
+import backend.unlock as unlock
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
 from backend.curriculum_loader import TopicDict, TopicMeta, get_chapters, get_topics_by_id
@@ -89,35 +90,35 @@ def _validate_unlocked_navigation(
     chapter_id: int,
     topic_id: int,
     selected_level: int,
-    topics_by_id: dict[int, TopicMeta],
+    chapter_topics: list[TopicDict],
 ) -> None:
     """Reject navigation to locked topics or levels unless admin."""
-    if config.is_admin_user(state.username):
+    admin_mode = config.is_admin_user(state.username)
+    frontier = unlock.get_frontier(
+        state.chapter_progress.get(chapter_id), chapter_topics
+    )
+    if unlock.can_access(
+        topic_id, selected_level, frontier, admin_mode=admin_mode
+    ):
         return
 
-    progress = state.chapter_progress.get(chapter_id)
-    first_topic_id = min(topics_by_id) if topics_by_id else 1
-    unlocked_topic_id = progress.unlocked_topic_id if progress else first_topic_id
-    unlocked_level = progress.unlocked_level if progress else 1
-
-    if topic_id > unlocked_topic_id:
+    if topic_id > frontier.unlocked_topic_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Topic is locked",
         )
 
-    if topic_id == unlocked_topic_id and selected_level > unlocked_level:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Level is locked",
-        )
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Level is locked",
+    )
 
 
 # --- App lifecycle ---
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     print("🚀 Math Learning API started")
     db.init_db()
     yield
@@ -256,7 +257,7 @@ async def session_navigate(request: SessionNavigateRequest) -> GameState:
         )
 
     _validate_unlocked_navigation(
-        state, chapter_id, topic_id, selected_level, topics_by_id
+        state, chapter_id, topic_id, selected_level, chapter_topics
     )
 
     state_manager.StateManager.navigate_to(
@@ -356,12 +357,9 @@ async def problem_next(session_id: str) -> ProblemResponse:
 
     state_manager.StateManager.sync_to_db(state)
 
-    return cast(
-        ProblemResponse,
-        {
-            "problem": _public_problem(problem, state),
-            "state": _respond(state, curriculum),
-        },
+    return ProblemResponse(
+        problem=_public_problem(problem, state),
+        state=_respond(state, curriculum),
     )
 
 
@@ -417,13 +415,10 @@ async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionRespons
             detail=f"Error processing submission: {str(e)}",
         )
 
-    return cast(
-        SubmissionResponse,
-        {
-            "state": _respond(state, curriculum),
-            "is_correct": eval_result.get("is_correct", False),
-            "feedback": state.feedback_msg,
-        },
+    return SubmissionResponse(
+        state=_respond(state, curriculum),
+        is_correct=eval_result.get("is_correct", False),
+        feedback=state.feedback_msg,
     )
 
 
@@ -485,13 +480,10 @@ async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
             detail=f"Error processing auto-solve: {str(e)}",
         )
 
-    return cast(
-        SubmissionResponse,
-        {
-            "state": _respond(state, curriculum),
-            "is_correct": eval_result.get("is_correct", False),
-            "feedback": state.feedback_msg,
-        },
+    return SubmissionResponse(
+        state=_respond(state, curriculum),
+        is_correct=eval_result.get("is_correct", False),
+        feedback=state.feedback_msg,
     )
 
 

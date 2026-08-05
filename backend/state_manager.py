@@ -18,6 +18,7 @@ from backend.curriculum_loader import (
 from backend.engine import EvalResult
 from backend.mastery_loop import TurnContext, TurnOutcome, apply_turn
 from backend.models import ChapterProgress, GameState
+from backend.unlock import first_topic_id
 
 
 class StateManager:
@@ -31,7 +32,7 @@ class StateManager:
     ) -> int:
         """Extract the first topic id for a chapter, with safe fallback."""
         if chapter_id is not None and curriculum.get(chapter_id):
-            return curriculum[chapter_id][0]["topic_id"]
+            return first_topic_id(curriculum[chapter_id])
         return 1
 
     @staticmethod

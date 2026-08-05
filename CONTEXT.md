@@ -37,3 +37,16 @@ Deep module for one answered **Turn**. Narrow seam: grading and persistence stay
 - **TurnContext** — Session slice passed in: streak, level, unlock frontier, topic bounds.
 - **TurnOutcome** — Pure result: new streak, XP earned, unlock events, Polish feedback on success.
 - **apply_turn(eval_result, ctx) → TurnOutcome** — Single interface; `StateManager` applies the outcome and handles telemetry/sync.
+
+## Unlock module (`backend/unlock.py`)
+
+Deep module for Chapter/Topic/Level access rules. Read and write paths share one interface surface.
+
+- **Unlock frontier** — `(unlocked_topic_id, unlocked_level)`; the highest Topic and Level a student may reach in a Chapter.
+- **UnlockFrontier** — Immutable snapshot of the frontier for read-path checks.
+- **AdvanceResult** — Write-path result when Power of 3 mastery advances the frontier.
+- **get_frontier(progress, chapter_topics)** — Resolve frontier with safe defaults.
+- **can_access(topic_id, level, frontier, admin_mode)** — Gate for navigation routes.
+- **level_limit / accessible_topics** — Navigation dropdown limits.
+- **advance_on_mastery** — Write path; called from Mastery Loop on level mastery.
+- **first_topic_id(chapter_topics)** — First topic in curriculum list order (not numeric min).

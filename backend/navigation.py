@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import backend.state_manager as state_manager
 from backend.curriculum_loader import TopicDict, get_chapters
 from backend.models import (
     GameState,
@@ -12,6 +11,13 @@ from backend.models import (
     NavigationView,
     SessionNavigateRequest,
 )
+from backend.unlock import (
+    accessible_topics,
+    first_topic_id,
+    get_frontier,
+    level_limit,
+)
+
 
 # --- Private helpers ---
 
@@ -29,22 +35,6 @@ def _find_topic_by_id(
         if int(topic_entry["topic_id"]) == topic_id:
             return topic_entry
     return None
-
-
-def _first_topic_id(chapter_topics: list[TopicDict]) -> int:
-    if chapter_topics:
-        return int(chapter_topics[0]["topic_id"])
-    return 1
-
-
-def _get_unlocked(
-    state: GameState, chapter_id: int, chapter_topics: list[TopicDict]
-) -> tuple[int, int]:
-    progress = state.chapter_progress.get(chapter_id)
-    first_topic_id = _first_topic_id(chapter_topics)
-    unlocked_topic_id = progress.unlocked_topic_id if progress else first_topic_id
-    unlocked_level = progress.unlocked_level if progress else 1
-    return unlocked_topic_id, unlocked_level
 
 
 def _clamp_level(level: int | None, topic_entry: TopicDict | None) -> int:
@@ -65,49 +55,13 @@ def clamp_selected_level(
     if not chapter_topics:
         return
     first_topic_entry = chapter_topics[0]
-    topic_id = state.selected_topic_id or _first_topic_id(chapter_topics)
+    topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
     topic_entry = _find_topic_by_id(chapter_topics, topic_id) or first_topic_entry
     state.selected_level = _clamp_level(state.selected_level, topic_entry)
 
 
-# --- Dropdown builders ---
-
-
-def get_topic_options(
-    chapter_topics: list[TopicDict], unlocked_topic_id: int, admin_mode: bool
-) -> list[TopicDict]:
-    """Return topics available in dropdowns, filtered by unlock progress."""
-    if admin_mode:
-        available = chapter_topics
-    else:
-        available = [
-            topic_entry
-            for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) <= unlocked_topic_id
-        ]
-    if available:
-        return available
-    return chapter_topics[:1]
-
-
-def get_level_limit(
-    active_topic_entry: TopicDict | None,
-    unlocked_topic_id: int,
-    unlocked_level: int,
-    admin_mode: bool,
-) -> int:
-    """Return the highest selectable level for the current unlock state."""
-    if not active_topic_entry:
-        return 1
-    topic_id = int(active_topic_entry["topic_id"])
-    max_level = int(active_topic_entry["max_level"])
-    if admin_mode or topic_id < unlocked_topic_id:
-        return max_level
-    return min(unlocked_level, max_level)
-
-
-def get_level_options(level_limit: int) -> list[int]:
-    return list(range(1, max(level_limit, 1) + 1))
+def get_level_options(level_limit_value: int) -> list[int]:
+    return list(range(1, max(level_limit_value, 1) + 1))
 
 
 # --- Navigation resolution ---
@@ -122,7 +76,7 @@ def resolve_chapter_change(
     next_topic_id = (
         next_chapter_progress.unlocked_topic_id
         if next_chapter_progress
-        else _first_topic_id(next_chapter_topics)
+        else first_topic_id(next_chapter_topics)
     )
     next_topic_entry = (
         _find_topic_by_id(next_chapter_topics, next_topic_id)
@@ -143,12 +97,12 @@ def resolve_topic_change(
 ) -> tuple[int, int]:
     """Pick default level when switching topic within a chapter."""
     chapter_topics = _topics_for_chapter(curriculum, chapter_id)
-    unlocked_topic_id, unlocked_level = _get_unlocked(state, chapter_id, chapter_topics)
+    frontier = get_frontier(state.chapter_progress.get(chapter_id), chapter_topics)
     next_topic_entry = _find_topic_by_id(chapter_topics, next_topic_id)
-    if next_topic_id < unlocked_topic_id:
+    if next_topic_id < frontier.unlocked_topic_id:
         next_level = 1
     else:
-        next_level = _clamp_level(unlocked_level, next_topic_entry)
+        next_level = _clamp_level(frontier.unlocked_level, next_topic_entry)
     return next_topic_id, next_level
 
 
@@ -169,6 +123,8 @@ def resolve_navigate_request(
         chapter_summaries = get_chapters()
         chapter_id = chapter_summaries[0].chapter_id if chapter_summaries else 0
 
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+
     if request.selected_topic_id is not None:
         topic_id, level = resolve_topic_change(
             state, curriculum, chapter_id, int(request.selected_topic_id)
@@ -178,14 +134,10 @@ def resolve_navigate_request(
         return chapter_id, topic_id, level
 
     if request.selected_level is not None:
-        topic_id = state.selected_topic_id or state_manager.StateManager._get_first_topic_id(
-            curriculum, chapter_id
-        )
+        topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
         return chapter_id, int(topic_id), int(request.selected_level)
 
-    topic_id = state.selected_topic_id or state_manager.StateManager._get_first_topic_id(
-        curriculum, chapter_id
-    )
+    topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
     return chapter_id, int(topic_id), int(state.selected_level)
 
 
@@ -207,23 +159,23 @@ def build_navigation_view(
     )
     chapter_topics = _topics_for_chapter(curriculum, selected_chapter_id)
     first_topic_entry = chapter_topics[0] if chapter_topics else None
-    first_topic_id = _first_topic_id(chapter_topics)
+    default_topic_id = first_topic_id(chapter_topics)
 
-    selected_topic_id = state.selected_topic_id or first_topic_id
+    selected_topic_id = state.selected_topic_id or default_topic_id
     active_topic_entry = (
         _find_topic_by_id(chapter_topics, selected_topic_id) or first_topic_entry
     )
     selected_level = _clamp_level(state.selected_level, active_topic_entry)
 
-    unlocked_topic_id, unlocked_level = _get_unlocked(
-        state, selected_chapter_id, chapter_topics
+    frontier = get_frontier(
+        state.chapter_progress.get(selected_chapter_id), chapter_topics
     )
     admin_mode = state.admin_mode
 
-    available_topic_entries = get_topic_options(
-        chapter_topics, unlocked_topic_id, admin_mode
+    available_topic_entries = accessible_topics(
+        chapter_topics, frontier, admin_mode=admin_mode
     )
-    available_topics = [
+    available_topics_view = [
         NavigationTopicOption(
             topic_id=int(topic_entry["topic_id"]),
             name=str(topic_entry["name"]),
@@ -231,10 +183,15 @@ def build_navigation_view(
         for topic_entry in available_topic_entries
     ]
 
-    level_limit = get_level_limit(
-        active_topic_entry, unlocked_topic_id, unlocked_level, admin_mode
-    )
-    available_levels = get_level_options(level_limit)
+    level_limit_value = 1
+    if active_topic_entry:
+        level_limit_value = level_limit(
+            int(active_topic_entry["topic_id"]),
+            int(active_topic_entry["max_level"]),
+            frontier,
+            admin_mode=admin_mode,
+        )
+    available_levels = get_level_options(level_limit_value)
 
     has_next = (
         selected_chapter_id in state.chapter_progress
@@ -252,7 +209,7 @@ def build_navigation_view(
         completed = sum(
             1
             for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) < unlocked_topic_id
+            if int(topic_entry["topic_id"]) < frontier.unlocked_topic_id
         )
         total = len(chapter_topics)
         chapter_progress_view = NavigationProgress(
@@ -274,7 +231,7 @@ def build_navigation_view(
     return NavigationView(
         available_chapters=available_chapters,
         current_topic_name=str(active_topic_entry["name"]) if active_topic_entry else None,
-        available_topics=available_topics,
+        available_topics=available_topics_view,
         available_levels=available_levels,
         has_next_unlocked_topic=has_next,
         text_mode_disabled=text_mode_disabled,

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import backend.config as config
 from backend.engine import EvalResult
+from backend.unlock import advance_on_mastery
 
 
 @dataclass(frozen=True)
@@ -84,32 +85,23 @@ def _apply_correct_turn(ctx: TurnContext, flawless_eligible: bool) -> TurnOutcom
         new_streak == config.STARS_FOR_UNLOCK
         and ctx.selected_level == ctx.unlocked_level
     ):
-        if ctx.unlocked_level < ctx.topic_max_level:
-            if flawless_eligible:
-                flawless_bonus = config.FLAWLESS_LEVEL_BONUS
-                xp_earned += flawless_bonus
-                feedback_msg += f" ✨ +{flawless_bonus} Flawless Bonus!"
+        advance = advance_on_mastery(
+            ctx.unlocked_level, ctx.topic_max_level, ctx.next_topic_ids
+        )
+        level_unlocked = advance.level_unlocked
+        topic_completed = advance.topic_completed
+        show_celebration = True
+        new_selected_level = advance.new_selected_level
+        new_unlocked_level = advance.new_unlocked_level
+        unlock_topic_id = advance.unlock_topic_id
+        new_streak = 0
 
-            new_unlocked_level = ctx.unlocked_level + 1
-            level_unlocked = True
-            show_celebration = True
-            new_selected_level = new_unlocked_level
-            new_streak = 0
-            flawless_eligible = True
-        else:
-            if flawless_eligible:
-                flawless_bonus = config.FLAWLESS_LEVEL_BONUS
-                xp_earned += flawless_bonus
-                feedback_msg += f" ✨ +{flawless_bonus} Flawless Bonus!"
+        if flawless_eligible and (level_unlocked or topic_completed):
+            flawless_bonus = config.FLAWLESS_LEVEL_BONUS
+            xp_earned += flawless_bonus
+            feedback_msg += f" ✨ +{flawless_bonus} Flawless Bonus!"
 
-            topic_completed = True
-            show_celebration = True
-            new_streak = 0
-            flawless_eligible = True
-
-            if ctx.next_topic_ids:
-                unlock_topic_id = ctx.next_topic_ids[0]
-                new_unlocked_level = 1
+        flawless_eligible = True
 
     return TurnOutcome(
         new_streak=new_streak,
