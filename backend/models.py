@@ -125,7 +125,7 @@ class GameState(BaseModel):
                 "feedback_msg": "",
                 "show_celebration": False,
                 "chapter_progress": {
-                    10: {
+                    "10": {
                         "unlocked_topic_id": 30,
                         "unlocked_level": 2,
                     },

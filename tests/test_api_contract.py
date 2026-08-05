@@ -70,8 +70,9 @@ def test_wrong_radio_submit_reveals_correct_answer():
         )
     )
 
-    assert response["is_correct"] is False
-    revealed = response["state"].current_problem
+    assert response.is_correct is False
+    revealed = response.state.current_problem
+    assert revealed is not None
     assert revealed["correct_answer"] == "2"
     assert "correct" not in revealed
     assert "options_map" not in revealed
@@ -99,8 +100,9 @@ def test_wrong_text_submit_reveals_correct_answer():
         )
     )
 
-    assert response["is_correct"] is False
-    revealed = response["state"].current_problem
+    assert response.is_correct is False
+    revealed = response.state.current_problem
+    assert revealed is not None
     assert revealed["correct_answer"] == "2"
     assert "correct" not in revealed
     assert "options_map" not in revealed
@@ -114,13 +116,13 @@ def test_next_problem_hides_answer_contract_fields():
     )
 
     response = run(main.problem_next(state.session_id))
-    problem = response["problem"]
+    problem = response.problem
 
     assert "answer_options" in problem
     assert "correct" not in problem
     assert "options_map" not in problem
     assert "messages" not in problem
-    assert response["state"].can_submit is True
+    assert response.state.can_submit is True
 
 
 def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
@@ -145,9 +147,9 @@ def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
         )
     )
 
-    assert response["is_correct"] is True
-    assert response["state"].streak == 1
-    assert response["state"].current_input_mode == "text"
+    assert response.is_correct is True
+    assert response.state.streak == 1
+    assert response.state.current_input_mode == "text"
 
 
 def test_input_mode_defers_radio_to_text_until_next_problem():
@@ -172,13 +174,13 @@ def test_input_mode_defers_radio_to_text_until_next_problem():
         )
     )
 
-    assert submit_response["is_correct"] is True
-    assert submit_response["state"].streak == 1
-    assert submit_response["state"].current_input_mode == "radio"
+    assert submit_response.is_correct is True
+    assert submit_response.state.streak == 1
+    assert submit_response.state.current_input_mode == "radio"
 
     next_response = run(main.problem_next(state.session_id))
-    assert next_response["state"].current_input_mode == "text"
-    assert next_response["problem"]["input_mode"] == "text"
+    assert next_response.state.current_input_mode == "text"
+    assert next_response.problem["input_mode"] == "text"
 
 
 def test_input_mode_defers_text_to_radio_until_next_problem():
@@ -203,13 +205,13 @@ def test_input_mode_defers_text_to_radio_until_next_problem():
         )
     )
 
-    assert submit_response["is_correct"] is False
-    assert submit_response["state"].streak == 0
-    assert submit_response["state"].current_input_mode == "text"
+    assert submit_response.is_correct is False
+    assert submit_response.state.streak == 0
+    assert submit_response.state.current_input_mode == "text"
 
     next_response = run(main.problem_next(state.session_id))
-    assert next_response["state"].current_input_mode == "radio"
-    assert next_response["problem"]["input_mode"] == "radio"
+    assert next_response.state.current_input_mode == "radio"
+    assert next_response.problem["input_mode"] == "radio"
 
 
 def test_soft_syntax_error_does_not_lock_problem():
@@ -234,9 +236,9 @@ def test_soft_syntax_error_does_not_lock_problem():
         )
     )
 
-    assert response["is_correct"] is False
-    assert response["state"].problem_answered is False
-    assert response["state"].can_submit is True
+    assert response.is_correct is False
+    assert response.state.problem_answered is False
+    assert response.state.can_submit is True
 
 
 def test_soft_syntax_error_preserves_flawless_eligible():
@@ -261,8 +263,8 @@ def test_soft_syntax_error_preserves_flawless_eligible():
         )
     )
 
-    assert response["is_correct"] is False
-    assert response["state"].flawless_eligible is True
+    assert response.is_correct is False
+    assert response.state.flawless_eligible is True
 
 
 def test_unsimplified_fraction_preserves_flawless_eligible():
@@ -287,8 +289,8 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
         )
     )
 
-    assert response["is_correct"] is False
-    assert response["state"].flawless_eligible is True
+    assert response.is_correct is False
+    assert response.state.flawless_eligible is True
 
 
 def test_wrong_answer_forfeits_flawless_eligible():
@@ -312,8 +314,8 @@ def test_wrong_answer_forfeits_flawless_eligible():
         )
     )
 
-    assert response["is_correct"] is False
-    assert response["state"].flawless_eligible is False
+    assert response.is_correct is False
+    assert response.state.flawless_eligible is False
 
 
 def test_stale_and_duplicate_submissions_are_rejected():
@@ -710,7 +712,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     response = run(main.problem_next(session_id))
 
     assert call_count["value"] == 2
-    assert response["problem"]["question"] == "different question"
+    assert response.problem["question"] == "different question"
     assert duplicate_fingerprint in state.recent_problem_fingerprints
     assert engine.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
 
