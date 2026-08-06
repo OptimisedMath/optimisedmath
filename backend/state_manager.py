@@ -39,17 +39,17 @@ class StateManager:
     def resolve_input_mode(
         state: GameState, topics_by_id: dict[int, TopicMeta]
     ) -> str:
-        """Determine input mode respecting streak threshold and text_mode_disabled."""
+        """Determine input mode respecting streak threshold and radio-only topics."""
         topic_id = state.selected_topic_id
         if topic_id is None:
             return "radio"
         topic_cfg = topics_by_id.get(int(topic_id), {})
-        text_disabled = topic_cfg.get("text_mode_disabled", False)
+        radio_only = topic_cfg.get("radio_only", False)
         if (
-            not text_disabled
-            and state.streak >= config.STREAK_THRESHOLD_FOR_TEXT_MODE
+            not radio_only
+            and state.streak >= config.STREAK_THRESHOLD_FOR_INPUT_MODE
         ):
-            return "text"
+            return "input"
         return "radio"
 
     # --- Session initialization ---
@@ -255,11 +255,11 @@ class StateManager:
         state: GameState,
         problem: ProblemDict,
         user_input: str,
-        is_text_mode: bool,
+        is_input_mode: bool,
         topics_by_id: dict[int, TopicMeta],
     ) -> EvalResult:
         """Process user submission: evaluate, log telemetry, handle rewards and progression."""
-        eval_result = engine.evaluate_answer(user_input, problem, is_text_mode)
+        eval_result = engine.evaluate_answer(user_input, problem, is_input_mode)
         is_correct = eval_result.get("is_correct", False)
         state.problem_answered = eval_result.get("lock_answer", False)
         state.feedback_type = eval_result.get("feedback_type", None)
@@ -300,7 +300,7 @@ class StateManager:
             chapter_name=chapter_name,
             topic_name=current_topic_name,
             level_number=state.selected_level,
-            is_text_mode=is_text_mode,
+            is_input_mode=is_input_mode,
             is_correct=is_correct,
             user_input=user_input,
             trap_id=trap_id_hit,

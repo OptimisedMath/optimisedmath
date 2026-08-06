@@ -27,7 +27,7 @@ export interface NavigationView {
   available_topics: NavigationTopicOption[];
   available_levels: number[];
   has_next_unlocked_topic: boolean;
-  text_mode_disabled: boolean;
+  radio_only: boolean;
   chapter_progress: NavigationProgress | null;
   topic_progress: NavigationProgress | null;
 }
@@ -73,7 +73,7 @@ export interface TopicSummary {
   topic_id: number;
   name: string;
   max_level: number;
-  text_mode_disabled?: boolean;
+  radio_only?: boolean;
 }
 
 export interface ChapterSummary {
@@ -105,7 +105,7 @@ export interface SessionResetRequest {
 export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;
-  is_text_mode: boolean;
+  is_input_mode: boolean;
   problem_id?: string;
 }
 

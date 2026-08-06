@@ -14,7 +14,7 @@ from backend.models import (
 from backend.unlock import (
     accessible_topics,
     first_topic_id,
-    get_frontier,
+    get_unlocked_progress,
     level_limit,
 )
 
@@ -97,12 +97,14 @@ def resolve_topic_change(
 ) -> tuple[int, int]:
     """Pick default level when switching topic within a chapter."""
     chapter_topics = _topics_for_chapter(curriculum, chapter_id)
-    frontier = get_frontier(state.chapter_progress.get(chapter_id), chapter_topics)
+    unlocked_progress = get_unlocked_progress(
+        state.chapter_progress.get(chapter_id), chapter_topics
+    )
     next_topic_entry = _find_topic_by_id(chapter_topics, next_topic_id)
-    if next_topic_id < frontier.unlocked_topic_id:
+    if next_topic_id < unlocked_progress.unlocked_topic_id:
         next_level = 1
     else:
-        next_level = _clamp_level(frontier.unlocked_level, next_topic_entry)
+        next_level = _clamp_level(unlocked_progress.unlocked_level, next_topic_entry)
     return next_topic_id, next_level
 
 
@@ -167,13 +169,13 @@ def build_navigation_view(
     )
     selected_level = _clamp_level(state.selected_level, active_topic_entry)
 
-    frontier = get_frontier(
+    unlocked_progress = get_unlocked_progress(
         state.chapter_progress.get(selected_chapter_id), chapter_topics
     )
     admin_mode = state.admin_mode
 
     available_topic_entries = accessible_topics(
-        chapter_topics, frontier, admin_mode=admin_mode
+        chapter_topics, unlocked_progress, admin_mode=admin_mode
     )
     available_topics_view = [
         NavigationTopicOption(
@@ -188,7 +190,7 @@ def build_navigation_view(
         level_limit_value = level_limit(
             int(active_topic_entry["topic_id"]),
             int(active_topic_entry["max_level"]),
-            frontier,
+            unlocked_progress,
             admin_mode=admin_mode,
         )
     available_levels = get_level_options(level_limit_value)
@@ -200,8 +202,8 @@ def build_navigation_view(
         > (state.selected_topic_id or 0)
     )
 
-    text_mode_disabled = bool(
-        active_topic_entry and active_topic_entry.get("text_mode_disabled")
+    radio_only = bool(
+        active_topic_entry and active_topic_entry.get("radio_only")
     )
 
     chapter_progress_view: NavigationProgress | None = None
@@ -209,7 +211,7 @@ def build_navigation_view(
         completed = sum(
             1
             for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) < frontier.unlocked_topic_id
+            if int(topic_entry["topic_id"]) < unlocked_progress.unlocked_topic_id
         )
         total = len(chapter_topics)
         chapter_progress_view = NavigationProgress(
@@ -234,7 +236,7 @@ def build_navigation_view(
         available_topics=available_topics_view,
         available_levels=available_levels,
         has_next_unlocked_topic=has_next,
-        text_mode_disabled=text_mode_disabled,
+        radio_only=radio_only,
         chapter_progress=chapter_progress_view,
         topic_progress=topic_progress_view,
     )

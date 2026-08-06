@@ -52,7 +52,7 @@ def _check_format_mismatch(user_text: str, correct_latex: str) -> str | None:
 
 
 def grade(
-    user_input: str, problem: ProblemDict, *, is_text_mode: bool = False
+    user_input: str, problem: ProblemDict, *, is_input_mode: bool = False
 ) -> EvalResult:
     """Grade a submission against a generated problem.
 
@@ -62,7 +62,7 @@ def grade(
     options_map = problem.get("options_map", {})
 
     # --- 1. MULTIPLE CHOICE MODE ---
-    if not is_text_mode and "options" in problem and len(problem["options"]) > 0:
+    if not is_input_mode and "options" in problem and len(problem["options"]) > 0:
         is_correct = options_map.get(user_input) == "correct"
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
@@ -141,7 +141,7 @@ def grade(
 
 
 def evaluate_answer(
-    user_input: str, problem: ProblemDict, is_text_mode: bool = False
+    user_input: str, problem: ProblemDict, is_input_mode: bool = False
 ) -> EvalResult:
     """Alias for :func:`grade` — kept for existing call sites."""
-    return grade(user_input, problem, is_text_mode=is_text_mode)
+    return grade(user_input, problem, is_input_mode=is_input_mode)

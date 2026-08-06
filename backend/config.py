@@ -17,8 +17,8 @@ STARS_FOR_UNLOCK = 3
 # Maximum streak counter (display limit)
 MAX_STREAK = 3
 
-# Streak count required to enable free-text input mode (instead of multiple choice)
-STREAK_THRESHOLD_FOR_TEXT_MODE = 1
+# Streak count required to enable input mode (instead of radio mode)
+STREAK_THRESHOLD_FOR_INPUT_MODE = 1
 
 # --- GAME MECHANICS: REWARDS ---
 # XP (Experience Points) awarded for correct answers by level

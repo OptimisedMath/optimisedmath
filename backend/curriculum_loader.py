@@ -28,7 +28,7 @@ class TopicDict(TypedDict):
     topic_id: int
     name: str
     max_level: int
-    text_mode_disabled: bool
+    radio_only: bool
 
 
 class TopicMeta(TypedDict):
@@ -36,7 +36,7 @@ class TopicMeta(TypedDict):
 
     name: str
     max_level: int
-    text_mode_disabled: bool
+    radio_only: bool
 
 
 @dataclass(frozen=True)
@@ -126,7 +126,9 @@ def _derive_topics_meta(data: dict[str, Any]) -> list[TopicDict]:
                     "topic_id": int(topic_entry["id"]),
                     "name": topic_entry["name"],
                     "max_level": max(published_levels),
-                    "text_mode_disabled": topic_entry.get("text_mode_disabled", False),
+                    "radio_only": topic_entry.get(
+                        "radio_only", topic_entry.get("text_mode_disabled", False)
+                    ),
                 }
             )
     return chapter_topics
@@ -137,7 +139,7 @@ def _derive_topics_by_id(topics_meta: list[TopicDict]) -> dict[int, TopicMeta]:
         int(topic_entry["topic_id"]): {
             "name": topic_entry["name"],
             "max_level": int(topic_entry["max_level"]),
-            "text_mode_disabled": topic_entry.get("text_mode_disabled", False),
+            "radio_only": bool(topic_entry.get("radio_only", False)),
         }
         for topic_entry in topics_meta
     }

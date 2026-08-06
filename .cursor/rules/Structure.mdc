@@ -26,7 +26,7 @@ Session navigation uses numeric IDs: `selected_chapter_id`, `selected_topic_id`,
 One YAML file per chapter. Root keys: `chapter`, `id`, `keyboard_type`, `topics`.
 
 - Filename must be `{chapter with spaces as underscores}.yaml`
-- Each `topics[]` entry: `id`, `name`, optional `text_mode_disabled`, `levels[]`
+- Each `topics[]` entry: `id`, `name`, optional `radio_only`, `levels[]`
 - Each level: `level`, `name`, `function` (generator name), optional `published`, `traps`
 - Generators are public functions defined in `backend/chapters/<slug>/topic_{id}_{slug}.py` (auto-registered; private helpers use `_` prefix)
 - Loaded and validated by `backend/curriculum_loader.py`

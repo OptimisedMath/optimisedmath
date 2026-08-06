@@ -1,81 +1,101 @@
-# Domain glossary — Optimised Math Learning
+# Optimised Math Learning
 
-Terms used across architecture reviews, ADRs, and module interfaces.
+Polish ed-tech math practice for klasy 4–8. Students work through structured skills, earn XP, and advance by demonstrating mastery at each level.
 
-## Curriculum hierarchy
+**Language:** Canonical terms here and in code are English. User-facing copy is Polish — see `docs/adr/0001-english-code-polish-ui.md`.
 
-- **Chapter** — Broad mathematical domain (e.g. Ułamki Zwykłe). Runtime key: `selected_chapter_id`.
-- **Topic** — Skill set within a Chapter (e.g. Dodawanie). Runtime key: `selected_topic_id`.
-- **Level** — Difficulty stage within a Topic. Runtime key: `selected_level`.
+## Curriculum
 
-## Mastery Loop (Power of 3)
+**Chapter**:
+A broad mathematical area (e.g. Ułamki Zwykłe).
+_Avoid_: Track, domain
 
-The **Dynamic Mastery Loop** governs how a student advances through Levels within a Topic.
+**Topic**:
+One skill within a Chapter (e.g. Dodawanie ułamków).
+_Avoid_: micro-skill, module
 
-- **Level Streak** — Consecutive correct answers at the current Level (`GameState.streak`, max 3). Resets to 0 on Level completion or certain penalties.
-- **Power of 3** — Three correct answers in a row at the current Level unlock the next Level (or complete the Topic if at max Level).
-- **Input mode** — ABCD (radio) at streak 0; open text at streak ≥ 1 (`STREAK_THRESHOLD_FOR_TEXT_MODE`). Resolved on each `problem/next`, not during submission.
-- **Flawless eligible** — Whether the student reached the current Level without a penalized mistake since streak 0. Triggers **Flawless Bonus** XP on Level completion.
+**Level**:
+A difficulty step within a Topic. Each level has its own problems and trap set.
 
-## Answer taxonomy
+**Topic max level**:
+The highest level defined in the curriculum for a Topic — the full depth of that skill. Not the same as how far a student has progressed.
 
-- **Correct** — Mathematically accurate answer.
-- **Trap** — Distractor based on a predictable misconception (`t1`, `t2`, `t3`). Triggers targeted feedback.
-- **Wrong** — Calculation slip (`w1`, `w2`). Generic wrong feedback.
-- **Soft error** — Syntax or format issues (`feedback_type: "info"`). Does not lock the problem or forfeit flawless eligibility.
+## Progression
 
-## Session & persistence
+**Streak**:
+Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake or when the level is completed.
+_UI (PL)_: Postęp do kolejnego poziomu (gwiazdki as the visual meter)
+_Avoid_: Level Streak, Power of 3, passa
 
-- **GameState** — Mutable session snapshot: progress, streak, current problem, feedback. Serialized to SQLite; enriched with **NavigationView** on API responses only.
-- **ChapterProgress** — Per-chapter unlock frontier: `unlocked_topic_id`, `unlocked_level`.
+**Level completion**:
+A Level is done when streak reaches 3. Triggers a level unlock or topic completion depending on position in the Topic.
 
-## Mastery Loop module (`backend/mastery_loop.py`)
+**Level unlock**:
+The next Level within the same Topic becomes reachable after level completion at the current UnlockedProgress boundary.
 
-Deep module for one answered **Turn**. Narrow seam: grading and persistence stay outside.
+**Topic completion**:
+Finishing the last Level of a Topic. Opens the next Topic at level 1.
 
-- **Turn** — One answer submission against the active problem.
-- **TurnContext** — Session slice passed in: streak, level, unlock frontier, topic bounds.
-- **TurnOutcome** — Pure result: new streak, XP earned, unlock events, Polish feedback on success.
-- **apply_turn(eval_result, ctx) → TurnOutcome** — Single interface; `StateManager` applies the outcome and handles telemetry/sync.
+**Flawless**:
+Whether the student reached the current Level without a penalized mistake since streak last reset. Earns bonus XP when the level is finished.
+_UI (PL)_: Bonus — Aktywny 💎 / Stracony ❌
+_Avoid_: flawless eligible, flawless bonus
 
-## Unlock module (`backend/unlock.py`)
+**UnlockedProgress**:
+The furthest Topic and Level a student has *earned access to* within a Chapter — not the topic max level, and not necessarily where they are playing right now. Topics before this point are fully open; at the boundary topic, only levels up to the unlocked level are selectable; later topics stay locked.
+_Avoid_: unlock frontier, progress boundary, progress map
 
-Deep module for Chapter/Topic/Level access rules. Read and write paths share one interface surface.
+**Chapter progress**:
+Per-chapter record of UnlockedProgress for that chapter.
 
-- **Unlock frontier** — `(unlocked_topic_id, unlocked_level)`; the highest Topic and Level a student may reach in a Chapter.
-- **UnlockFrontier** — Immutable snapshot of the frontier for read-path checks.
-- **AdvanceResult** — Write-path result when Power of 3 mastery advances the frontier.
-- **get_frontier(progress, chapter_topics)** — Resolve frontier with safe defaults.
-- **can_access(topic_id, level, frontier, admin_mode)** — Gate for navigation routes.
-- **level_limit / accessible_topics** — Navigation dropdown limits.
-- **advance_on_mastery** — Write path; called from Mastery Loop on level mastery.
-- **first_topic_id(chapter_topics)** — First topic in curriculum list order (not numeric min).
+## Input modes
 
-## Session Orchestrator module (`backend/session_orchestrator.py`)
+**Radio mode**:
+Four-option multiple choice (ABCD). Active when streak is 0, or for the whole Topic on radio-only topics.
+_Avoid_: ABCD mode, multiple choice, text mode
 
-Deep module for gameplay HTTP flows. Routes in `main.py` are thin adapters; orchestration and response enrichment live here.
+**Input mode**:
+The student types the answer. Active when streak ≥ 1 on topics that allow it. Mode switches apply on the next problem, not mid-problem after a submission.
+_Avoid_: open answer, text mode, open-ended, free text
 
-- **Session Orchestrator** — Coordinates session lookup, curriculum guards, unlock validation, problem lifecycle, and navigation-enriched responses for session/problem endpoints.
-- **OrchestratorError** — Domain error with `status_code` and `detail`; mapped to HTTP by `main.py`.
-- **get_session(session_id)** — In-memory lookup with SQLite fallback (same path as before extraction).
-- **start_session / navigate_session / reset_session** — Session lifecycle operations returning enriched `GameState`.
-- **next_problem / submit_problem / auto_solve_problem** — Problem lifecycle operations returning `ProblemResponse` or `SubmissionResponse`.
-- **public_problem / respond** — Strip internal problem fields and attach `NavigationView` to API payloads.
+**Radio-only topic**:
+A Topic that never switches to input mode, regardless of streak.
+_Avoid_: text_mode_disabled, input disabled
 
-## Problem Generation module (`backend/problem_generation.py`)
+## Answers
 
-Deep module for curriculum-backed problem instances and the generator registry.
+**Problem**:
+One generated question instance for the current Level. A fresh instance is served on each request to prevent memorisation.
+_Avoid_: exercise, item
 
-- **Generator registry** — Auto-scans `backend/chapters/topic_*.py` at import time; registers public generator functions and hooks `curriculum_loader`.
-- **generate_level_problem(chapter_id, topic_id, level) → ProblemDict** — Resolve YAML level config, run generator, attach metadata.
-- **problem_fingerprint(problem)** — Stable dedupe key (excludes `problem_id`).
-- **get_curriculum_response()** — API-shaped chapter/topic metadata.
+**Correct**:
+Mathematically right answer for this problem.
 
-## Answer Grading module (`backend/answer_grading.py`)
+**Trap**:
+A wrong option based on a predictable misconception. Gets targeted feedback explaining the specific error.
+_Avoid_: distractor, diagnostic answer
 
-Deep module for the 3-tier answer taxonomy. Narrow seam: `ProblemDict` in, `EvalResult` out.
+**Wrong**:
+A calculation slip — the method was roughly right but arithmetic failed. Generic feedback, not misconception-specific.
+_Avoid_: w1, w2 (internal ids)
 
-- **EvalResult** — Grading outcome: correctness, lock, feedback type/message, trap id.
-- **grade(user_input, problem, *, is_text_mode=False) → EvalResult** — Single interface; trap scan, forgiving parser, and `grading_policy` branches are internal.
-- **evaluate_answer** — Alias for `grade`; kept for existing call sites via `backend.engine`.
-- **Forgiving Parser** — `check_text_answer` / `parse_to_fraction` in `core/utils.py` (implementation detail imported by this module).
+**Soft Error**:
+Syntax or format issue (e.g. wrong notation). Does not penalize streak or forfeit Flawless.
+_Avoid_: format error
+
+## Session
+
+**Student**:
+The person practicing.
+_Avoid_: user, player
+
+**Session**:
+One play session: current chapter/topic/level selection, streak, active problem, and feedback state.
+_Avoid_: GameState (code name)
+
+**XP**:
+Experience points earned per correct answer and level completion.
+
+**Admin mode**:
+Bypass of topic and level lock rules for designated usernames. Not visible to normal students.
+_Avoid_: cheat mode, debug mode

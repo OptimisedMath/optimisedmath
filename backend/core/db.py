@@ -70,7 +70,7 @@ def init_db() -> None:
                 chapter TEXT NOT NULL,
                 topic TEXT NOT NULL,
                 level_number INTEGER NOT NULL,
-                is_text_mode BOOLEAN NOT NULL,
+                is_input_mode BOOLEAN NOT NULL,
                 trap_id TEXT,
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
@@ -88,7 +88,19 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_logs(timestamp)"
         )
+        _migrate_telemetry_input_mode_column(cursor)
         conn.commit()
+
+
+def _migrate_telemetry_input_mode_column(cursor: sqlite3.Cursor) -> None:
+    """Rename legacy is_text_mode telemetry column to is_input_mode."""
+    columns = {
+        row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")
+    }
+    if "is_text_mode" in columns and "is_input_mode" not in columns:
+        cursor.execute(
+            "ALTER TABLE telemetry_logs RENAME COLUMN is_text_mode TO is_input_mode"
+        )
 
 # --- Sessions ---
 
@@ -215,7 +227,7 @@ def log_telemetry(
     chapter_name: str,
     topic_name: str,
     level_number: int,
-    is_text_mode: bool,
+    is_input_mode: bool,
     is_correct: bool,
     user_input: str | None = None,
     trap_id: str | None = None,
@@ -228,7 +240,7 @@ def log_telemetry(
         cursor.execute(
             """
             INSERT INTO telemetry_logs (
-                session_id, username, chapter, topic, level_number, is_text_mode,
+                session_id, username, chapter, topic, level_number, is_input_mode,
                 trap_id, is_correct, user_input, time_spent_seconds, equation_state
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -238,7 +250,7 @@ def log_telemetry(
                 chapter_name,
                 topic_name,
                 level_number,
-                is_text_mode,
+                is_input_mode,
                 trap_id,
                 is_correct,
                 str(user_input) if user_input is not None else None,

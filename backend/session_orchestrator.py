@@ -128,13 +128,15 @@ def _validate_unlocked_navigation(
 ) -> None:
     """Reject navigation to locked topics or levels unless admin."""
     admin_mode = config.is_admin_user(state.username)
-    frontier = unlock.get_frontier(
+    unlocked_progress = unlock.get_unlocked_progress(
         state.chapter_progress.get(chapter_id), chapter_topics
     )
-    if unlock.can_access(topic_id, selected_level, frontier, admin_mode=admin_mode):
+    if unlock.can_access(
+        topic_id, selected_level, unlocked_progress, admin_mode=admin_mode
+    ):
         return
 
-    if topic_id > frontier.unlocked_topic_id:
+    if topic_id > unlocked_progress.unlocked_topic_id:
         raise ForbiddenError("Topic is locked")
 
     raise ForbiddenError("Level is locked")
@@ -329,12 +331,12 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     topics_by_id = get_topics_by_id(chapter_id)
     user_input = (
         clean_mobile_input(request.user_input)
-        if request.is_text_mode
+        if request.is_input_mode
         else request.user_input
     )
 
     eval_result = _process_submission(
-        state, problem, user_input, request.is_text_mode, topics_by_id
+        state, problem, user_input, request.is_input_mode, topics_by_id
     )
 
     return SubmissionResponse(
@@ -362,9 +364,9 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
     if request.problem_id and request.problem_id != problem.get("problem_id"):
         raise ConflictError("Submitted problem_id does not match the active problem")
 
-    is_text_mode = state.current_input_mode == "text"
+    is_input_mode = state.current_input_mode == "input"
     user_input = (
-        clean_latex(problem["correct"]) if is_text_mode else problem["correct"]
+        clean_latex(problem["correct"]) if is_input_mode else problem["correct"]
     )
 
     curriculum = engine.get_curriculum()
@@ -376,7 +378,7 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
     topics_by_id = get_topics_by_id(chapter_id)
 
     eval_result = _process_submission(
-        state, problem, user_input, is_text_mode, topics_by_id
+        state, problem, user_input, is_input_mode, topics_by_id
     )
 
     return SubmissionResponse(
@@ -390,12 +392,12 @@ def _process_submission(
     state: GameState,
     problem: ProblemDict,
     user_input: str,
-    is_text_mode: bool,
+    is_input_mode: bool,
     topics_by_id: dict[int, Any],
 ) -> EvalResult:
     try:
         return state_manager.StateManager.process_submission(
-            state, problem, user_input, is_text_mode, topics_by_id
+            state, problem, user_input, is_input_mode, topics_by_id
         )
     except Exception as exc:
         print(f"Error in process_submission: {exc}")

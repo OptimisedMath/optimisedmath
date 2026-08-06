@@ -154,14 +154,14 @@ export default function GameArena() {
     }
 
     setIsSubmitting(true);
-    const isTextMode = gameState.current_input_mode === 'text';
+    const isInputMode = gameState.current_input_mode === 'input';
 
     try {
       const response = await submitAnswer({
         session_id: gameState.session_id,
         problem_id: problem.problem_id,
         user_input: trimmed,
-        is_text_mode: isTextMode,
+        is_input_mode: isInputMode,
       });
       applySubmissionResponse(response);
     } catch (err) {
@@ -352,7 +352,7 @@ export default function GameArena() {
   const showAdvance = gameState.can_advance && feedback !== null;
   const canSubmit = gameState.can_submit && !isSubmitting;
   const adminMode = gameState.admin_mode ?? false;
-  const textModeDisabled = gameState.navigation?.text_mode_disabled ?? false;
+  const radioOnly = gameState.navigation?.radio_only ?? false;
 
   return (
     <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
@@ -433,7 +433,7 @@ export default function GameArena() {
               problem={problem}
               currentInputMode={gameState.current_input_mode}
               feedback={feedback}
-              textModeDisabled={textModeDisabled}
+              radioOnly={radioOnly}
               onAutoSolve={adminMode ? handleAutoSolve : undefined}
             />
 

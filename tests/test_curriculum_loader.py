@@ -105,7 +105,7 @@ def test_rejects_duplicate_chapter_name(tmp_path, monkeypatch):
         "topic_id": 10,
         "name": "Skill",
         "max_level": 1,
-        "text_mode_disabled": False,
+        "radio_only": False,
     }
     topics_meta = (skill,)
     bundle = loader.ChapterBundle(

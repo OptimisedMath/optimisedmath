@@ -1,23 +1,23 @@
-"""Unit tests for the Unlock module (frontier read/write rules)."""
+"""Unit tests for the Unlock module (UnlockedProgress read/write rules)."""
 
 import pytest
 
 from backend.models import ChapterProgress
 from backend.unlock import (
     AdvanceResult,
-    UnlockFrontier,
+    UnlockedProgress,
     accessible_topics,
     advance_on_mastery,
     can_access,
     first_topic_id,
-    get_frontier,
+    get_unlocked_progress,
     level_limit,
 )
 
 
 def _topics(*topic_ids: int) -> list[dict]:
     return [
-        {"topic_id": tid, "name": f"T{tid}", "max_level": 3, "text_mode_disabled": False}
+        {"topic_id": tid, "name": f"T{tid}", "max_level": 3, "radio_only": False}
         for tid in topic_ids
     ]
 
@@ -29,18 +29,18 @@ def test_first_topic_id_uses_curriculum_order_not_numeric_min():
     assert first_topic_id(chapter_topics) != min(t["topic_id"] for t in chapter_topics)
 
 
-def test_get_frontier_defaults_when_progress_missing():
+def test_get_unlocked_progress_defaults_when_progress_missing():
     chapter_topics = _topics(10, 20)
-    frontier = get_frontier(None, chapter_topics)
+    unlocked_progress = get_unlocked_progress(None, chapter_topics)
 
-    assert frontier == UnlockFrontier(unlocked_topic_id=10, unlocked_level=1)
+    assert unlocked_progress == UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
 
 
-def test_get_frontier_reads_progress():
+def test_get_unlocked_progress_reads_progress():
     progress = ChapterProgress(unlocked_topic_id=20, unlocked_level=2)
-    frontier = get_frontier(progress, _topics(10, 20))
+    unlocked_progress = get_unlocked_progress(progress, _topics(10, 20))
 
-    assert frontier == UnlockFrontier(unlocked_topic_id=20, unlocked_level=2)
+    assert unlocked_progress == UnlockedProgress(unlocked_topic_id=20, unlocked_level=2)
 
 
 @pytest.mark.parametrize(
@@ -52,56 +52,56 @@ def test_get_frontier_reads_progress():
         (20, 1, False),
     ],
 )
-def test_can_access_frontier_topic_and_level(topic_id, level, expected):
-    frontier = UnlockFrontier(unlocked_topic_id=10, unlocked_level=2)
+def test_can_access_unlocked_progress_topic_and_level(topic_id, level, expected):
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=2)
 
-    assert can_access(topic_id, level, frontier) is expected
+    assert can_access(topic_id, level, unlocked_progress) is expected
 
 
 def test_can_access_allows_replaying_completed_topic():
-    frontier = UnlockFrontier(unlocked_topic_id=20, unlocked_level=2)
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=20, unlocked_level=2)
 
-    assert can_access(10, 3, frontier) is True
+    assert can_access(10, 3, unlocked_progress) is True
 
 
 def test_can_access_admin_bypass():
-    frontier = UnlockFrontier(unlocked_topic_id=10, unlocked_level=1)
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
 
-    assert can_access(99, 99, frontier, admin_mode=True) is True
+    assert can_access(99, 99, unlocked_progress, admin_mode=True) is True
 
 
-def test_level_limit_at_frontier_topic():
-    frontier = UnlockFrontier(unlocked_topic_id=10, unlocked_level=2)
+def test_level_limit_at_unlocked_progress_topic():
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=2)
 
-    assert level_limit(10, 5, frontier) == 2
+    assert level_limit(10, 5, unlocked_progress) == 2
 
 
 def test_level_limit_on_completed_topic():
-    frontier = UnlockFrontier(unlocked_topic_id=20, unlocked_level=1)
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=20, unlocked_level=1)
 
-    assert level_limit(10, 5, frontier) == 5
+    assert level_limit(10, 5, unlocked_progress) == 5
 
 
 def test_level_limit_admin():
-    frontier = UnlockFrontier(unlocked_topic_id=10, unlocked_level=1)
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
 
-    assert level_limit(10, 5, frontier, admin_mode=True) == 5
+    assert level_limit(10, 5, unlocked_progress, admin_mode=True) == 5
 
 
-def test_accessible_topics_filters_to_frontier():
+def test_accessible_topics_filters_to_unlocked_progress():
     chapter_topics = _topics(10, 20, 30)
-    frontier = UnlockFrontier(unlocked_topic_id=20, unlocked_level=2)
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=20, unlocked_level=2)
 
-    visible = accessible_topics(chapter_topics, frontier)
+    visible = accessible_topics(chapter_topics, unlocked_progress)
 
     assert [t["topic_id"] for t in visible] == [10, 20]
 
 
 def test_accessible_topics_admin_sees_all():
     chapter_topics = _topics(10, 20, 30)
-    frontier = UnlockFrontier(unlocked_topic_id=10, unlocked_level=1)
+    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
 
-    visible = accessible_topics(chapter_topics, frontier, admin_mode=True)
+    visible = accessible_topics(chapter_topics, unlocked_progress, admin_mode=True)
 
     assert len(visible) == 3
 

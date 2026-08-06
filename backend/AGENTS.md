@@ -16,7 +16,7 @@ Pure Python FastAPI service — no UI framework imports.
 - YAML schema (root keys): `chapter`, `id`, `keyboard_type`, `topics`
 - Filename convention: `{chapter with spaces → underscores}.yaml` (must match `chapter`)
 - Chapter `id` controls dropdown sequence (lower first) and is the runtime navigation key
-- Each `topics[]` entry: `id`, `name`, optional `text_mode_disabled`, `levels[]`
+- Each `topics[]` entry: `id`, `name`, optional `radio_only`, `levels[]`
 - Each level: `level`, `name`, `function`, optional `published`, `traps`
 - Problem generators: public functions in `backend/chapters/<slug>/topic_{id}_{slug}.py` (auto-registered; helpers use `_` prefix)
 - Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache); `backend/engine.py` (problem generation)

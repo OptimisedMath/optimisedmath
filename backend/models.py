@@ -56,7 +56,7 @@ class NavigationView(BaseModel):
     available_topics: list[NavigationTopicOption]
     available_levels: list[int]
     has_next_unlocked_topic: bool
-    text_mode_disabled: bool
+    radio_only: bool
     chapter_progress: Optional[NavigationProgress] = None
     topic_progress: Optional[NavigationProgress] = None
 
@@ -187,7 +187,7 @@ class ProblemSubmissionRequest(BaseModel):
 
     session_id: str
     user_input: str
-    is_text_mode: bool = False
+    is_input_mode: bool = False
     problem_id: Optional[str] = None
 
 
@@ -200,7 +200,7 @@ class TopicSummary(BaseModel):
     topic_id: int
     name: str
     max_level: int
-    text_mode_disabled: bool = False
+    radio_only: bool = False
 
 
 class ChapterSummary(BaseModel):

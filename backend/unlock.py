@@ -1,4 +1,4 @@
-"""Chapter/Topic/Level unlock frontier — read gates and write advances."""
+"""Chapter/Topic/Level UnlockedProgress — read gates and write advances."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from backend.models import ChapterProgress
 
 
 @dataclass(frozen=True)
-class UnlockFrontier:
+class UnlockedProgress:
     """Highest Topic and Level a student may reach in one Chapter."""
 
     unlocked_topic_id: int
@@ -18,7 +18,7 @@ class UnlockFrontier:
 
 @dataclass(frozen=True)
 class AdvanceResult:
-    """Frontier changes when a Level is mastered at the unlock boundary."""
+    """UnlockedProgress changes when a Level is mastered at the current boundary."""
 
     level_unlocked: bool = False
     topic_completed: bool = False
@@ -34,15 +34,15 @@ def first_topic_id(chapter_topics: list[TopicDict]) -> int:
     return 1
 
 
-def get_frontier(
+def get_unlocked_progress(
     progress: ChapterProgress | None,
     chapter_topics: list[TopicDict],
-) -> UnlockFrontier:
-    """Resolve the unlock frontier for a chapter, defaulting safely for missing progress."""
+) -> UnlockedProgress:
+    """Resolve UnlockedProgress for a chapter, defaulting safely for missing progress."""
     default_topic = first_topic_id(chapter_topics)
     if progress is None:
-        return UnlockFrontier(unlocked_topic_id=default_topic, unlocked_level=1)
-    return UnlockFrontier(
+        return UnlockedProgress(unlocked_topic_id=default_topic, unlocked_level=1)
+    return UnlockedProgress(
         unlocked_topic_id=progress.unlocked_topic_id,
         unlocked_level=progress.unlocked_level,
     )
@@ -51,16 +51,19 @@ def get_frontier(
 def can_access(
     topic_id: int,
     level: int,
-    frontier: UnlockFrontier,
+    unlocked_progress: UnlockedProgress,
     *,
     admin_mode: bool = False,
 ) -> bool:
-    """Return whether a chapter/topic/level target is within the unlock frontier."""
+    """Return whether a chapter/topic/level target is within UnlockedProgress."""
     if admin_mode:
         return True
-    if topic_id > frontier.unlocked_topic_id:
+    if topic_id > unlocked_progress.unlocked_topic_id:
         return False
-    if topic_id == frontier.unlocked_topic_id and level > frontier.unlocked_level:
+    if (
+        topic_id == unlocked_progress.unlocked_topic_id
+        and level > unlocked_progress.unlocked_level
+    ):
         return False
     return True
 
@@ -68,30 +71,30 @@ def can_access(
 def level_limit(
     topic_id: int,
     topic_max_level: int,
-    frontier: UnlockFrontier,
+    unlocked_progress: UnlockedProgress,
     *,
     admin_mode: bool = False,
 ) -> int:
-    """Return the highest selectable level for a topic given the frontier."""
-    if admin_mode or topic_id < frontier.unlocked_topic_id:
+    """Return the highest selectable level for a topic given UnlockedProgress."""
+    if admin_mode or topic_id < unlocked_progress.unlocked_topic_id:
         return topic_max_level
-    return min(frontier.unlocked_level, topic_max_level)
+    return min(unlocked_progress.unlocked_level, topic_max_level)
 
 
 def accessible_topics(
     chapter_topics: list[TopicDict],
-    frontier: UnlockFrontier,
+    unlocked_progress: UnlockedProgress,
     *,
     admin_mode: bool = False,
 ) -> list[TopicDict]:
-    """Return topics visible in navigation dropdowns for the current frontier."""
+    """Return topics visible in navigation dropdowns for the current UnlockedProgress."""
     if admin_mode:
         available = chapter_topics
     else:
         available = [
             topic_entry
             for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) <= frontier.unlocked_topic_id
+            if int(topic_entry["topic_id"]) <= unlocked_progress.unlocked_topic_id
         ]
     if available:
         return available
@@ -103,7 +106,7 @@ def advance_on_mastery(
     topic_max_level: int,
     next_topic_ids: tuple[int, ...],
 ) -> AdvanceResult:
-    """Advance the unlock frontier after Power of 3 mastery at the current boundary."""
+    """Advance UnlockedProgress after streak mastery at the current boundary."""
     if unlocked_level < topic_max_level:
         new_level = unlocked_level + 1
         return AdvanceResult(

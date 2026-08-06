@@ -65,7 +65,7 @@ def test_wrong_radio_submit_reveals_correct_answer():
                 session_id=state.session_id,
                 problem_id="p-radio-wrong",
                 user_input="3",
-                is_text_mode=False,
+                is_input_mode=False,
             )
         )
     )
@@ -87,7 +87,7 @@ def test_wrong_text_submit_reveals_correct_answer():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="text")
+    state = make_state(problem, input_mode="input")
 
     response = run(
         main.problem_submit(
@@ -95,7 +95,7 @@ def test_wrong_text_submit_reveals_correct_answer():
                 session_id=state.session_id,
                 problem_id="p-text-wrong",
                 user_input="99",
-                is_text_mode=True,
+                is_input_mode=True,
             )
         )
     )
@@ -125,7 +125,7 @@ def test_next_problem_hides_answer_contract_fields():
     assert response.state.can_submit is True
 
 
-def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
+def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
     problem = {
         "problem_id": "p-mobile",
         "question": "q",
@@ -134,7 +134,7 @@ def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
         "options_map": {"1 \\frac{1}{2}": "correct", "1": "w1", "2": "w2"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="text")
+    state = make_state(problem, input_mode="input")
 
     response = run(
         main.problem_submit(
@@ -142,17 +142,17 @@ def test_text_submit_uses_mobile_sanitizer_and_switches_to_text_mode():
                 session_id=state.session_id,
                 problem_id="p-mobile",
                 user_input="1-1/2",
-                is_text_mode=True,
+                is_input_mode=True,
             )
         )
     )
 
     assert response.is_correct is True
     assert response.state.streak == 1
-    assert response.state.current_input_mode == "text"
+    assert response.state.current_input_mode == "input"
 
 
-def test_input_mode_defers_radio_to_text_until_next_problem():
+def test_input_mode_defers_radio_to_input_until_next_problem():
     problem = {
         "problem_id": "p-radio-defer",
         "question": "q",
@@ -169,7 +169,7 @@ def test_input_mode_defers_radio_to_text_until_next_problem():
                 session_id=state.session_id,
                 problem_id="p-radio-defer",
                 user_input="2",
-                is_text_mode=False,
+                is_input_mode=False,
             )
         )
     )
@@ -179,11 +179,11 @@ def test_input_mode_defers_radio_to_text_until_next_problem():
     assert submit_response.state.current_input_mode == "radio"
 
     next_response = run(main.problem_next(state.session_id))
-    assert next_response.state.current_input_mode == "text"
-    assert next_response.problem["input_mode"] == "text"
+    assert next_response.state.current_input_mode == "input"
+    assert next_response.problem["input_mode"] == "input"
 
 
-def test_input_mode_defers_text_to_radio_until_next_problem():
+def test_input_mode_defers_input_to_radio_until_next_problem():
     problem = {
         "problem_id": "p-text-defer",
         "question": "q",
@@ -192,7 +192,7 @@ def test_input_mode_defers_text_to_radio_until_next_problem():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=1, input_mode="text")
+    state = make_state(problem, streak=1, input_mode="input")
 
     submit_response = run(
         main.problem_submit(
@@ -200,14 +200,14 @@ def test_input_mode_defers_text_to_radio_until_next_problem():
                 session_id=state.session_id,
                 problem_id="p-text-defer",
                 user_input="3",
-                is_text_mode=True,
+                is_input_mode=True,
             )
         )
     )
 
     assert submit_response.is_correct is False
     assert submit_response.state.streak == 0
-    assert submit_response.state.current_input_mode == "text"
+    assert submit_response.state.current_input_mode == "input"
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "radio"
@@ -223,7 +223,7 @@ def test_soft_syntax_error_does_not_lock_problem():
         "options_map": {"3/4": "correct", "1/2": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="text")
+    state = make_state(problem, input_mode="input")
 
     response = run(
         main.problem_submit(
@@ -231,7 +231,7 @@ def test_soft_syntax_error_does_not_lock_problem():
                 session_id=state.session_id,
                 problem_id="p-soft",
                 user_input="abc",
-                is_text_mode=True,
+                is_input_mode=True,
             )
         )
     )
@@ -250,7 +250,7 @@ def test_soft_syntax_error_preserves_flawless_eligible():
         "options_map": {"3/4": "correct", "1/2": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="text")
+    state = make_state(problem, input_mode="input")
 
     response = run(
         main.problem_submit(
@@ -258,7 +258,7 @@ def test_soft_syntax_error_preserves_flawless_eligible():
                 session_id=state.session_id,
                 problem_id="p-soft-flawless",
                 user_input="abc",
-                is_text_mode=True,
+                is_input_mode=True,
             )
         )
     )
@@ -276,7 +276,7 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
         "options_map": {"1/2": "correct", "2/4": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="text")
+    state = make_state(problem, input_mode="input")
 
     response = run(
         main.problem_submit(
@@ -284,7 +284,7 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
                 session_id=state.session_id,
                 problem_id="p-unsimplified",
                 user_input="2/4",
-                is_text_mode=True,
+                is_input_mode=True,
             )
         )
     )
@@ -391,13 +391,13 @@ def test_locked_navigation_is_rejected():
     assert exc.value.status_code == 403
 
 
-def test_text_mode_disabled_keeps_radio_input():
+def test_radio_only_topic_keeps_radio_input():
     curriculum = main.engine.get_curriculum()
     disabled_topic = None
     disabled_chapter_id = None
     for chapter_id_key, chapter_topics in curriculum.items():
         for topic_entry in chapter_topics:
-            if topic_entry.get("text_mode_disabled"):
+            if topic_entry.get("radio_only"):
                 disabled_topic = topic_entry
                 disabled_chapter_id = chapter_id_key
                 break
@@ -405,7 +405,7 @@ def test_text_mode_disabled_keeps_radio_input():
             break
 
     if not disabled_topic:
-        pytest.skip("No text_mode_disabled topic in curriculum")
+        pytest.skip("No radio_only topic in curriculum")
 
     problem = {
         "problem_id": "p-radio-only",
@@ -443,7 +443,7 @@ def test_game_state_includes_navigation_view():
     assert len(nav.available_levels) > 0
     assert nav.current_topic_name is not None
     assert isinstance(nav.has_next_unlocked_topic, bool)
-    assert isinstance(nav.text_mode_disabled, bool)
+    assert isinstance(nav.radio_only, bool)
     assert nav.chapter_progress is not None
     assert nav.topic_progress is not None
 
@@ -566,7 +566,7 @@ def test_navigate_topic_change_to_completed_resets_level_to_one():
         if int(topic_entry["topic_id"]) < unlocked_topic_id
     ]
     if not completed_topics:
-        pytest.skip("Need a completed topic behind the unlocked frontier")
+        pytest.skip("Need a completed topic behind UnlockedProgress")
 
     completed_topic_id = int(completed_topics[0]["topic_id"])
     state.selected_level = 3
@@ -738,7 +738,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         == "Liczby nie są równe — nie wybieraj znaku równości!"
     )
 
-    eval_result = engine.evaluate_answer(">", problem, is_text_mode=False)
+    eval_result = engine.evaluate_answer(">", problem, is_input_mode=False)
     assert eval_result["trap_id"] == "t1"
     assert eval_result["feedback_msg"] == branch_message
 

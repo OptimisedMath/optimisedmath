@@ -2,6 +2,10 @@
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
 
+## Language split
+
+Code and glossary terms are **English**. User-facing UI and student feedback are **Polish**. See `docs/adr/0001-english-code-polish-ui.md`. When a term has Polish UI copy, `CONTEXT.md` marks it with `_UI (PL)_:`.
+
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root, or

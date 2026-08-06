@@ -62,7 +62,7 @@ topics:
 
   - id: 40
     name: "Porównywanie"
-    text_mode_disabled: true
+    radio_only: true
     levels:
       - level: 1
         name: "Ten sam mianownik"
