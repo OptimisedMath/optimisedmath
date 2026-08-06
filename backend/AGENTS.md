@@ -2,13 +2,81 @@
 
 Pure Python FastAPI service — no UI framework imports.
 
-## Entry points
+Domain vocabulary lives in repo-root `CONTEXT.md`. This file records **module boundaries** and agent conventions for the backend.
 
-- **API app:** `backend/main.py` (FastAPI routes, session handling)
-- **Game engine:** `backend/engine.py`
-- **Navigation UI state:** `backend/navigation.py` (unlock rules, dropdown options, progress counts — attached to every `GameState` response via `_respond`)
-- **State:** `backend/state_manager.py`, `backend/models.py` (Pydantic)
-- **Config:** `backend/config.py` — note `PROJECT_ROOT` resolves to `backend/`, not the monorepo root
+## Target module architecture
+
+Layers stack top-to-bottom. Each layer may import from layers below and from `models.py`. Pure rule modules never import session, state, or HTTP layers.
+
+| Layer | Target module | Owns |
+|-------|---------------|------|
+| **HTTP** | `main.py` | Routes, CORS, request/response wiring, exception → HTTP status mapping |
+| **Session use-cases** | `session.py` *(from `session_orchestrator.py`)* | Start, navigate, reset, submit, next problem; in-memory session cache; unlock guards; `respond()` (attach navigation view to API-safe state) |
+| **Session state** | `session_state.py` *(from `state_manager.py`)* | Load/save/mutate `SessionState`; wire grading → progression → persistence |
+| **Progression rules** | `mastery_loop.py` | Streak, XP, level/topic progression for one Submission (pure) |
+| **Access rules** | `unlock.py` | Reachable chapter/topic/level (pure) |
+| **Grading** | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
+| **Problems** | `problem_generation.py` | Generator registry, level assembly (pure) |
+| **Navigation resolution** | `navigation_resolution.py` *(split from `navigation.py`)* | Resolve nav intents: chapter/topic/level changes, clamping |
+| **Navigation view** | `navigation_view.py` *(split from `navigation.py`)* | Build dropdown/progress payload for API responses; reads `SessionState`, never mutates |
+| **Curriculum** | `curriculum_loader.py` | YAML load, validate, cache |
+| **Persistence** | `core/db.py` | SQLite read/write |
+| **API contract** | `models.py` | Pydantic request/response models — single module, no split |
+| **Config** | `config.py` | Settings; `PROJECT_ROOT` resolves to `backend/`, not monorepo root |
+
+**Remove:** `engine.py` facade — callers import `answer_grading` and `problem_generation` directly.
+
+## Import rules
+
+1. **Strict layers:** HTTP → session → state → pure rules. Pure modules never import session, state, or HTTP.
+2. **`models.py` is shared:** any layer may import Pydantic types from `models.py`.
+3. **`navigation_view` reads only:** may read `SessionState` shapes from `models.py`; must not mutate state or call session use-cases.
+4. **`session.py` orchestrates responses:** owns `respond()` — calls state helpers and `navigation_view.build_*`; does not embed view-building logic.
+
+## Vocabulary (internal renames)
+
+JSON keys and HTTP routes stay unchanged. Rename Python/TypeScript identifiers only.
+
+| Current (code) | Target (code) | CONTEXT term |
+|----------------|---------------|--------------|
+| `GameState` | `SessionState` | Session |
+| `TurnContext`, `TurnOutcome`, `apply_turn` | `SubmissionContext`, `SubmissionOutcome`, `apply_submission` | Submission |
+| `session_orchestrator.py`, `OrchestratorError` | `session.py`, `SessionError` | Session use-case layer |
+| `flawless_eligible` | align with **Flawless** concept | Flawless |
+| `engine.py` | removed | — |
+
+## Refactor execution order
+
+Bottom-up — each step leaves all tests green:
+
+1. Remove `engine.py` facade; update imports to `answer_grading` / `problem_generation` directly
+2. Rename Turn → Submission in pure modules (`mastery_loop.py`, then callers)
+3. `state_manager.py` → `session_state.py` — single module, module-level functions, Submission renames (see below)
+4. `session_orchestrator.py` → `session.py` + `SessionError` hierarchy
+5. Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`
+6. Rename `GameState` → `SessionState` in Python (and mirror in frontend `lib/session/`)
+7. Frontend: hooks + `lib/session/` per wayfinder ticket 03
+
+First two steps are separate PRs: (1) facade removal, (2) Submission rename.
+
+## `session_state.py` public surface
+
+Single deep module — no file split. Drop the `StateManager` class; expose module-level functions. Persistence stays in `core/db.py`; this layer calls it via `sync_to_db`.
+
+| Function | Responsibility |
+|----------|----------------|
+| `init_defaults(state, chapter_ids, curriculum)` | Heal/create fresh session fields + chapter progress |
+| `load_profile(state, username, chapter_ids, curriculum)` | Hydrate from DB or hard-reset new user |
+| `sync_to_db(state)` | Persist user + session rows |
+| `hard_reset(state, chapter_ids, curriculum)` | Wipe progress, reset submission cycle, sync |
+| `navigate_to(state, *, chapter_id, topic_id, level, topics_by_id)` | Update selection, reset submission cycle, sync |
+| `reset_submission_cycle(state, topics_by_id?)` | Clear streak/feedback/problem; recalc input mode *(was `reset_turn`)* |
+| `resolve_input_mode(state, topics_by_id)` | Radio vs input from streak + topic config |
+| `process_submission(state, problem, user_input, is_input_mode, topics_by_id)` | Grade → telemetry → `apply_submission` → sync |
+
+Private helpers: `_get_first_topic_id`, `_build_submission_context`, `_apply_submission_outcome`.
+
+**Deferred to step 4** (`session.py`): `next_problem` state mutations currently inline in `session_orchestrator.py` — extract e.g. `begin_problem(state, problem, topics_by_id)` when the use-case layer is renamed.
 
 ## Curriculum & problems
 
@@ -19,8 +87,8 @@ Pure Python FastAPI service — no UI framework imports.
 - Each `topics[]` entry: `id`, `name`, optional `radio_only`, `levels[]`
 - Each level: `level`, `name`, `function`, optional `published`, `traps`
 - Problem generators: public functions in `backend/chapters/<slug>/topic_{id}_{slug}.py` (auto-registered; helpers use `_` prefix)
-- Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache); `backend/engine.py` (problem generation)
-- Navigation state: `selected_chapter_id`, `selected_topic_id`, `selected_level` in `GameState`
+- Curriculum loading: `backend/curriculum_loader.py` (parse, validate, cache)
+- Navigation selection fields on state: `selected_chapter_id`, `selected_topic_id`, `selected_level`
 
 ## Database
 
@@ -39,11 +107,11 @@ Tests isolate the DB via pytest fixtures (`tests/test_api_contract.py` uses `tmp
 
 ## API contract
 
-When changing request/response shapes, update `backend/models.py` and mirror in `frontend/lib/types.ts`.
+When changing request/response shapes, update `backend/models.py` and mirror in `frontend/lib/types.ts`. Serialized JSON field names are stable — internal type renames must not change wire format.
 
 ## Docstrings
 
-Document symbols where behavior is not obvious from the signature alone. Reference: `backend/state_manager.py`.
+Document symbols where behavior is not obvious from the signature alone. Reference: `backend/session_state.py`.
 
 **Add docstrings to:**
 
