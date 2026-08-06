@@ -5,7 +5,7 @@ import time
 import uuid
 
 import backend.config as config
-import backend.engine as engine
+from backend.answer_grading import EvalResult, evaluate_answer
 from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum_loader import (
@@ -15,7 +15,6 @@ from backend.curriculum_loader import (
     get_topic_name,
     get_topics_by_id,
 )
-from backend.engine import EvalResult
 from backend.mastery_loop import TurnContext, TurnOutcome, apply_turn
 from backend.models import ChapterProgress, GameState
 from backend.unlock import first_topic_id
@@ -259,7 +258,7 @@ class StateManager:
         topics_by_id: dict[int, TopicMeta],
     ) -> EvalResult:
         """Process user submission: evaluate, log telemetry, handle rewards and progression."""
-        eval_result = engine.evaluate_answer(user_input, problem, is_input_mode)
+        eval_result = evaluate_answer(user_input, problem, is_input_mode)
         is_correct = eval_result.get("is_correct", False)
         state.problem_answered = eval_result.get("lock_answer", False)
         state.feedback_type = eval_result.get("feedback_type", None)

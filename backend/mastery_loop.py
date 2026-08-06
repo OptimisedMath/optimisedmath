@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import backend.config as config
-from backend.engine import EvalResult
+from backend.answer_grading import EvalResult
 from backend.unlock import advance_on_mastery
 
 

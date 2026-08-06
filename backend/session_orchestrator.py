@@ -6,14 +6,18 @@ import time
 from typing import Any
 
 import backend.config as config
-import backend.engine as engine
 import backend.navigation as navigation
 import backend.state_manager as state_manager
 import backend.unlock as unlock
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
-from backend.curriculum_loader import TopicDict, get_chapters, get_topics_by_id
-from backend.engine import EvalResult
+from backend.answer_grading import EvalResult
+from backend.curriculum_loader import TopicDict, get_chapters, get_curriculum, get_topics_by_id
+from backend.problem_generation import (
+    ProblemGenerationError,
+    generate_level_problem,
+    problem_fingerprint,
+)
 from backend.models import (
     AutoSolveRequest,
     GameState,
@@ -147,7 +151,7 @@ def _validate_unlocked_navigation(
 
 def start_session(request: SessionStartRequest) -> GameState:
     """Create a session, load user progress, and return GameState with navigation."""
-    curriculum = engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
 
     if not chapter_ids:
@@ -185,7 +189,7 @@ def start_session(request: SessionStartRequest) -> GameState:
 def navigate_session(request: SessionNavigateRequest) -> GameState:
     """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
-    curriculum = engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_id, topic_id, selected_level = navigation.resolve_navigate_request(
         state, curriculum, request
     )
@@ -234,7 +238,7 @@ def navigate_session(request: SessionNavigateRequest) -> GameState:
 def reset_session(request: SessionResetRequest) -> GameState:
     """Hard-reset session progress and return a fresh GameState."""
     state = get_session(request.session_id)
-    curriculum = engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
     state_manager.StateManager.hard_reset(state, chapter_ids, curriculum)
     return respond(state, curriculum)
@@ -243,7 +247,7 @@ def reset_session(request: SessionResetRequest) -> GameState:
 def next_problem(session_id: str) -> ProblemResponse:
     """Generate the next problem, dedupe recent instances, and update input mode."""
     state = get_session(session_id)
-    curriculum = engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
 
@@ -271,11 +275,11 @@ def next_problem(session_id: str) -> ProblemResponse:
 
     for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
         try:
-            candidate = engine.generate_level_problem(chapter_id, topic_id, level)
-        except engine.ProblemGenerationError as exc:
+            candidate = generate_level_problem(chapter_id, topic_id, level)
+        except ProblemGenerationError as exc:
             raise InternalError(str(exc)) from exc
 
-        fingerprint = engine.problem_fingerprint(candidate)
+        fingerprint = problem_fingerprint(candidate)
         if fingerprint not in recent_fingerprints:
             problem = candidate
             recent_fingerprints.append(fingerprint)
@@ -322,7 +326,7 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     if request.problem_id and request.problem_id != problem.get("problem_id"):
         raise ConflictError("Submitted problem_id does not match the active problem")
 
-    curriculum = engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_id = state.selected_chapter_id
 
     if chapter_id is None or chapter_id not in curriculum:
@@ -369,7 +373,7 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
         clean_latex(problem["correct"]) if is_input_mode else problem["correct"]
     )
 
-    curriculum = engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_id = state.selected_chapter_id
 
     if chapter_id is None or chapter_id not in curriculum:

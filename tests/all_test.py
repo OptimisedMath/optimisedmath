@@ -2,12 +2,12 @@
 
 import pytest
 
-import backend.engine as engine
+from backend.problem_generation import FUNCTION_REGISTRY
 
 
 def get_all_math_functions():
-    """Return every auto-registered generator from backend.engine."""
-    return list(engine.FUNCTION_REGISTRY.items())
+    """Return every auto-registered generator from problem_generation."""
+    return list(FUNCTION_REGISTRY.items())
 
 
 @pytest.mark.parametrize("func_name, math_func", get_all_math_functions())

@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 import backend.main as main
 from backend.core import db
+from backend.curriculum_loader import get_curriculum
 from backend.models import GameState
 
 
@@ -26,7 +27,7 @@ def isolated_state(tmp_path, monkeypatch):
 
 def make_state(problem, *, streak=0, input_mode="radio"):
     """Build a GameState with an active problem and register it in ACTIVE_SESSIONS."""
-    curriculum = main.engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_ids = list(curriculum.keys())
     chapter_id = chapter_ids[0]
     topic_entry = curriculum[chapter_id][0]
@@ -371,7 +372,7 @@ def test_locked_navigation_is_rejected():
         )
     )
     chapter_id = state.selected_chapter_id
-    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    chapter_topics = get_curriculum()[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics for locked navigation test")
 
@@ -392,7 +393,7 @@ def test_locked_navigation_is_rejected():
 
 
 def test_radio_only_topic_keeps_radio_input():
-    curriculum = main.engine.get_curriculum()
+    curriculum = get_curriculum()
     disabled_topic = None
     disabled_chapter_id = None
     for chapter_id_key, chapter_topics in curriculum.items():
@@ -455,7 +456,7 @@ def test_navigation_available_topics_respect_locks():
         )
     )
     chapter_id = state.selected_chapter_id
-    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    chapter_topics = get_curriculum()[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics for lock navigation test")
 
@@ -476,12 +477,12 @@ def test_navigation_admin_sees_all_topics():
         )
     )
     chapter_id = state.selected_chapter_id
-    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    chapter_topics = get_curriculum()[chapter_id]
     assert len(state.navigation.available_topics) == len(chapter_topics)
 
 
 def test_navigate_chapter_change_resolves_to_unlocked_topic():
-    curriculum = main.engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_ids = list(curriculum.keys())
     if len(chapter_ids) < 2:
         pytest.skip("Need at least two chapters")
@@ -533,7 +534,7 @@ def test_session_start_clamps_stale_selected_level():
         )
     )
     chapter_id = state.selected_chapter_id
-    topic_entry = main.engine.get_curriculum()[chapter_id][0]
+    topic_entry = get_curriculum()[chapter_id][0]
     max_level = int(topic_entry["max_level"])
 
     state.selected_level = max_level + 10
@@ -555,7 +556,7 @@ def test_navigate_topic_change_to_completed_resets_level_to_one():
         )
     )
     chapter_id = state.selected_chapter_id
-    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    chapter_topics = get_curriculum()[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -591,7 +592,7 @@ def test_navigation_has_next_unlocked_topic():
         )
     )
     chapter_id = state.selected_chapter_id
-    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    chapter_topics = get_curriculum()[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -602,14 +603,14 @@ def test_navigation_has_next_unlocked_topic():
 
     nav = main.navigation.build_navigation_view(
         state.for_response(main._public_problem),
-        main.engine.get_curriculum(),
+        get_curriculum(),
     )
     assert nav.has_next_unlocked_topic is True
 
     state.chapter_progress[chapter_id].unlocked_topic_id = first_topic_id
     nav = main.navigation.build_navigation_view(
         state.for_response(main._public_problem),
-        main.engine.get_curriculum(),
+        get_curriculum(),
     )
     assert nav.has_next_unlocked_topic is False
 
@@ -621,7 +622,7 @@ def test_navigation_progress_counts():
         )
     )
     chapter_id = state.selected_chapter_id
-    chapter_topics = main.engine.get_curriculum()[chapter_id]
+    chapter_topics = get_curriculum()[chapter_id]
     unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
     completed = sum(
         1
@@ -650,9 +651,10 @@ def test_navigation_progress_counts():
 
 
 def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
-    import backend.engine as engine
+    import backend.problem_generation as problem_generation
+    import backend.session_orchestrator as session_orchestrator
 
-    curriculum = main.engine.get_curriculum()
+    curriculum = get_curriculum()
     chapter_ids = list(curriculum.keys())
     chapter_id = chapter_ids[0]
     topic_entry = curriculum[chapter_id][0]
@@ -678,7 +680,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         "level_display": "Test (Lvl 1)",
         "keyboard_type": "default",
     }
-    duplicate_fingerprint = engine.problem_fingerprint(duplicate_problem)
+    duplicate_fingerprint = problem_generation.problem_fingerprint(duplicate_problem)
     state.recent_problem_fingerprints = [duplicate_fingerprint]
 
     call_count = {"value": 0}
@@ -706,7 +708,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         return unique_problem
 
     monkeypatch.setattr(
-        engine, "generate_level_problem", fake_generate_with_unique_second
+        session_orchestrator, "generate_level_problem", fake_generate_with_unique_second
     )
 
     response = run(main.problem_next(session_id))
@@ -714,12 +716,13 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     assert call_count["value"] == 2
     assert response.problem["question"] == "different question"
     assert duplicate_fingerprint in state.recent_problem_fingerprints
-    assert engine.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
+    assert problem_generation.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
 
 
 def test_generator_messages_override_yaml_traps(monkeypatch):
     from backend.core.utils import build_problem_dict
-    import backend.engine as engine
+    import backend.problem_generation as problem_generation
+    from backend.answer_grading import evaluate_answer
 
     branch_message = "branch-specific trap feedback"
 
@@ -728,9 +731,9 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         result["messages"] = {"t1": branch_message}
         return result
 
-    monkeypatch.setitem(engine.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
+    monkeypatch.setitem(problem_generation.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
 
-    problem = engine.generate_level_problem(20, 20, 1)
+    problem = problem_generation.generate_level_problem(20, 20, 1)
     assert problem is not None
     assert problem["messages"]["t1"] == branch_message
     assert (
@@ -738,7 +741,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         == "Liczby nie są równe — nie wybieraj znaku równości!"
     )
 
-    eval_result = engine.evaluate_answer(">", problem, is_input_mode=False)
+    eval_result = evaluate_answer(">", problem, is_input_mode=False)
     assert eval_result["trap_id"] == "t1"
     assert eval_result["feedback_msg"] == branch_message
 

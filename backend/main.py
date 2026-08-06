@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-import backend.engine as engine
 import backend.navigation as navigation
 import backend.state_manager as state_manager
 from backend.core import db
@@ -21,6 +20,7 @@ from backend.models import (
     SessionStartRequest,
     SubmissionResponse,
 )
+from backend.problem_generation import get_curriculum_response
 from backend.session_orchestrator import (
     ACTIVE_SESSIONS,
     OrchestratorError,
@@ -95,7 +95,7 @@ async def root() -> dict[str, str]:
 @app.get("/curriculum", response_model=CurriculumResponse, tags=["Curriculum"])
 async def curriculum_index() -> CurriculumResponse:
     """Return available chapters and their topic metadata."""
-    return engine.get_curriculum_response()
+    return get_curriculum_response()
 
 
 # --- Session endpoints ---

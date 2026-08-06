@@ -5,16 +5,16 @@ from pathlib import Path
 import pytest
 
 import backend.curriculum_loader as loader
-import backend.engine as engine
+from backend.problem_generation import FUNCTION_REGISTRY, get_curriculum_response
 
 
 @pytest.fixture(autouse=True)
 def reset_curriculum_cache():
     loader._load_curriculum_store.cache_clear()
-    loader.set_function_registry(engine.FUNCTION_REGISTRY)
+    loader.set_function_registry(FUNCTION_REGISTRY)
     yield
     loader._load_curriculum_store.cache_clear()
-    loader.set_function_registry(engine.FUNCTION_REGISTRY)
+    loader.set_function_registry(FUNCTION_REGISTRY)
 
 
 def test_loads_real_curriculum_with_topics():
@@ -36,13 +36,13 @@ def test_get_chapter_yaml_uses_topics_key():
 
 
 def test_curriculum_response_uses_chapters_field():
-    response = engine.get_curriculum_response()
+    response = get_curriculum_response()
     assert response.chapters[0].name == "Ułamki Zwykłe"
     assert response.chapters[0].topics[0].name == "Zapisywanie"
 
 
 def test_function_registry_contains_only_generators():
-    for name, func in engine.FUNCTION_REGISTRY.items():
+    for name, func in FUNCTION_REGISTRY.items():
         assert not name.startswith("_")
         assert getattr(func, "__module__", "").startswith("backend.chapters")
 

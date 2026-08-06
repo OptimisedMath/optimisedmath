@@ -1,13 +1,12 @@
-"""Tests for backend.engine grading and registry helpers."""
+"""Tests for backend.answer_grading and problem_generation registry helpers."""
 
 import pytest
 
-import backend.engine as engine
-from backend.engine import (
+from backend.answer_grading import evaluate_answer
+from backend.problem_generation import (
     GeneratorRegistryError,
     ProblemGenerationError,
     _register_generator,
-    evaluate_answer,
     generate_level_problem,
     problem_fingerprint,
 )
