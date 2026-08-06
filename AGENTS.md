@@ -9,7 +9,7 @@ Single-root monorepo: Python FastAPI backend + Next.js frontend. Open the **repo
 | `backend/` | FastAPI API, game engine, session state, curriculum YAML, problem generators |
 | `frontend/` | Next.js App Router UI; calls backend via `/api` proxy |
 | `tests/` | pytest suite — run from repo root |
-| `docs/` | Local-only reference material (gitignored, not version-controlled) |
+| `docs/` | Agent skills config (`docs/agents/`), ADRs (`docs/adr/`); other files under `docs/` stay local-only |
 
 ## Run commands
 
@@ -44,3 +44,17 @@ Dependencies: `requirements.txt` at repo root. Virtualenv: `.venv/`.
 
 - **Next.js / React:** see `frontend/AGENTS.md`
 - **FastAPI / Python:** see `backend/AGENTS.md`
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `OptimisedMath/optimisedmath` via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles with matching label strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.

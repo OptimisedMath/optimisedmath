@@ -1,7 +1,12 @@
 .env
 __pycache__/
 .DS_Store
-docs/
+# Local-only docs; agents config and ADRs are version-controlled
+docs/*
+!docs/agents/
+!docs/agents/**
+!docs/adr/
+!docs/adr/**
 scripts/
 data/*.db
 storage/*.db
