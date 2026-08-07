@@ -10,7 +10,7 @@ import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
 from backend.models import ChapterProgress, SessionState
-from backend.unlock import ProgressZone, UnlockedProgress, classify_progress_zone, first_topic_id
+from backend.unlock import first_topic_id
 
 
 @pytest.fixture(autouse=True)
@@ -266,87 +266,96 @@ def _admin_state_at(
     state.flawless_eligible = flawless_eligible
     state.level_completed = False
     state.topic_completed = False
-    session_state.sync_to_db(state)
+    baseline = state.model_copy(deep=True)
+    baseline.streak = 0
+    db.save_user(state.username, baseline)
+    db.save_session(state.session_id, state.username, baseline)
     return state
+
+
+def _wrong_problem() -> dict:
+    return {
+        "problem_id": "p-wrong",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+    }
+
+
+def _assert_admin_profile_unchanged(
+    state: SessionState,
+    *,
+    xp: int,
+    unlocked_topic_id: int,
+    unlocked_level: int,
+) -> None:
+    chapter_id = state.selected_chapter_id
+    assert state.xp == xp
+    assert state.flawless_eligible is True
+    assert state.level_completed is False
+    assert state.topic_completed is False
+    assert state.chapter_progress[chapter_id].unlocked_topic_id == unlocked_topic_id
+    assert state.chapter_progress[chapter_id].unlocked_level == unlocked_level
+
+    loaded = db.load_user(state.username)
+    assert loaded is not None
+    assert loaded["xp"] == xp
+    assert loaded["streak"] == 0
+    assert loaded["chapter_progress"][chapter_id] == ChapterProgress(
+        unlocked_topic_id=unlocked_topic_id,
+        unlocked_level=unlocked_level,
+    )
 
 
 @pytest.mark.parametrize(
     (
-        "zone_label",
-        "unlocked_topic_id",
-        "unlocked_level",
         "selected_topic_id",
         "selected_level",
-        "expect_xp_delta",
-        "expect_streak_delta",
-        "expect_unlocked_level",
-        "expect_level_completed",
+        "initial_streak",
+        "expect_streak",
     ),
     [
-        ("beyond_topic", 10, 1, 20, 1, 0, 0, 1, False),
-        ("beyond_level", 10, 1, 10, 2, 0, 0, 1, False),
-        ("at_boundary", 10, 1, 10, 1, config.XP_REWARDS[1], 1, 1, False),
-        ("behind_replay", 20, 2, 10, 1, config.XP_REWARDS[1], 1, 2, False),
+        (10, 2, 0, 1),
+        (20, 1, 0, 1),
+        (10, 1, 1, 2),
     ],
 )
-def test_admin_submission_respects_progress_zone(
-    zone_label,
-    unlocked_topic_id,
-    unlocked_level,
+def test_admin_correct_increments_session_streak_without_profile_writes(
     selected_topic_id,
     selected_level,
-    expect_xp_delta,
-    expect_streak_delta,
-    expect_unlocked_level,
-    expect_level_completed,
+    initial_streak,
+    expect_streak,
 ):
     state = _admin_state_at(
-        unlocked_topic_id=unlocked_topic_id,
-        unlocked_level=unlocked_level,
+        unlocked_topic_id=10,
+        unlocked_level=1,
         selected_topic_id=selected_topic_id,
         selected_level=selected_level,
         xp=50,
-        streak=0,
+        streak=initial_streak,
     )
     chapter_id = state.selected_chapter_id
     topics_by_id = get_topics_by_id(chapter_id)
-    problem = _correct_problem()
-    unlocked_progress = UnlockedProgress(
-        unlocked_topic_id=unlocked_topic_id,
-        unlocked_level=unlocked_level,
-    )
-    zone = classify_progress_zone(
-        selected_topic_id, selected_level, unlocked_progress
-    )
-    if zone_label.startswith("beyond"):
-        assert zone == ProgressZone.BEYOND
-    elif zone_label == "at_boundary":
-        assert zone == ProgressZone.AT_BOUNDARY
-    else:
-        assert zone == ProgressZone.BEHIND
-
     telemetry_before = _telemetry_count(state.session_id)
+
     result = session_state.process_submission(
-        state, problem, "2", False, topics_by_id
+        state, _correct_problem(), "2", False, topics_by_id
     )
-    telemetry_after = _telemetry_count(state.session_id)
 
     assert result["is_correct"] is True
     assert state.feedback_type == "success"
     assert state.problem_answered is True
-    assert telemetry_after == telemetry_before + 1
-    assert state.xp == 50 + expect_xp_delta
-    assert state.streak == expect_streak_delta
-    assert (
-        state.chapter_progress[chapter_id].unlocked_level
-        == expect_unlocked_level
+    assert "XP" not in state.feedback_msg
+    assert _telemetry_count(state.session_id) == telemetry_before + 1
+    assert state.streak == expect_streak
+    _assert_admin_profile_unchanged(
+        state, xp=50, unlocked_topic_id=10, unlocked_level=1
     )
-    assert state.chapter_progress[chapter_id].unlocked_topic_id == unlocked_topic_id
-    assert state.level_completed is expect_level_completed
-    assert state.topic_completed is False
 
 
-def test_admin_beyond_zone_freezes_streak_on_wrong_answer():
+def test_admin_wrong_decrements_session_streak_without_profile_writes():
     state = _admin_state_at(
         unlocked_topic_id=10,
         unlocked_level=1,
@@ -356,17 +365,52 @@ def test_admin_beyond_zone_freezes_streak_on_wrong_answer():
     )
     chapter_id = state.selected_chapter_id
     topics_by_id = get_topics_by_id(chapter_id)
-    problem = {
-        "problem_id": "p-wrong",
-        "question": "q",
-        "correct": "2",
-        "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
-    }
 
-    session_state.process_submission(state, problem, "3", False, topics_by_id)
+    session_state.process_submission(
+        state, _wrong_problem(), "3", False, topics_by_id
+    )
 
-    assert state.streak == 2
-    assert state.flawless_eligible is True
+    assert state.streak == 1
     assert state.feedback_type == "warning"
+    _assert_admin_profile_unchanged(
+        state, xp=0, unlocked_topic_id=10, unlocked_level=1
+    )
+
+
+def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold():
+    state = _admin_state_at(
+        unlocked_topic_id=10,
+        unlocked_level=1,
+        selected_topic_id=10,
+        selected_level=2,
+        streak=0,
+    )
+    chapter_id = state.selected_chapter_id
+    topics_by_id = get_topics_by_id(chapter_id)
+
+    session_state.process_submission(
+        state, _correct_problem(), "2", False, topics_by_id
+    )
+
+    assert session_state.resolve_input_mode(state, topics_by_id) == "input"
+
+
+def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold():
+    state = _admin_state_at(
+        unlocked_topic_id=10,
+        unlocked_level=1,
+        selected_topic_id=20,
+        selected_level=1,
+        streak=2,
+    )
+    chapter_id = state.selected_chapter_id
+    topics_by_id = get_topics_by_id(chapter_id)
+
+    session_state.process_submission(
+        state, _correct_problem(), "2", False, topics_by_id
+    )
+
+    assert state.streak == 3
+    _assert_admin_profile_unchanged(
+        state, xp=0, unlocked_topic_id=10, unlocked_level=1
+    )

@@ -9,7 +9,7 @@ import backend.session as session
 import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import SessionState, SessionStartRequest
+from backend.models import AutoSolveRequest, SessionState, SessionStartRequest
 
 
 @pytest.fixture(autouse=True)
@@ -207,6 +207,39 @@ def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode():
     public = session.public_problem(problem, state)
 
     assert public["correct_answer"] == "3/4"
+
+
+def test_admin_auto_solve_uses_flat_submission_rules():
+    state = _fresh_state()
+    state.username = next(iter(config.ADMIN_USERNAMES))
+    state.xp = 40
+    chapter_id = state.selected_chapter_id
+    state.chapter_progress[chapter_id].unlocked_level = 1
+    state.selected_level = 2
+    state.streak = 0
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    session.begin_problem(state, problem, get_topics_by_id(chapter_id))
+    session.ACTIVE_SESSIONS[state.session_id] = state
+    db.save_user(state.username, state.model_copy(update={"streak": 0}))
+
+    response = session.auto_solve_problem(
+        AutoSolveRequest(session_id=state.session_id, problem_id="p1")
+    )
+
+    assert response.is_correct is True
+    assert state.streak == 1
+    assert "XP" not in response.feedback
+    loaded = db.load_user(state.username)
+    assert loaded is not None
+    assert loaded["xp"] == 40
+    assert loaded["streak"] == 0
 
 
 # --- start_session ---

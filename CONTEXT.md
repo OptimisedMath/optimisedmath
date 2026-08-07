@@ -122,9 +122,5 @@ _Avoid_: GameState (code name)
 Experience points earned per correct answer and level completion.
 
 **Admin mode**:
-QA and debug access for designated Usernames. Not visible to normal Students. Navigation bypass: all Topics and Levels are selectable regardless of UnlockedProgress. Each Submission follows write rules based on play target vs UnlockedProgress:
-- **Beyond UnlockedProgress** (previewing locked content): grading and feedback run; telemetry logs; XP, streak, Flawless, UnlockedProgress, and level/topic completion UI stay frozen.
-- **At UnlockedProgress boundary**: normal Student progression — XP, streak, Flawless, and UnlockedProgress advance on mastery.
-- **Behind boundary (replay)**: normal XP, streak, and Flawless; UnlockedProgress unchanged (same as Students replaying earned content).
-Auto-solve is a visible shortcut through the same Submission pipeline — the UI selects or types the correct answer before submitting. Navigation still resets streak on topic/level change.
+QA and debug access for designated Usernames. Not visible to normal Students. Uses **effective full unlock**: navigation and progress UI treat every Topic and Level as already mastered (chapter max), without reading or writing the stored UnlockedProgress on the profile. Normal navigation access rules apply against this effective progress — there is no separate navigation bypass and no UnlockedProgress frontier for admin play. Each Submission grades and shows feedback; telemetry logs. **Session streak** runs in-cycle (radio → input mode, wrong answers decrement) but is never persisted — navigation still resets streak. No XP, Flawless, UnlockedProgress, or unlock celebrations are ever written to the profile. Progress bars show fully complete. Auto-solve is a visible shortcut through the same Submission pipeline — the UI selects or types the correct answer before submitting. To dogfood the mastery loop, use a normal Student account.
 _Avoid_: cheat mode, debug mode, preview mode

@@ -16,7 +16,7 @@ from backend.curriculum_loader import (
 )
 from backend.mastery_loop import SubmissionContext, SubmissionOutcome, apply_submission
 from backend.models import ChapterProgress, SessionState
-from backend.unlock import UnlockedProgress, ProgressZone, classify_progress_zone, first_topic_id
+from backend.unlock import first_topic_id
 
 
 def _get_first_topic_id(
@@ -108,16 +108,35 @@ def reset_submission_cycle(
 
 def sync_to_db(state: SessionState) -> None:
     """Pushes current session state to the database."""
-    if state.username:
+    persist_state = _state_for_db_persist(state)
+    if persist_state.username:
         try:
-            db.save_user(state.username, state)
+            db.save_user(persist_state.username, persist_state)
         except Exception as e:
-            print(f"Error syncing to database for user {state.username}: {e}")
-    if state.session_id and state.username:
+            print(f"Error syncing to database for user {persist_state.username}: {e}")
+    if persist_state.session_id and persist_state.username:
         try:
-            db.save_session(state.session_id, state.username, state)
+            db.save_session(
+                persist_state.session_id, persist_state.username, persist_state
+            )
         except Exception as e:
-            print(f"Error saving session {state.session_id}: {e}")
+            print(f"Error saving session {persist_state.session_id}: {e}")
+
+
+def _state_for_db_persist(state: SessionState) -> SessionState:
+    """Return session snapshot for DB writes, preserving admin progression fields."""
+    if not state.username or not config.is_admin_user(state.username):
+        return state
+
+    persisted = db.load_user(state.username)
+    if persisted is None:
+        return state
+
+    persist_state = state.model_copy(deep=True)
+    persist_state.xp = persisted["xp"]
+    persist_state.streak = persisted["streak"]
+    persist_state.chapter_progress = persisted["chapter_progress"]
+    return persist_state
 
 
 def load_profile(
@@ -231,6 +250,37 @@ def _apply_submission_outcome(
         prog.unlocked_topic_id = outcome.unlock_topic_id
 
 
+def _apply_admin_session_streak(
+    state: SessionState, chapter_id: int, eval_result: EvalResult
+) -> None:
+    """Apply in-cycle streak rules for admin QA without profile progression."""
+    is_correct = eval_result.get("is_correct", False)
+    feedback_type = eval_result.get("feedback_type")
+    is_soft_error = feedback_type == "info"
+
+    if is_correct:
+        new_streak = state.streak
+        if new_streak < config.MAX_STREAK:
+            new_streak += 1
+
+        prog = state.chapter_progress[chapter_id]
+        at_boundary = (
+            state.selected_topic_id == prog.unlocked_topic_id
+            and state.selected_level == prog.unlocked_level
+        )
+        if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
+            new_streak = 0
+
+        state.streak = new_streak
+        if state.feedback_type is None:
+            state.feedback_type = "success"
+            state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉"
+        return
+
+    if state.streak > 0 and not is_soft_error:
+        state.streak -= 1
+
+
 def process_submission(
     state: SessionState,
     problem: ProblemDict,
@@ -289,19 +339,9 @@ def process_submission(
     )
 
     prog = state.chapter_progress[chapter_id]
-    unlocked_progress = UnlockedProgress(
-        unlocked_topic_id=prog.unlocked_topic_id,
-        unlocked_level=prog.unlocked_level,
-    )
     admin_mode = config.is_admin_user(username)
-    if (
-        admin_mode
-        and classify_progress_zone(topic_id, state.selected_level, unlocked_progress)
-        == ProgressZone.BEYOND
-    ):
-        if is_correct and state.feedback_type is None:
-            state.feedback_type = "success"
-            state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉"
+    if admin_mode:
+        _apply_admin_session_streak(state, chapter_id, eval_result)
         sync_to_db(state)
         return eval_result
 
