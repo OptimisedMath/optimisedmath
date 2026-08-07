@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import backend.navigation as navigation
-import backend.state_manager as state_manager
+import backend.session_state as session_state
 from backend.core import db
 from backend.models import (
     AutoSolveRequest,

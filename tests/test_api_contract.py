@@ -33,7 +33,7 @@ def make_state(problem, *, streak=0, input_mode="radio"):
     topic_entry = curriculum[chapter_id][0]
     session_id = str(uuid.uuid4())
     state = GameState()
-    main.state_manager.StateManager.init_defaults(state, chapter_ids, curriculum)
+    main.session_state.init_defaults(state, chapter_ids, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
@@ -45,7 +45,7 @@ def make_state(problem, *, streak=0, input_mode="radio"):
     state.current_problem = problem
     state.problem_start_time = 0
     main.ACTIVE_SESSIONS[session_id] = state
-    main.state_manager.StateManager.sync_to_db(state)
+    main.session_state.sync_to_db(state)
     return state
 
 
@@ -423,7 +423,7 @@ def test_radio_only_topic_keeps_radio_input():
 
     topics_by_id = get_topics_by_id(disabled_chapter_id)
 
-    main.state_manager.StateManager.process_submission(
+    main.session_state.process_submission(
         state, problem, "a", False, topics_by_id
     )
 
@@ -538,7 +538,7 @@ def test_session_start_clamps_stale_selected_level():
     max_level = int(topic_entry["max_level"])
 
     state.selected_level = max_level + 10
-    main.state_manager.StateManager.sync_to_db(state)
+    main.session_state.sync_to_db(state)
 
     reloaded = run(
         main.session_start(
@@ -660,7 +660,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     topic_entry = curriculum[chapter_id][0]
     session_id = str(uuid.uuid4())
     state = GameState()
-    main.state_manager.StateManager.init_defaults(state, chapter_ids, curriculum)
+    main.session_state.init_defaults(state, chapter_ids, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id

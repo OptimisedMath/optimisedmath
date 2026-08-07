@@ -1,6 +1,6 @@
 ---
 description: Curriculum hierarchy (Chapter/Topic/Level), Dynamic Mastery Loop rules ("Power of 3" streak logic, ABCD to Text pipeline), Answer Taxonomy (Traps vs Wrong Answers), and Fast API/Next.js client-server boundary rules.
-globs: backend/chapters/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/curriculum_loader.py,backend/navigation.py,backend/state_manager.py,backend/models.py
+globs: backend/chapters/**/*.py,backend/data/**/*.yaml,backend/engine.py,backend/curriculum_loader.py,backend/navigation.py,backend/session_state.py,backend/models.py
 alwaysApply: false
 ---
 

@@ -12,7 +12,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 |-------|---------------|------|
 | **HTTP** | `main.py` | Routes, CORS, request/response wiring, exception → HTTP status mapping |
 | **Session use-cases** | `session.py` *(from `session_orchestrator.py`)* | Start, navigate, reset, submit, next problem; in-memory session cache; unlock guards; `respond()` (attach navigation view to API-safe state) |
-| **Session state** | `session_state.py` *(from `state_manager.py`)* | Load/save/mutate `SessionState`; wire grading → progression → persistence |
+| **Session state** | `session_state.py` | Load/save/mutate `SessionState`; wire grading → progression → persistence |
 | **Progression rules** | `mastery_loop.py` | Streak, XP, level/topic progression for one Submission (pure) |
 | **Access rules** | `unlock.py` | Reachable chapter/topic/level (pure) |
 | **Grading** | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
@@ -51,7 +51,7 @@ Bottom-up — each step leaves all tests green:
 
 1. Remove `engine.py` facade; update imports to `answer_grading` / `problem_generation` directly
 2. Rename Turn → Submission in pure modules (`mastery_loop.py`, then callers)
-3. `state_manager.py` → `session_state.py` — single module, module-level functions, Submission renames (see below)
+3. ~~`state_manager.py` → `session_state.py`~~ — done: module-level functions, Submission renames (see below)
 4. `session_orchestrator.py` → `session.py` + `SessionError` hierarchy
 5. Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`
 6. Rename `GameState` → `SessionState` in Python (and mirror in frontend `lib/session/`)

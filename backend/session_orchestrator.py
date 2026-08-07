@@ -7,7 +7,7 @@ from typing import Any
 
 import backend.config as config
 import backend.navigation as navigation
-import backend.state_manager as state_manager
+import backend.session_state as session_state
 import backend.unlock as unlock
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
@@ -163,8 +163,8 @@ def start_session(request: SessionStartRequest) -> GameState:
         )
 
     state = GameState()
-    state_manager.StateManager.init_defaults(state, chapter_ids, curriculum)
-    state_manager.StateManager.load_profile(
+    session_state.init_defaults(state, chapter_ids, curriculum)
+    session_state.load_profile(
         state, request.username, chapter_ids, curriculum
     )
     navigation.clamp_selected_level(state, curriculum)
@@ -180,7 +180,7 @@ def start_session(request: SessionStartRequest) -> GameState:
             state.selected_level = level
 
     ACTIVE_SESSIONS[state.session_id] = state
-    state_manager.StateManager.sync_to_db(state)
+    session_state.sync_to_db(state)
     state.problem_start_time = time.time()
 
     return respond(state, curriculum)
@@ -224,7 +224,7 @@ def navigate_session(request: SessionNavigateRequest) -> GameState:
         state, chapter_id, topic_id, selected_level, chapter_topics
     )
 
-    state_manager.StateManager.navigate_to(
+    session_state.navigate_to(
         state,
         chapter_id=chapter_id,
         topic_id=topic_id,
@@ -240,7 +240,7 @@ def reset_session(request: SessionResetRequest) -> GameState:
     state = get_session(request.session_id)
     curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
-    state_manager.StateManager.hard_reset(state, chapter_ids, curriculum)
+    session_state.hard_reset(state, chapter_ids, curriculum)
     return respond(state, curriculum)
 
 
@@ -265,7 +265,7 @@ def next_problem(session_id: str) -> ProblemResponse:
             f"Topic id {topic_id} not found in curriculum"
         )
 
-    state.current_input_mode = state_manager.StateManager.resolve_input_mode(
+    state.current_input_mode = session_state.resolve_input_mode(
         state, topics_by_id
     )
 
@@ -303,7 +303,7 @@ def next_problem(session_id: str) -> ProblemResponse:
     state.problem_start_time = time.time()
     state.current_problem = problem
 
-    state_manager.StateManager.sync_to_db(state)
+    session_state.sync_to_db(state)
 
     return ProblemResponse(
         problem=public_problem(problem, state),
@@ -400,7 +400,7 @@ def _process_submission(
     topics_by_id: dict[int, Any],
 ) -> EvalResult:
     try:
-        return state_manager.StateManager.process_submission(
+        return session_state.process_submission(
             state, problem, user_input, is_input_mode, topics_by_id
         )
     except Exception as exc:

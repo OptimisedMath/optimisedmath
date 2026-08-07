@@ -65,7 +65,7 @@ class NavigationView(BaseModel):
 
 
 class GameState(BaseModel):
-    """Mutable session state used by StateManager and API responses."""
+    """Mutable session state used by session_state and API responses."""
 
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: Optional[str] = None
