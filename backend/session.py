@@ -6,7 +6,8 @@ import time
 from typing import Any
 
 import backend.config as config
-import backend.navigation as navigation
+import backend.navigation_resolution as navigation_resolution
+import backend.navigation_view as navigation_view
 import backend.session_state as session_state
 import backend.unlock as unlock
 from backend.core import db
@@ -116,7 +117,7 @@ def public_problem(problem: ProblemDict, state: GameState) -> dict[str, Any]:
 def respond(state: GameState, curriculum: dict[int, list[TopicDict]]) -> GameState:
     """Build an API-safe GameState with navigation attached."""
     response = state.for_response(public_problem)
-    response.navigation = navigation.build_navigation_view(response, curriculum)
+    response.navigation = navigation_view.build_navigation_view(response, curriculum)
     return response
 
 
@@ -194,13 +195,13 @@ def start_session(request: SessionStartRequest) -> GameState:
     session_state.load_profile(
         state, request.username, chapter_ids, curriculum
     )
-    navigation.clamp_selected_level(state, curriculum)
+    navigation_resolution.clamp_selected_level(state, curriculum)
 
     if request.selected_chapter_id is not None:
         prev_chapter_id = state.selected_chapter_id
         state.selected_chapter_id = request.selected_chapter_id
         if request.selected_chapter_id != prev_chapter_id:
-            _, topic_id, level = navigation.resolve_chapter_change(
+            _, topic_id, level = navigation_resolution.resolve_chapter_change(
                 state, curriculum, request.selected_chapter_id
             )
             state.selected_topic_id = topic_id
@@ -217,7 +218,7 @@ def navigate_session(request: SessionNavigateRequest) -> GameState:
     """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
     curriculum = get_curriculum()
-    chapter_id, topic_id, selected_level = navigation.resolve_navigate_request(
+    chapter_id, topic_id, selected_level = navigation_resolution.resolve_navigate_request(
         state, curriculum, request
     )
 

@@ -52,7 +52,7 @@ Bottom-up — each step leaves all tests green:
 2. Rename Turn → Submission in pure modules (`mastery_loop.py`, then callers)
 3. ~~`state_manager.py` → `session_state.py`~~ — done: module-level functions, Submission renames (see below)
 4. ~~`session_orchestrator.py` → `session.py` + `SessionError` hierarchy~~ — done: `begin_problem()` extracted
-5. Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`
+5. ~~Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`~~ — done
 6. Rename `GameState` → `SessionState` in Python (and mirror in frontend `lib/session/`)
 7. Frontend: hooks + `lib/session/` per wayfinder ticket 03
 
