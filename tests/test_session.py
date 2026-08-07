@@ -9,7 +9,7 @@ import backend.session as session
 import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import AutoSolveRequest, SessionState, SessionStartRequest
+from backend.models import AutoSolveRequest, ChapterProgress, SessionNavigateRequest, SessionState, SessionStartRequest
 
 
 @pytest.fixture(autouse=True)
@@ -240,6 +240,37 @@ def test_admin_auto_solve_uses_flat_submission_rules():
     assert loaded is not None
     assert loaded["xp"] == 40
     assert loaded["streak"] == 0
+
+
+def test_admin_navigates_to_locked_topic_without_bypass():
+    state = _fresh_state()
+    state.username = next(iter(config.ADMIN_USERNAMES))
+    session.ACTIVE_SESSIONS[state.session_id] = state
+    curriculum, _ = _curriculum_and_chapters()
+    chapter_id = state.selected_chapter_id
+    chapter_topics = curriculum[chapter_id]
+    if len(chapter_topics) < 2:
+        pytest.skip("Need at least two topics")
+
+    locked_topic = chapter_topics[-1]
+    locked_topic_id = int(locked_topic["topic_id"])
+    max_level = int(locked_topic["max_level"])
+    state.chapter_progress[chapter_id] = ChapterProgress(
+        unlocked_topic_id=int(chapter_topics[0]["topic_id"]),
+        unlocked_level=1,
+    )
+
+    response = session.navigate_session(
+        SessionNavigateRequest(
+            session_id=state.session_id,
+            selected_chapter_id=chapter_id,
+            selected_topic_id=locked_topic_id,
+            selected_level=max_level,
+        )
+    )
+
+    assert response.selected_topic_id == locked_topic_id
+    assert response.selected_level == max_level
 
 
 # --- start_session ---

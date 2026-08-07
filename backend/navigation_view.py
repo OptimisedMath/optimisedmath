@@ -16,7 +16,12 @@ from backend.navigation_resolution import (
     get_level_options,
     topics_for_chapter,
 )
-from backend.unlock import accessible_topics, first_topic_id, get_unlocked_progress, level_limit
+from backend.unlock import (
+    accessible_topics,
+    effective_unlocked_progress,
+    first_topic_id,
+    level_limit,
+)
 
 
 def build_navigation_view(
@@ -42,14 +47,14 @@ def build_navigation_view(
     )
     selected_level = clamp_level(state.selected_level, active_topic_entry)
 
-    unlocked_progress = get_unlocked_progress(
-        state.chapter_progress.get(selected_chapter_id), chapter_topics
-    )
     admin_mode = state.admin_mode
-
-    available_topic_entries = accessible_topics(
-        chapter_topics, unlocked_progress, admin_mode=admin_mode
+    unlocked_progress = effective_unlocked_progress(
+        chapter_topics,
+        state.chapter_progress.get(selected_chapter_id),
+        admin_mode=admin_mode,
     )
+
+    available_topic_entries = accessible_topics(chapter_topics, unlocked_progress)
     available_topics_view = [
         NavigationTopicOption(
             topic_id=int(topic_entry["topic_id"]),
@@ -64,16 +69,18 @@ def build_navigation_view(
             int(active_topic_entry["topic_id"]),
             int(active_topic_entry["max_level"]),
             unlocked_progress,
-            admin_mode=admin_mode,
         )
     available_levels = get_level_options(level_limit_value)
 
-    has_next = (
-        selected_chapter_id in state.chapter_progress
-        and state.selected_topic_id is not None
-        and state.chapter_progress[selected_chapter_id].unlocked_topic_id
-        > (state.selected_topic_id or 0)
-    )
+    if admin_mode:
+        has_next = False
+    else:
+        has_next = (
+            selected_chapter_id in state.chapter_progress
+            and state.selected_topic_id is not None
+            and state.chapter_progress[selected_chapter_id].unlocked_topic_id
+            > (state.selected_topic_id or 0)
+        )
 
     radio_only = bool(
         active_topic_entry and active_topic_entry.get("radio_only")
@@ -81,27 +88,41 @@ def build_navigation_view(
 
     chapter_progress_view: NavigationProgress | None = None
     if selected_chapter_id and chapter_topics:
-        completed = sum(
-            1
-            for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) < unlocked_progress.unlocked_topic_id
-        )
         total = len(chapter_topics)
-        chapter_progress_view = NavigationProgress(
-            completed=completed,
-            total=total,
-            percentage=(completed / total * 100) if total > 0 else 0.0,
-        )
+        if admin_mode:
+            chapter_progress_view = NavigationProgress(
+                completed=total,
+                total=total,
+                percentage=100.0,
+            )
+        else:
+            completed = sum(
+                1
+                for topic_entry in chapter_topics
+                if int(topic_entry["topic_id"]) < unlocked_progress.unlocked_topic_id
+            )
+            chapter_progress_view = NavigationProgress(
+                completed=completed,
+                total=total,
+                percentage=(completed / total * 100) if total > 0 else 0.0,
+            )
 
     topic_progress_view: NavigationProgress | None = None
     if active_topic_entry:
         max_level = int(active_topic_entry["max_level"])
-        completed_levels = selected_level - 1
-        topic_progress_view = NavigationProgress(
-            completed=completed_levels,
-            total=max_level,
-            percentage=(completed_levels / max_level * 100) if max_level > 0 else 0.0,
-        )
+        if admin_mode:
+            topic_progress_view = NavigationProgress(
+                completed=max_level,
+                total=max_level,
+                percentage=100.0,
+            )
+        else:
+            completed_levels = selected_level - 1
+            topic_progress_view = NavigationProgress(
+                completed=completed_levels,
+                total=max_level,
+                percentage=(completed_levels / max_level * 100) if max_level > 0 else 0.0,
+            )
 
     return NavigationView(
         available_chapters=available_chapters,

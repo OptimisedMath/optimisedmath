@@ -165,14 +165,14 @@ def _validate_unlocked_navigation(
     selected_level: int,
     chapter_topics: list[TopicDict],
 ) -> None:
-    """Reject navigation to locked topics or levels unless admin."""
+    """Reject navigation to locked topics or levels."""
     admin_mode = config.is_admin_user(state.username)
-    unlocked_progress = unlock.get_unlocked_progress(
-        state.chapter_progress.get(chapter_id), chapter_topics
+    unlocked_progress = unlock.effective_unlocked_progress(
+        chapter_topics,
+        state.chapter_progress.get(chapter_id),
+        admin_mode=admin_mode,
     )
-    if unlock.can_access(
-        topic_id, selected_level, unlocked_progress, admin_mode=admin_mode
-    ):
+    if unlock.can_access(topic_id, selected_level, unlocked_progress):
         return
 
     if topic_id > unlocked_progress.unlocked_topic_id:

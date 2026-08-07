@@ -71,6 +71,49 @@ def test_admin_sees_all_topics():
     assert len(nav.available_topics) == len(chapter_topics)
 
 
+def test_admin_progress_bars_show_full_completion():
+    state = _fresh_state(username="Antoni")
+    state.admin_mode = True
+    state.selected_level = 1
+    curriculum = get_curriculum()
+    chapter_id = state.selected_chapter_id
+    chapter_topics = curriculum[chapter_id]
+    current_topic = next(
+        topic_entry
+        for topic_entry in chapter_topics
+        if int(topic_entry["topic_id"]) == state.selected_topic_id
+    )
+    max_level = int(current_topic["max_level"])
+    total = len(chapter_topics)
+
+    nav = view.build_navigation_view(state, curriculum)
+
+    assert nav.chapter_progress.percentage == 100.0
+    assert nav.chapter_progress.completed == total
+    assert nav.chapter_progress.total == total
+    assert nav.topic_progress.percentage == 100.0
+    assert nav.topic_progress.completed == max_level
+    assert nav.topic_progress.total == max_level
+
+
+def test_admin_has_next_unlocked_topic_is_false():
+    state = _fresh_state(username="Antoni")
+    state.admin_mode = True
+    curriculum = get_curriculum()
+    chapter_id = state.selected_chapter_id
+    chapter_topics = curriculum[chapter_id]
+    if len(chapter_topics) < 2:
+        pytest.skip("Need at least two topics")
+
+    second_topic_id = int(chapter_topics[1]["topic_id"])
+    state.selected_topic_id = int(chapter_topics[0]["topic_id"])
+    state.chapter_progress[chapter_id].unlocked_topic_id = second_topic_id
+
+    nav = view.build_navigation_view(state, curriculum)
+
+    assert nav.has_next_unlocked_topic is False
+
+
 def test_has_next_unlocked_topic():
     state = _fresh_state()
     curriculum = get_curriculum()

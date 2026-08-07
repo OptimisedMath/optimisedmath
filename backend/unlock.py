@@ -57,16 +57,35 @@ def get_unlocked_progress(
     )
 
 
+def chapter_max_unlocked_progress(chapter_topics: list[TopicDict]) -> UnlockedProgress:
+    """Return UnlockedProgress at the last topic and its max level in curriculum order."""
+    if not chapter_topics:
+        return UnlockedProgress(unlocked_topic_id=1, unlocked_level=1)
+    last_topic = chapter_topics[-1]
+    return UnlockedProgress(
+        unlocked_topic_id=int(last_topic["topic_id"]),
+        unlocked_level=int(last_topic["max_level"]),
+    )
+
+
+def effective_unlocked_progress(
+    chapter_topics: list[TopicDict],
+    progress: ChapterProgress | None,
+    *,
+    admin_mode: bool,
+) -> UnlockedProgress:
+    """Return navigation UnlockedProgress — chapter max for admin, stored for students."""
+    if admin_mode:
+        return chapter_max_unlocked_progress(chapter_topics)
+    return get_unlocked_progress(progress, chapter_topics)
+
+
 def can_access(
     topic_id: int,
     level: int,
     unlocked_progress: UnlockedProgress,
-    *,
-    admin_mode: bool = False,
 ) -> bool:
     """Return whether a chapter/topic/level target is within UnlockedProgress."""
-    if admin_mode:
-        return True
     if topic_id > unlocked_progress.unlocked_topic_id:
         return False
     if (
@@ -98,11 +117,9 @@ def level_limit(
     topic_id: int,
     topic_max_level: int,
     unlocked_progress: UnlockedProgress,
-    *,
-    admin_mode: bool = False,
 ) -> int:
     """Return the highest selectable level for a topic given UnlockedProgress."""
-    if admin_mode or topic_id < unlocked_progress.unlocked_topic_id:
+    if topic_id < unlocked_progress.unlocked_topic_id:
         return topic_max_level
     return min(unlocked_progress.unlocked_level, topic_max_level)
 
@@ -110,18 +127,13 @@ def level_limit(
 def accessible_topics(
     chapter_topics: list[TopicDict],
     unlocked_progress: UnlockedProgress,
-    *,
-    admin_mode: bool = False,
 ) -> list[TopicDict]:
     """Return topics visible in navigation dropdowns for the current UnlockedProgress."""
-    if admin_mode:
-        available = chapter_topics
-    else:
-        available = [
-            topic_entry
-            for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) <= unlocked_progress.unlocked_topic_id
-        ]
+    available = [
+        topic_entry
+        for topic_entry in chapter_topics
+        if int(topic_entry["topic_id"]) <= unlocked_progress.unlocked_topic_id
+    ]
     if available:
         return available
     return chapter_topics[:1]

@@ -10,7 +10,9 @@ from backend.unlock import (
     accessible_topics,
     advance_on_mastery,
     can_access,
+    chapter_max_unlocked_progress,
     classify_progress_zone,
+    effective_unlocked_progress,
     first_topic_id,
     get_unlocked_progress,
     level_limit,
@@ -66,10 +68,39 @@ def test_can_access_allows_replaying_completed_topic():
     assert can_access(10, 3, unlocked_progress) is True
 
 
-def test_can_access_admin_bypass():
-    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
+def test_effective_unlocked_progress_returns_chapter_max_for_admin():
+    chapter_topics = _topics(10, 20, 30)
+    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
 
-    assert can_access(99, 99, unlocked_progress, admin_mode=True) is True
+    effective = effective_unlocked_progress(
+        chapter_topics, stored, admin_mode=True
+    )
+
+    assert effective == chapter_max_unlocked_progress(chapter_topics)
+    assert effective.unlocked_topic_id == 30
+    assert effective.unlocked_level == 3
+
+
+def test_effective_unlocked_progress_returns_stored_for_student():
+    chapter_topics = _topics(10, 20)
+    stored = ChapterProgress(unlocked_topic_id=20, unlocked_level=2)
+
+    effective = effective_unlocked_progress(
+        chapter_topics, stored, admin_mode=False
+    )
+
+    assert effective == get_unlocked_progress(stored, chapter_topics)
+
+
+def test_can_access_with_effective_admin_progress():
+    chapter_topics = _topics(10, 20, 30)
+    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    effective = effective_unlocked_progress(
+        chapter_topics, stored, admin_mode=True
+    )
+
+    assert can_access(30, 3, effective) is True
+    assert can_access(99, 99, effective) is False
 
 
 def test_level_limit_at_unlocked_progress_topic():
@@ -84,10 +115,15 @@ def test_level_limit_on_completed_topic():
     assert level_limit(10, 5, unlocked_progress) == 5
 
 
-def test_level_limit_admin():
-    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
+def test_level_limit_with_effective_admin_progress():
+    chapter_topics = _topics(10, 20, 30)
+    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    effective = effective_unlocked_progress(
+        chapter_topics, stored, admin_mode=True
+    )
 
-    assert level_limit(10, 5, unlocked_progress, admin_mode=True) == 5
+    assert level_limit(10, 5, effective) == 5
+    assert level_limit(30, 3, effective) == 3
 
 
 def test_accessible_topics_filters_to_unlocked_progress():
@@ -99,11 +135,14 @@ def test_accessible_topics_filters_to_unlocked_progress():
     assert [t["topic_id"] for t in visible] == [10, 20]
 
 
-def test_accessible_topics_admin_sees_all():
+def test_accessible_topics_with_effective_admin_progress():
     chapter_topics = _topics(10, 20, 30)
-    unlocked_progress = UnlockedProgress(unlocked_topic_id=10, unlocked_level=1)
+    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    effective = effective_unlocked_progress(
+        chapter_topics, stored, admin_mode=True
+    )
 
-    visible = accessible_topics(chapter_topics, unlocked_progress, admin_mode=True)
+    visible = accessible_topics(chapter_topics, effective)
 
     assert len(visible) == 3
 
