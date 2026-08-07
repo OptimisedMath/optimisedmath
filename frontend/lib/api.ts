@@ -1,15 +1,5 @@
 import axios from 'axios';
-import type {
-  AutoSolveRequest,
-  CurriculumResponse,
-  GameState,
-  ProblemResponse,
-  SubmissionResponse,
-  SessionStartRequest,
-  SessionNavigateRequest,
-  SessionResetRequest,
-  ProblemSubmissionRequest,
-} from './types';
+import type { CurriculumResponse } from './types';
 
 // Same-origin /api is proxied to the backend by Next.js (see next.config.ts).
 // This avoids WiFi/corporate proxy settings intercepting direct localhost:8000 calls.
@@ -45,38 +35,6 @@ api.interceptors.response.use(
 
 export const getCurriculum = async (): Promise<CurriculumResponse> => {
   const response = await api.get<CurriculumResponse>('/curriculum');
-  return response.data;
-};
-
-export const startSession = async (request: SessionStartRequest): Promise<GameState> => {
-  const response = await api.post<GameState>('/session/start', request);
-  return response.data;
-};
-
-export const navigateSession = async (request: SessionNavigateRequest): Promise<GameState> => {
-  const response = await api.post<GameState>('/session/navigate', request);
-  return response.data;
-};
-
-export const resetSession = async (request: SessionResetRequest): Promise<GameState> => {
-  const response = await api.post<GameState>('/session/reset', request);
-  return response.data;
-};
-
-export const getNextProblem = async (sessionId: string): Promise<ProblemResponse> => {
-  const response = await api.get<ProblemResponse>('/problem/next', {
-    params: { session_id: sessionId },
-  });
-  return response.data;
-};
-
-export const submitAnswer = async (request: ProblemSubmissionRequest): Promise<SubmissionResponse> => {
-  const response = await api.post<SubmissionResponse>('/problem/submit', request);
-  return response.data;
-};
-
-export const autoSolve = async (request: AutoSolveRequest): Promise<SubmissionResponse> => {
-  const response = await api.post<SubmissionResponse>('/problem/auto-solve', request);
   return response.data;
 };
 

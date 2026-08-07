@@ -38,7 +38,7 @@ Dependencies: `requirements.txt` at repo root. Virtualenv: `.venv/`.
 
 - Frontend requests go to `/api/*` → proxied to `http://127.0.0.1:8000/*` (`frontend/next.config.ts`).
 - Backend listens on port **8000**; frontend dev server on port **3000**.
-- Keep `frontend/lib/types.ts` aligned with `backend/models.py` when changing API shapes.
+- Keep `frontend/lib/types.ts` aligned with backend curriculum models and `frontend/lib/session/types.ts` aligned with backend session models when changing API shapes.
 
 ## Subproject agent docs
 

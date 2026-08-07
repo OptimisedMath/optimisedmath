@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import { useDocumentKeydown } from '@/hooks/useDocumentKeydown';
-import type { Problem, SubmitAnswerHandler } from '@/lib/types';
+import type { Problem, SubmitAnswerHandler } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 interface AnswerInputProps {

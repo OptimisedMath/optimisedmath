@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
 import { InlineMath } from 'react-katex';
-import type { Feedback, Problem } from '@/lib/types';
+import type { Feedback, Problem } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 interface FeedbackCardProps {

@@ -9,4 +9,4 @@ alwaysApply: false
 - Read `frontend/node_modules/next/dist/docs/` before writing Next.js code — this project uses Next.js 16 with breaking changes.
 - App Router pages under `frontend/app/`. Arena components in `frontend/components/arena/`, shadcn UI in `frontend/components/ui/`.
 - Call backend via relative `/api/*` paths (proxied to `:8000`).
-- Mirror backend Pydantic models in `frontend/lib/types.ts` when changing API contracts.
+- Mirror backend curriculum models in `frontend/lib/types.ts` and session models in `frontend/lib/session/types.ts` when changing API contracts.

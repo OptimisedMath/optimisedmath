@@ -1,34 +1,29 @@
 import { memo, type ChangeEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { GameState, SessionNavigateRequest } from '@/lib/types';
-
-type NavigateIntent = Pick<
-  SessionNavigateRequest,
-  'selected_chapter_id' | 'selected_topic_id' | 'selected_level'
->;
+import type { NavigateIntent, SessionState } from '@/lib/session';
 
 interface TopicToolbarProps {
-  gameState: GameState;
+  sessionState: SessionState;
   isNavigating: boolean;
   onNavigate: (intent: NavigateIntent) => void;
   onReset: () => void;
 }
 
 function TopicToolbar({
-  gameState,
+  sessionState,
   isNavigating,
   onNavigate,
   onReset,
 }: TopicToolbarProps) {
-  const navigation = gameState.navigation;
+  const navigation = sessionState.navigation;
   if (!navigation) {
     return null;
   }
 
-  const selectedChapterId = gameState.selected_chapter_id ?? navigation.available_chapters[0]?.chapter_id ?? 0;
-  const selectedTopicId = gameState.selected_topic_id ?? navigation.available_topics[0]?.topic_id ?? 1;
-  const selectedLevel = gameState.selected_level;
+  const selectedChapterId = sessionState.selected_chapter_id ?? navigation.available_chapters[0]?.chapter_id ?? 0;
+  const selectedTopicId = sessionState.selected_topic_id ?? navigation.available_topics[0]?.topic_id ?? 1;
+  const selectedLevel = sessionState.selected_level;
 
   const handleChapterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     onNavigate({ selected_chapter_id: Number(event.target.value) });
@@ -116,7 +111,7 @@ function TopicToolbar({
           <Badge variant="secondary">{navigation.current_topic_name || 'Brak tematu'}</Badge>
           <span>Poziom {selectedLevel}</span>
           {isNavigating && <span className="text-sky-500 dark:text-sky-300">Ładowanie tematu...</span>}
-          {gameState.admin_mode && (
+          {sessionState.admin_mode && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />

@@ -1,7 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAppNavigation } from '@/lib/navigation';
+import { useEffect, useRef } from 'react';
+import { useSession } from '@/lib/session';
+import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
+import { Spinner } from '@/components/ui/spinner';
 import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
 import ProblemDisplay from './ProblemDisplay';
@@ -9,266 +11,30 @@ import AnswerInput from './AnswerInput';
 import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
-import { startSession, navigateSession, getNextProblem, submitAnswer, resetSession, autoSolve } from '@/lib/api';
-import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
-import { Spinner } from '@/components/ui/spinner';
-import type { GameState, Feedback, SubmitAnswerHandler, SessionNavigateRequest } from '@/lib/types';
-
-const PREFERRED_CHAPTER_ID = 10;
-
-type NavigateIntent = Pick<
-  SessionNavigateRequest,
-  'selected_chapter_id' | 'selected_topic_id' | 'selected_level'
->;
 
 export default function GameArena() {
-  const { exitToLogin, prefetchLogin } = useAppNavigation();
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAdvancing, setIsAdvancing] = useState(false);
-  const isFetchingRef = useRef(false);
-  const isAdvancingRef = useRef(false);
+  const {
+    sessionState,
+    feedback,
+    error,
+    isNavigating,
+    isAdvancing,
+    needsLogin,
+    problem,
+    handleSubmit,
+    handleAutoSolve,
+    handleNavigate,
+    handleAdvance,
+    handleReset,
+    clearErrorAndReload,
+    showAdvance,
+    canSubmit,
+    adminMode,
+    radioOnly,
+  } = useSession();
+
   const feedbackRef = useRef<HTMLDivElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
-  const [needsLogin, setNeedsLogin] = useState(false);
-  const sessionId = gameState?.session_id;
-
-  const problem = gameState?.current_problem ?? null;
-
-  const fetchNextProblem = useCallback(async (
-    currentSessionId: string,
-    options: { clearBeforeFetch?: boolean } = {}
-  ) => {
-    if (isFetchingRef.current) return false;
-    isFetchingRef.current = true;
-    const { clearBeforeFetch = true } = options;
-    const scrollY = window.scrollY;
-
-    if (clearBeforeFetch) {
-      setFeedback(null);
-      setGameState((prev) =>
-        prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
-      );
-    }
-
-    setError(null);
-
-    try {
-      const response = await getNextProblem(currentSessionId);
-      setGameState(response.state);
-      setFeedback(null);
-      requestAnimationFrame(() => window.scrollTo(0, scrollY));
-      return true;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch problem';
-      setError(errorMsg);
-      console.error('Error fetching problem:', err);
-      return false;
-    } finally {
-      isFetchingRef.current = false;
-    }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const initializeGame = async () => {
-      const storedUsername = localStorage.getItem('username');
-      const storedSessionId = localStorage.getItem('session_id');
-
-      if (!storedUsername || !storedSessionId) {
-        setNeedsLogin(true);
-        exitToLogin();
-        return;
-      }
-
-      try {
-        const sessionResponse = await startSession({
-          username: storedUsername,
-          selected_chapter_id: PREFERRED_CHAPTER_ID,
-        });
-        if (!isMounted) return;
-
-        localStorage.setItem('session_id', sessionResponse.session_id);
-        setGameState(sessionResponse);
-        setError(null);
-        fetchNextProblem(sessionResponse.session_id);
-      } catch (err) {
-        if (!isMounted) return;
-
-        try {
-          const fallbackSession = await startSession({
-            username: storedUsername,
-          });
-          if (!isMounted) return;
-
-          localStorage.setItem('session_id', fallbackSession.session_id);
-          setGameState(fallbackSession);
-          setError(null);
-          fetchNextProblem(fallbackSession.session_id);
-          return;
-        } catch {
-          // Fall through to the original error message.
-        }
-
-        const errorMsg = err instanceof Error ? err.message : 'Failed to start session';
-        setError(errorMsg);
-        console.error('Error starting session:', err);
-      }
-    };
-
-    initializeGame();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [fetchNextProblem, exitToLogin]);
-
-  useEffect(() => {
-    prefetchLogin();
-  }, [prefetchLogin]);
-
-  const applySubmissionResponse = useCallback((response: { state: GameState; is_correct: boolean; feedback: string }) => {
-    const nextState = response.state;
-    setGameState(nextState);
-    setError(null);
-    setFeedback({
-      correct: response.is_correct,
-      message: response.feedback,
-      feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
-      is_locked: nextState.can_advance,
-    });
-  }, []);
-
-  const handleSubmit = useCallback<SubmitAnswerHandler>(async (answer) => {
-    if (isSubmitting || !gameState?.can_submit) {
-      return;
-    }
-
-    const trimmed = answer.trim();
-    if (!gameState?.session_id || !problem?.problem_id || trimmed === '') {
-      return;
-    }
-
-    setIsSubmitting(true);
-    const isInputMode = gameState.current_input_mode === 'input';
-
-    try {
-      const response = await submitAnswer({
-        session_id: gameState.session_id,
-        problem_id: problem.problem_id,
-        user_input: trimmed,
-        is_input_mode: isInputMode,
-      });
-      applySubmissionResponse(response);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
-      setError(errorMsg);
-      console.error('Error submitting answer:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, gameState, problem, applySubmissionResponse]);
-
-  const handleAutoSolve = useCallback(async () => {
-    if (isSubmitting || !gameState?.can_submit || !gameState.admin_mode) {
-      return;
-    }
-
-    if (!gameState.session_id || !problem?.problem_id) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await autoSolve({
-        session_id: gameState.session_id,
-        problem_id: problem.problem_id,
-      });
-      applySubmissionResponse(response);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
-      setError(errorMsg);
-      console.error('Error auto-solving:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, gameState, problem, applySubmissionResponse]);
-
-  const handleNavigate = useCallback(async (intent: NavigateIntent) => {
-    if (!sessionId) {
-      return;
-    }
-
-    const scrollY = window.scrollY;
-    setIsNavigating(true);
-    setFeedback(null);
-    setGameState((prev) =>
-      prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
-    );
-    setError(null);
-
-    try {
-      const nextState = await navigateSession({
-        session_id: sessionId,
-        ...intent,
-      });
-
-      setGameState(nextState);
-      await fetchNextProblem(nextState.session_id);
-      requestAnimationFrame(() => window.scrollTo(0, scrollY));
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
-      setError(errorMsg);
-      console.error('Error navigating topic:', err);
-    } finally {
-      setIsNavigating(false);
-    }
-  }, [sessionId, fetchNextProblem]);
-
-  const handleAdvance = useCallback(async () => {
-    if (!gameState || !gameState.can_advance || isAdvancingRef.current) return;
-
-    isAdvancingRef.current = true;
-    setIsAdvancing(true);
-
-    try {
-      if (gameState.topic_completed) {
-        const chapterId = gameState.selected_chapter_id!;
-        const nextTopicId = gameState.chapter_progress[chapterId]?.unlocked_topic_id;
-        if (nextTopicId === undefined) return;
-
-        setIsNavigating(true);
-        setError(null);
-
-        try {
-          const nextState = await navigateSession({
-            session_id: gameState.session_id,
-            selected_chapter_id: chapterId,
-            selected_topic_id: nextTopicId,
-            selected_level: 1,
-          });
-
-          await fetchNextProblem(nextState.session_id, { clearBeforeFetch: false });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
-          setError(errorMsg);
-          console.error('Error navigating topic:', err);
-        } finally {
-          setIsNavigating(false);
-        }
-      } else {
-        await fetchNextProblem(gameState.session_id, { clearBeforeFetch: false });
-      }
-    } finally {
-      isAdvancingRef.current = false;
-      setIsAdvancing(false);
-    }
-  }, [gameState, fetchNextProblem]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -283,38 +49,6 @@ export default function GameArena() {
     return () => cancelAnimationFrame(frameId);
   }, [feedback]);
 
-  const handleReset = useCallback(async () => {
-    if (!gameState?.session_id) {
-      return;
-    }
-
-    if (!confirm('Czy na pewno chcesz zresetować cały postęp? Ta operacja jest nieodwracalna.')) {
-      return;
-    }
-
-    setIsNavigating(true);
-    setFeedback(null);
-    setGameState((prev) =>
-      prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
-    );
-    setError(null);
-
-    try {
-      const nextState = await resetSession({
-        session_id: gameState.session_id,
-      });
-
-      setGameState(nextState);
-      await fetchNextProblem(nextState.session_id);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to reset progress';
-      setError(errorMsg);
-      console.error('Error resetting progress:', err);
-    } finally {
-      setIsNavigating(false);
-    }
-  }, [gameState, fetchNextProblem]);
-
   if (error) {
     return (
       <div className="gradient-bg flex h-screen items-center justify-center p-8 text-slate-900 dark:text-white">
@@ -325,10 +59,7 @@ export default function GameArena() {
           <h2 className="text-2xl font-bold mb-4 text-red-600 dark:text-red-300">Wystąpił błąd</h2>
           <p className="text-lg mb-6 text-slate-600 dark:text-slate-300">{error}</p>
           <button
-            onClick={() => {
-              setError(null);
-              window.location.reload();
-            }}
+            onClick={clearErrorAndReload}
             className="bg-red-600 hover:bg-red-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-red-500/30"
           >
             Spróbuj ponownie
@@ -338,7 +69,7 @@ export default function GameArena() {
     );
   }
 
-  if (!gameState) {
+  if (!sessionState) {
     return (
       <div className="gradient-bg flex h-screen flex-col items-center justify-center gap-4 text-slate-900 dark:text-white">
         <Spinner className="h-8 w-8 text-sky-500 dark:text-sky-400" />
@@ -349,26 +80,21 @@ export default function GameArena() {
     );
   }
 
-  const showAdvance = gameState.can_advance && feedback !== null;
-  const canSubmit = gameState.can_submit && !isSubmitting;
-  const adminMode = gameState.admin_mode ?? false;
-  const radioOnly = gameState.navigation?.radio_only ?? false;
-
   return (
     <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '0ms' }}>
       <XPBar
-        xp={gameState.xp}
-        flawlessEligible={gameState.flawless_eligible}
+        xp={sessionState.xp}
+        flawlessEligible={sessionState.flawless_eligible}
       />
       </div>
 
-      {gameState.navigation && (
+      {sessionState.navigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '80ms' }}>
           <TopicToolbar
-            gameState={gameState}
+            sessionState={sessionState}
             isNavigating={isNavigating}
             onNavigate={handleNavigate}
             onReset={handleReset}
@@ -376,32 +102,32 @@ export default function GameArena() {
         </div>
       )}
 
-      {gameState.navigation && (
+      {sessionState.navigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
           <ProgressBar
             type="chapter"
             selectedChapterName={
-              gameState.navigation.available_chapters.find(
-                (chapter) => chapter.chapter_id === gameState.selected_chapter_id
+              sessionState.navigation.available_chapters.find(
+                (chapter) => chapter.chapter_id === sessionState.selected_chapter_id
               )?.name
             }
-            chapterProgress={gameState.navigation.chapter_progress}
+            chapterProgress={sessionState.navigation.chapter_progress}
           />
           <ProgressBar
             type="topic"
-            selectedLevel={gameState.selected_level}
-            topicProgress={gameState.navigation.topic_progress}
-            currentTopicName={gameState.navigation.current_topic_name}
+            selectedLevel={sessionState.selected_level}
+            topicProgress={sessionState.navigation.topic_progress}
+            currentTopicName={sessionState.navigation.current_topic_name}
           />
         </div>
       )}
 
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '240ms' }}>
         <MasteryScoreboard
-          streak={gameState.streak}
-          maxStreak={gameState.max_streak}
-          problemAnswered={gameState.problem_answered}
-          showCelebration={gameState.show_celebration}
+          streak={sessionState.streak}
+          maxStreak={sessionState.max_streak}
+          problemAnswered={sessionState.problem_answered}
+          showCelebration={sessionState.show_celebration}
         />
       </div>
 
@@ -413,12 +139,12 @@ export default function GameArena() {
         <ProblemDisplay
           problem={problem}
           selectedChapterName={
-            gameState.navigation?.available_chapters.find(
-              (chapter) => chapter.chapter_id === gameState.selected_chapter_id
+            sessionState.navigation?.available_chapters.find(
+              (chapter) => chapter.chapter_id === sessionState.selected_chapter_id
             )?.name ?? null
           }
-          selectedLevel={gameState.selected_level}
-          topicName={gameState.navigation?.current_topic_name ?? 'Aktualny temat'}
+          selectedLevel={sessionState.selected_level}
+          topicName={sessionState.navigation?.current_topic_name ?? 'Aktualny temat'}
           isLoading={!problem}
         />
 
@@ -431,7 +157,7 @@ export default function GameArena() {
               canSubmit={canSubmit}
               showFeedback={showAdvance}
               problem={problem}
-              currentInputMode={gameState.current_input_mode}
+              currentInputMode={sessionState.current_input_mode}
               feedback={feedback}
               radioOnly={radioOnly}
               onAutoSolve={adminMode ? handleAutoSolve : undefined}
@@ -450,10 +176,10 @@ export default function GameArena() {
               <FeedbackCard
                 feedback={feedback}
                 onNextProblem={handleAdvance}
-                topicCompleted={gameState.topic_completed}
-                showCelebration={gameState.show_celebration}
-                hasNextTopic={gameState.navigation?.has_next_unlocked_topic ?? false}
-                currentInputMode={gameState.current_input_mode}
+                topicCompleted={sessionState.topic_completed}
+                showCelebration={sessionState.show_celebration}
+                hasNextTopic={sessionState.navigation?.has_next_unlocked_topic ?? false}
+                currentInputMode={sessionState.current_input_mode}
                 disabled={isAdvancing}
                 nextButtonRef={nextButtonRef}
                 problem={problem}

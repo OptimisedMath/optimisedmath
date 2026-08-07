@@ -5,7 +5,7 @@ import { useAppNavigation } from '@/lib/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { startSession } from '@/lib/api';
+import { setSessionCredentials, startSession } from '@/lib/session';
 
 const FLOATING_SYMBOLS = [
   { symbol: '∑', top: '12%', left: '10%', delay: '0s', size: 'text-5xl' },
@@ -39,8 +39,7 @@ export default function LoginForm() {
 
     try {
       const sessionResponse = await startSession({ username: username.trim() });
-      localStorage.setItem('username', username.trim());
-      localStorage.setItem('session_id', sessionResponse.session_id);
+      setSessionCredentials(username.trim(), sessionResponse.session_id);
       enterArena();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to start session';

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { BlockMath } from 'react-katex';
 import { Spinner } from '@/components/ui/spinner';
-import type { Problem } from '@/lib/types';
+import type { Problem } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 interface ProblemDisplayProps {

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { NavigationProgress } from '@/lib/types';
+import type { NavigationProgress } from '@/lib/session';
 
 interface ProgressBarProps {
   type: 'chapter' | 'topic';

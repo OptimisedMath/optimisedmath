@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
-import { clearSessionStorage } from '@/lib/navigation';
+import { clearSessionStorage } from '@/lib/session';
 
 interface LogoutLinkProps {
   className?: string;
