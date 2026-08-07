@@ -47,7 +47,7 @@ export interface SessionState {
   topic_completed: boolean;
   feedback_type: string | null;
   feedback_msg: string;
-  show_celebration: boolean;
+  level_completed: boolean;
   chapter_progress: Record<number, ChapterProgress>;
   current_problem: Problem | null;
   can_submit: boolean;

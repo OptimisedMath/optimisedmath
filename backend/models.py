@@ -85,7 +85,7 @@ class SessionState(BaseModel):
 
     feedback_type: Optional[str] = None
     feedback_msg: str = ""
-    show_celebration: bool = False
+    level_completed: bool = False
 
     chapter_progress: Dict[int, ChapterProgress] = Field(default_factory=dict)
 
@@ -123,7 +123,7 @@ class SessionState(BaseModel):
                 "topic_completed": False,
                 "feedback_type": None,
                 "feedback_msg": "",
-                "show_celebration": False,
+                "level_completed": False,
                 "chapter_progress": {
                     "10": {
                         "unlocked_topic_id": 30,

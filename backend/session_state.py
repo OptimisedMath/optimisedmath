@@ -66,7 +66,7 @@ def init_defaults(
         state.topic_completed = False
         state.feedback_type = None
         state.feedback_msg = ""
-        state.show_celebration = False
+        state.level_completed = False
 
     for chapter_id in chapter_ids:
         chapter_first_topic_id = _get_first_topic_id(curriculum, chapter_id)
@@ -96,6 +96,7 @@ def reset_submission_cycle(
     state.flawless_eligible = True
     state.problem_answered = False
     state.topic_completed = False
+    state.level_completed = False
     state.feedback_type = None
     state.feedback_msg = ""
     state.current_problem = None
@@ -216,8 +217,8 @@ def _apply_submission_outcome(
         state.feedback_type = outcome.feedback_type
     if outcome.feedback_msg is not None:
         state.feedback_msg = outcome.feedback_msg
-    if outcome.show_celebration:
-        state.show_celebration = True
+    if outcome.level_completed:
+        state.level_completed = True
     if outcome.topic_completed:
         state.topic_completed = True
     if outcome.new_selected_level is not None:

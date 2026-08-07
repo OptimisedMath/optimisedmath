@@ -9,7 +9,7 @@ interface FeedbackCardProps {
   feedback: Feedback | null;
   onNextProblem: () => void;
   topicCompleted?: boolean;
-  showCelebration: boolean;
+  levelCompleted: boolean;
   hasNextTopic: boolean;
   currentInputMode: string;
   disabled?: boolean;
@@ -21,7 +21,7 @@ function FeedbackCard({
   feedback,
   onNextProblem,
   topicCompleted,
-  showCelebration,
+  levelCompleted,
   hasNextTopic,
   currentInputMode,
   disabled = false,
@@ -51,7 +51,7 @@ function FeedbackCard({
   let buttonLabel = 'Następne zadanie ➡️';
   if (topicCompleted) {
     buttonLabel = 'Następny temat ➡️';
-  } else if (showCelebration) {
+  } else if (levelCompleted) {
     buttonLabel = 'Następny poziom ➡️';
   }
 
@@ -71,7 +71,7 @@ function FeedbackCard({
       onKeyDown={handleAdvanceKeyDown}
       className="glass-card w-full flex flex-col items-center gap-4 mt-4 rounded-2xl p-4 animate-[fadeSlideIn_0.3s_ease-out] outline-none"
     >
-      {showCelebration && (
+      {levelCompleted && (
         <div className="text-5xl sm:text-6xl animate-bounce drop-shadow">
           🎉
         </div>

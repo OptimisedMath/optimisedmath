@@ -34,7 +34,7 @@ class SubmissionOutcome:
     feedback_msg: str | None = None
     level_unlocked: bool = False
     topic_completed: bool = False
-    show_celebration: bool = False
+    level_completed: bool = False
     new_selected_level: int | None = None
     new_unlocked_level: int | None = None
     unlock_topic_id: int | None = None
@@ -77,7 +77,7 @@ def _apply_correct_submission(
 
     level_unlocked = False
     topic_completed = False
-    show_celebration = False
+    level_completed = False
     new_selected_level: int | None = None
     new_unlocked_level: int | None = None
     unlock_topic_id: int | None = None
@@ -92,7 +92,7 @@ def _apply_correct_submission(
         )
         level_unlocked = advance.level_unlocked
         topic_completed = advance.topic_completed
-        show_celebration = True
+        level_completed = level_unlocked or topic_completed
         new_selected_level = advance.new_selected_level
         new_unlocked_level = advance.new_unlocked_level
         unlock_topic_id = advance.unlock_topic_id
@@ -113,7 +113,7 @@ def _apply_correct_submission(
         feedback_msg=feedback_msg,
         level_unlocked=level_unlocked,
         topic_completed=topic_completed,
-        show_celebration=show_celebration,
+        level_completed=level_completed,
         new_selected_level=new_selected_level,
         new_unlocked_level=new_unlocked_level,
         unlock_topic_id=unlock_topic_id,

@@ -6,16 +6,16 @@ interface MasteryScoreboardProps {
   streak: number;
   maxStreak: number;
   problemAnswered: boolean;
-  showCelebration: boolean;
+  levelCompleted: boolean;
 }
 
 function MasteryScoreboard({
   streak,
   maxStreak,
   problemAnswered,
-  showCelebration,
+  levelCompleted,
 }: MasteryScoreboardProps) {
-  const completedStreakPendingAdvance = problemAnswered && showCelebration && streak === 0;
+  const completedStreakPendingAdvance = problemAnswered && levelCompleted && streak === 0;
   const displayStreak = completedStreakPendingAdvance ? maxStreak : streak;
   const prevDisplayStreak = useRef(displayStreak);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);

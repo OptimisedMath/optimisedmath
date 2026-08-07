@@ -127,7 +127,7 @@ export default function GameArena() {
           streak={sessionState.streak}
           maxStreak={sessionState.max_streak}
           problemAnswered={sessionState.problem_answered}
-          showCelebration={sessionState.show_celebration}
+          levelCompleted={sessionState.level_completed}
         />
       </div>
 
@@ -177,7 +177,7 @@ export default function GameArena() {
                 feedback={feedback}
                 onNextProblem={handleAdvance}
                 topicCompleted={sessionState.topic_completed}
-                showCelebration={sessionState.show_celebration}
+                levelCompleted={sessionState.level_completed}
                 hasNextTopic={sessionState.navigation?.has_next_unlocked_topic ?? false}
                 currentInputMode={sessionState.current_input_mode}
                 disabled={isAdvancing}

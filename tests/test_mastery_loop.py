@@ -70,7 +70,7 @@ def test_correct_unlocks_next_level_at_power_of_three():
     assert outcome.level_unlocked is True
     assert outcome.new_unlocked_level == 2
     assert outcome.new_selected_level == 2
-    assert outcome.show_celebration is True
+    assert outcome.level_completed is True
     assert outcome.new_flawless_eligible is True
 
 
@@ -112,7 +112,7 @@ def test_correct_completes_topic_at_max_level():
     assert outcome.unlock_topic_id == 20
     assert outcome.new_unlocked_level == 1
     assert outcome.new_streak == 0
-    assert outcome.show_celebration is True
+    assert outcome.level_completed is True
 
 
 def test_topic_complete_without_next_topic():

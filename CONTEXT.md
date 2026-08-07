@@ -23,18 +23,25 @@ The highest level defined in the curriculum for a Topic — the full depth of th
 ## Progression
 
 **Streak**:
-Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake or when the level is completed.
+Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake, when the level is completed, or when the student navigates away.
 _UI (PL)_: Postęp do kolejnego poziomu (gwiazdki as the visual meter)
 _Avoid_: Level Streak, Power of 3, passa
 
+**Penalized mistake**:
+A wrong answer that is not a Soft Error. Resets or reduces streak and forfeits Flawless eligibility.
+_Avoid_: hard error, real mistake
+
 **Level completion**:
 A Level is done when streak reaches 3. Triggers a level unlock or topic completion depending on position in the Topic.
+_Avoid_: Advance
 
 **Level unlock**:
 The next Level within the same Topic becomes reachable after level completion at the current UnlockedProgress boundary.
+_Avoid_: Advance, progress unlock, boundary unlock
 
 **Topic completion**:
-Finishing the last Level of a Topic. Opens the next Topic at level 1.
+Finishing the last Level of a Topic. On the completing Submission, UnlockedProgress opens the next Topic. The student still chooses when to start it via Next problem.
+_Avoid_: Advance
 
 **Flawless**:
 Whether the student reached the current Level without a penalized mistake since streak last reset. Earns bonus XP when the level is finished.
@@ -87,11 +94,25 @@ _Avoid_: format error
 
 **Submission**:
 One answered Problem within a Session — grading, streak/XP updates, and level/topic progression run once per submission.
-_Avoid_: turn, answer event
+_Avoid_: turn, answer event, Advance
+
+**Next problem**:
+The student dismisses feedback and continues. Loads the next Problem at the current or newly unlocked Level; after topic completion, also navigates to the next Topic at level 1.
+_Avoid_: Advance, continue, proceed
+
+**Navigation**:
+Changing the selected Chapter, Topic, or Level — via the toolbar or as part of Next problem after topic completion.
+_Avoid_: Advance
+
+**Submission cycle**:
+One Problem lifecycle within a Session: served → answered (Submission) → Next problem. Navigation or Next problem starts a fresh cycle (streak resets).
 
 **Student**:
-The person practicing.
-_Avoid_: user, player
+The person practicing. May also be called **User** in login and persistence contexts.
+_Avoid_: player
+
+**Username**:
+The login handle that identifies a Student across sessions.
 
 **Session**:
 One play session: current chapter/topic/level selection, streak, active problem, and feedback state.

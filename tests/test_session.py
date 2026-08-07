@@ -89,14 +89,14 @@ def test_begin_problem_resets_submission_state_and_sets_problem():
     state.problem_answered = True
     state.feedback_type = "error"
     state.feedback_msg = "wrong"
-    state.show_celebration = True
+    state.level_completed = True
 
     session.begin_problem(state, problem, topics_by_id)
 
     assert state.problem_answered is False
     assert state.feedback_type is None
     assert state.feedback_msg == ""
-    assert state.show_celebration is False
+    assert state.level_completed is False
     assert state.current_problem is problem
     assert state.problem_start_time is not None
 

@@ -142,7 +142,7 @@ def begin_problem(
     state.problem_answered = False
     state.feedback_type = None
     state.feedback_msg = ""
-    state.show_celebration = False
+    state.level_completed = False
     state.problem_start_time = time.time()
     state.current_problem = problem
     session_state.sync_to_db(state)
