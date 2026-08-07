@@ -122,5 +122,9 @@ _Avoid_: GameState (code name)
 Experience points earned per correct answer and level completion.
 
 **Admin mode**:
-Bypass of topic and level lock rules for designated usernames. Not visible to normal students.
-_Avoid_: cheat mode, debug mode
+QA and debug access for designated Usernames. Not visible to normal Students. Navigation bypass: all Topics and Levels are selectable regardless of UnlockedProgress. Each Submission follows write rules based on play target vs UnlockedProgress:
+- **Beyond UnlockedProgress** (previewing locked content): grading and feedback run; telemetry logs; XP, streak, Flawless, UnlockedProgress, and level/topic completion UI stay frozen.
+- **At UnlockedProgress boundary**: normal Student progression — XP, streak, Flawless, and UnlockedProgress advance on mastery.
+- **Behind boundary (replay)**: normal XP, streak, and Flawless; UnlockedProgress unchanged (same as Students replaying earned content).
+Auto-solve is a visible shortcut through the same Submission pipeline — the UI selects or types the correct answer before submitting. Navigation still resets streak on topic/level change.
+_Avoid_: cheat mode, debug mode, preview mode
