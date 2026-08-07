@@ -151,6 +151,27 @@ def test_log_telemetry_persists_entry():
     assert count == 1
 
 
+def test_get_connection_closes_after_use(monkeypatch):
+    connections: list[sqlite3.Connection] = []
+    original_connect = sqlite3.connect
+
+    def tracking_connect(*args, **kwargs):
+        conn = original_connect(*args, **kwargs)
+        connections.append(conn)
+        return conn
+
+    monkeypatch.setattr(sqlite3, "connect", tracking_connect)
+
+    state = _sample_state()
+    db.save_user("alice", state)
+    db.load_user("alice")
+
+    assert connections
+    for conn in connections:
+        with pytest.raises(sqlite3.ProgrammingError):
+            conn.execute("SELECT 1")
+
+
 def test_log_telemetry_requires_existing_user():
     with pytest.raises(sqlite3.IntegrityError):
         db.log_telemetry(
