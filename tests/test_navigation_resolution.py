@@ -5,7 +5,7 @@ import uuid
 import pytest
 
 from backend.curriculum_loader import get_curriculum
-from backend.models import GameState, SessionNavigateRequest
+from backend.models import SessionState, SessionNavigateRequest
 from backend import navigation_resolution as resolution
 import backend.session_state as session_state
 
@@ -16,9 +16,9 @@ def _curriculum_and_chapters():
     return curriculum, chapter_ids
 
 
-def _fresh_state() -> GameState:
+def _fresh_state() -> SessionState:
     curriculum, chapter_ids = _curriculum_and_chapters()
-    state = GameState()
+    state = SessionState()
     session_state.init_defaults(state, chapter_ids, curriculum)
     state.username = "nav-resolution-user"
     state.session_id = str(uuid.uuid4())

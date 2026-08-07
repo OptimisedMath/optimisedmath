@@ -39,7 +39,7 @@ JSON keys and HTTP routes stay unchanged. Rename Python/TypeScript identifiers o
 
 | Current (code) | Target (code) | CONTEXT term |
 |----------------|---------------|--------------|
-| `GameState` | `SessionState` | Session |
+| `SessionState` (Python) / `GameState` (frontend) | `SessionState` everywhere | Session |
 | `TurnContext`, `TurnOutcome`, `apply_turn` | `SubmissionContext`, `SubmissionOutcome`, `apply_submission` | Submission |
 | `flawless_eligible` | align with **Flawless** concept | Flawless |
 | `engine.py` | removed | — |
@@ -53,7 +53,7 @@ Bottom-up — each step leaves all tests green:
 3. ~~`state_manager.py` → `session_state.py`~~ — done: module-level functions, Submission renames (see below)
 4. ~~`session_orchestrator.py` → `session.py` + `SessionError` hierarchy~~ — done: `begin_problem()` extracted
 5. ~~Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`~~ — done
-6. Rename `GameState` → `SessionState` in Python (and mirror in frontend `lib/session/`)
+6. ~~Rename `GameState` → `SessionState` in Python~~ ✓ — mirror in frontend `lib/session/` (separate ticket)
 7. Frontend: hooks + `lib/session/` per wayfinder ticket 03
 
 First two steps are separate PRs: (1) facade removal, (2) Submission rename.

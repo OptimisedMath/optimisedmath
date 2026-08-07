@@ -6,7 +6,7 @@ import uuid
 import pytest
 
 from backend.core import db
-from backend.models import ChapterProgress, GameState
+from backend.models import ChapterProgress, SessionState
 
 
 @pytest.fixture(autouse=True)
@@ -16,8 +16,8 @@ def isolated_db(tmp_path, monkeypatch):
     yield
 
 
-def _sample_state(**overrides) -> GameState:
-    state = GameState(
+def _sample_state(**overrides) -> SessionState:
+    state = SessionState(
         session_id=str(uuid.uuid4()),
         username="alice",
         xp=120,

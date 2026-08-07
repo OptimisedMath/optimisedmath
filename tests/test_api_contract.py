@@ -9,7 +9,7 @@ from fastapi import HTTPException
 import backend.main as main
 from backend.core import db
 from backend.curriculum_loader import get_curriculum
-from backend.models import GameState
+from backend.models import SessionState
 
 
 def run(coro):
@@ -26,13 +26,13 @@ def isolated_state(tmp_path, monkeypatch):
 
 
 def make_state(problem, *, streak=0, input_mode="radio"):
-    """Build a GameState with an active problem and register it in ACTIVE_SESSIONS."""
+    """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS."""
     curriculum = get_curriculum()
     chapter_ids = list(curriculum.keys())
     chapter_id = chapter_ids[0]
     topic_entry = curriculum[chapter_id][0]
     session_id = str(uuid.uuid4())
-    state = GameState()
+    state = SessionState()
     main.session_state.init_defaults(state, chapter_ids, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
@@ -440,7 +440,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     chapter_id = chapter_ids[0]
     topic_entry = curriculum[chapter_id][0]
     session_id = str(uuid.uuid4())
-    state = GameState()
+    state = SessionState()
     main.session_state.init_defaults(state, chapter_ids, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"

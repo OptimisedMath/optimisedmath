@@ -11,7 +11,7 @@ from backend.core import db
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
-    GameState,
+    SessionState,
     ProblemResponse,
     ProblemSubmissionRequest,
     SessionNavigateRequest,
@@ -100,17 +100,17 @@ async def curriculum_index() -> CurriculumResponse:
 # --- Session endpoints ---
 
 
-@app.post("/session/start", response_model=GameState, tags=["Session"])
-async def session_start(request: SessionStartRequest) -> GameState:
-    """Create a session, load user progress, and return GameState with navigation."""
+@app.post("/session/start", response_model=SessionState, tags=["Session"])
+async def session_start(request: SessionStartRequest) -> SessionState:
+    """Create a session, load user progress, and return SessionState with navigation."""
     try:
         return start_session(request)
     except SessionError as exc:
         raise _map_session_error(exc) from exc
 
 
-@app.post("/session/navigate", response_model=GameState, tags=["Session"])
-async def session_navigate(request: SessionNavigateRequest) -> GameState:
+@app.post("/session/navigate", response_model=SessionState, tags=["Session"])
+async def session_navigate(request: SessionNavigateRequest) -> SessionState:
     """Change chapter, topic, or level with unlock validation."""
     try:
         return navigate_session(request)
@@ -118,9 +118,9 @@ async def session_navigate(request: SessionNavigateRequest) -> GameState:
         raise _map_session_error(exc) from exc
 
 
-@app.post("/session/reset", response_model=GameState, tags=["Session"])
-async def session_reset(request: SessionResetRequest) -> GameState:
-    """Hard-reset session progress and return a fresh GameState."""
+@app.post("/session/reset", response_model=SessionState, tags=["Session"])
+async def session_reset(request: SessionResetRequest) -> SessionState:
+    """Hard-reset session progress and return a fresh SessionState."""
     try:
         return reset_session(request)
     except SessionError as exc:

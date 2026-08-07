@@ -9,7 +9,7 @@ import backend.session as session
 import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import GameState, SessionStartRequest
+from backend.models import SessionState, SessionStartRequest
 
 
 @pytest.fixture(autouse=True)
@@ -27,9 +27,9 @@ def _curriculum_and_chapters():
     return curriculum, chapter_ids
 
 
-def _fresh_state() -> GameState:
+def _fresh_state() -> SessionState:
     curriculum, chapter_ids = _curriculum_and_chapters()
-    state = GameState()
+    state = SessionState()
     session_state.init_defaults(state, chapter_ids, curriculum)
     state.username = "session-user"
     state.session_id = str(uuid.uuid4())
@@ -47,7 +47,7 @@ def test_get_session_raises_when_missing():
 
 def test_get_session_loads_from_memory():
     session_id = str(uuid.uuid4())
-    state = GameState(session_id=session_id)
+    state = SessionState(session_id=session_id)
     session.ACTIVE_SESSIONS[session_id] = state
     assert session.get_session(session_id) is state
 

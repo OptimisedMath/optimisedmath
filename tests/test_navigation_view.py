@@ -5,7 +5,7 @@ import uuid
 import pytest
 
 from backend.curriculum_loader import get_curriculum
-from backend.models import GameState
+from backend.models import SessionState
 from backend import navigation_view as view
 import backend.session_state as session_state
 
@@ -16,9 +16,9 @@ def _curriculum_and_chapters():
     return curriculum, chapter_ids
 
 
-def _fresh_state(*, username: str = "nav-view-user") -> GameState:
+def _fresh_state(*, username: str = "nav-view-user") -> SessionState:
     curriculum, chapter_ids = _curriculum_and_chapters()
-    state = GameState()
+    state = SessionState()
     session_state.init_defaults(state, chapter_ids, curriculum)
     state.username = username
     state.session_id = str(uuid.uuid4())

@@ -49,7 +49,7 @@ class NavigationProgress(BaseModel):
 
 
 class NavigationView(BaseModel):
-    """Computed navigation state attached to every GameState API response."""
+    """Computed navigation state attached to every SessionState API response."""
 
     available_chapters: list[NavigationChapterOption]
     current_topic_name: Optional[str] = None
@@ -64,7 +64,7 @@ class NavigationView(BaseModel):
 # --- Session state ---
 
 
-class GameState(BaseModel):
+class SessionState(BaseModel):
     """Mutable session state used by session_state and API responses."""
 
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -140,8 +140,8 @@ class GameState(BaseModel):
 
     def for_response(
         self,
-        public_problem_fn: Callable[[Dict[str, Any], GameState], Dict[str, Any]],
-    ) -> GameState:
+        public_problem_fn: Callable[[Dict[str, Any], SessionState], Dict[str, Any]],
+    ) -> SessionState:
         """Return a copy suitable for API serialization without mutating session state."""
         copy = deepcopy(self)
         if copy.current_problem:
@@ -221,12 +221,12 @@ class ProblemResponse(BaseModel):
     """Next problem payload plus updated session state."""
 
     problem: Dict[str, Any]
-    state: GameState
+    state: SessionState
 
 
 class SubmissionResponse(BaseModel):
     """Grading outcome plus updated session state."""
 
-    state: GameState
+    state: SessionState
     is_correct: bool
     feedback: str

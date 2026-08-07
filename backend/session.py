@@ -21,7 +21,7 @@ from backend.problem_generation import (
 )
 from backend.models import (
     AutoSolveRequest,
-    GameState,
+    SessionState,
     ProblemResponse,
     ProblemSubmissionRequest,
     SessionNavigateRequest,
@@ -32,7 +32,7 @@ from backend.models import (
 
 # --- Session storage (in-memory cache; SQLite fallback on miss) ---
 
-ACTIVE_SESSIONS: dict[str, GameState] = {}
+ACTIVE_SESSIONS: dict[str, SessionState] = {}
 
 
 # --- Domain errors (mapped to HTTP by main.py) ---
@@ -70,7 +70,7 @@ class InternalError(SessionError):
 # --- Session lookup ---
 
 
-def get_session(session_id: str) -> GameState:
+def get_session(session_id: str) -> SessionState:
     """Retrieve a session from memory, falling back to SQLite if not found."""
     if session_id in ACTIVE_SESSIONS:
         return ACTIVE_SESSIONS[session_id]
@@ -92,7 +92,7 @@ def _is_safe_svg_fragment(value: str) -> bool:
     return not any(token in lowered for token in blocked_tokens)
 
 
-def public_problem(problem: ProblemDict, state: GameState) -> dict[str, Any]:
+def public_problem(problem: ProblemDict, state: SessionState) -> dict[str, Any]:
     """Return only fields needed by the visual layer."""
     public_keys = {
         "problem_id",
@@ -114,8 +114,8 @@ def public_problem(problem: ProblemDict, state: GameState) -> dict[str, Any]:
     return public
 
 
-def respond(state: GameState, curriculum: dict[int, list[TopicDict]]) -> GameState:
-    """Build an API-safe GameState with navigation attached."""
+def respond(state: SessionState, curriculum: dict[int, list[TopicDict]]) -> SessionState:
+    """Build an API-safe SessionState with navigation attached."""
     response = state.for_response(public_problem)
     response.navigation = navigation_view.build_navigation_view(response, curriculum)
     return response
@@ -125,7 +125,7 @@ def respond(state: GameState, curriculum: dict[int, list[TopicDict]]) -> GameSta
 
 
 def begin_problem(
-    state: GameState,
+    state: SessionState,
     problem: ProblemDict,
     topics_by_id: dict[int, Any],
     *,
@@ -152,7 +152,7 @@ def begin_problem(
 
 
 def _validate_unlocked_navigation(
-    state: GameState,
+    state: SessionState,
     chapter_id: int,
     topic_id: int,
     selected_level: int,
@@ -177,8 +177,8 @@ def _validate_unlocked_navigation(
 # --- Session use-cases ---
 
 
-def start_session(request: SessionStartRequest) -> GameState:
-    """Create a session, load user progress, and return GameState with navigation."""
+def start_session(request: SessionStartRequest) -> SessionState:
+    """Create a session, load user progress, and return SessionState with navigation."""
     curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
 
@@ -190,7 +190,7 @@ def start_session(request: SessionStartRequest) -> GameState:
             f"Chapter id {request.selected_chapter_id} not found in curriculum"
         )
 
-    state = GameState()
+    state = SessionState()
     session_state.init_defaults(state, chapter_ids, curriculum)
     session_state.load_profile(
         state, request.username, chapter_ids, curriculum
@@ -214,7 +214,7 @@ def start_session(request: SessionStartRequest) -> GameState:
     return respond(state, curriculum)
 
 
-def navigate_session(request: SessionNavigateRequest) -> GameState:
+def navigate_session(request: SessionNavigateRequest) -> SessionState:
     """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
     curriculum = get_curriculum()
@@ -263,8 +263,8 @@ def navigate_session(request: SessionNavigateRequest) -> GameState:
     return respond(state, curriculum)
 
 
-def reset_session(request: SessionResetRequest) -> GameState:
-    """Hard-reset session progress and return a fresh GameState."""
+def reset_session(request: SessionResetRequest) -> SessionState:
+    """Hard-reset session progress and return a fresh SessionState."""
     state = get_session(request.session_id)
     curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
@@ -408,7 +408,7 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
 
 
 def _process_submission(
-    state: GameState,
+    state: SessionState,
     problem: ProblemDict,
     user_input: str,
     is_input_mode: bool,

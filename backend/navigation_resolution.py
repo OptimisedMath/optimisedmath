@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.curriculum_loader import TopicDict, get_chapters
-from backend.models import GameState, SessionNavigateRequest
+from backend.models import SessionState, SessionNavigateRequest
 from backend.unlock import first_topic_id, get_unlocked_progress
 
 
@@ -30,7 +30,7 @@ def clamp_level(level: int | None, topic_entry: TopicDict | None) -> int:
 
 
 def clamp_selected_level(
-    state: GameState, curriculum: dict[int, list[TopicDict]]
+    state: SessionState, curriculum: dict[int, list[TopicDict]]
 ) -> None:
     """Clamp session selected_level to the current topic's max_level."""
     chapter_id = state.selected_chapter_id
@@ -50,7 +50,7 @@ def get_level_options(level_limit_value: int) -> list[int]:
 
 
 def resolve_chapter_change(
-    state: GameState, curriculum: dict[int, list[TopicDict]], next_chapter_id: int
+    state: SessionState, curriculum: dict[int, list[TopicDict]], next_chapter_id: int
 ) -> tuple[int, int, int]:
     """Pick default topic and level when switching chapter."""
     next_chapter_topics = topics_for_chapter(curriculum, next_chapter_id)
@@ -72,7 +72,7 @@ def resolve_chapter_change(
 
 
 def resolve_topic_change(
-    state: GameState,
+    state: SessionState,
     curriculum: dict[int, list[TopicDict]],
     chapter_id: int,
     next_topic_id: int,
@@ -91,7 +91,7 @@ def resolve_topic_change(
 
 
 def resolve_navigate_request(
-    state: GameState,
+    state: SessionState,
     curriculum: dict[int, list[TopicDict]],
     request: SessionNavigateRequest,
 ) -> tuple[int, int, int]:

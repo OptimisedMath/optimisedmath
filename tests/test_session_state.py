@@ -8,7 +8,7 @@ import backend.config as config
 import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import ChapterProgress, GameState
+from backend.models import ChapterProgress, SessionState
 from backend.unlock import first_topic_id
 
 
@@ -25,9 +25,9 @@ def _curriculum_and_chapters():
     return curriculum, chapter_ids
 
 
-def _fresh_state() -> GameState:
+def _fresh_state() -> SessionState:
     curriculum, chapter_ids = _curriculum_and_chapters()
-    state = GameState()
+    state = SessionState()
     session_state.init_defaults(state, chapter_ids, curriculum)
     state.username = "session-state-user"
     state.session_id = str(uuid.uuid4())
@@ -36,7 +36,7 @@ def _fresh_state() -> GameState:
 
 def test_init_defaults_sets_session_and_chapter_progress():
     curriculum, chapter_ids = _curriculum_and_chapters()
-    state = GameState()
+    state = SessionState()
 
     session_state.init_defaults(state, chapter_ids, curriculum)
 
@@ -157,7 +157,7 @@ def test_hard_reset_wipes_progress_and_persists():
 def test_load_profile_hydrates_existing_user():
     curriculum, chapter_ids = _curriculum_and_chapters()
     username = "existing-user"
-    saved = GameState(
+    saved = SessionState(
         username=username,
         xp=42,
         streak=1,
@@ -171,7 +171,7 @@ def test_load_profile_hydrates_existing_user():
     )
     db.save_user(username, saved)
 
-    state = GameState()
+    state = SessionState()
     session_state.load_profile(state, username, chapter_ids, curriculum)
 
     assert state.username == username
@@ -183,7 +183,7 @@ def test_load_profile_hydrates_existing_user():
 
 def test_load_profile_hard_resets_new_user():
     curriculum, chapter_ids = _curriculum_and_chapters()
-    state = GameState()
+    state = SessionState()
 
     session_state.load_profile(state, "brand-new-user", chapter_ids, curriculum)
 

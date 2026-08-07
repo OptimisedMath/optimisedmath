@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from backend.curriculum_loader import TopicDict, get_chapters
 from backend.models import (
-    GameState,
+    SessionState,
     NavigationChapterOption,
     NavigationProgress,
     NavigationTopicOption,
@@ -20,7 +20,7 @@ from backend.unlock import accessible_topics, first_topic_id, get_unlocked_progr
 
 
 def build_navigation_view(
-    state: GameState, curriculum: dict[int, list[TopicDict]]
+    state: SessionState, curriculum: dict[int, list[TopicDict]]
 ) -> NavigationView:
     """Build dropdown options, progress counts, and level limits for the frontend."""
     chapter_summaries = get_chapters()

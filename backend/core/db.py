@@ -5,7 +5,7 @@ import sqlite3
 from typing import Any, TypedDict
 
 from backend.config import DB_PATH
-from backend.models import ChapterProgress, GameState
+from backend.models import ChapterProgress, SessionState
 
 # --- Types ---
 
@@ -105,7 +105,7 @@ def _migrate_telemetry_input_mode_column(cursor: sqlite3.Cursor) -> None:
 # --- Sessions ---
 
 
-def save_session(session_id: str, username: str, state: GameState) -> None:
+def save_session(session_id: str, username: str, state: SessionState) -> None:
     """Persists a full session state to SQLite."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -123,7 +123,7 @@ def save_session(session_id: str, username: str, state: GameState) -> None:
         conn.commit()
 
 
-def load_session(session_id: str) -> GameState | None:
+def load_session(session_id: str) -> SessionState | None:
     """Loads a session state from SQLite. Returns None if not found."""
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -132,7 +132,7 @@ def load_session(session_id: str) -> GameState | None:
         )
         row = cursor.fetchone()
         if row:
-            return GameState.model_validate_json(row[0])
+            return SessionState.model_validate_json(row[0])
         return None
 
 
@@ -180,7 +180,7 @@ def load_user(username: str) -> UserData | None:
         return None
 
 
-def save_user(username: str, state: GameState) -> None:
+def save_user(username: str, state: SessionState) -> None:
     """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()

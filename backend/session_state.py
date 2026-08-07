@@ -15,7 +15,7 @@ from backend.curriculum_loader import (
     get_topics_by_id,
 )
 from backend.mastery_loop import SubmissionContext, SubmissionOutcome, apply_submission
-from backend.models import ChapterProgress, GameState
+from backend.models import ChapterProgress, SessionState
 from backend.unlock import first_topic_id
 
 
@@ -29,7 +29,7 @@ def _get_first_topic_id(
 
 
 def resolve_input_mode(
-    state: GameState, topics_by_id: dict[int, TopicMeta]
+    state: SessionState, topics_by_id: dict[int, TopicMeta]
 ) -> str:
     """Determine input mode respecting streak threshold and radio-only topics."""
     topic_id = state.selected_topic_id
@@ -46,7 +46,7 @@ def resolve_input_mode(
 
 
 def init_defaults(
-    state: GameState,
+    state: SessionState,
     chapter_ids: list[int],
     curriculum: dict[int, list[TopicDict]],
 ) -> None:
@@ -89,7 +89,7 @@ def init_defaults(
 
 
 def reset_submission_cycle(
-    state: GameState, topics_by_id: dict[int, TopicMeta] | None = None
+    state: SessionState, topics_by_id: dict[int, TopicMeta] | None = None
 ) -> None:
     """Clears the current problem state when navigating or advancing."""
     state.streak = 0
@@ -105,7 +105,7 @@ def reset_submission_cycle(
         state.current_input_mode = "radio"
 
 
-def sync_to_db(state: GameState) -> None:
+def sync_to_db(state: SessionState) -> None:
     """Pushes current session state to the database."""
     if state.username:
         try:
@@ -120,7 +120,7 @@ def sync_to_db(state: GameState) -> None:
 
 
 def load_profile(
-    state: GameState,
+    state: SessionState,
     username: str,
     chapter_ids: list[int],
     curriculum: dict[int, list[TopicDict]],
@@ -143,7 +143,7 @@ def load_profile(
 
 
 def hard_reset(
-    state: GameState,
+    state: SessionState,
     chapter_ids: list[int],
     curriculum: dict[int, list[TopicDict]],
 ) -> None:
@@ -166,7 +166,7 @@ def hard_reset(
 
 
 def navigate_to(
-    state: GameState,
+    state: SessionState,
     chapter_id: int | None = None,
     topic_id: int | None = None,
     level: int | None = None,
@@ -184,7 +184,7 @@ def navigate_to(
 
 
 def _build_submission_context(
-    state: GameState,
+    state: SessionState,
     chapter_id: int,
     topic_id: int,
     topics_by_id: dict[int, TopicMeta],
@@ -207,7 +207,7 @@ def _build_submission_context(
 
 
 def _apply_submission_outcome(
-    state: GameState, chapter_id: int, outcome: SubmissionOutcome
+    state: SessionState, chapter_id: int, outcome: SubmissionOutcome
 ) -> None:
     state.streak = outcome.new_streak
     state.flawless_eligible = outcome.new_flawless_eligible
@@ -231,7 +231,7 @@ def _apply_submission_outcome(
 
 
 def process_submission(
-    state: GameState,
+    state: SessionState,
     problem: ProblemDict,
     user_input: str,
     is_input_mode: bool,
