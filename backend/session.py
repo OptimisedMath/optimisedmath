@@ -111,6 +111,13 @@ def public_problem(problem: ProblemDict, state: SessionState) -> dict[str, Any]:
     public["input_mode"] = state.current_input_mode
     if state.problem_answered:
         public["correct_answer"] = problem.get("correct")
+    elif config.is_admin_user(state.username):
+        correct = problem.get("correct")
+        if correct is not None:
+            if state.current_input_mode == "input":
+                public["correct_answer"] = clean_latex(correct)
+            else:
+                public["correct_answer"] = correct
     return public
 
 

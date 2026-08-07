@@ -22,7 +22,6 @@ export default function GameArena() {
     needsLogin,
     problem,
     handleSubmit,
-    handleAutoSolve,
     handleNavigate,
     handleAdvance,
     handleReset,
@@ -160,7 +159,7 @@ export default function GameArena() {
               currentInputMode={sessionState.current_input_mode}
               feedback={feedback}
               radioOnly={radioOnly}
-              onAutoSolve={adminMode ? handleAutoSolve : undefined}
+              showAutoSolve={adminMode}
             />
 
             {feedback && !showAdvance && (

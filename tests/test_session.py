@@ -172,6 +172,43 @@ def test_public_problem_includes_correct_answer_when_answered():
     assert public["correct_answer"] == "42"
 
 
+def test_public_problem_includes_correct_answer_for_admin_before_answered():
+    state = _fresh_state()
+    state.username = next(iter(config.ADMIN_USERNAMES))
+    state.current_input_mode = "radio"
+    problem = {"problem_id": "p1", "question": "q", "correct": "42", "options": ["41", "42"]}
+
+    public = session.public_problem(problem, state)
+
+    assert public["correct_answer"] == "42"
+
+
+def test_public_problem_hides_correct_answer_for_non_admin_before_answered():
+    state = _fresh_state()
+    state.problem_answered = False
+    problem = {"problem_id": "p1", "question": "q", "correct": "42", "options": ["42"]}
+
+    public = session.public_problem(problem, state)
+
+    assert "correct_answer" not in public
+
+
+def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode():
+    state = _fresh_state()
+    state.username = next(iter(config.ADMIN_USERNAMES))
+    state.current_input_mode = "input"
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": r"\dfrac{3}{4}",
+        "options": [],
+    }
+
+    public = session.public_problem(problem, state)
+
+    assert public["correct_answer"] == "3/4"
+
+
 # --- start_session ---
 
 

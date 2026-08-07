@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppNavigation } from '@/lib/navigation';
 import { PREFERRED_CHAPTER_ID } from './constants';
 import {
-  autoSolve,
   getNextProblem,
   navigateSession,
   resetSession,
@@ -174,32 +173,6 @@ export function useSession() {
     }
   }, [isSubmitting, sessionState, problem, applySubmissionResponse]);
 
-  const handleAutoSolve = useCallback(async () => {
-    if (isSubmitting || !sessionState?.can_submit || !sessionState.admin_mode) {
-      return;
-    }
-
-    if (!sessionState.session_id || !problem?.problem_id) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await autoSolve({
-        session_id: sessionState.session_id,
-        problem_id: problem.problem_id,
-      });
-      applySubmissionResponse(response);
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to auto-solve';
-      setError(errorMsg);
-      console.error('Error auto-solving:', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, sessionState, problem, applySubmissionResponse]);
-
   const handleNavigate = useCallback(async (intent: NavigateIntent) => {
     if (!sessionId) {
       return;
@@ -323,7 +296,6 @@ export function useSession() {
     needsLogin,
     problem,
     handleSubmit,
-    handleAutoSolve,
     handleNavigate,
     handleAdvance,
     handleReset,

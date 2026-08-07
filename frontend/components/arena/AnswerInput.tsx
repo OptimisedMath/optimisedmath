@@ -9,6 +9,14 @@ import { useDocumentKeydown } from '@/hooks/useDocumentKeydown';
 import type { Problem, SubmitAnswerHandler } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
+const AUTO_SOLVE_RADIO_DELAY_MS = 450;
+const AUTO_SOLVE_INPUT_CHAR_DELAY_MS = 45;
+const AUTO_SOLVE_INPUT_SUBMIT_DELAY_MS = 300;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => {
+  setTimeout(resolve, ms);
+});
+
 interface AnswerInputProps {
   onSubmit: SubmitAnswerHandler;
   disabled: boolean;
@@ -18,7 +26,7 @@ interface AnswerInputProps {
   currentInputMode: string;
   feedback?: { correct: boolean } | null;
   radioOnly?: boolean;
-  onAutoSolve?: () => void;
+  showAutoSolve?: boolean;
 }
 
 function AnswerInput({
@@ -30,9 +38,11 @@ function AnswerInput({
   currentInputMode,
   feedback,
   radioOnly = false,
-  onAutoSolve,
+  showAutoSolve = false,
 }: AnswerInputProps) {
   const [value, setValue] = useState('');
+  const [isAutoSolving, setIsAutoSolving] = useState(false);
+  const autoSolveRunRef = useRef(0);
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,6 +88,60 @@ function AnswerInput({
 
   useDocumentKeydown(handleRadioShortcuts, [handleRadioShortcuts]);
 
+  const handleAutoSolve = useCallback(async () => {
+    const correctAnswer = problem?.correct_answer;
+    if (
+      !showAutoSolve ||
+      !correctAnswer ||
+      isAutoSolving ||
+      showFeedback ||
+      !canSubmit ||
+      disabled
+    ) {
+      return;
+    }
+
+    const runId = autoSolveRunRef.current + 1;
+    autoSolveRunRef.current = runId;
+    setIsAutoSolving(true);
+    setValue('');
+
+    try {
+      if (inputMode === 'radio') {
+        setValue(correctAnswer);
+        await sleep(AUTO_SOLVE_RADIO_DELAY_MS);
+      } else {
+        for (let index = 0; index < correctAnswer.length; index += 1) {
+          if (autoSolveRunRef.current !== runId) {
+            return;
+          }
+          setValue(correctAnswer.slice(0, index + 1));
+          await sleep(AUTO_SOLVE_INPUT_CHAR_DELAY_MS);
+        }
+        await sleep(AUTO_SOLVE_INPUT_SUBMIT_DELAY_MS);
+      }
+
+      if (autoSolveRunRef.current !== runId) {
+        return;
+      }
+
+      await onSubmit(correctAnswer);
+    } finally {
+      if (autoSolveRunRef.current === runId) {
+        setIsAutoSolving(false);
+      }
+    }
+  }, [
+    problem?.correct_answer,
+    showAutoSolve,
+    isAutoSolving,
+    showFeedback,
+    canSubmit,
+    disabled,
+    inputMode,
+    onSubmit,
+  ]);
+
   const appendChar = (char: string) => {
     const input = inputRef.current;
     const start = input?.selectionStart ?? value.length;
@@ -95,7 +159,10 @@ function AnswerInput({
   };
 
   const keyboardType = problem?.keyboard_type || 'default';
-  const submitDisabled = value.trim() === '' || !canSubmit || disabled;
+  const interactionDisabled = disabled || isAutoSolving;
+  const submitDisabled = value.trim() === '' || !canSubmit || interactionDisabled;
+  const autoSolveDisabled =
+    interactionDisabled || !problem?.correct_answer || !canSubmit;
 
   const formatInputAsLatex = (s: string): string => {
     if (!s.trim()) return s;
@@ -121,7 +188,7 @@ function AnswerInput({
             <button
               key={index}
               onClick={() => setValue(option)}
-              disabled={showFeedback}
+              disabled={showFeedback || isAutoSolving}
               className={`p-3 sm:p-4 text-base sm:text-xl rounded-xl border-2 transition-all shadow-sm active:scale-[0.98] ${
                 showFeedback && feedback
                   ? value === option && feedback.correct
@@ -156,10 +223,10 @@ function AnswerInput({
               <Check className="mr-2 h-5 w-5" aria-hidden="true" />
               Sprawdź odpowiedź
             </Button>
-            {onAutoSolve && (
+            {showAutoSolve && (
               <Button
-                onClick={onAutoSolve}
-                disabled={disabled}
+                onClick={handleAutoSolve}
+                disabled={autoSolveDisabled}
                 variant="outline"
                 className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:-translate-y-0.5 active:scale-[0.98] dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
               >
@@ -226,11 +293,11 @@ function AnswerInput({
             <Check className="mr-2 h-5 w-5" aria-hidden="true" />
             Sprawdź odpowiedź
           </Button>
-          {onAutoSolve && (
+          {showAutoSolve && (
             <Button
               type="button"
-              onClick={onAutoSolve}
-              disabled={disabled}
+              onClick={handleAutoSolve}
+              disabled={autoSolveDisabled}
               variant="outline"
               className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:-translate-y-0.5 active:scale-[0.98] dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
             >
