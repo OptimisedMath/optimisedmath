@@ -5,10 +5,12 @@ import pytest
 from backend.models import ChapterProgress
 from backend.unlock import (
     AdvanceResult,
+    ProgressZone,
     UnlockedProgress,
     accessible_topics,
     advance_on_mastery,
     can_access,
+    classify_progress_zone,
     first_topic_id,
     get_unlocked_progress,
     level_limit,
@@ -130,3 +132,26 @@ def test_advance_on_mastery_completes_last_topic_without_next():
     result = advance_on_mastery(3, 3, ())
 
     assert result == AdvanceResult(topic_completed=True)
+
+
+@pytest.mark.parametrize(
+    ("topic_id", "level", "unlocked_topic_id", "unlocked_level", "expected"),
+    [
+        (20, 1, 10, 2, ProgressZone.BEYOND),
+        (10, 3, 10, 2, ProgressZone.BEYOND),
+        (10, 2, 10, 2, ProgressZone.AT_BOUNDARY),
+        (10, 1, 10, 2, ProgressZone.BEHIND),
+        (10, 3, 20, 2, ProgressZone.BEHIND),
+    ],
+)
+def test_classify_progress_zone(
+    topic_id, level, unlocked_topic_id, unlocked_level, expected
+):
+    unlocked_progress = UnlockedProgress(
+        unlocked_topic_id=unlocked_topic_id,
+        unlocked_level=unlocked_level,
+    )
+
+    assert (
+        classify_progress_zone(topic_id, level, unlocked_progress) == expected
+    )

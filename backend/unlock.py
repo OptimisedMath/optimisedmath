@@ -3,9 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 from backend.curriculum_loader import TopicDict
 from backend.models import ChapterProgress
+
+
+class ProgressZone(Enum):
+    """Play target relative to UnlockedProgress."""
+
+    BEYOND = "beyond"
+    AT_BOUNDARY = "at"
+    BEHIND = "behind"
 
 
 @dataclass(frozen=True)
@@ -66,6 +75,23 @@ def can_access(
     ):
         return False
     return True
+
+
+def classify_progress_zone(
+    topic_id: int,
+    level: int,
+    unlocked_progress: UnlockedProgress,
+) -> ProgressZone:
+    """Classify a topic/level target relative to UnlockedProgress."""
+    if topic_id > unlocked_progress.unlocked_topic_id:
+        return ProgressZone.BEYOND
+    if topic_id < unlocked_progress.unlocked_topic_id:
+        return ProgressZone.BEHIND
+    if level > unlocked_progress.unlocked_level:
+        return ProgressZone.BEYOND
+    if level < unlocked_progress.unlocked_level:
+        return ProgressZone.BEHIND
+    return ProgressZone.AT_BOUNDARY
 
 
 def level_limit(

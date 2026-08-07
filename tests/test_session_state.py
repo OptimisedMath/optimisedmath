@@ -1,5 +1,6 @@
 """Unit tests for the session state layer."""
 
+import sqlite3
 import uuid
 
 import pytest
@@ -9,7 +10,7 @@ import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
 from backend.models import ChapterProgress, SessionState
-from backend.unlock import first_topic_id
+from backend.unlock import ProgressZone, UnlockedProgress, classify_progress_zone, first_topic_id
 
 
 @pytest.fixture(autouse=True)
@@ -219,3 +220,153 @@ def test_process_submission_grades_and_persists():
     loaded = db.load_user(state.username)
     assert loaded is not None
     assert loaded["streak"] == 1
+
+
+def _correct_problem() -> dict:
+    return {
+        "problem_id": "p-correct",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+    }
+
+
+def _telemetry_count(session_id: str) -> int:
+    with sqlite3.connect(db.DB_PATH) as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM telemetry_logs WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+    return int(row[0])
+
+
+def _admin_state_at(
+    *,
+    unlocked_topic_id: int,
+    unlocked_level: int,
+    selected_topic_id: int,
+    selected_level: int,
+    xp: int = 0,
+    streak: int = 0,
+    flawless_eligible: bool = True,
+) -> SessionState:
+    state = _fresh_state()
+    state.username = "Antoni"
+    chapter_id = state.selected_chapter_id
+    state.chapter_progress[chapter_id] = ChapterProgress(
+        unlocked_topic_id=unlocked_topic_id,
+        unlocked_level=unlocked_level,
+    )
+    state.selected_topic_id = selected_topic_id
+    state.selected_level = selected_level
+    state.xp = xp
+    state.streak = streak
+    state.flawless_eligible = flawless_eligible
+    state.level_completed = False
+    state.topic_completed = False
+    session_state.sync_to_db(state)
+    return state
+
+
+@pytest.mark.parametrize(
+    (
+        "zone_label",
+        "unlocked_topic_id",
+        "unlocked_level",
+        "selected_topic_id",
+        "selected_level",
+        "expect_xp_delta",
+        "expect_streak_delta",
+        "expect_unlocked_level",
+        "expect_level_completed",
+    ),
+    [
+        ("beyond_topic", 10, 1, 20, 1, 0, 0, 1, False),
+        ("beyond_level", 10, 1, 10, 2, 0, 0, 1, False),
+        ("at_boundary", 10, 1, 10, 1, config.XP_REWARDS[1], 1, 1, False),
+        ("behind_replay", 20, 2, 10, 1, config.XP_REWARDS[1], 1, 2, False),
+    ],
+)
+def test_admin_submission_respects_progress_zone(
+    zone_label,
+    unlocked_topic_id,
+    unlocked_level,
+    selected_topic_id,
+    selected_level,
+    expect_xp_delta,
+    expect_streak_delta,
+    expect_unlocked_level,
+    expect_level_completed,
+):
+    state = _admin_state_at(
+        unlocked_topic_id=unlocked_topic_id,
+        unlocked_level=unlocked_level,
+        selected_topic_id=selected_topic_id,
+        selected_level=selected_level,
+        xp=50,
+        streak=0,
+    )
+    chapter_id = state.selected_chapter_id
+    topics_by_id = get_topics_by_id(chapter_id)
+    problem = _correct_problem()
+    unlocked_progress = UnlockedProgress(
+        unlocked_topic_id=unlocked_topic_id,
+        unlocked_level=unlocked_level,
+    )
+    zone = classify_progress_zone(
+        selected_topic_id, selected_level, unlocked_progress
+    )
+    if zone_label.startswith("beyond"):
+        assert zone == ProgressZone.BEYOND
+    elif zone_label == "at_boundary":
+        assert zone == ProgressZone.AT_BOUNDARY
+    else:
+        assert zone == ProgressZone.BEHIND
+
+    telemetry_before = _telemetry_count(state.session_id)
+    result = session_state.process_submission(
+        state, problem, "2", False, topics_by_id
+    )
+    telemetry_after = _telemetry_count(state.session_id)
+
+    assert result["is_correct"] is True
+    assert state.feedback_type == "success"
+    assert state.problem_answered is True
+    assert telemetry_after == telemetry_before + 1
+    assert state.xp == 50 + expect_xp_delta
+    assert state.streak == expect_streak_delta
+    assert (
+        state.chapter_progress[chapter_id].unlocked_level
+        == expect_unlocked_level
+    )
+    assert state.chapter_progress[chapter_id].unlocked_topic_id == unlocked_topic_id
+    assert state.level_completed is expect_level_completed
+    assert state.topic_completed is False
+
+
+def test_admin_beyond_zone_freezes_streak_on_wrong_answer():
+    state = _admin_state_at(
+        unlocked_topic_id=10,
+        unlocked_level=1,
+        selected_topic_id=10,
+        selected_level=2,
+        streak=2,
+    )
+    chapter_id = state.selected_chapter_id
+    topics_by_id = get_topics_by_id(chapter_id)
+    problem = {
+        "problem_id": "p-wrong",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+    }
+
+    session_state.process_submission(state, problem, "3", False, topics_by_id)
+
+    assert state.streak == 2
+    assert state.flawless_eligible is True
+    assert state.feedback_type == "warning"

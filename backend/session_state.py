@@ -16,7 +16,7 @@ from backend.curriculum_loader import (
 )
 from backend.mastery_loop import SubmissionContext, SubmissionOutcome, apply_submission
 from backend.models import ChapterProgress, SessionState
-from backend.unlock import first_topic_id
+from backend.unlock import UnlockedProgress, ProgressZone, classify_progress_zone, first_topic_id
 
 
 def _get_first_topic_id(
@@ -287,6 +287,23 @@ def process_submission(
         time_spent_seconds=time_spent,
         equation_state=problem_state,
     )
+
+    prog = state.chapter_progress[chapter_id]
+    unlocked_progress = UnlockedProgress(
+        unlocked_topic_id=prog.unlocked_topic_id,
+        unlocked_level=prog.unlocked_level,
+    )
+    admin_mode = config.is_admin_user(username)
+    if (
+        admin_mode
+        and classify_progress_zone(topic_id, state.selected_level, unlocked_progress)
+        == ProgressZone.BEYOND
+    ):
+        if is_correct and state.feedback_type is None:
+            state.feedback_type = "success"
+            state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉"
+        sync_to_db(state)
+        return eval_result
 
     submission_ctx = _build_submission_context(
         state, chapter_id, topic_id, topics_by_id
