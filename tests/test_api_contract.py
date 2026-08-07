@@ -652,7 +652,7 @@ def test_navigation_progress_counts():
 
 def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     import backend.problem_generation as problem_generation
-    import backend.session_orchestrator as session_orchestrator
+    import backend.session as session_module
 
     curriculum = get_curriculum()
     chapter_ids = list(curriculum.keys())
@@ -708,7 +708,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         return unique_problem
 
     monkeypatch.setattr(
-        session_orchestrator, "generate_level_problem", fake_generate_with_unique_second
+        session_module, "generate_level_problem", fake_generate_with_unique_second
     )
 
     response = run(main.problem_next(session_id))
