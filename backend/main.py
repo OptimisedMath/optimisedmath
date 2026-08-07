@@ -21,9 +21,9 @@ from backend.models import (
     SubmissionResponse,
 )
 from backend.problem_generation import get_curriculum_response
-from backend.session_orchestrator import (
+from backend.session import (
     ACTIVE_SESSIONS,
-    OrchestratorError,
+    SessionError,
     auto_solve_problem,
     navigate_session,
     next_problem,
@@ -37,8 +37,8 @@ from backend.session_orchestrator import (
 __all__ = ["ACTIVE_SESSIONS", "app"]
 
 
-def _map_orchestrator_error(exc: OrchestratorError) -> HTTPException:
-    """Map domain errors from the Session Orchestrator to HTTP responses."""
+def _map_session_error(exc: SessionError) -> HTTPException:
+    """Map domain errors from the session use-case layer to HTTP responses."""
     return HTTPException(status_code=exc.status_code, detail=exc.detail)
 
 
@@ -106,8 +106,8 @@ async def session_start(request: SessionStartRequest) -> GameState:
     """Create a session, load user progress, and return GameState with navigation."""
     try:
         return start_session(request)
-    except OrchestratorError as exc:
-        raise _map_orchestrator_error(exc) from exc
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
 
 
 @app.post("/session/navigate", response_model=GameState, tags=["Session"])
@@ -115,8 +115,8 @@ async def session_navigate(request: SessionNavigateRequest) -> GameState:
     """Change chapter, topic, or level with unlock validation."""
     try:
         return navigate_session(request)
-    except OrchestratorError as exc:
-        raise _map_orchestrator_error(exc) from exc
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
 
 
 @app.post("/session/reset", response_model=GameState, tags=["Session"])
@@ -124,8 +124,8 @@ async def session_reset(request: SessionResetRequest) -> GameState:
     """Hard-reset session progress and return a fresh GameState."""
     try:
         return reset_session(request)
-    except OrchestratorError as exc:
-        raise _map_orchestrator_error(exc) from exc
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
 
 
 # --- Problem endpoints ---
@@ -136,8 +136,8 @@ async def problem_next(session_id: str) -> ProblemResponse:
     """Generate the next problem, dedupe recent instances, and update input mode."""
     try:
         return next_problem(session_id)
-    except OrchestratorError as exc:
-        raise _map_orchestrator_error(exc) from exc
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
 
 
 @app.post("/problem/submit", response_model=SubmissionResponse, tags=["Problem"])
@@ -145,8 +145,8 @@ async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionRespons
     """Grade an answer, update streak and XP, and persist session state."""
     try:
         return submit_problem(request)
-    except OrchestratorError as exc:
-        raise _map_orchestrator_error(exc) from exc
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
 
 
 @app.post("/problem/auto-solve", response_model=SubmissionResponse, tags=["Problem"])
@@ -154,8 +154,8 @@ async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
     """Submit the correct answer for admin or dev testing."""
     try:
         return auto_solve_problem(request)
-    except OrchestratorError as exc:
-        raise _map_orchestrator_error(exc) from exc
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
 
 
 if __name__ == "__main__":

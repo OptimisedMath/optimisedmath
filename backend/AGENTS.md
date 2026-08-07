@@ -11,7 +11,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | Layer | Target module | Owns |
 |-------|---------------|------|
 | **HTTP** | `main.py` | Routes, CORS, request/response wiring, exception → HTTP status mapping |
-| **Session use-cases** | `session.py` *(from `session_orchestrator.py`)* | Start, navigate, reset, submit, next problem; in-memory session cache; unlock guards; `respond()` (attach navigation view to API-safe state) |
+| **Session use-cases** | `session.py` | Start, navigate, reset, submit, next problem; in-memory session cache; unlock guards; `respond()` (attach navigation view to API-safe state); `begin_problem()` |
 | **Session state** | `session_state.py` | Load/save/mutate `SessionState`; wire grading → progression → persistence |
 | **Progression rules** | `mastery_loop.py` | Streak, XP, level/topic progression for one Submission (pure) |
 | **Access rules** | `unlock.py` | Reachable chapter/topic/level (pure) |
@@ -41,7 +41,6 @@ JSON keys and HTTP routes stay unchanged. Rename Python/TypeScript identifiers o
 |----------------|---------------|--------------|
 | `GameState` | `SessionState` | Session |
 | `TurnContext`, `TurnOutcome`, `apply_turn` | `SubmissionContext`, `SubmissionOutcome`, `apply_submission` | Submission |
-| `session_orchestrator.py`, `OrchestratorError` | `session.py`, `SessionError` | Session use-case layer |
 | `flawless_eligible` | align with **Flawless** concept | Flawless |
 | `engine.py` | removed | — |
 
@@ -52,7 +51,7 @@ Bottom-up — each step leaves all tests green:
 1. Remove `engine.py` facade; update imports to `answer_grading` / `problem_generation` directly
 2. Rename Turn → Submission in pure modules (`mastery_loop.py`, then callers)
 3. ~~`state_manager.py` → `session_state.py`~~ — done: module-level functions, Submission renames (see below)
-4. `session_orchestrator.py` → `session.py` + `SessionError` hierarchy
+4. ~~`session_orchestrator.py` → `session.py` + `SessionError` hierarchy~~ — done: `begin_problem()` extracted
 5. Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`
 6. Rename `GameState` → `SessionState` in Python (and mirror in frontend `lib/session/`)
 7. Frontend: hooks + `lib/session/` per wayfinder ticket 03
@@ -76,7 +75,22 @@ Single deep module — no file split. Drop the `StateManager` class; expose modu
 
 Private helpers: `_get_first_topic_id`, `_build_submission_context`, `_apply_submission_outcome`.
 
-**Deferred to step 4** (`session.py`): `next_problem` state mutations currently inline in `session_orchestrator.py` — extract e.g. `begin_problem(state, problem, topics_by_id)` when the use-case layer is renamed.
+## `session.py` public surface
+
+| Function | Responsibility |
+|----------|----------------|
+| `get_session(session_id)` | In-memory lookup with SQLite fallback |
+| `respond(state, curriculum)` | Build API-safe state with navigation attached |
+| `begin_problem(state, problem, topics_by_id, *, recent_fingerprints?)` | Reset submission cycle fields, set current problem, persist |
+| `start_session(request)` | Create session, load profile, return state with navigation |
+| `navigate_session(request)` | Change chapter/topic/level with unlock validation |
+| `reset_session(request)` | Hard-reset progress |
+| `next_problem(session_id)` | Generate deduped problem and begin it |
+| `submit_problem(request)` | Grade answer and update progression |
+| `auto_solve_problem(request)` | Admin/dev auto-submit |
+| `public_problem(problem, state)` | Strip internal fields for API responses |
+
+Error hierarchy: `SessionError` → `SessionNotFoundError`, `ForbiddenError`, `ConflictError`, `InternalError`.
 
 ## Curriculum & problems
 

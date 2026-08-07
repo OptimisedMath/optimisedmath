@@ -1,4 +1,4 @@
-"""Session Orchestrator — gameplay route logic behind the HTTP seam."""
+"""Session use-cases — gameplay route logic behind the HTTP seam."""
 
 from __future__ import annotations
 
@@ -37,8 +37,8 @@ ACTIVE_SESSIONS: dict[str, GameState] = {}
 # --- Domain errors (mapped to HTTP by main.py) ---
 
 
-class OrchestratorError(Exception):
-    """Base error for orchestrator failures."""
+class SessionError(Exception):
+    """Base error for session use-case failures."""
 
     def __init__(self, detail: str, *, status_code: int = 400) -> None:
         self.detail = detail
@@ -46,22 +46,22 @@ class OrchestratorError(Exception):
         super().__init__(detail)
 
 
-class SessionNotFoundError(OrchestratorError):
+class SessionNotFoundError(SessionError):
     def __init__(self, detail: str = "Session not found") -> None:
         super().__init__(detail, status_code=404)
 
 
-class ForbiddenError(OrchestratorError):
+class ForbiddenError(SessionError):
     def __init__(self, detail: str) -> None:
         super().__init__(detail, status_code=403)
 
 
-class ConflictError(OrchestratorError):
+class ConflictError(SessionError):
     def __init__(self, detail: str) -> None:
         super().__init__(detail, status_code=409)
 
 
-class InternalError(OrchestratorError):
+class InternalError(SessionError):
     def __init__(self, detail: str) -> None:
         super().__init__(detail, status_code=500)
 
@@ -120,6 +120,33 @@ def respond(state: GameState, curriculum: dict[int, list[TopicDict]]) -> GameSta
     return response
 
 
+# --- Problem lifecycle ---
+
+
+def begin_problem(
+    state: GameState,
+    problem: ProblemDict,
+    topics_by_id: dict[int, Any],
+    *,
+    recent_fingerprints: list[str] | None = None,
+) -> None:
+    """Apply state mutations for a newly generated problem and persist."""
+    state.current_input_mode = session_state.resolve_input_mode(
+        state, topics_by_id
+    )
+    if recent_fingerprints is not None:
+        state.recent_problem_fingerprints = recent_fingerprints[
+            -config.MAX_RETRIES_DUPLICATE_CHECK :
+        ]
+    state.problem_answered = False
+    state.feedback_type = None
+    state.feedback_msg = ""
+    state.show_celebration = False
+    state.problem_start_time = time.time()
+    state.current_problem = problem
+    session_state.sync_to_db(state)
+
+
 # --- Navigation guards ---
 
 
@@ -146,7 +173,7 @@ def _validate_unlocked_navigation(
     raise ForbiddenError("Level is locked")
 
 
-# --- Orchestrated operations ---
+# --- Session use-cases ---
 
 
 def start_session(request: SessionStartRequest) -> GameState:
@@ -158,7 +185,7 @@ def start_session(request: SessionStartRequest) -> GameState:
         raise InternalError("No curriculum data available")
 
     if request.selected_chapter_id is not None and request.selected_chapter_id not in curriculum:
-        raise OrchestratorError(
+        raise SessionError(
             f"Chapter id {request.selected_chapter_id} not found in curriculum"
         )
 
@@ -195,19 +222,19 @@ def navigate_session(request: SessionNavigateRequest) -> GameState:
     )
 
     if chapter_id not in curriculum:
-        raise OrchestratorError(
+        raise SessionError(
             f"Chapter id {chapter_id} not found in curriculum"
         )
 
     chapter_topics = curriculum[chapter_id]
     if not chapter_topics:
-        raise OrchestratorError(
+        raise SessionError(
             f"Chapter id {chapter_id} has no available topics"
         )
 
     available_topic_ids = [int(topic_entry["topic_id"]) for topic_entry in chapter_topics]
     if topic_id not in available_topic_ids:
-        raise OrchestratorError(
+        raise SessionError(
             f"Topic id {topic_id} not found in curriculum"
         )
 
@@ -216,7 +243,7 @@ def navigate_session(request: SessionNavigateRequest) -> GameState:
     max_level = int(selected_topic_meta["max_level"])
 
     if selected_level < 1 or selected_level > max_level:
-        raise OrchestratorError(
+        raise SessionError(
             f"Level {selected_level} is not available for topic id {topic_id}"
         )
 
@@ -252,22 +279,18 @@ def next_problem(session_id: str) -> ProblemResponse:
     topic_id = state.selected_topic_id
 
     if chapter_id is None or topic_id is None:
-        raise OrchestratorError("Session has no chapter/topic selected")
+        raise SessionError("Session has no chapter/topic selected")
 
     if chapter_id not in curriculum:
-        raise OrchestratorError(
+        raise SessionError(
             f"Chapter id {chapter_id} not found in curriculum"
         )
 
     topics_by_id = get_topics_by_id(chapter_id)
     if topic_id not in topics_by_id:
-        raise OrchestratorError(
+        raise SessionError(
             f"Topic id {topic_id} not found in curriculum"
         )
-
-    state.current_input_mode = session_state.resolve_input_mode(
-        state, topics_by_id
-    )
 
     level = state.selected_level
     recent_fingerprints = list(state.recent_problem_fingerprints)
@@ -292,18 +315,9 @@ def next_problem(session_id: str) -> ProblemResponse:
             f"chapter {chapter_id}/topic {topic_id}/level {level}"
         )
 
-    state.recent_problem_fingerprints = recent_fingerprints[
-        -config.MAX_RETRIES_DUPLICATE_CHECK :
-    ]
-
-    state.problem_answered = False
-    state.feedback_type = None
-    state.feedback_msg = ""
-    state.show_celebration = False
-    state.problem_start_time = time.time()
-    state.current_problem = problem
-
-    session_state.sync_to_db(state)
+    begin_problem(
+        state, problem, topics_by_id, recent_fingerprints=recent_fingerprints
+    )
 
     return ProblemResponse(
         problem=public_problem(problem, state),
@@ -316,7 +330,7 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     state = get_session(request.session_id)
 
     if not state.current_problem:
-        raise OrchestratorError("No active problem in this session")
+        raise SessionError("No active problem in this session")
 
     if state.problem_answered:
         raise ConflictError("Current problem has already been answered")
@@ -330,7 +344,7 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     chapter_id = state.selected_chapter_id
 
     if chapter_id is None or chapter_id not in curriculum:
-        raise OrchestratorError(f"Chapter id {chapter_id} not found")
+        raise SessionError(f"Chapter id {chapter_id} not found")
 
     topics_by_id = get_topics_by_id(chapter_id)
     user_input = (
@@ -358,7 +372,7 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
         raise SessionNotFoundError("Development tools are disabled")
 
     if not state.current_problem:
-        raise OrchestratorError("No active problem in this session")
+        raise SessionError("No active problem in this session")
 
     if state.problem_answered:
         raise ConflictError("Current problem has already been answered")
@@ -377,7 +391,7 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
     chapter_id = state.selected_chapter_id
 
     if chapter_id is None or chapter_id not in curriculum:
-        raise OrchestratorError(f"Chapter id {chapter_id} not found")
+        raise SessionError(f"Chapter id {chapter_id} not found")
 
     topics_by_id = get_topics_by_id(chapter_id)
 
