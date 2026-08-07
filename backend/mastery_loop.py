@@ -1,4 +1,4 @@
-"""Dynamic Mastery Loop — streak, XP, and Level/Topic progression for one Turn."""
+"""Dynamic Mastery Loop — streak, XP, and Level/Topic progression for one Submission."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from backend.unlock import advance_on_mastery
 
 
 @dataclass(frozen=True)
-class TurnContext:
-    """Session slice needed to apply one Mastery Loop turn."""
+class SubmissionContext:
+    """Session slice needed to apply one Mastery Loop submission."""
 
     chapter_id: int
     topic_id: int
@@ -24,8 +24,8 @@ class TurnContext:
 
 
 @dataclass(frozen=True)
-class TurnOutcome:
-    """State deltas produced by the Mastery Loop for one answered Turn."""
+class SubmissionOutcome:
+    """State deltas produced by the Mastery Loop for one answered Submission."""
 
     new_streak: int
     new_flawless_eligible: bool
@@ -40,7 +40,7 @@ class TurnOutcome:
     unlock_topic_id: int | None = None
 
 
-def apply_turn(eval_result: EvalResult, ctx: TurnContext) -> TurnOutcome:
+def apply_submission(eval_result: EvalResult, ctx: SubmissionContext) -> SubmissionOutcome:
     """Apply Power of 3 rules given a grading result and session context."""
     is_correct = eval_result.get("is_correct", False)
     feedback_type = eval_result.get("feedback_type")
@@ -52,20 +52,22 @@ def apply_turn(eval_result: EvalResult, ctx: TurnContext) -> TurnOutcome:
         new_flawless_eligible = ctx.flawless_eligible
 
     if is_correct:
-        return _apply_correct_turn(ctx, new_flawless_eligible)
+        return _apply_correct_submission(ctx, new_flawless_eligible)
 
     new_streak = ctx.current_streak
     if ctx.current_streak > 0 and not is_soft_error:
         new_streak = ctx.current_streak - 1
 
-    return TurnOutcome(
+    return SubmissionOutcome(
         new_streak=new_streak,
         new_flawless_eligible=new_flawless_eligible,
         xp_earned=0,
     )
 
 
-def _apply_correct_turn(ctx: TurnContext, flawless_eligible: bool) -> TurnOutcome:
+def _apply_correct_submission(
+    ctx: SubmissionContext, flawless_eligible: bool
+) -> SubmissionOutcome:
     earned_xp = config.XP_REWARDS.get(ctx.selected_level, config.DEFAULT_XP_REWARD)
     feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
 
@@ -103,7 +105,7 @@ def _apply_correct_turn(ctx: TurnContext, flawless_eligible: bool) -> TurnOutcom
 
         flawless_eligible = True
 
-    return TurnOutcome(
+    return SubmissionOutcome(
         new_streak=new_streak,
         new_flawless_eligible=flawless_eligible,
         xp_earned=xp_earned,

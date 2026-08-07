@@ -85,6 +85,10 @@ _Avoid_: format error
 
 ## Session
 
+**Submission**:
+One answered Problem within a Session — grading, streak/XP updates, and level/topic progression run once per submission.
+_Avoid_: turn, answer event
+
 **Student**:
 The person practicing.
 _Avoid_: user, player

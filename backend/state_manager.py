@@ -15,7 +15,7 @@ from backend.curriculum_loader import (
     get_topic_name,
     get_topics_by_id,
 )
-from backend.mastery_loop import TurnContext, TurnOutcome, apply_turn
+from backend.mastery_loop import SubmissionContext, SubmissionOutcome, apply_submission
 from backend.models import ChapterProgress, GameState
 from backend.unlock import first_topic_id
 
@@ -96,10 +96,10 @@ class StateManager:
         ):
             state.selected_topic_id = first_curr_topic_id
 
-    # --- Turn lifecycle ---
+    # --- Submission cycle ---
 
     @staticmethod
-    def reset_turn(
+    def reset_submission_cycle(
         state: GameState, topics_by_id: dict[int, TopicMeta] | None = None
     ) -> None:
         """Clears the current problem state when navigating or advancing."""
@@ -154,7 +154,7 @@ class StateManager:
             state.selected_level = user_data["selected_level"]
             state.chapter_progress = user_data["chapter_progress"]
             topics_by_id = get_topics_by_id(state.selected_chapter_id or 0)
-            StateManager.reset_turn(state, topics_by_id)
+            StateManager.reset_submission_cycle(state, topics_by_id)
         else:
             StateManager.hard_reset(state, chapter_ids, curriculum)
 
@@ -178,7 +178,7 @@ class StateManager:
             curriculum, chapter_ids[0] if chapter_ids else None
         )
         state.selected_level = 1
-        StateManager.reset_turn(state)
+        StateManager.reset_submission_cycle(state)
         StateManager.sync_to_db(state)
 
     @staticmethod
@@ -189,31 +189,31 @@ class StateManager:
         level: int | None = None,
         topics_by_id: dict[int, TopicMeta] | None = None,
     ) -> None:
-        """Navigate to a different chapter/topic/level, resetting turn and syncing."""
+        """Navigate to a different chapter/topic/level, resetting submission cycle and syncing."""
         if chapter_id is not None:
             state.selected_chapter_id = chapter_id
         if topic_id is not None:
             state.selected_topic_id = topic_id
         if level is not None:
             state.selected_level = level
-        StateManager.reset_turn(state, topics_by_id)
+        StateManager.reset_submission_cycle(state, topics_by_id)
         StateManager.sync_to_db(state)
 
     # --- Submission processing ---
 
     @staticmethod
-    def _build_turn_context(
+    def _build_submission_context(
         state: GameState,
         chapter_id: int,
         topic_id: int,
         topics_by_id: dict[int, TopicMeta],
-    ) -> TurnContext:
+    ) -> SubmissionContext:
         prog = state.chapter_progress[chapter_id]
         topic_meta = topics_by_id[topic_id]
         next_topic_ids = tuple(
             sorted(int(tid) for tid in topics_by_id if int(tid) > topic_id)
         )
-        return TurnContext(
+        return SubmissionContext(
             chapter_id=chapter_id,
             topic_id=topic_id,
             selected_level=state.selected_level,
@@ -225,8 +225,8 @@ class StateManager:
         )
 
     @staticmethod
-    def _apply_turn_outcome(
-        state: GameState, chapter_id: int, outcome: TurnOutcome
+    def _apply_submission_outcome(
+        state: GameState, chapter_id: int, outcome: SubmissionOutcome
     ) -> None:
         state.streak = outcome.new_streak
         state.flawless_eligible = outcome.new_flawless_eligible
@@ -307,9 +307,11 @@ class StateManager:
             equation_state=problem_state,
         )
 
-        turn_ctx = cls._build_turn_context(state, chapter_id, topic_id, topics_by_id)
-        turn_outcome = apply_turn(eval_result, turn_ctx)
-        cls._apply_turn_outcome(state, chapter_id, turn_outcome)
+        submission_ctx = cls._build_submission_context(
+            state, chapter_id, topic_id, topics_by_id
+        )
+        submission_outcome = apply_submission(eval_result, submission_ctx)
+        cls._apply_submission_outcome(state, chapter_id, submission_outcome)
 
         cls.sync_to_db(state)
         return eval_result
