@@ -211,33 +211,7 @@ export function useSession() {
     setIsAdvancing(true);
 
     try {
-      if (sessionState.topic_completed) {
-        const chapterId = sessionState.selected_chapter_id!;
-        const nextTopicId = sessionState.chapter_frontiers[chapterId]?.frontier_topic_id;
-        if (nextTopicId === undefined) return;
-
-        setIsNavigating(true);
-        setError(null);
-
-        try {
-          const nextState = await navigateSession({
-            session_id: sessionState.session_id,
-            selected_chapter_id: chapterId,
-            selected_topic_id: nextTopicId,
-            selected_level: 1,
-          });
-
-          await fetchNextProblem(nextState.session_id, { clearBeforeFetch: false });
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
-          setError(errorMsg);
-          console.error('Error navigating topic:', err);
-        } finally {
-          setIsNavigating(false);
-        }
-      } else {
-        await fetchNextProblem(sessionState.session_id, { clearBeforeFetch: false });
-      }
+      await fetchNextProblem(sessionState.session_id, { clearBeforeFetch: false });
     } finally {
       isAdvancingRef.current = false;
       setIsAdvancing(false);

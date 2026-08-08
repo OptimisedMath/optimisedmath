@@ -9,7 +9,7 @@ from fastapi import HTTPException
 import backend.main as main
 from backend.core import db
 from backend.curriculum_loader import get_curriculum
-from backend.models import SessionState
+from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import StudentPlayMode
 
 
@@ -502,6 +502,133 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     assert response.problem["question"] == "different question"
     assert duplicate_fingerprint in state.recent_problem_fingerprints
     assert problem_generation.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
+
+
+def _make_topic_completed_state(
+    *,
+    chapter_id: int,
+    completed_topic_id: int,
+    completed_level: int,
+    frontier_topic_id: int,
+    frontier_level: int = 1,
+) -> SessionState:
+    """Build a session ready for next-problem advance after topic completion."""
+    curriculum = get_curriculum()
+    chapter_ids = list(curriculum.keys())
+    session_id = str(uuid.uuid4())
+    state = SessionState()
+    main.session_state.init_defaults(state, chapter_ids, curriculum)
+    state.session_id = session_id
+    state.username = f"test-{session_id}"
+    state.selected_chapter_id = chapter_id
+    state.selected_topic_id = completed_topic_id
+    state.selected_level = completed_level
+    state.problem_answered = True
+    state.topic_completed = True
+    state.level_completed = True
+    state.feedback_type = "success"
+    state.feedback_msg = "Topic complete!"
+    state.chapter_frontiers[chapter_id] = ChapterFrontier(
+        frontier_topic_id=frontier_topic_id,
+        frontier_level=frontier_level,
+    )
+    state.current_problem = {
+        "problem_id": "p-topic-complete",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+        "options_map": {"1": "correct", "2": "w1"},
+        "messages": {},
+    }
+    state.problem_start_time = 0
+    main.ACTIVE_SESSIONS[session_id] = state
+    main.session_state.sync_to_db(state)
+    return state
+
+
+def test_next_problem_advances_to_frontier_topic_after_topic_completion():
+    state = _make_topic_completed_state(
+        chapter_id=10,
+        completed_topic_id=10,
+        completed_level=1,
+        frontier_topic_id=20,
+    )
+
+    response = run(main.problem_next(state.session_id))
+
+    assert response.state.selected_topic_id == 20
+    assert response.state.selected_level == 1
+    assert response.state.topic_completed is False
+    assert response.state.level_completed is False
+    assert response.state.problem_answered is False
+    assert response.state.can_submit is True
+    assert response.problem["problem_id"]
+    assert response.state.navigation is not None
+
+
+def test_next_problem_serves_unlocked_level_within_topic():
+    curriculum = get_curriculum()
+    chapter_id = 10
+    topic_id = 20
+    session_id = str(uuid.uuid4())
+    state = SessionState()
+    main.session_state.init_defaults(state, list(curriculum.keys()), curriculum)
+    state.session_id = session_id
+    state.username = f"test-{session_id}"
+    state.selected_chapter_id = chapter_id
+    state.selected_topic_id = topic_id
+    state.selected_level = 2
+    state.problem_answered = True
+    state.topic_completed = False
+    state.level_completed = True
+    state.chapter_frontiers[chapter_id] = ChapterFrontier(
+        frontier_topic_id=topic_id,
+        frontier_level=2,
+    )
+    state.current_problem = {
+        "problem_id": "p-level-unlock",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+        "options_map": {"1": "correct", "2": "w1"},
+        "messages": {},
+    }
+    state.problem_start_time = 0
+    main.ACTIVE_SESSIONS[session_id] = state
+
+    response = run(main.problem_next(session_id))
+
+    assert response.state.selected_topic_id == topic_id
+    assert response.state.selected_level == 2
+    assert response.state.topic_completed is False
+    assert response.state.level_completed is False
+    assert response.state.can_submit is True
+    assert response.problem["level"] == 2
+
+
+def test_next_problem_at_chapter_end_returns_without_error():
+    curriculum = get_curriculum()
+    chapter_id = 10
+    last_topic = curriculum[chapter_id][-1]
+    last_topic_id = int(last_topic["topic_id"])
+    last_level = int(last_topic["max_level"])
+    state = _make_topic_completed_state(
+        chapter_id=chapter_id,
+        completed_topic_id=last_topic_id,
+        completed_level=last_level,
+        frontier_topic_id=last_topic_id,
+        frontier_level=last_level,
+    )
+
+    response = run(main.problem_next(state.session_id))
+
+    assert response.state.selected_topic_id == last_topic_id
+    assert response.state.selected_level == last_level
+    assert response.state.topic_completed is True
+    assert response.state.can_advance is True
+    assert response.state.navigation is not None
+    assert response.state.navigation.has_next_unlocked_topic is False
+    assert response.problem["problem_id"] == "p-topic-complete"
 
 
 def test_generator_messages_override_yaml_traps(monkeypatch):
