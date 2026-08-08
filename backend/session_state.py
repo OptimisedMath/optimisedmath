@@ -1,7 +1,5 @@
 """Session state mutations for the FastAPI backend."""
 
-import json
-import time
 import uuid
 
 import backend.config as config
@@ -11,16 +9,11 @@ from backend.core.utils import ProblemDict
 from backend.curriculum_loader import (
     TopicDict,
     TopicMeta,
-    get_chapter_name_by_id,
     get_topics_by_id,
 )
 from backend.play_mode import PlayMode, resolve_play_mode
-from backend.progression import (
-    PersistenceProfile,
-    SubmissionContext,
-    SubmissionOutcome,
-    apply_submission,
-)
+import backend.submission_play_mode as submission_play_mode
+import backend.submission_telemetry as submission_telemetry
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
@@ -212,55 +205,18 @@ def navigate_to(
     sync_to_db(state, play_mode)
 
 
-def _build_submission_context(
+def _grade_submission(
     state: SessionState,
-    chapter_id: int,
-    topic_id: int,
-    topics_by_id: dict[int, TopicMeta],
-    *,
-    profile: PersistenceProfile,
-) -> SubmissionContext:
-    prog = state.chapter_frontiers[chapter_id]
-    topic_meta = topics_by_id[topic_id]
-    next_topic_ids = tuple(
-        sorted(int(tid) for tid in topics_by_id if int(tid) > topic_id)
-    )
-    return SubmissionContext(
-        chapter_id=chapter_id,
-        topic_id=topic_id,
-        selected_level=state.selected_level,
-        current_streak=state.streak,
-        flawless_eligible=state.flawless_eligible,
-        frontier_level=prog.frontier_level,
-        frontier_topic_id=prog.frontier_topic_id,
-        topic_max_level=int(topic_meta["max_level"]),
-        next_topic_ids=next_topic_ids,
-        persistence_profile=profile,
-    )
-
-
-def _apply_submission_outcome(
-    state: SessionState, chapter_id: int, outcome: SubmissionOutcome
-) -> None:
-    state.streak = outcome.new_streak
-    state.flawless_eligible = outcome.new_flawless_eligible
-    state.xp += outcome.xp_earned
-    if outcome.feedback_type is not None:
-        state.feedback_type = outcome.feedback_type
-    if outcome.feedback_msg is not None:
-        state.feedback_msg = outcome.feedback_msg
-    if outcome.level_completed:
-        state.level_completed = True
-    if outcome.topic_completed:
-        state.topic_completed = True
-    if outcome.new_selected_level is not None:
-        state.selected_level = outcome.new_selected_level
-
-    prog = state.chapter_frontiers[chapter_id]
-    if outcome.new_frontier_level is not None:
-        prog.frontier_level = outcome.new_frontier_level
-    if outcome.unlock_topic_id is not None:
-        prog.frontier_topic_id = outcome.unlock_topic_id
+    user_input: str,
+    problem: ProblemDict,
+    is_input_mode: bool,
+) -> EvalResult:
+    """Grade one submission and apply immediate feedback fields to state."""
+    eval_result = evaluate_answer(user_input, problem, is_input_mode)
+    state.problem_answered = eval_result.get("lock_answer", False)
+    state.feedback_type = eval_result.get("feedback_type", None)
+    state.feedback_msg = eval_result.get("feedback_msg", "")
+    return eval_result
 
 
 def process_submission(
@@ -271,66 +227,22 @@ def process_submission(
     topics_by_id: dict[int, TopicMeta],
     play_mode: PlayMode,
 ) -> EvalResult:
-    """Process user submission: evaluate, log telemetry, handle rewards and progression."""
-    eval_result = evaluate_answer(user_input, problem, is_input_mode)
-    is_correct = eval_result.get("is_correct", False)
-    state.problem_answered = eval_result.get("lock_answer", False)
-    state.feedback_type = eval_result.get("feedback_type", None)
-    state.feedback_msg = eval_result.get("feedback_msg", "")
-    trap_id_hit = eval_result.get("trap_id")
-
-    username = state.username
-    chapter_id = state.selected_chapter_id
-    topic_id = state.selected_topic_id
-    if username is None or chapter_id is None or topic_id is None:
+    """Process user submission: grade, log telemetry, apply outcome, sync."""
+    if state.username is None or state.selected_chapter_id is None or state.selected_topic_id is None:
         raise RuntimeError("Session missing required context for submission")
 
-    time_spent = None
-    if state.problem_start_time is not None:
-        time_spent = int(time.time() - state.problem_start_time)
+    eval_result = _grade_submission(state, user_input, problem, is_input_mode)
 
-    current_topic_name = topics_by_id[topic_id]["name"]
-    chapter_name = get_chapter_name_by_id(chapter_id) or str(chapter_id)
-
-    keys_to_remove = [
-        "image_html",
-        "messages",
-        "options",
-        "options_map",
-        "level",
-        "level_name",
-        "level_display",
-        "problem_id",
-    ]
-    clean_problem_state = {
-        k: v for k, v in problem.items() if k not in keys_to_remove
-    }
-    problem_state = json.dumps(clean_problem_state)
-
-    db.log_telemetry(
-        session_id=state.session_id,
-        username=username,
-        chapter_name=chapter_name,
-        topic_name=current_topic_name,
-        level_number=state.selected_level,
-        is_input_mode=is_input_mode,
-        is_correct=is_correct,
-        user_input=user_input,
-        trap_id=trap_id_hit,
-        time_spent_seconds=time_spent,
-        equation_state=problem_state,
+    submission_telemetry.log_submission_telemetry(
+        state,
+        problem,
+        user_input,
+        is_input_mode,
+        eval_result,
+        topics_by_id,
     )
-
-    profile = (
-        PersistenceProfile.FULL
-        if play_mode.persists_profile
-        else PersistenceProfile.STREAK_ONLY
+    submission_play_mode.apply_submission_outcome_via_play_mode(
+        state, eval_result, topics_by_id, play_mode
     )
-    submission_ctx = _build_submission_context(
-        state, chapter_id, topic_id, topics_by_id, profile=profile
-    )
-    submission_outcome = apply_submission(eval_result, submission_ctx)
-    _apply_submission_outcome(state, chapter_id, submission_outcome)
-
     sync_to_db(state, play_mode)
     return eval_result
