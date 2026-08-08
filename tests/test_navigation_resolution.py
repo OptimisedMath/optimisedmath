@@ -6,7 +6,9 @@ import pytest
 
 from backend.curriculum_loader import get_curriculum
 from backend.models import ChapterFrontier, SessionState, SessionNavigateRequest
+from backend.navigation_snapshot import build_navigation_snapshot
 from backend.play_mode import AdminPlayMode, StudentPlayMode
+from backend.navigation_helpers import get_level_options
 from backend import navigation_resolution as resolution
 import backend.session_state as session_state
 
@@ -29,10 +31,14 @@ def _fresh_state() -> SessionState:
     return state
 
 
+def _snapshot(state: SessionState, play_mode):
+    return build_navigation_snapshot(state, get_curriculum(), play_mode)
+
+
 def test_get_level_options_returns_one_through_limit():
-    assert resolution.get_level_options(3) == [1, 2, 3]
-    assert resolution.get_level_options(0) == [1]
-    assert resolution.get_level_options(1) == [1]
+    assert get_level_options(3) == [1, 2, 3]
+    assert get_level_options(0) == [1]
+    assert get_level_options(1) == [1]
 
 
 def test_resolve_chapter_change_uses_unlocked_topic_and_level():
@@ -53,7 +59,7 @@ def test_resolve_chapter_change_uses_unlocked_topic_and_level():
     expected_level = min(progress.frontier_level, int(topic_entry["max_level"]))
 
     chapter_id, topic_id, level = resolution.resolve_chapter_change(
-        state, curriculum, target_chapter_id, _STUDENT
+        curriculum, target_chapter_id, _snapshot(state, _STUDENT)
     )
 
     assert (chapter_id, topic_id, level) == (
@@ -82,7 +88,7 @@ def test_resolve_topic_change_resets_level_for_completed_topic():
 
     completed_topic_id = int(completed_topics[0]["topic_id"])
     topic_id, level = resolution.resolve_topic_change(
-        state, curriculum, chapter_id, completed_topic_id, _STUDENT
+        curriculum, chapter_id, completed_topic_id, _snapshot(state, _STUDENT)
     )
 
     assert topic_id == completed_topic_id
@@ -118,7 +124,7 @@ def test_resolve_navigate_request_chapter_change():
     )
 
     chapter_id, topic_id, level = resolution.resolve_navigate_request(
-        state, curriculum, request, _STUDENT
+        state, curriculum, request, _snapshot(state, _STUDENT)
     )
 
     progress = state.chapter_frontiers[target_chapter_id]
@@ -138,7 +144,7 @@ def test_resolve_navigate_request_level_only():
     )
 
     chapter_id, topic_id, level = resolution.resolve_navigate_request(
-        state, curriculum, request, _STUDENT
+        state, curriculum, request, _snapshot(state, _STUDENT)
     )
 
     assert chapter_id == state.selected_chapter_id
@@ -161,7 +167,7 @@ def test_admin_chapter_change_lands_on_first_topic_at_level_one():
     expected_first_topic_id = int(chapter_topics[0]["topic_id"])
 
     chapter_id, topic_id, level = resolution.resolve_chapter_change(
-        state, curriculum, target_chapter_id, _ADMIN
+        curriculum, target_chapter_id, _snapshot(state, _ADMIN)
     )
 
     assert (chapter_id, topic_id, level) == (
@@ -183,7 +189,7 @@ def test_admin_topic_change_lands_on_level_one():
     )
 
     topic_id, level = resolution.resolve_topic_change(
-        state, curriculum, chapter_id, target_topic_id, _ADMIN
+        curriculum, chapter_id, target_topic_id, _snapshot(state, _ADMIN)
     )
 
     assert (topic_id, level) == (target_topic_id, 1)
@@ -204,7 +210,7 @@ def test_admin_explicit_topic_and_level_unchanged():
     )
 
     chapter_id, topic_id, level = resolution.resolve_navigate_request(
-        state, curriculum, request, _ADMIN
+        state, curriculum, request, _snapshot(state, _ADMIN)
     )
 
     assert (chapter_id, topic_id, level) == (chapter_id, target_topic_id, explicit_level)

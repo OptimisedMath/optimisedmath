@@ -6,6 +6,7 @@ import pytest
 
 from backend.curriculum_loader import get_curriculum
 from backend.models import SessionState
+from backend import navigation_snapshot as snapshot_module
 from backend import navigation_view as view
 from backend.play_mode import resolve_play_mode
 import backend.session_state as session_state
@@ -35,11 +36,16 @@ def _selected_chapter_id(state: SessionState) -> int:
     return chapter_id
 
 
+def _build_view(state: SessionState):
+    curriculum = get_curriculum()
+    play_mode = resolve_play_mode(state.username)
+    snapshot = snapshot_module.build_navigation_snapshot(state, curriculum, play_mode)
+    return view.build_navigation_view(snapshot)
+
+
 def test_build_navigation_view_includes_dropdown_payload():
     state = _fresh_state()
-    curriculum = get_curriculum()
-
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
 
     assert len(nav.available_chapters) > 0
     assert len(nav.available_topics) > 0
@@ -56,7 +62,7 @@ def test_available_topics_respect_locks():
         pytest.skip("Need at least two topics")
 
     frontier_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
     available_topic_ids = {topic.topic_id for topic in nav.available_topics}
     expected = {
         int(topic_entry["topic_id"])
@@ -72,7 +78,7 @@ def test_admin_sees_all_topics():
     chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
 
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
 
     assert len(nav.available_topics) == len(chapter_topics)
 
@@ -91,7 +97,7 @@ def test_admin_progress_bars_show_full_completion():
     max_level = int(current_topic["max_level"])
     total = len(chapter_topics)
 
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
 
     assert nav.chapter_completion is not None
     assert nav.topic_completion is not None
@@ -115,7 +121,7 @@ def test_admin_has_next_unlocked_topic_is_false():
     state.selected_topic_id = int(chapter_topics[0]["topic_id"])
     state.chapter_frontiers[chapter_id].frontier_topic_id = second_topic_id
 
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
 
     assert nav.has_next_unlocked_topic is False
 
@@ -133,11 +139,11 @@ def test_has_next_unlocked_topic():
     state.selected_topic_id = first_topic_id
     state.chapter_frontiers[chapter_id].frontier_topic_id = second_topic_id
 
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
     assert nav.has_next_unlocked_topic is True
 
     state.chapter_frontiers[chapter_id].frontier_topic_id = first_topic_id
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
     assert nav.has_next_unlocked_topic is False
 
 
@@ -154,7 +160,7 @@ def test_progress_counts():
     )
     total = len(chapter_topics)
 
-    nav = view.build_navigation_view(state, curriculum, resolve_play_mode(state.username))
+    nav = _build_view(state)
 
     assert nav.chapter_completion is not None
     assert nav.topic_completion is not None

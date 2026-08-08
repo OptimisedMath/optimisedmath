@@ -37,6 +37,11 @@ def _fresh_state() -> SessionState:
     return state
 
 
+def _chapter_id(state: SessionState) -> int:
+    assert state.selected_chapter_id is not None
+    return state.selected_chapter_id
+
+
 # --- Session lookup ---
 
 
@@ -83,7 +88,7 @@ def test_session_not_found_default_message():
 
 def test_begin_problem_resets_submission_state_and_sets_problem():
     state = _fresh_state()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     topics_by_id = get_topics_by_id(chapter_id)
     problem = {"problem_id": "p1", "question": "2+2", "correct": "4", "options": ["4", "5"]}
 
@@ -104,7 +109,7 @@ def test_begin_problem_resets_submission_state_and_sets_problem():
 
 def test_begin_problem_trims_recent_fingerprints():
     state = _fresh_state()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     topics_by_id = get_topics_by_id(chapter_id)
     problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
 
@@ -119,7 +124,7 @@ def test_begin_problem_trims_recent_fingerprints():
 
 def test_begin_problem_resolves_input_mode_from_streak():
     state = _fresh_state()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     topics_by_id = get_topics_by_id(chapter_id)
     problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
 
@@ -214,7 +219,7 @@ def test_admin_auto_solve_uses_flat_submission_rules():
     state = _fresh_state()
     state.username = next(iter(config.ADMIN_USERNAMES))
     state.xp = 40
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     state.chapter_frontiers[chapter_id].frontier_level = 1
     state.selected_level = 2
     state.streak = 0
@@ -248,7 +253,7 @@ def test_admin_navigates_to_locked_topic_without_bypass():
     state.username = next(iter(config.ADMIN_USERNAMES))
     session.ACTIVE_SESSIONS[state.session_id] = state
     curriculum, _ = _curriculum_and_chapters()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     chapter_topics = curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")

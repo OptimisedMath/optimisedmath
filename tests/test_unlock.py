@@ -2,6 +2,7 @@
 
 import pytest
 
+from backend.curriculum_loader import TopicDict
 from backend.models import ChapterFrontier
 from backend.unlock import (
     AdvanceResult,
@@ -19,7 +20,7 @@ from backend.unlock import (
 )
 
 
-def _topics(*topic_ids: int) -> list[dict]:
+def _topics(*topic_ids: int) -> list[TopicDict]:
     return [
         {"topic_id": tid, "name": f"T{tid}", "max_level": 3, "radio_only": False}
         for tid in topic_ids

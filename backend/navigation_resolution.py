@@ -4,30 +4,13 @@ from __future__ import annotations
 
 from backend.curriculum_loader import TopicDict, get_chapters
 from backend.models import SessionState, SessionNavigateRequest
-from backend.play_mode import PlayMode
+from backend.navigation_helpers import (
+    clamp_level,
+    find_topic_by_id,
+    topics_for_chapter,
+)
+from backend.navigation_snapshot import NavigationSnapshot
 from backend.unlock import first_topic_id
-
-
-def topics_for_chapter(
-    curriculum: dict[int, list[TopicDict]], chapter_id: int
-) -> list[TopicDict]:
-    return curriculum.get(chapter_id, [])
-
-
-def find_topic_by_id(
-    chapter_topics: list[TopicDict], topic_id: int
-) -> TopicDict | None:
-    for topic_entry in chapter_topics:
-        if int(topic_entry["topic_id"]) == topic_id:
-            return topic_entry
-    return None
-
-
-def clamp_level(level: int | None, topic_entry: TopicDict | None) -> int:
-    """Return level capped to the topic's max_level (defensive for stale saves)."""
-    effective = level if level is not None else 1
-    max_level = int(topic_entry["max_level"]) if topic_entry else 1
-    return min(effective, max_level)
 
 
 def clamp_selected_level(
@@ -46,21 +29,15 @@ def clamp_selected_level(
     state.selected_level = clamp_level(state.selected_level, topic_entry)
 
 
-def get_level_options(level_limit_value: int) -> list[int]:
-    return list(range(1, max(level_limit_value, 1) + 1))
-
-
 def resolve_chapter_change(
-    state: SessionState,
     curriculum: dict[int, list[TopicDict]],
     next_chapter_id: int,
-    play_mode: PlayMode,
+    snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
     """Pick default topic and level when switching chapter."""
+    ctx = snapshot.chapter_context(next_chapter_id)
+    next_topic_id, next_level = ctx.implicit_chapter_landing
     next_chapter_topics = topics_for_chapter(curriculum, next_chapter_id)
-    next_topic_id, next_level = play_mode.implicit_chapter_landing(
-        next_chapter_topics, state.chapter_frontiers.get(next_chapter_id)
-    )
     next_topic_entry = (
         find_topic_by_id(next_chapter_topics, next_topic_id)
         or (next_chapter_topics[0] if next_chapter_topics else None)
@@ -69,18 +46,17 @@ def resolve_chapter_change(
 
 
 def resolve_topic_change(
-    state: SessionState,
     curriculum: dict[int, list[TopicDict]],
     chapter_id: int,
     next_topic_id: int,
-    play_mode: PlayMode,
+    snapshot: NavigationSnapshot,
 ) -> tuple[int, int]:
     """Pick default level when switching topic within a chapter."""
-    chapter_topics = topics_for_chapter(curriculum, chapter_id)
-    next_level = play_mode.implicit_topic_landing(
-        chapter_topics, next_topic_id, state.chapter_frontiers.get(chapter_id)
+    ctx = snapshot.chapter_context(chapter_id)
+    next_level = ctx.implicit_topic_landing(next_topic_id)
+    next_topic_entry = find_topic_by_id(
+        topics_for_chapter(curriculum, chapter_id), next_topic_id
     )
-    next_topic_entry = find_topic_by_id(chapter_topics, next_topic_id)
     return next_topic_id, clamp_level(next_level, next_topic_entry)
 
 
@@ -88,7 +64,7 @@ def resolve_navigate_request(
     state: SessionState,
     curriculum: dict[int, list[TopicDict]],
     request: SessionNavigateRequest,
-    play_mode: PlayMode,
+    snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
     """Resolve partial navigation intents into a full chapter/topic/level target."""
     if (
@@ -96,7 +72,7 @@ def resolve_navigate_request(
         and request.selected_chapter_id != state.selected_chapter_id
     ):
         return resolve_chapter_change(
-            state, curriculum, request.selected_chapter_id, play_mode
+            curriculum, request.selected_chapter_id, snapshot
         )
 
     chapter_id = request.selected_chapter_id or state.selected_chapter_id
@@ -108,7 +84,7 @@ def resolve_navigate_request(
 
     if request.selected_topic_id is not None:
         topic_id, level = resolve_topic_change(
-            state, curriculum, chapter_id, int(request.selected_topic_id), play_mode
+            curriculum, chapter_id, int(request.selected_topic_id), snapshot
         )
         if request.selected_level is not None:
             level = int(request.selected_level)

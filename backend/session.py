@@ -7,9 +7,9 @@ from typing import Any
 
 import backend.config as config
 import backend.navigation_resolution as navigation_resolution
+import backend.navigation_snapshot as navigation_snapshot
 import backend.navigation_view as navigation_view
 import backend.session_state as session_state
-import backend.unlock as unlock
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
@@ -132,9 +132,10 @@ def respond(
     """Build an API-safe SessionState with navigation attached."""
     mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
     response = state.for_response(public_problem, play_mode=mode)
-    response.navigation = navigation_view.build_navigation_view(
+    snapshot = navigation_snapshot.build_navigation_snapshot(
         response, curriculum, mode
     )
+    response.navigation = navigation_view.build_navigation_view(snapshot)
     return response
 
 
@@ -170,22 +171,17 @@ def begin_problem(
 
 
 def _validate_unlocked_navigation(
-    state: SessionState,
+    snapshot: navigation_snapshot.NavigationSnapshot,
     chapter_id: int,
     topic_id: int,
     selected_level: int,
-    chapter_topics: list[TopicDict],
-    play_mode: PlayMode,
 ) -> None:
     """Reject navigation to locked topics or levels."""
-    frontier = play_mode.effective_frontier(
-        chapter_topics,
-        state.chapter_frontiers.get(chapter_id),
-    )
-    if unlock.can_access(topic_id, selected_level, frontier):
+    ctx = snapshot.chapter_context(chapter_id)
+    if ctx.can_access(topic_id, selected_level):
         return
 
-    if topic_id > frontier.frontier_topic_id:
+    if topic_id > ctx.effective_frontier.frontier_topic_id:
         raise ForbiddenError("Topic is locked")
 
     raise ForbiddenError("Level is locked")
@@ -219,8 +215,11 @@ def start_session(request: SessionStartRequest) -> SessionState:
         prev_chapter_id = state.selected_chapter_id
         state.selected_chapter_id = request.selected_chapter_id
         if request.selected_chapter_id != prev_chapter_id:
+            snapshot = navigation_snapshot.build_navigation_snapshot(
+                state, curriculum, play_mode
+            )
             _, topic_id, level = navigation_resolution.resolve_chapter_change(
-                state, curriculum, request.selected_chapter_id, play_mode
+                curriculum, request.selected_chapter_id, snapshot
             )
             state.selected_topic_id = topic_id
             state.selected_level = level
@@ -237,8 +236,11 @@ def navigate_session(request: SessionNavigateRequest) -> SessionState:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = get_curriculum()
+    snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
     chapter_id, topic_id, selected_level = navigation_resolution.resolve_navigate_request(
-        state, curriculum, request, play_mode
+        state, curriculum, request, snapshot
     )
 
     if chapter_id not in curriculum:
@@ -267,9 +269,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionState:
             f"Level {selected_level} is not available for topic id {topic_id}"
         )
 
-    _validate_unlocked_navigation(
-        state, chapter_id, topic_id, selected_level, chapter_topics, play_mode
-    )
+    _validate_unlocked_navigation(snapshot, chapter_id, topic_id, selected_level)
 
     session_state.navigate_to(
         state,
