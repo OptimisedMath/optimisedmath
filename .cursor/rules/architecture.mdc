@@ -1,0 +1,12 @@
+---
+description: Stack boundaries and pointers to domain docs.
+alwaysApply: true
+---
+
+# Architecture
+
+- **Stack:** FastAPI backend + Next.js frontend + SQLite.
+- **Boundary:** Frontend renders session state payloads only. Never compute game rules, streaks, XP, or unlock logic in Next.js. See `docs/adr/0002-backend-owns-game-rules.md`.
+- **Domain language:** Read repo-root `CONTEXT.md` before naming or changing domain concepts. Follow `docs/agents/domain.md` for how to consume it.
+- **Decisions:** Check `docs/adr/` before contradicting an existing ADR.
+- **Implementation:** Root `AGENTS.md` for monorepo ops; `backend/AGENTS.md` and `frontend/AGENTS.md` for stack-specific conventions.
