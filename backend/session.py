@@ -352,52 +352,19 @@ def next_problem(session_id: str) -> ProblemResponse:
     )
 
 
-def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
-    """Grade an answer, update streak and XP, and persist session state."""
-    state = get_session(request.session_id)
+def _submit_active_problem(
+    session_id: str,
+    *,
+    problem_id: str | None,
+    user_input: str,
+    is_input_mode: bool,
+    require_admin: bool = False,
+) -> SubmissionResponse:
+    """Shared submission path — grade, apply outcome, and return updated state."""
+    state = get_session(session_id)
     play_mode = resolve_play_mode(state.username)
 
-    if not state.current_problem:
-        raise SessionError("No active problem in this session")
-
-    if state.problem_answered:
-        raise ConflictError("Current problem has already been answered")
-
-    problem = state.current_problem
-
-    if request.problem_id and request.problem_id != problem.get("problem_id"):
-        raise ConflictError("Submitted problem_id does not match the active problem")
-
-    curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
-
-    if chapter_id is None or chapter_id not in curriculum:
-        raise SessionError(f"Chapter id {chapter_id} not found")
-
-    topics_by_id = get_topics_by_id(chapter_id)
-    user_input = (
-        clean_mobile_input(request.user_input)
-        if request.is_input_mode
-        else request.user_input
-    )
-
-    eval_result = _process_submission(
-        state, problem, user_input, request.is_input_mode, topics_by_id, play_mode
-    )
-
-    return SubmissionResponse(
-        state=respond(state, curriculum, play_mode),
-        is_correct=eval_result.get("is_correct", False),
-        feedback=state.feedback_msg,
-    )
-
-
-def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
-    """Submit the correct answer for admin or dev testing."""
-    state = get_session(request.session_id)
-    play_mode = resolve_play_mode(state.username)
-
-    if not config.ENABLE_DEV_TOOLS and not play_mode.is_admin:
+    if require_admin and not config.ENABLE_DEV_TOOLS and not play_mode.is_admin:
         raise SessionNotFoundError("Development tools are disabled")
 
     if not state.current_problem:
@@ -408,13 +375,8 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
 
     problem = state.current_problem
 
-    if request.problem_id and request.problem_id != problem.get("problem_id"):
+    if problem_id and problem_id != problem.get("problem_id"):
         raise ConflictError("Submitted problem_id does not match the active problem")
-
-    is_input_mode = state.current_input_mode == "input"
-    user_input = (
-        clean_latex(problem["correct"]) if is_input_mode else problem["correct"]
-    )
 
     curriculum = get_curriculum()
     chapter_id = state.selected_chapter_id
@@ -432,6 +394,40 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
         state=respond(state, curriculum, play_mode),
         is_correct=eval_result.get("is_correct", False),
         feedback=state.feedback_msg,
+    )
+
+
+def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
+    """Grade an answer, update streak and XP, and persist session state."""
+    user_input = (
+        clean_mobile_input(request.user_input)
+        if request.is_input_mode
+        else request.user_input
+    )
+    return _submit_active_problem(
+        request.session_id,
+        problem_id=request.problem_id,
+        user_input=user_input,
+        is_input_mode=request.is_input_mode,
+    )
+
+
+def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
+    """Submit the correct answer for admin or dev testing."""
+    state = get_session(request.session_id)
+    is_input_mode = state.current_input_mode == "input"
+    problem = state.current_problem
+    user_input = ""
+    if problem is not None:
+        user_input = (
+            clean_latex(problem["correct"]) if is_input_mode else problem["correct"]
+        )
+    return _submit_active_problem(
+        request.session_id,
+        problem_id=request.problem_id,
+        user_input=user_input,
+        is_input_mode=is_input_mode,
+        require_admin=True,
     )
 
 

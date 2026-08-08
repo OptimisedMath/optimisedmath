@@ -10,7 +10,15 @@ import backend.session_state as session_state
 from backend.play_mode import resolve_play_mode
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import AutoSolveRequest, ChapterFrontier, SessionNavigateRequest, SessionState, SessionStartRequest
+from backend.core.utils import clean_latex
+from backend.models import (
+    AutoSolveRequest,
+    ChapterFrontier,
+    ProblemSubmissionRequest,
+    SessionNavigateRequest,
+    SessionState,
+    SessionStartRequest,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -213,6 +221,114 @@ def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode():
     public = session.public_problem(problem, state, resolve_play_mode(state.username))
 
     assert public["correct_answer"] == "3/4"
+
+
+def _submission_snapshot(state: SessionState) -> dict[str, object]:
+    chapter_id = _chapter_id(state)
+    prog = state.chapter_frontiers[chapter_id]
+    return {
+        "streak": state.streak,
+        "xp": state.xp,
+        "flawless_eligible": state.flawless_eligible,
+        "problem_answered": state.problem_answered,
+        "feedback_type": state.feedback_type,
+        "feedback_msg": state.feedback_msg,
+        "level_completed": state.level_completed,
+        "topic_completed": state.topic_completed,
+        "selected_level": state.selected_level,
+        "frontier_topic_id": prog.frontier_topic_id,
+        "frontier_level": prog.frontier_level,
+        "current_input_mode": state.current_input_mode,
+    }
+
+
+def _begin_identical_problem(
+    state: SessionState, problem: dict[str, object]
+) -> None:
+    chapter_id = _chapter_id(state)
+    session.begin_problem(state, problem, get_topics_by_id(chapter_id))
+    session.ACTIVE_SESSIONS[state.session_id] = state
+
+
+def test_manual_submit_and_auto_solve_produce_identical_state_deltas():
+    problem = {
+        "problem_id": "p-parity",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+
+    manual_state = _fresh_state()
+    manual_state.username = next(iter(config.ADMIN_USERNAMES))
+    _begin_identical_problem(manual_state, dict(problem))
+
+    manual_response = session.submit_problem(
+        ProblemSubmissionRequest(
+            session_id=manual_state.session_id,
+            problem_id="p-parity",
+            user_input="2",
+            is_input_mode=False,
+        )
+    )
+
+    auto_state = _fresh_state()
+    auto_state.username = manual_state.username
+    _begin_identical_problem(auto_state, dict(problem))
+
+    auto_response = session.auto_solve_problem(
+        AutoSolveRequest(session_id=auto_state.session_id, problem_id="p-parity")
+    )
+
+    assert _submission_snapshot(manual_state) == _submission_snapshot(auto_state)
+    assert manual_response.is_correct == auto_response.is_correct
+    assert manual_response.feedback == auto_response.feedback
+
+
+def test_manual_submit_and_auto_solve_match_in_input_mode():
+    problem = {
+        "problem_id": "p-parity-input",
+        "question": "q",
+        "correct": r"\dfrac{3}{4}",
+        "options": [],
+        "options_map": {},
+        "messages": {},
+    }
+    derived_input = clean_latex(problem["correct"])
+
+    manual_state = _fresh_state()
+    manual_state.username = next(iter(config.ADMIN_USERNAMES))
+    manual_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    chapter_id = _chapter_id(manual_state)
+    session.begin_problem(manual_state, dict(problem), get_topics_by_id(chapter_id))
+    session.ACTIVE_SESSIONS[manual_state.session_id] = manual_state
+    assert manual_state.current_input_mode == "input"
+
+    manual_response = session.submit_problem(
+        ProblemSubmissionRequest(
+            session_id=manual_state.session_id,
+            problem_id="p-parity-input",
+            user_input=derived_input,
+            is_input_mode=True,
+        )
+    )
+
+    auto_state = _fresh_state()
+    auto_state.username = manual_state.username
+    auto_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    session.begin_problem(auto_state, dict(problem), get_topics_by_id(chapter_id))
+    session.ACTIVE_SESSIONS[auto_state.session_id] = auto_state
+
+    auto_response = session.auto_solve_problem(
+        AutoSolveRequest(
+            session_id=auto_state.session_id, problem_id="p-parity-input"
+        )
+    )
+
+    assert _submission_snapshot(manual_state) == _submission_snapshot(auto_state)
+    assert manual_response.is_correct == auto_response.is_correct
+    assert manual_response.feedback == auto_response.feedback
 
 
 def test_admin_auto_solve_uses_flat_submission_rules():
