@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.models import ChapterProgress
+from backend.models import ChapterFrontier
 from backend.unlock import (
     AdvanceResult,
     Frontier,
@@ -37,14 +37,14 @@ def test_get_frontier_defaults_when_progress_missing():
     chapter_topics = _topics(10, 20)
     frontier = get_frontier(None, chapter_topics)
 
-    assert frontier == Frontier(unlocked_topic_id=10, unlocked_level=1)
+    assert frontier == Frontier(frontier_topic_id=10, frontier_level=1)
 
 
 def test_get_frontier_reads_progress():
-    progress = ChapterProgress(unlocked_topic_id=20, unlocked_level=2)
+    progress = ChapterFrontier(frontier_topic_id=20, frontier_level=2)
     frontier = get_frontier(progress, _topics(10, 20))
 
-    assert frontier == Frontier(unlocked_topic_id=20, unlocked_level=2)
+    assert frontier == Frontier(frontier_topic_id=20, frontier_level=2)
 
 
 @pytest.mark.parametrize(
@@ -57,33 +57,33 @@ def test_get_frontier_reads_progress():
     ],
 )
 def test_can_access_frontier_topic_and_level(topic_id, level, expected):
-    frontier = Frontier(unlocked_topic_id=10, unlocked_level=2)
+    frontier = Frontier(frontier_topic_id=10, frontier_level=2)
 
     assert can_access(topic_id, level, frontier) is expected
 
 
 def test_can_access_allows_replaying_completed_topic():
-    frontier = Frontier(unlocked_topic_id=20, unlocked_level=2)
+    frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
     assert can_access(10, 3, frontier) is True
 
 
 def test_effective_frontier_returns_chapter_max_for_admin():
     chapter_topics = _topics(10, 20, 30)
-    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    stored = ChapterFrontier(frontier_topic_id=10, frontier_level=1)
 
     effective = effective_frontier(
         chapter_topics, stored, admin_mode=True
     )
 
     assert effective == chapter_max_frontier(chapter_topics)
-    assert effective.unlocked_topic_id == 30
-    assert effective.unlocked_level == 3
+    assert effective.frontier_topic_id == 30
+    assert effective.frontier_level == 3
 
 
 def test_effective_frontier_returns_stored_for_student():
     chapter_topics = _topics(10, 20)
-    stored = ChapterProgress(unlocked_topic_id=20, unlocked_level=2)
+    stored = ChapterFrontier(frontier_topic_id=20, frontier_level=2)
 
     effective = effective_frontier(
         chapter_topics, stored, admin_mode=False
@@ -94,7 +94,7 @@ def test_effective_frontier_returns_stored_for_student():
 
 def test_can_access_with_effective_admin_frontier():
     chapter_topics = _topics(10, 20, 30)
-    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    stored = ChapterFrontier(frontier_topic_id=10, frontier_level=1)
     effective = effective_frontier(
         chapter_topics, stored, admin_mode=True
     )
@@ -104,20 +104,20 @@ def test_can_access_with_effective_admin_frontier():
 
 
 def test_level_limit_at_frontier_topic():
-    frontier = Frontier(unlocked_topic_id=10, unlocked_level=2)
+    frontier = Frontier(frontier_topic_id=10, frontier_level=2)
 
     assert level_limit(10, 5, frontier) == 2
 
 
 def test_level_limit_on_completed_topic():
-    frontier = Frontier(unlocked_topic_id=20, unlocked_level=1)
+    frontier = Frontier(frontier_topic_id=20, frontier_level=1)
 
     assert level_limit(10, 5, frontier) == 5
 
 
 def test_level_limit_with_effective_admin_frontier():
     chapter_topics = _topics(10, 20, 30)
-    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    stored = ChapterFrontier(frontier_topic_id=10, frontier_level=1)
     effective = effective_frontier(
         chapter_topics, stored, admin_mode=True
     )
@@ -128,7 +128,7 @@ def test_level_limit_with_effective_admin_frontier():
 
 def test_accessible_topics_filters_to_frontier():
     chapter_topics = _topics(10, 20, 30)
-    frontier = Frontier(unlocked_topic_id=20, unlocked_level=2)
+    frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
     visible = accessible_topics(chapter_topics, frontier)
 
@@ -137,7 +137,7 @@ def test_accessible_topics_filters_to_frontier():
 
 def test_accessible_topics_with_effective_admin_frontier():
     chapter_topics = _topics(10, 20, 30)
-    stored = ChapterProgress(unlocked_topic_id=10, unlocked_level=1)
+    stored = ChapterFrontier(frontier_topic_id=10, frontier_level=1)
     effective = effective_frontier(
         chapter_topics, stored, admin_mode=True
     )
@@ -152,7 +152,7 @@ def test_advance_on_mastery_unlocks_next_level():
 
     assert result == AdvanceResult(
         level_unlocked=True,
-        new_unlocked_level=2,
+        new_frontier_level=2,
         new_selected_level=2,
     )
 
@@ -163,7 +163,7 @@ def test_advance_on_mastery_completes_topic_and_advances():
     assert result == AdvanceResult(
         topic_completed=True,
         unlock_topic_id=20,
-        new_unlocked_level=1,
+        new_frontier_level=1,
     )
 
 
@@ -174,7 +174,7 @@ def test_advance_on_mastery_completes_last_topic_without_next():
 
 
 @pytest.mark.parametrize(
-    ("topic_id", "level", "unlocked_topic_id", "unlocked_level", "expected"),
+    ("topic_id", "level", "frontier_topic_id", "frontier_level", "expected"),
     [
         (20, 1, 10, 2, FrontierZone.BEYOND),
         (10, 3, 10, 2, FrontierZone.BEYOND),
@@ -184,11 +184,11 @@ def test_advance_on_mastery_completes_last_topic_without_next():
     ],
 )
 def test_classify_frontier_zone(
-    topic_id, level, unlocked_topic_id, unlocked_level, expected
+    topic_id, level, frontier_topic_id, frontier_level, expected
 ):
     frontier = Frontier(
-        unlocked_topic_id=unlocked_topic_id,
-        unlocked_level=unlocked_level,
+        frontier_topic_id=frontier_topic_id,
+        frontier_level=frontier_level,
     )
 
     assert (

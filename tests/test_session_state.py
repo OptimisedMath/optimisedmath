@@ -9,7 +9,7 @@ import backend.config as config
 import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import ChapterProgress, SessionState
+from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
 
@@ -35,7 +35,7 @@ def _fresh_state() -> SessionState:
     return state
 
 
-def test_init_defaults_sets_session_and_chapter_progress():
+def test_init_defaults_sets_session_and_chapter_frontiers():
     curriculum, chapter_ids = _curriculum_and_chapters()
     state = SessionState()
 
@@ -47,8 +47,8 @@ def test_init_defaults_sets_session_and_chapter_progress():
     assert state.selected_level == 1
     assert state.current_input_mode == "radio"
     for chapter_id in chapter_ids:
-        assert chapter_id in state.chapter_progress
-        assert state.chapter_progress[chapter_id].unlocked_level == 1
+        assert chapter_id in state.chapter_frontiers
+        assert state.chapter_frontiers[chapter_id].frontier_level == 1
 
 
 def test_reset_submission_cycle_clears_problem_and_feedback():
@@ -135,9 +135,9 @@ def test_hard_reset_wipes_progress_and_persists():
     curriculum, chapter_ids = _curriculum_and_chapters()
     state.xp = 100
     state.streak = 2
-    state.chapter_progress[state.selected_chapter_id] = ChapterProgress(
-        unlocked_topic_id=999,
-        unlocked_level=3,
+    state.chapter_frontiers[state.selected_chapter_id] = ChapterFrontier(
+        frontier_topic_id=999,
+        frontier_level=3,
     )
 
     session_state.hard_reset(state, chapter_ids, curriculum)
@@ -147,8 +147,8 @@ def test_hard_reset_wipes_progress_and_persists():
     assert state.problem_answered is False
     for chapter_id in chapter_ids:
         expected_first = first_topic_id(curriculum[chapter_id])
-        assert state.chapter_progress[chapter_id].unlocked_topic_id == expected_first
-        assert state.chapter_progress[chapter_id].unlocked_level == 1
+        assert state.chapter_frontiers[chapter_id].frontier_topic_id == expected_first
+        assert state.chapter_frontiers[chapter_id].frontier_level == 1
 
     loaded = db.load_user(state.username)
     assert loaded is not None
@@ -165,8 +165,8 @@ def test_load_profile_hydrates_existing_user():
         selected_chapter_id=chapter_ids[0],
         selected_topic_id=int(curriculum[chapter_ids[0]][0]["topic_id"]),
         selected_level=2,
-        chapter_progress={
-            chapter_id: ChapterProgress(unlocked_topic_id=10, unlocked_level=2)
+        chapter_frontiers={
+            chapter_id: ChapterFrontier(frontier_topic_id=10, frontier_level=2)
             for chapter_id in chapter_ids
         },
     )
@@ -244,8 +244,8 @@ def _telemetry_count(session_id: str) -> int:
 
 def _admin_state_at(
     *,
-    unlocked_topic_id: int,
-    unlocked_level: int,
+    frontier_topic_id: int,
+    frontier_level: int,
     selected_topic_id: int,
     selected_level: int,
     xp: int = 0,
@@ -255,9 +255,9 @@ def _admin_state_at(
     state = _fresh_state()
     state.username = "Antoni"
     chapter_id = state.selected_chapter_id
-    state.chapter_progress[chapter_id] = ChapterProgress(
-        unlocked_topic_id=unlocked_topic_id,
-        unlocked_level=unlocked_level,
+    state.chapter_frontiers[chapter_id] = ChapterFrontier(
+        frontier_topic_id=frontier_topic_id,
+        frontier_level=frontier_level,
     )
     state.selected_topic_id = selected_topic_id
     state.selected_level = selected_level
@@ -288,24 +288,24 @@ def _assert_admin_profile_unchanged(
     state: SessionState,
     *,
     xp: int,
-    unlocked_topic_id: int,
-    unlocked_level: int,
+    frontier_topic_id: int,
+    frontier_level: int,
 ) -> None:
     chapter_id = state.selected_chapter_id
     assert state.xp == xp
     assert state.flawless_eligible is True
     assert state.level_completed is False
     assert state.topic_completed is False
-    assert state.chapter_progress[chapter_id].unlocked_topic_id == unlocked_topic_id
-    assert state.chapter_progress[chapter_id].unlocked_level == unlocked_level
+    assert state.chapter_frontiers[chapter_id].frontier_topic_id == frontier_topic_id
+    assert state.chapter_frontiers[chapter_id].frontier_level == frontier_level
 
     loaded = db.load_user(state.username)
     assert loaded is not None
     assert loaded["xp"] == xp
     assert loaded["streak"] == 0
-    assert loaded["chapter_progress"][chapter_id] == ChapterProgress(
-        unlocked_topic_id=unlocked_topic_id,
-        unlocked_level=unlocked_level,
+    assert loaded["chapter_frontiers"][chapter_id] == ChapterFrontier(
+        frontier_topic_id=frontier_topic_id,
+        frontier_level=frontier_level,
     )
 
 
@@ -329,8 +329,8 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     expect_streak,
 ):
     state = _admin_state_at(
-        unlocked_topic_id=10,
-        unlocked_level=1,
+        frontier_topic_id=10,
+        frontier_level=1,
         selected_topic_id=selected_topic_id,
         selected_level=selected_level,
         xp=50,
@@ -351,14 +351,14 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     assert _telemetry_count(state.session_id) == telemetry_before + 1
     assert state.streak == expect_streak
     _assert_admin_profile_unchanged(
-        state, xp=50, unlocked_topic_id=10, unlocked_level=1
+        state, xp=50, frontier_topic_id=10, frontier_level=1
     )
 
 
 def test_admin_wrong_decrements_session_streak_without_profile_writes():
     state = _admin_state_at(
-        unlocked_topic_id=10,
-        unlocked_level=1,
+        frontier_topic_id=10,
+        frontier_level=1,
         selected_topic_id=10,
         selected_level=2,
         streak=2,
@@ -373,14 +373,14 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes():
     assert state.streak == 1
     assert state.feedback_type == "warning"
     _assert_admin_profile_unchanged(
-        state, xp=0, unlocked_topic_id=10, unlocked_level=1
+        state, xp=0, frontier_topic_id=10, frontier_level=1
     )
 
 
 def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold():
     state = _admin_state_at(
-        unlocked_topic_id=10,
-        unlocked_level=1,
+        frontier_topic_id=10,
+        frontier_level=1,
         selected_topic_id=10,
         selected_level=2,
         streak=0,
@@ -397,8 +397,8 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold():
 
 def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold():
     state = _admin_state_at(
-        unlocked_topic_id=10,
-        unlocked_level=1,
+        frontier_topic_id=10,
+        frontier_level=1,
         selected_topic_id=20,
         selected_level=1,
         streak=2,
@@ -412,5 +412,5 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold():
 
     assert state.streak == 3
     _assert_admin_profile_unchanged(
-        state, xp=0, unlocked_topic_id=10, unlocked_level=1
+        state, xp=0, frontier_topic_id=10, frontier_level=1
     )

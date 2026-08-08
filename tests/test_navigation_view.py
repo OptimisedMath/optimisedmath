@@ -48,13 +48,13 @@ def test_available_topics_respect_locks():
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
-    unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
+    frontier_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
     nav = view.build_navigation_view(state, curriculum)
     available_topic_ids = {topic.topic_id for topic in nav.available_topics}
     expected = {
         int(topic_entry["topic_id"])
         for topic_entry in chapter_topics
-        if int(topic_entry["topic_id"]) <= unlocked_topic_id
+        if int(topic_entry["topic_id"]) <= frontier_topic_id
     }
     assert available_topic_ids == expected
 
@@ -88,12 +88,12 @@ def test_admin_progress_bars_show_full_completion():
 
     nav = view.build_navigation_view(state, curriculum)
 
-    assert nav.chapter_progress.percentage == 100.0
-    assert nav.chapter_progress.completed == total
-    assert nav.chapter_progress.total == total
-    assert nav.topic_progress.percentage == 100.0
-    assert nav.topic_progress.completed == max_level
-    assert nav.topic_progress.total == max_level
+    assert nav.chapter_completion.percentage == 100.0
+    assert nav.chapter_completion.completed == total
+    assert nav.chapter_completion.total == total
+    assert nav.topic_completion.percentage == 100.0
+    assert nav.topic_completion.completed == max_level
+    assert nav.topic_completion.total == max_level
 
 
 def test_admin_has_next_unlocked_topic_is_false():
@@ -107,7 +107,7 @@ def test_admin_has_next_unlocked_topic_is_false():
 
     second_topic_id = int(chapter_topics[1]["topic_id"])
     state.selected_topic_id = int(chapter_topics[0]["topic_id"])
-    state.chapter_progress[chapter_id].unlocked_topic_id = second_topic_id
+    state.chapter_frontiers[chapter_id].frontier_topic_id = second_topic_id
 
     nav = view.build_navigation_view(state, curriculum)
 
@@ -125,12 +125,12 @@ def test_has_next_unlocked_topic():
     first_topic_id = int(chapter_topics[0]["topic_id"])
     second_topic_id = int(chapter_topics[1]["topic_id"])
     state.selected_topic_id = first_topic_id
-    state.chapter_progress[chapter_id].unlocked_topic_id = second_topic_id
+    state.chapter_frontiers[chapter_id].frontier_topic_id = second_topic_id
 
     nav = view.build_navigation_view(state, curriculum)
     assert nav.has_next_unlocked_topic is True
 
-    state.chapter_progress[chapter_id].unlocked_topic_id = first_topic_id
+    state.chapter_frontiers[chapter_id].frontier_topic_id = first_topic_id
     nav = view.build_navigation_view(state, curriculum)
     assert nav.has_next_unlocked_topic is False
 
@@ -140,19 +140,19 @@ def test_progress_counts():
     curriculum = get_curriculum()
     chapter_id = state.selected_chapter_id
     chapter_topics = curriculum[chapter_id]
-    unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
+    frontier_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
     completed = sum(
         1
         for topic_entry in chapter_topics
-        if int(topic_entry["topic_id"]) < unlocked_topic_id
+        if int(topic_entry["topic_id"]) < frontier_topic_id
     )
     total = len(chapter_topics)
 
     nav = view.build_navigation_view(state, curriculum)
 
-    assert nav.chapter_progress.completed == completed
-    assert nav.chapter_progress.total == total
-    assert nav.chapter_progress.percentage == pytest.approx(
+    assert nav.chapter_completion.completed == completed
+    assert nav.chapter_completion.total == total
+    assert nav.chapter_completion.percentage == pytest.approx(
         (completed / total * 100) if total else 0.0
     )
 
@@ -162,8 +162,8 @@ def test_progress_counts():
         if int(topic_entry["topic_id"]) == state.selected_topic_id
     )
     max_level = int(current_topic["max_level"])
-    assert nav.topic_progress.completed == state.selected_level - 1
-    assert nav.topic_progress.total == max_level
-    assert nav.topic_progress.percentage == pytest.approx(
+    assert nav.topic_completion.completed == state.selected_level - 1
+    assert nav.topic_completion.total == max_level
+    assert nav.topic_completion.percentage == pytest.approx(
         ((state.selected_level - 1) / max_level * 100) if max_level else 0.0
     )

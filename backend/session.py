@@ -169,13 +169,13 @@ def _validate_unlocked_navigation(
     admin_mode = config.is_admin_user(state.username)
     frontier = unlock.effective_frontier(
         chapter_topics,
-        state.chapter_progress.get(chapter_id),
+        state.chapter_frontiers.get(chapter_id),
         admin_mode=admin_mode,
     )
     if unlock.can_access(topic_id, selected_level, frontier):
         return
 
-    if topic_id > frontier.unlocked_topic_id:
+    if topic_id > frontier.frontier_topic_id:
         raise ForbiddenError("Topic is locked")
 
     raise ForbiddenError("Level is locked")

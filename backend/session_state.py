@@ -14,8 +14,8 @@ from backend.curriculum_loader import (
     get_chapter_name_by_id,
     get_topics_by_id,
 )
-from backend.mastery_loop import SubmissionContext, SubmissionOutcome, apply_submission
-from backend.models import ChapterProgress, SessionState
+from backend.progression import SubmissionContext, SubmissionOutcome, apply_submission
+from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
 
@@ -53,7 +53,7 @@ def init_defaults(
     """Initialize session state with defaults. Heals broken saves from old versions."""
     if not state.session_id:
         state.session_id = str(uuid.uuid4())
-    if state.xp == 0 and state.streak == 0 and not state.chapter_progress:
+    if state.xp == 0 and state.streak == 0 and not state.chapter_frontiers:
         state.flawless_eligible = True
         state.max_streak = config.MAX_STREAK
         state.selected_chapter_id = chapter_ids[0] if chapter_ids else None
@@ -70,14 +70,14 @@ def init_defaults(
 
     for chapter_id in chapter_ids:
         chapter_first_topic_id = _get_first_topic_id(curriculum, chapter_id)
-        if chapter_id not in state.chapter_progress:
-            state.chapter_progress[chapter_id] = ChapterProgress(
-                unlocked_topic_id=chapter_first_topic_id,
-                unlocked_level=1,
+        if chapter_id not in state.chapter_frontiers:
+            state.chapter_frontiers[chapter_id] = ChapterFrontier(
+                frontier_topic_id=chapter_first_topic_id,
+                frontier_level=1,
             )
-        elif state.chapter_progress[chapter_id].unlocked_topic_id < chapter_first_topic_id:
-            state.chapter_progress[chapter_id].unlocked_topic_id = chapter_first_topic_id
-            state.chapter_progress[chapter_id].unlocked_level = 1
+        elif state.chapter_frontiers[chapter_id].frontier_topic_id < chapter_first_topic_id:
+            state.chapter_frontiers[chapter_id].frontier_topic_id = chapter_first_topic_id
+            state.chapter_frontiers[chapter_id].frontier_level = 1
 
     curr_chapter_id = state.selected_chapter_id
     first_curr_topic_id = _get_first_topic_id(curriculum, curr_chapter_id)
@@ -135,7 +135,7 @@ def _state_for_db_persist(state: SessionState) -> SessionState:
     persist_state = state.model_copy(deep=True)
     persist_state.xp = persisted["xp"]
     persist_state.streak = persisted["streak"]
-    persist_state.chapter_progress = persisted["chapter_progress"]
+    persist_state.chapter_frontiers = persisted["chapter_frontiers"]
     return persist_state
 
 
@@ -155,7 +155,7 @@ def load_profile(
         state.selected_chapter_id = user_data["selected_chapter_id"]
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
-        state.chapter_progress = user_data["chapter_progress"]
+        state.chapter_frontiers = user_data["chapter_frontiers"]
         topics_by_id = get_topics_by_id(state.selected_chapter_id or 0)
         reset_submission_cycle(state, topics_by_id)
     else:
@@ -169,10 +169,10 @@ def hard_reset(
 ) -> None:
     """Wipes all progress and resets to initial state."""
     state.xp = 0
-    state.chapter_progress = {
-        chapter_id: ChapterProgress(
-            unlocked_topic_id=_get_first_topic_id(curriculum, chapter_id),
-            unlocked_level=1,
+    state.chapter_frontiers = {
+        chapter_id: ChapterFrontier(
+            frontier_topic_id=_get_first_topic_id(curriculum, chapter_id),
+            frontier_level=1,
         )
         for chapter_id in chapter_ids
     }
@@ -209,7 +209,7 @@ def _build_submission_context(
     topic_id: int,
     topics_by_id: dict[int, TopicMeta],
 ) -> SubmissionContext:
-    prog = state.chapter_progress[chapter_id]
+    prog = state.chapter_frontiers[chapter_id]
     topic_meta = topics_by_id[topic_id]
     next_topic_ids = tuple(
         sorted(int(tid) for tid in topics_by_id if int(tid) > topic_id)
@@ -220,7 +220,7 @@ def _build_submission_context(
         selected_level=state.selected_level,
         current_streak=state.streak,
         flawless_eligible=state.flawless_eligible,
-        unlocked_level=prog.unlocked_level,
+        frontier_level=prog.frontier_level,
         topic_max_level=int(topic_meta["max_level"]),
         next_topic_ids=next_topic_ids,
     )
@@ -243,11 +243,11 @@ def _apply_submission_outcome(
     if outcome.new_selected_level is not None:
         state.selected_level = outcome.new_selected_level
 
-    prog = state.chapter_progress[chapter_id]
-    if outcome.new_unlocked_level is not None:
-        prog.unlocked_level = outcome.new_unlocked_level
+    prog = state.chapter_frontiers[chapter_id]
+    if outcome.new_frontier_level is not None:
+        prog.frontier_level = outcome.new_frontier_level
     if outcome.unlock_topic_id is not None:
-        prog.unlocked_topic_id = outcome.unlock_topic_id
+        prog.frontier_topic_id = outcome.unlock_topic_id
 
 
 def _apply_admin_session_streak(
@@ -263,10 +263,10 @@ def _apply_admin_session_streak(
         if new_streak < config.MAX_STREAK:
             new_streak += 1
 
-        prog = state.chapter_progress[chapter_id]
+        prog = state.chapter_frontiers[chapter_id]
         at_boundary = (
-            state.selected_topic_id == prog.unlocked_topic_id
-            and state.selected_level == prog.unlocked_level
+            state.selected_topic_id == prog.frontier_topic_id
+            and state.selected_level == prog.frontier_level
         )
         if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
             new_streak = 0
@@ -338,7 +338,7 @@ def process_submission(
         equation_state=problem_state,
     )
 
-    prog = state.chapter_progress[chapter_id]
+    prog = state.chapter_frontiers[chapter_id]
     admin_mode = config.is_admin_user(username)
     if admin_mode:
         _apply_admin_session_streak(state, chapter_id, eval_result)

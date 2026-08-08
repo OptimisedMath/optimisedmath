@@ -5,7 +5,7 @@ import uuid
 import pytest
 
 from backend.curriculum_loader import get_curriculum
-from backend.models import ChapterProgress, SessionState, SessionNavigateRequest
+from backend.models import ChapterFrontier, SessionState, SessionNavigateRequest
 from backend import navigation_resolution as resolution
 import backend.session_state as session_state
 
@@ -38,15 +38,15 @@ def test_resolve_chapter_change_uses_unlocked_topic_and_level():
 
     state = _fresh_state()
     target_chapter_id = chapter_ids[1]
-    progress = state.chapter_progress[target_chapter_id]
-    expected_topic_id = progress.unlocked_topic_id
+    progress = state.chapter_frontiers[target_chapter_id]
+    expected_topic_id = progress.frontier_topic_id
     chapter_topics = curriculum[target_chapter_id]
     topic_entry = next(
         topic
         for topic in chapter_topics
         if int(topic["topic_id"]) == expected_topic_id
     )
-    expected_level = min(progress.unlocked_level, int(topic_entry["max_level"]))
+    expected_level = min(progress.frontier_level, int(topic_entry["max_level"]))
 
     chapter_id, topic_id, level = resolution.resolve_chapter_change(
         state, curriculum, target_chapter_id
@@ -67,11 +67,11 @@ def test_resolve_topic_change_resets_level_for_completed_topic():
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
-    unlocked_topic_id = state.chapter_progress[chapter_id].unlocked_topic_id
+    frontier_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
     completed_topics = [
         topic
         for topic in chapter_topics
-        if int(topic["topic_id"]) < unlocked_topic_id
+        if int(topic["topic_id"]) < frontier_topic_id
     ]
     if not completed_topics:
         pytest.skip("Need a completed topic behind the Frontier")
@@ -117,9 +117,9 @@ def test_resolve_navigate_request_chapter_change():
         state, curriculum, request
     )
 
-    progress = state.chapter_progress[target_chapter_id]
+    progress = state.chapter_frontiers[target_chapter_id]
     assert chapter_id == target_chapter_id
-    assert topic_id == progress.unlocked_topic_id
+    assert topic_id == progress.frontier_topic_id
 
 
 def test_resolve_navigate_request_level_only():
@@ -151,9 +151,9 @@ def test_admin_chapter_change_lands_on_first_topic_at_level_one():
     target_chapter_id = chapter_ids[1]
     chapter_topics = curriculum[target_chapter_id]
     last_topic_id = int(chapter_topics[-1]["topic_id"])
-    state.chapter_progress[target_chapter_id] = ChapterProgress(
-        unlocked_topic_id=last_topic_id,
-        unlocked_level=3,
+    state.chapter_frontiers[target_chapter_id] = ChapterFrontier(
+        frontier_topic_id=last_topic_id,
+        frontier_level=3,
     )
     expected_first_topic_id = int(chapter_topics[0]["topic_id"])
 
@@ -175,9 +175,9 @@ def test_admin_topic_change_lands_on_level_one():
     chapter_id = chapter_ids[0]
     chapter_topics = curriculum[chapter_id]
     target_topic_id = int(chapter_topics[0]["topic_id"])
-    state.chapter_progress[chapter_id] = ChapterProgress(
-        unlocked_topic_id=target_topic_id,
-        unlocked_level=3,
+    state.chapter_frontiers[chapter_id] = ChapterFrontier(
+        frontier_topic_id=target_topic_id,
+        frontier_level=3,
     )
 
     topic_id, level = resolution.resolve_topic_change(

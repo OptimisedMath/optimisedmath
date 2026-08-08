@@ -1,4 +1,4 @@
-"""Dynamic Mastery Loop — streak, XP, and Level/Topic progression for one Submission."""
+"""Streak, XP, and level/topic progression for one Submission."""
 
 from __future__ import annotations
 
@@ -11,21 +11,21 @@ from backend.unlock import advance_on_mastery
 
 @dataclass(frozen=True)
 class SubmissionContext:
-    """Session slice needed to apply one Mastery Loop submission."""
+    """Session slice needed to apply one Submission's progression rules."""
 
     chapter_id: int
     topic_id: int
     selected_level: int
     current_streak: int
     flawless_eligible: bool
-    unlocked_level: int
+    frontier_level: int
     topic_max_level: int
     next_topic_ids: tuple[int, ...]
 
 
 @dataclass(frozen=True)
 class SubmissionOutcome:
-    """State deltas produced by the Mastery Loop for one answered Submission."""
+    """State deltas produced by progression rules for one answered Submission."""
 
     new_streak: int
     new_flawless_eligible: bool
@@ -36,12 +36,12 @@ class SubmissionOutcome:
     topic_completed: bool = False
     level_completed: bool = False
     new_selected_level: int | None = None
-    new_unlocked_level: int | None = None
+    new_frontier_level: int | None = None
     unlock_topic_id: int | None = None
 
 
 def apply_submission(eval_result: EvalResult, ctx: SubmissionContext) -> SubmissionOutcome:
-    """Apply Power of 3 rules given a grading result and session context."""
+    """Apply progression rules given a grading result and session context."""
     is_correct = eval_result.get("is_correct", False)
     feedback_type = eval_result.get("feedback_type")
     is_soft_error = feedback_type == "info"
@@ -79,22 +79,22 @@ def _apply_correct_submission(
     topic_completed = False
     level_completed = False
     new_selected_level: int | None = None
-    new_unlocked_level: int | None = None
+    new_frontier_level: int | None = None
     unlock_topic_id: int | None = None
     xp_earned = earned_xp
 
     if (
         new_streak == config.STARS_FOR_UNLOCK
-        and ctx.selected_level == ctx.unlocked_level
+        and ctx.selected_level == ctx.frontier_level
     ):
         advance = advance_on_mastery(
-            ctx.unlocked_level, ctx.topic_max_level, ctx.next_topic_ids
+            ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )
         level_unlocked = advance.level_unlocked
         topic_completed = advance.topic_completed
         level_completed = level_unlocked or topic_completed
         new_selected_level = advance.new_selected_level
-        new_unlocked_level = advance.new_unlocked_level
+        new_frontier_level = advance.new_frontier_level
         unlock_topic_id = advance.unlock_topic_id
         new_streak = 0
 
@@ -115,6 +115,6 @@ def _apply_correct_submission(
         topic_completed=topic_completed,
         level_completed=level_completed,
         new_selected_level=new_selected_level,
-        new_unlocked_level=new_unlocked_level,
+        new_frontier_level=new_frontier_level,
         unlock_topic_id=unlock_topic_id,
     )

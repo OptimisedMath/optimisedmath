@@ -13,7 +13,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | **HTTP** | `main.py` | Routes, CORS, request/response wiring, exception → HTTP status mapping |
 | **Session use-cases** | `session.py` | Start, navigate, reset, submit, next problem; in-memory session cache; unlock guards; `respond()` (attach navigation view to API-safe state); `begin_problem()` |
 | **Session state** | `session_state.py` | Load/save/mutate `SessionState`; wire grading → progression → persistence |
-| **Progression rules** | `mastery_loop.py` | Streak, XP, level/topic progression for one Submission (pure) |
+| **Progression rules** | `progression.py` | Streak, XP, level/topic progression for one Submission (pure) |
 | **Access rules** | `unlock.py` | Reachable chapter/topic/level (pure) |
 | **Grading** | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
 | **Problems** | `problem_generation.py` | Generator registry, level assembly (pure) |
@@ -49,7 +49,7 @@ JSON keys and HTTP routes stay unchanged. Rename Python/TypeScript identifiers o
 Bottom-up — each step leaves all tests green:
 
 1. Remove `engine.py` facade; update imports to `answer_grading` / `problem_generation` directly
-2. Rename Turn → Submission in pure modules (`mastery_loop.py`, then callers)
+2. Rename Turn → Submission in pure modules (`progression.py`, then callers)
 3. ~~`state_manager.py` → `session_state.py`~~ — done: module-level functions, Submission renames (see below)
 4. ~~`session_orchestrator.py` → `session.py` + `SessionError` hierarchy~~ — done: `begin_problem()` extracted
 5. ~~Split `navigation.py` → `navigation_resolution.py` + `navigation_view.py`~~ — done
@@ -121,7 +121,7 @@ Tests isolate the DB via pytest fixtures (`tests/test_api_contract.py` uses `tmp
 
 ## API contract
 
-When changing request/response shapes, update `backend/models.py` and mirror in `frontend/lib/types.ts`. Serialized JSON field names are stable — internal type renames must not change wire format.
+When changing request/response shapes, update `backend/models.py` and mirror in `frontend/lib/session/types.ts`. JSON field names follow domain vocabulary in `CONTEXT.md`.
 
 ## Docstrings
 

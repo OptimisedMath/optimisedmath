@@ -213,7 +213,7 @@ export function useSession() {
     try {
       if (sessionState.topic_completed) {
         const chapterId = sessionState.selected_chapter_id!;
-        const nextTopicId = sessionState.chapter_progress[chapterId]?.unlocked_topic_id;
+        const nextTopicId = sessionState.chapter_frontiers[chapterId]?.frontier_topic_id;
         if (nextTopicId === undefined) return;
 
         setIsNavigating(true);

@@ -1,8 +1,8 @@
 // Session types matching FastAPI Pydantic models (backend SessionState and related).
 
-export interface ChapterProgress {
-  unlocked_topic_id: number;
-  unlocked_level: number;
+export interface ChapterFrontier {
+  frontier_topic_id: number;
+  frontier_level: number;
 }
 
 export interface NavigationChapterOption {
@@ -28,8 +28,8 @@ export interface NavigationView {
   available_levels: number[];
   has_next_unlocked_topic: boolean;
   radio_only: boolean;
-  chapter_progress: NavigationProgress | null;
-  topic_progress: NavigationProgress | null;
+  chapter_completion: NavigationProgress | null;
+  topic_completion: NavigationProgress | null;
 }
 
 export interface SessionState {
@@ -48,7 +48,7 @@ export interface SessionState {
   feedback_type: string | null;
   feedback_msg: string;
   level_completed: boolean;
-  chapter_progress: Record<number, ChapterProgress>;
+  chapter_frontiers: Record<number, ChapterFrontier>;
   current_problem: Problem | null;
   can_submit: boolean;
   can_advance: boolean;

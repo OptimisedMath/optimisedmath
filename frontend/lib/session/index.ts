@@ -17,7 +17,7 @@ export {
 export { useSession } from './useSession';
 export type {
   AutoSolveRequest,
-  ChapterProgress,
+  ChapterFrontier,
   Feedback,
   NavigateIntent,
   NavigationChapterOption,

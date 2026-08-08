@@ -110,12 +110,12 @@ export default function GameArena() {
                 (chapter) => chapter.chapter_id === sessionState.selected_chapter_id
               )?.name
             }
-            chapterProgress={sessionState.navigation.chapter_progress}
+            chapterCompletion={sessionState.navigation.chapter_completion}
           />
           <ProgressBar
             type="topic"
             selectedLevel={sessionState.selected_level}
-            topicProgress={sessionState.navigation.topic_progress}
+            topicCompletion={sessionState.navigation.topic_completion}
             currentTopicName={sessionState.navigation.current_topic_name}
           />
         </div>

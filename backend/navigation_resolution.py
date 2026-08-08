@@ -58,10 +58,10 @@ def resolve_chapter_change(
         next_topic_id = first_topic_id(next_chapter_topics)
         next_topic_entry = find_topic_by_id(next_chapter_topics, next_topic_id)
         return next_chapter_id, next_topic_id, clamp_level(1, next_topic_entry)
-    next_chapter_progress = state.chapter_progress.get(next_chapter_id)
+    next_chapter_frontiers = state.chapter_frontiers.get(next_chapter_id)
     next_topic_id = (
-        next_chapter_progress.unlocked_topic_id
-        if next_chapter_progress
+        next_chapter_frontiers.frontier_topic_id
+        if next_chapter_frontiers
         else first_topic_id(next_chapter_topics)
     )
     next_topic_entry = (
@@ -69,7 +69,7 @@ def resolve_chapter_change(
         or (next_chapter_topics[0] if next_chapter_topics else None)
     )
     next_level = clamp_level(
-        next_chapter_progress.unlocked_level if next_chapter_progress else 1,
+        next_chapter_frontiers.frontier_level if next_chapter_frontiers else 1,
         next_topic_entry,
     )
     return next_chapter_id, next_topic_id, next_level
@@ -88,13 +88,13 @@ def resolve_topic_change(
         return next_topic_id, clamp_level(1, next_topic_entry)
 
     frontier = get_frontier(
-        state.chapter_progress.get(chapter_id), chapter_topics
+        state.chapter_frontiers.get(chapter_id), chapter_topics
     )
     next_topic_entry = find_topic_by_id(chapter_topics, next_topic_id)
-    if next_topic_id < frontier.unlocked_topic_id:
+    if next_topic_id < frontier.frontier_topic_id:
         next_level = 1
     else:
-        next_level = clamp_level(frontier.unlocked_level, next_topic_entry)
+        next_level = clamp_level(frontier.frontier_level, next_topic_entry)
     return next_topic_id, next_level
 
 

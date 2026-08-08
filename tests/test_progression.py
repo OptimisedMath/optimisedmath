@@ -1,9 +1,9 @@
-"""Unit tests for the Mastery Loop module (Power of 3 progression)."""
+"""Unit tests for submission progression rules (streak, XP, level/topic unlock)."""
 
 import pytest
 
 import backend.config as config
-from backend.mastery_loop import SubmissionContext, apply_submission
+from backend.progression import SubmissionContext, apply_submission
 
 
 def _ctx(
@@ -11,7 +11,7 @@ def _ctx(
     streak: int = 0,
     flawless_eligible: bool = True,
     selected_level: int = 1,
-    unlocked_level: int = 1,
+    frontier_level: int = 1,
     topic_max_level: int = 3,
     next_topic_ids: tuple[int, ...] = (20, 30),
 ) -> SubmissionContext:
@@ -21,7 +21,7 @@ def _ctx(
         selected_level=selected_level,
         current_streak=streak,
         flawless_eligible=flawless_eligible,
-        unlocked_level=unlocked_level,
+        frontier_level=frontier_level,
         topic_max_level=topic_max_level,
         next_topic_ids=next_topic_ids,
     )
@@ -41,18 +41,18 @@ def test_correct_increments_streak_without_unlock():
 def test_correct_at_streak_cap_unlocks_when_at_frontier():
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
-        _ctx(streak=3, selected_level=2, unlocked_level=2, topic_max_level=5),
+        _ctx(streak=3, selected_level=2, frontier_level=2, topic_max_level=5),
     )
 
     assert outcome.new_streak == 0
     assert outcome.level_unlocked is True
-    assert outcome.new_unlocked_level == 3
+    assert outcome.new_frontier_level == 3
 
 
 def test_correct_at_streak_cap_without_unlock_when_replaying_old_level():
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
-        _ctx(streak=3, selected_level=1, unlocked_level=2),
+        _ctx(streak=3, selected_level=1, frontier_level=2),
     )
 
     assert outcome.new_streak == 3
@@ -63,12 +63,12 @@ def test_correct_at_streak_cap_without_unlock_when_replaying_old_level():
 def test_correct_unlocks_next_level_at_power_of_three():
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
-        _ctx(streak=2, selected_level=1, unlocked_level=1, topic_max_level=3),
+        _ctx(streak=2, selected_level=1, frontier_level=1, topic_max_level=3),
     )
 
     assert outcome.new_streak == 0
     assert outcome.level_unlocked is True
-    assert outcome.new_unlocked_level == 2
+    assert outcome.new_frontier_level == 2
     assert outcome.new_selected_level == 2
     assert outcome.level_completed is True
     assert outcome.new_flawless_eligible is True
@@ -101,7 +101,7 @@ def test_correct_completes_topic_at_max_level():
         _ctx(
             streak=2,
             selected_level=3,
-            unlocked_level=3,
+            frontier_level=3,
             topic_max_level=3,
             next_topic_ids=(20, 30),
         ),
@@ -110,7 +110,7 @@ def test_correct_completes_topic_at_max_level():
     assert outcome.topic_completed is True
     assert outcome.level_unlocked is False
     assert outcome.unlock_topic_id == 20
-    assert outcome.new_unlocked_level == 1
+    assert outcome.new_frontier_level == 1
     assert outcome.new_streak == 0
     assert outcome.level_completed is True
 
@@ -121,7 +121,7 @@ def test_topic_complete_without_next_topic():
         _ctx(
             streak=2,
             selected_level=3,
-            unlocked_level=3,
+            frontier_level=3,
             topic_max_level=3,
             next_topic_ids=(),
         ),
@@ -129,7 +129,7 @@ def test_topic_complete_without_next_topic():
 
     assert outcome.topic_completed is True
     assert outcome.unlock_topic_id is None
-    assert outcome.new_unlocked_level is None
+    assert outcome.new_frontier_level is None
 
 
 def test_wrong_answer_decrements_streak():
@@ -170,19 +170,19 @@ def test_wrong_at_streak_zero_stays_zero():
 
 
 @pytest.mark.parametrize(
-    ("streak", "selected_level", "unlocked_level"),
+    ("streak", "selected_level", "frontier_level"),
     [
         (2, 2, 1),  # beyond the Frontier — no level unlock
         (2, 1, 2),  # behind the Frontier — no level unlock
     ],
 )
-def test_unlock_requires_playing_at_frontier(streak, selected_level, unlocked_level):
+def test_unlock_requires_playing_at_frontier(streak, selected_level, frontier_level):
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=streak,
             selected_level=selected_level,
-            unlocked_level=unlocked_level,
+            frontier_level=frontier_level,
         ),
     )
 

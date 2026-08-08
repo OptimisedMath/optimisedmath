@@ -9,7 +9,7 @@ import backend.session as session
 import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
-from backend.models import AutoSolveRequest, ChapterProgress, SessionNavigateRequest, SessionState, SessionStartRequest
+from backend.models import AutoSolveRequest, ChapterFrontier, SessionNavigateRequest, SessionState, SessionStartRequest
 
 
 @pytest.fixture(autouse=True)
@@ -214,7 +214,7 @@ def test_admin_auto_solve_uses_flat_submission_rules():
     state.username = next(iter(config.ADMIN_USERNAMES))
     state.xp = 40
     chapter_id = state.selected_chapter_id
-    state.chapter_progress[chapter_id].unlocked_level = 1
+    state.chapter_frontiers[chapter_id].frontier_level = 1
     state.selected_level = 2
     state.streak = 0
     problem = {
@@ -255,9 +255,9 @@ def test_admin_navigates_to_locked_topic_without_bypass():
     locked_topic = chapter_topics[-1]
     locked_topic_id = int(locked_topic["topic_id"])
     max_level = int(locked_topic["max_level"])
-    state.chapter_progress[chapter_id] = ChapterProgress(
-        unlocked_topic_id=int(chapter_topics[0]["topic_id"]),
-        unlocked_level=1,
+    state.chapter_frontiers[chapter_id] = ChapterFrontier(
+        frontier_topic_id=int(chapter_topics[0]["topic_id"]),
+        frontier_level=1,
     )
 
     response = session.navigate_session(

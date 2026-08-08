@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from typing import Any, TypedDict
 
 from backend.config import DB_PATH
-from backend.models import ChapterProgress, SessionState
+from backend.models import ChapterFrontier, SessionState
 
 # --- Types ---
 
@@ -18,7 +18,7 @@ class UserData(TypedDict):
     selected_chapter_id: int | None
     selected_topic_id: int | None
     selected_level: int
-    chapter_progress: dict[int, ChapterProgress]
+    chapter_frontiers: dict[int, ChapterFrontier]
 
 # --- Connection ---
 
@@ -62,7 +62,7 @@ def init_db() -> None:
                 selected_chapter_id INTEGER,
                 selected_topic_id INTEGER,
                 selected_level INTEGER,
-                progress_json TEXT
+                chapter_frontiers_json TEXT
             )
         """)
         cursor.execute("""
@@ -158,10 +158,10 @@ def delete_session(session_id: str) -> None:
 # --- Users ---
 
 
-def _parse_chapter_progress(raw_progress: dict[str, Any]) -> dict[int, ChapterProgress]:
+def _parse_chapter_frontiers(raw_frontiers: dict[str, Any]) -> dict[int, ChapterFrontier]:
     return {
-        int(chapter_id): ChapterProgress.model_validate(progress)
-        for chapter_id, progress in raw_progress.items()
+        int(chapter_id): ChapterFrontier.model_validate(frontier)
+        for chapter_id, frontier in raw_frontiers.items()
     }
 
 
@@ -172,7 +172,7 @@ def load_user(username: str) -> UserData | None:
         cursor.execute(
             """
             SELECT xp, streak, selected_chapter_id, selected_topic_id,
-                   selected_level, progress_json
+                   selected_level, chapter_frontiers_json
             FROM users WHERE username = ?
             """,
             (username,),
@@ -180,14 +180,14 @@ def load_user(username: str) -> UserData | None:
         row = cursor.fetchone()
 
         if row:
-            raw_progress = json.loads(row[5]) if row[5] else {}
+            raw_frontiers = json.loads(row[5]) if row[5] else {}
             return {
                 "xp": row[0],
                 "streak": row[1],
                 "selected_chapter_id": row[2],
                 "selected_topic_id": row[3],
                 "selected_level": row[4],
-                "chapter_progress": _parse_chapter_progress(raw_progress),
+                "chapter_frontiers": _parse_chapter_frontiers(raw_frontiers),
             }
         return None
 
@@ -196,10 +196,10 @@ def save_user(username: str, state: SessionState) -> None:
     """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
-        progress_str = json.dumps(
+        frontiers_str = json.dumps(
             {
                 str(k): v.model_dump(mode="json")
-                for k, v in state.chapter_progress.items()
+                for k, v in state.chapter_frontiers.items()
             }
         )
 
@@ -207,7 +207,7 @@ def save_user(username: str, state: SessionState) -> None:
             """
             INSERT INTO users (
                 username, xp, streak, selected_chapter_id,
-                selected_topic_id, selected_level, progress_json
+                selected_topic_id, selected_level, chapter_frontiers_json
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
@@ -216,7 +216,7 @@ def save_user(username: str, state: SessionState) -> None:
                 selected_chapter_id=excluded.selected_chapter_id,
                 selected_topic_id=excluded.selected_topic_id,
                 selected_level=excluded.selected_level,
-                progress_json=excluded.progress_json
+                chapter_frontiers_json=excluded.chapter_frontiers_json
         """,
             (
                 username,
@@ -225,7 +225,7 @@ def save_user(username: str, state: SessionState) -> None:
                 state.selected_chapter_id,
                 state.selected_topic_id,
                 state.selected_level,
-                progress_str,
+                frontiers_str,
             ),
         )
         conn.commit()

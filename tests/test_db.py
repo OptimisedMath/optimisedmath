@@ -6,7 +6,7 @@ import uuid
 import pytest
 
 from backend.core import db
-from backend.models import ChapterProgress, SessionState
+from backend.models import ChapterFrontier, SessionState
 
 
 @pytest.fixture(autouse=True)
@@ -25,8 +25,8 @@ def _sample_state(**overrides) -> SessionState:
         selected_chapter_id=10,
         selected_topic_id=20,
         selected_level=3,
-        chapter_progress={
-            10: ChapterProgress(unlocked_topic_id=30, unlocked_level=2),
+        chapter_frontiers={
+            10: ChapterFrontier(frontier_topic_id=30, frontier_level=2),
         },
     )
     for key, value in overrides.items():
@@ -55,8 +55,8 @@ def test_save_and_load_user_round_trip():
     assert loaded["selected_chapter_id"] == 10
     assert loaded["selected_topic_id"] == 20
     assert loaded["selected_level"] == 3
-    assert loaded["chapter_progress"][10] == ChapterProgress(
-        unlocked_topic_id=30, unlocked_level=2
+    assert loaded["chapter_frontiers"][10] == ChapterFrontier(
+        frontier_topic_id=30, frontier_level=2
     )
 
 
@@ -91,7 +91,7 @@ def test_save_and_load_session_round_trip():
     assert loaded.xp == state.xp
     assert loaded.streak == state.streak
     assert loaded.selected_chapter_id == state.selected_chapter_id
-    assert loaded.chapter_progress == state.chapter_progress
+    assert loaded.chapter_frontiers == state.chapter_frontiers
     assert loaded.navigation is None
 
 

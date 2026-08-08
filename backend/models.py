@@ -13,16 +13,16 @@ import backend.config as config
 # --- Progress & navigation ---
 
 
-class ChapterProgress(BaseModel):
-    """Progress for a single chapter."""
+class ChapterFrontier(BaseModel):
+    """Persisted Frontier for a single chapter on the student profile."""
 
-    unlocked_topic_id: int = Field(
+    frontier_topic_id: int = Field(
         default=1,
-        description="Highest topic id unlocked for this chapter",
+        description="Frontier topic id — furthest Topic earned in this chapter",
     )
-    unlocked_level: int = Field(
+    frontier_level: int = Field(
         default=1,
-        description="Highest level unlocked for the current topic",
+        description="Frontier level — furthest Level earned at the frontier topic",
     )
 
 
@@ -41,7 +41,7 @@ class NavigationTopicOption(BaseModel):
 
 
 class NavigationProgress(BaseModel):
-    """Completed vs total counts for chapter or topic progress bars."""
+    """Completed vs total counts for chapter or topic completion meters."""
 
     completed: int
     total: int
@@ -57,8 +57,8 @@ class NavigationView(BaseModel):
     available_levels: list[int]
     has_next_unlocked_topic: bool
     radio_only: bool
-    chapter_progress: Optional[NavigationProgress] = None
-    topic_progress: Optional[NavigationProgress] = None
+    chapter_completion: Optional[NavigationProgress] = None
+    topic_completion: Optional[NavigationProgress] = None
 
 
 # --- Session state ---
@@ -87,7 +87,7 @@ class SessionState(BaseModel):
     feedback_msg: str = ""
     level_completed: bool = False
 
-    chapter_progress: Dict[int, ChapterProgress] = Field(default_factory=dict)
+    chapter_frontiers: Dict[int, ChapterFrontier] = Field(default_factory=dict)
 
     current_problem: Optional[Dict[str, Any]] = None
     problem_start_time: Optional[float] = None
@@ -124,10 +124,10 @@ class SessionState(BaseModel):
                 "feedback_type": None,
                 "feedback_msg": "",
                 "level_completed": False,
-                "chapter_progress": {
+                "chapter_frontiers": {
                     "10": {
-                        "unlocked_topic_id": 30,
-                        "unlocked_level": 2,
+                        "frontier_topic_id": 30,
+                        "frontier_level": 2,
                     },
                 },
             }

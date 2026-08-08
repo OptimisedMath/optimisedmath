@@ -5,8 +5,8 @@ interface ProgressBarProps {
   type: 'chapter' | 'topic';
   selectedChapterName?: string | null;
   selectedLevel?: number;
-  chapterProgress?: NavigationProgress | null;
-  topicProgress?: NavigationProgress | null;
+  chapterCompletion?: NavigationProgress | null;
+  topicCompletion?: NavigationProgress | null;
   currentTopicName?: string | null;
 }
 
@@ -14,12 +14,12 @@ function ProgressBar({
   type,
   selectedChapterName,
   selectedLevel,
-  chapterProgress,
-  topicProgress,
+  chapterCompletion,
+  topicCompletion,
   currentTopicName,
 }: ProgressBarProps) {
-  if (type === 'chapter' && selectedChapterName && chapterProgress) {
-    const { completed, total, percentage } = chapterProgress;
+  if (type === 'chapter' && selectedChapterName && chapterCompletion) {
+    const { completed, total, percentage } = chapterCompletion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
@@ -37,8 +37,8 @@ function ProgressBar({
     );
   }
 
-  if (type === 'topic' && topicProgress && selectedLevel !== undefined) {
-    const { total, percentage } = topicProgress;
+  if (type === 'topic' && topicCompletion && selectedLevel !== undefined) {
+    const { total, percentage } = topicCompletion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">

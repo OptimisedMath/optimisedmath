@@ -50,7 +50,7 @@ def build_navigation_view(
     admin_mode = state.admin_mode
     frontier = effective_frontier(
         chapter_topics,
-        state.chapter_progress.get(selected_chapter_id),
+        state.chapter_frontiers.get(selected_chapter_id),
         admin_mode=admin_mode,
     )
 
@@ -76,9 +76,9 @@ def build_navigation_view(
         has_next = False
     else:
         has_next = (
-            selected_chapter_id in state.chapter_progress
+            selected_chapter_id in state.chapter_frontiers
             and state.selected_topic_id is not None
-            and state.chapter_progress[selected_chapter_id].unlocked_topic_id
+            and state.chapter_frontiers[selected_chapter_id].frontier_topic_id
             > (state.selected_topic_id or 0)
         )
 
@@ -86,11 +86,11 @@ def build_navigation_view(
         active_topic_entry and active_topic_entry.get("radio_only")
     )
 
-    chapter_progress_view: NavigationProgress | None = None
+    chapter_completion_view: NavigationProgress | None = None
     if selected_chapter_id and chapter_topics:
         total = len(chapter_topics)
         if admin_mode:
-            chapter_progress_view = NavigationProgress(
+            chapter_completion_view = NavigationProgress(
                 completed=total,
                 total=total,
                 percentage=100.0,
@@ -99,26 +99,26 @@ def build_navigation_view(
             completed = sum(
                 1
                 for topic_entry in chapter_topics
-                if int(topic_entry["topic_id"]) < frontier.unlocked_topic_id
+                if int(topic_entry["topic_id"]) < frontier.frontier_topic_id
             )
-            chapter_progress_view = NavigationProgress(
+            chapter_completion_view = NavigationProgress(
                 completed=completed,
                 total=total,
                 percentage=(completed / total * 100) if total > 0 else 0.0,
             )
 
-    topic_progress_view: NavigationProgress | None = None
+    topic_completion_view: NavigationProgress | None = None
     if active_topic_entry:
         max_level = int(active_topic_entry["max_level"])
         if admin_mode:
-            topic_progress_view = NavigationProgress(
+            topic_completion_view = NavigationProgress(
                 completed=max_level,
                 total=max_level,
                 percentage=100.0,
             )
         else:
             completed_levels = selected_level - 1
-            topic_progress_view = NavigationProgress(
+            topic_completion_view = NavigationProgress(
                 completed=completed_levels,
                 total=max_level,
                 percentage=(completed_levels / max_level * 100) if max_level > 0 else 0.0,
@@ -131,6 +131,6 @@ def build_navigation_view(
         available_levels=available_levels,
         has_next_unlocked_topic=has_next,
         radio_only=radio_only,
-        chapter_progress=chapter_progress_view,
-        topic_progress=topic_progress_view,
+        chapter_completion=chapter_completion_view,
+        topic_completion=topic_completion_view,
     )
