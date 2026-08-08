@@ -3,16 +3,17 @@
 import pytest
 
 import backend.config as config
+from backend.curriculum_loader import TopicDict
 from backend.models import ChapterFrontier
 from backend.play_mode import AdminPlayMode, StudentPlayMode, resolve_play_mode
 from backend.unlock import chapter_max_frontier, get_frontier
 
 
-def _chapter_topics() -> list[dict]:
+def _chapter_topics() -> list[TopicDict]:
     return [
-        {"topic_id": 10, "name": "Topic A", "max_level": 3},
-        {"topic_id": 20, "name": "Topic B", "max_level": 5},
-        {"topic_id": 30, "name": "Topic C", "max_level": 2},
+        {"topic_id": 10, "name": "Topic A", "max_level": 3, "radio_only": False},
+        {"topic_id": 20, "name": "Topic B", "max_level": 5, "radio_only": False},
+        {"topic_id": 30, "name": "Topic C", "max_level": 2, "radio_only": False},
     ]
 
 

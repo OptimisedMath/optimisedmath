@@ -52,6 +52,7 @@ def test_sanitize_problem_strips_internal_fields():
 def test_log_submission_telemetry_persists_sanitized_problem():
     state = _fresh_state()
     chapter_id = state.selected_chapter_id
+    assert chapter_id is not None
     topics_by_id = get_topics_by_id(chapter_id)
     problem = {
         "problem_id": "p1",
@@ -69,7 +70,7 @@ def test_log_submission_telemetry_persists_sanitized_problem():
         problem,
         user_input="2",
         is_input_mode=False,
-        eval_result={"is_correct": True, "trap_id": None},
+        eval_result={"is_correct": True},
         topics_by_id=topics_by_id,
     )
 

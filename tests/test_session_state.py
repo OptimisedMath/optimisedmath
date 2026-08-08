@@ -39,6 +39,16 @@ def _fresh_state() -> SessionState:
     return state
 
 
+def _chapter_id(state: SessionState) -> int:
+    assert state.selected_chapter_id is not None
+    return state.selected_chapter_id
+
+
+def _username(state: SessionState) -> str:
+    assert state.username is not None
+    return state.username
+
+
 def test_init_defaults_sets_session_and_chapter_frontiers():
     curriculum, chapter_ids = _curriculum_and_chapters()
     state = SessionState()
@@ -75,8 +85,7 @@ def test_reset_submission_cycle_clears_problem_and_feedback():
 
 def test_resolve_input_mode_switches_to_input_after_streak_threshold():
     state = _fresh_state()
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
 
     state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
     assert session_state.resolve_input_mode(state, topics_by_id) == "input"
@@ -111,7 +120,7 @@ def test_resolve_input_mode_stays_radio_for_radio_only_topics():
 def test_navigate_to_updates_selection_and_resets_submission_cycle():
     state = _fresh_state()
     curriculum, _ = _curriculum_and_chapters()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     topics = curriculum[chapter_id]
     target_topic_id = int(topics[1]["topic_id"]) if len(topics) > 1 else int(topics[0]["topic_id"])
     topics_by_id = get_topics_by_id(chapter_id)
@@ -139,7 +148,7 @@ def test_hard_reset_wipes_progress_and_persists():
     curriculum, chapter_ids = _curriculum_and_chapters()
     state.xp = 100
     state.streak = 2
-    state.chapter_frontiers[state.selected_chapter_id] = ChapterFrontier(
+    state.chapter_frontiers[_chapter_id(state)] = ChapterFrontier(
         frontier_topic_id=999,
         frontier_level=3,
     )
@@ -154,7 +163,7 @@ def test_hard_reset_wipes_progress_and_persists():
         assert state.chapter_frontiers[chapter_id].frontier_topic_id == expected_first
         assert state.chapter_frontiers[chapter_id].frontier_level == 1
 
-    loaded = db.load_user(state.username)
+    loaded = db.load_user(_username(state))
     assert loaded is not None
     assert loaded["xp"] == 0
 
@@ -199,8 +208,7 @@ def test_load_profile_hard_resets_new_user():
 
 def test_process_submission_grades_and_persists():
     state = _fresh_state()
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
     problem = {
         "problem_id": "p-correct",
         "question": "q",
@@ -216,12 +224,12 @@ def test_process_submission_grades_and_persists():
         state, problem, "2", False, topics_by_id, _STUDENT
     )
 
-    assert result["is_correct"] is True
+    assert result.get("is_correct") is True
     assert state.streak == 1
     assert state.problem_answered is True
     assert state.feedback_type == "success"
 
-    loaded = db.load_user(state.username)
+    loaded = db.load_user(_username(state))
     assert loaded is not None
     assert loaded["streak"] == 1
 
@@ -258,7 +266,7 @@ def _admin_state_at(
 ) -> SessionState:
     state = _fresh_state()
     state.username = "Antoni"
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     state.chapter_frontiers[chapter_id] = ChapterFrontier(
         frontier_topic_id=frontier_topic_id,
         frontier_level=frontier_level,
@@ -272,8 +280,8 @@ def _admin_state_at(
     state.topic_completed = False
     baseline = state.model_copy(deep=True)
     baseline.streak = 0
-    db.save_user(state.username, baseline)
-    db.save_session(state.session_id, state.username, baseline)
+    db.save_user(_username(state), baseline)
+    db.save_session(state.session_id, _username(state), baseline)
     return state
 
 
@@ -295,7 +303,7 @@ def _assert_admin_profile_unchanged(
     frontier_topic_id: int,
     frontier_level: int,
 ) -> None:
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     assert state.xp == xp
     assert state.flawless_eligible is True
     assert state.level_completed is False
@@ -303,7 +311,7 @@ def _assert_admin_profile_unchanged(
     assert state.chapter_frontiers[chapter_id].frontier_topic_id == frontier_topic_id
     assert state.chapter_frontiers[chapter_id].frontier_level == frontier_level
 
-    loaded = db.load_user(state.username)
+    loaded = db.load_user(_username(state))
     assert loaded is not None
     assert loaded["xp"] == xp
     assert loaded["streak"] == 0
@@ -340,15 +348,14 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         xp=50,
         streak=initial_streak,
     )
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
     telemetry_before = _telemetry_count(state.session_id)
 
     result = session_state.process_submission(
         state, _correct_problem(), "2", False, topics_by_id, _ADMIN
     )
 
-    assert result["is_correct"] is True
+    assert result.get("is_correct") is True
     assert state.feedback_type == "success"
     assert state.problem_answered is True
     assert "XP" not in state.feedback_msg
@@ -367,8 +374,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes():
         selected_level=2,
         streak=2,
     )
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
 
     session_state.process_submission(
         state, _wrong_problem(), "3", False, topics_by_id, _ADMIN
@@ -389,8 +395,7 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold():
         selected_level=2,
         streak=0,
     )
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
 
     session_state.process_submission(
         state, _correct_problem(), "2", False, topics_by_id, _ADMIN
@@ -407,8 +412,7 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold():
         selected_level=1,
         streak=2,
     )
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
 
     session_state.process_submission(
         state, _correct_problem(), "2", False, topics_by_id, _ADMIN
@@ -428,8 +432,7 @@ def test_admin_resets_streak_at_stored_frontier_boundary():
         selected_level=1,
         streak=2,
     )
-    chapter_id = state.selected_chapter_id
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = get_topics_by_id(_chapter_id(state))
 
     session_state.process_submission(
         state, _correct_problem(), "2", False, topics_by_id, _ADMIN

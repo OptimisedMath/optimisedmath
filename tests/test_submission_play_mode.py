@@ -6,6 +6,7 @@ import pytest
 
 import backend.session_state as session_state
 import backend.submission_play_mode as submission_play_mode
+from backend.answer_grading import EvalResult
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
 from backend.models import ChapterFrontier, SessionState
@@ -32,11 +33,16 @@ def _fresh_state() -> SessionState:
     return state
 
 
+def _chapter_id(state: SessionState) -> int:
+    assert state.selected_chapter_id is not None
+    return state.selected_chapter_id
+
+
 def test_apply_submission_outcome_via_play_mode_updates_student_progress():
     state = _fresh_state()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     topics_by_id = get_topics_by_id(chapter_id)
-    eval_result = {
+    eval_result: EvalResult = {
         "is_correct": True,
         "lock_answer": True,
         "feedback_type": "success",
@@ -54,7 +60,7 @@ def test_apply_submission_outcome_via_play_mode_updates_student_progress():
 def test_apply_submission_outcome_via_play_mode_skips_profile_writes_for_admin():
     state = _fresh_state()
     state.username = "Antoni"
-    chapter_id = state.selected_chapter_id
+    chapter_id = _chapter_id(state)
     state.xp = 50
     state.chapter_frontiers[chapter_id] = ChapterFrontier(
         frontier_topic_id=10,
@@ -64,7 +70,7 @@ def test_apply_submission_outcome_via_play_mode_skips_profile_writes_for_admin()
     state.selected_level = 2
     db.save_user(state.username, state.model_copy(update={"streak": 0}))
     topics_by_id = get_topics_by_id(chapter_id)
-    eval_result = {
+    eval_result: EvalResult = {
         "is_correct": True,
         "lock_answer": True,
         "feedback_type": "success",
