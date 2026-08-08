@@ -74,7 +74,7 @@ def test_resolve_topic_change_resets_level_for_completed_topic():
         if int(topic["topic_id"]) < unlocked_topic_id
     ]
     if not completed_topics:
-        pytest.skip("Need a completed topic behind UnlockedProgress")
+        pytest.skip("Need a completed topic behind the Frontier")
 
     completed_topic_id = int(completed_topics[0]["topic_id"])
     topic_id, level = resolution.resolve_topic_change(

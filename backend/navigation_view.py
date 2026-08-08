@@ -18,7 +18,7 @@ from backend.navigation_resolution import (
 )
 from backend.unlock import (
     accessible_topics,
-    effective_unlocked_progress,
+    effective_frontier,
     first_topic_id,
     level_limit,
 )
@@ -48,13 +48,13 @@ def build_navigation_view(
     selected_level = clamp_level(state.selected_level, active_topic_entry)
 
     admin_mode = state.admin_mode
-    unlocked_progress = effective_unlocked_progress(
+    frontier = effective_frontier(
         chapter_topics,
         state.chapter_progress.get(selected_chapter_id),
         admin_mode=admin_mode,
     )
 
-    available_topic_entries = accessible_topics(chapter_topics, unlocked_progress)
+    available_topic_entries = accessible_topics(chapter_topics, frontier)
     available_topics_view = [
         NavigationTopicOption(
             topic_id=int(topic_entry["topic_id"]),
@@ -68,7 +68,7 @@ def build_navigation_view(
         level_limit_value = level_limit(
             int(active_topic_entry["topic_id"]),
             int(active_topic_entry["max_level"]),
-            unlocked_progress,
+            frontier,
         )
     available_levels = get_level_options(level_limit_value)
 
@@ -99,7 +99,7 @@ def build_navigation_view(
             completed = sum(
                 1
                 for topic_entry in chapter_topics
-                if int(topic_entry["topic_id"]) < unlocked_progress.unlocked_topic_id
+                if int(topic_entry["topic_id"]) < frontier.unlocked_topic_id
             )
             chapter_progress_view = NavigationProgress(
                 completed=completed,

@@ -38,7 +38,7 @@ def test_correct_increments_streak_without_unlock():
     assert outcome.new_flawless_eligible is True
 
 
-def test_correct_at_streak_cap_unlocks_when_at_unlocked_progress():
+def test_correct_at_streak_cap_unlocks_when_at_frontier():
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=3, selected_level=2, unlocked_level=2, topic_max_level=5),
@@ -172,11 +172,11 @@ def test_wrong_at_streak_zero_stays_zero():
 @pytest.mark.parametrize(
     ("streak", "selected_level", "unlocked_level"),
     [
-        (2, 2, 1),  # ahead of UnlockedProgress — no level unlock
-        (2, 1, 2),  # behind UnlockedProgress — no level unlock
+        (2, 2, 1),  # beyond the Frontier — no level unlock
+        (2, 1, 2),  # behind the Frontier — no level unlock
     ],
 )
-def test_unlock_requires_playing_at_unlocked_progress(streak, selected_level, unlocked_level):
+def test_unlock_requires_playing_at_frontier(streak, selected_level, unlocked_level):
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
         _ctx(

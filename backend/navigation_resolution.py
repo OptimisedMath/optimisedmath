@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from backend.curriculum_loader import TopicDict, get_chapters
 from backend.models import SessionState, SessionNavigateRequest
-from backend.unlock import first_topic_id, get_unlocked_progress
+from backend.unlock import first_topic_id, get_frontier
 
 
 def topics_for_chapter(
@@ -87,14 +87,14 @@ def resolve_topic_change(
         next_topic_entry = find_topic_by_id(chapter_topics, next_topic_id)
         return next_topic_id, clamp_level(1, next_topic_entry)
 
-    unlocked_progress = get_unlocked_progress(
+    frontier = get_frontier(
         state.chapter_progress.get(chapter_id), chapter_topics
     )
     next_topic_entry = find_topic_by_id(chapter_topics, next_topic_id)
-    if next_topic_id < unlocked_progress.unlocked_topic_id:
+    if next_topic_id < frontier.unlocked_topic_id:
         next_level = 1
     else:
-        next_level = clamp_level(unlocked_progress.unlocked_level, next_topic_entry)
+        next_level = clamp_level(frontier.unlocked_level, next_topic_entry)
     return next_topic_id, next_level
 
 
