@@ -15,7 +15,12 @@ from backend.curriculum_loader import (
     get_topics_by_id,
 )
 from backend.play_mode import PlayMode, resolve_play_mode
-from backend.progression import SubmissionContext, SubmissionOutcome, apply_submission
+from backend.progression import (
+    PersistenceProfile,
+    SubmissionContext,
+    SubmissionOutcome,
+    apply_submission,
+)
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
@@ -212,6 +217,8 @@ def _build_submission_context(
     chapter_id: int,
     topic_id: int,
     topics_by_id: dict[int, TopicMeta],
+    *,
+    profile: PersistenceProfile,
 ) -> SubmissionContext:
     prog = state.chapter_frontiers[chapter_id]
     topic_meta = topics_by_id[topic_id]
@@ -225,8 +232,10 @@ def _build_submission_context(
         current_streak=state.streak,
         flawless_eligible=state.flawless_eligible,
         frontier_level=prog.frontier_level,
+        frontier_topic_id=prog.frontier_topic_id,
         topic_max_level=int(topic_meta["max_level"]),
         next_topic_ids=next_topic_ids,
+        persistence_profile=profile,
     )
 
 
@@ -252,37 +261,6 @@ def _apply_submission_outcome(
         prog.frontier_level = outcome.new_frontier_level
     if outcome.unlock_topic_id is not None:
         prog.frontier_topic_id = outcome.unlock_topic_id
-
-
-def _apply_admin_session_streak(
-    state: SessionState, chapter_id: int, eval_result: EvalResult
-) -> None:
-    """Apply in-cycle streak rules for admin QA without profile progression."""
-    is_correct = eval_result.get("is_correct", False)
-    feedback_type = eval_result.get("feedback_type")
-    is_soft_error = feedback_type == "info"
-
-    if is_correct:
-        new_streak = state.streak
-        if new_streak < config.MAX_STREAK:
-            new_streak += 1
-
-        prog = state.chapter_frontiers[chapter_id]
-        at_boundary = (
-            state.selected_topic_id == prog.frontier_topic_id
-            and state.selected_level == prog.frontier_level
-        )
-        if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
-            new_streak = 0
-
-        state.streak = new_streak
-        if state.feedback_type is None:
-            state.feedback_type = "success"
-            state.feedback_msg = "Brawo! To poprawna odpowiedź. 🎉"
-        return
-
-    if state.streak > 0 and not is_soft_error:
-        state.streak -= 1
 
 
 def process_submission(
@@ -343,14 +321,13 @@ def process_submission(
         equation_state=problem_state,
     )
 
-    prog = state.chapter_frontiers[chapter_id]
-    if not play_mode.persists_profile:
-        _apply_admin_session_streak(state, chapter_id, eval_result)
-        sync_to_db(state, play_mode)
-        return eval_result
-
+    profile = (
+        PersistenceProfile.FULL
+        if play_mode.persists_profile
+        else PersistenceProfile.STREAK_ONLY
+    )
     submission_ctx = _build_submission_context(
-        state, chapter_id, topic_id, topics_by_id
+        state, chapter_id, topic_id, topics_by_id, profile=profile
     )
     submission_outcome = apply_submission(eval_result, submission_ctx)
     _apply_submission_outcome(state, chapter_id, submission_outcome)

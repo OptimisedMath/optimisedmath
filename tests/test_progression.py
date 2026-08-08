@@ -3,7 +3,7 @@
 import pytest
 
 import backend.config as config
-from backend.progression import SubmissionContext, apply_submission
+from backend.progression import PersistenceProfile, SubmissionContext, apply_submission
 
 
 def _ctx(
@@ -12,18 +12,23 @@ def _ctx(
     flawless_eligible: bool = True,
     selected_level: int = 1,
     frontier_level: int = 1,
+    frontier_topic_id: int = 10,
+    topic_id: int = 10,
     topic_max_level: int = 3,
     next_topic_ids: tuple[int, ...] = (20, 30),
+    persistence_profile: PersistenceProfile = PersistenceProfile.FULL,
 ) -> SubmissionContext:
     return SubmissionContext(
         chapter_id=10,
-        topic_id=10,
+        topic_id=topic_id,
         selected_level=selected_level,
         current_streak=streak,
         flawless_eligible=flawless_eligible,
         frontier_level=frontier_level,
+        frontier_topic_id=frontier_topic_id,
         topic_max_level=topic_max_level,
         next_topic_ids=next_topic_ids,
+        persistence_profile=persistence_profile,
     )
 
 
@@ -188,3 +193,92 @@ def test_unlock_requires_playing_at_frontier(streak, selected_level, frontier_le
 
     assert outcome.level_unlocked is False
     assert outcome.topic_completed is False
+
+
+def test_streak_only_increments_without_xp():
+    outcome = apply_submission(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(streak=1, persistence_profile=PersistenceProfile.STREAK_ONLY),
+    )
+
+    assert outcome.new_streak == 2
+    assert outcome.xp_earned == 0
+    assert outcome.feedback_type == "success"
+    assert "XP" not in (outcome.feedback_msg or "")
+    assert outcome.level_unlocked is False
+    assert outcome.new_flawless_eligible is True
+
+
+def test_streak_only_resets_at_stored_frontier_boundary():
+    outcome = apply_submission(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            selected_level=1,
+            frontier_level=1,
+            frontier_topic_id=10,
+            topic_id=10,
+            persistence_profile=PersistenceProfile.STREAK_ONLY,
+        ),
+    )
+
+    assert outcome.new_streak == 0
+    assert outcome.xp_earned == 0
+    assert outcome.new_frontier_level is None
+    assert outcome.unlock_topic_id is None
+
+
+def test_streak_only_no_reset_when_ahead_by_topic():
+    outcome = apply_submission(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=20,
+            frontier_topic_id=10,
+            persistence_profile=PersistenceProfile.STREAK_ONLY,
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.new_frontier_level is None
+
+
+def test_streak_only_no_reset_when_ahead_by_level():
+    outcome = apply_submission(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            selected_level=2,
+            frontier_level=1,
+            persistence_profile=PersistenceProfile.STREAK_ONLY,
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.new_frontier_level is None
+
+
+def test_streak_only_wrong_decrements_without_flawless_forfeit():
+    outcome = apply_submission(
+        {"lock_answer": True, "feedback_type": "warning", "feedback_msg": "wrong"},
+        _ctx(streak=2, flawless_eligible=True, persistence_profile=PersistenceProfile.STREAK_ONLY),
+    )
+
+    assert outcome.new_streak == 1
+    assert outcome.new_flawless_eligible is True
+    assert outcome.xp_earned == 0
+
+
+def test_streak_only_soft_error_preserves_streak():
+    outcome = apply_submission(
+        {
+            "lock_answer": False,
+            "feedback_type": "info",
+            "feedback_msg": "syntax",
+            "trap_id": "syntax_error",
+        },
+        _ctx(streak=2, flawless_eligible=True, persistence_profile=PersistenceProfile.STREAK_ONLY),
+    )
+
+    assert outcome.new_streak == 2
+    assert outcome.new_flawless_eligible is True

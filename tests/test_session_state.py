@@ -418,3 +418,24 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold():
     _assert_admin_profile_unchanged(
         state, xp=0, frontier_topic_id=10, frontier_level=1
     )
+
+
+def test_admin_resets_streak_at_stored_frontier_boundary():
+    state = _admin_state_at(
+        frontier_topic_id=10,
+        frontier_level=1,
+        selected_topic_id=10,
+        selected_level=1,
+        streak=2,
+    )
+    chapter_id = state.selected_chapter_id
+    topics_by_id = get_topics_by_id(chapter_id)
+
+    session_state.process_submission(
+        state, _correct_problem(), "2", False, topics_by_id, _ADMIN
+    )
+
+    assert state.streak == 0
+    _assert_admin_profile_unchanged(
+        state, xp=0, frontier_topic_id=10, frontier_level=1
+    )
