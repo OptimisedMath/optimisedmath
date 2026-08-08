@@ -5,7 +5,7 @@ import uuid
 import pytest
 
 from backend.curriculum_loader import get_curriculum
-from backend.models import SessionState, SessionNavigateRequest
+from backend.models import ChapterProgress, SessionState, SessionNavigateRequest
 from backend import navigation_resolution as resolution
 import backend.session_state as session_state
 
@@ -139,3 +139,71 @@ def test_resolve_navigate_request_level_only():
 
     assert chapter_id == state.selected_chapter_id
     assert level == 2
+
+
+def test_admin_chapter_change_lands_on_first_topic_at_level_one():
+    curriculum, chapter_ids = _curriculum_and_chapters()
+    if len(chapter_ids) < 2:
+        pytest.skip("Need at least two chapters")
+
+    state = _fresh_state()
+    state.admin_mode = True
+    target_chapter_id = chapter_ids[1]
+    chapter_topics = curriculum[target_chapter_id]
+    last_topic_id = int(chapter_topics[-1]["topic_id"])
+    state.chapter_progress[target_chapter_id] = ChapterProgress(
+        unlocked_topic_id=last_topic_id,
+        unlocked_level=3,
+    )
+    expected_first_topic_id = int(chapter_topics[0]["topic_id"])
+
+    chapter_id, topic_id, level = resolution.resolve_chapter_change(
+        state, curriculum, target_chapter_id
+    )
+
+    assert (chapter_id, topic_id, level) == (
+        target_chapter_id,
+        expected_first_topic_id,
+        1,
+    )
+
+
+def test_admin_topic_change_lands_on_level_one():
+    curriculum, chapter_ids = _curriculum_and_chapters()
+    state = _fresh_state()
+    state.admin_mode = True
+    chapter_id = chapter_ids[0]
+    chapter_topics = curriculum[chapter_id]
+    target_topic_id = int(chapter_topics[0]["topic_id"])
+    state.chapter_progress[chapter_id] = ChapterProgress(
+        unlocked_topic_id=target_topic_id,
+        unlocked_level=3,
+    )
+
+    topic_id, level = resolution.resolve_topic_change(
+        state, curriculum, chapter_id, target_topic_id
+    )
+
+    assert (topic_id, level) == (target_topic_id, 1)
+
+
+def test_admin_explicit_topic_and_level_unchanged():
+    curriculum, chapter_ids = _curriculum_and_chapters()
+    state = _fresh_state()
+    state.admin_mode = True
+    chapter_id = chapter_ids[0]
+    chapter_topics = curriculum[chapter_id]
+    target_topic_id = int(chapter_topics[0]["topic_id"])
+    explicit_level = 3
+
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_topic_id=target_topic_id,
+        selected_level=explicit_level,
+    )
+
+    chapter_id, topic_id, level = resolution.resolve_navigate_request(
+        state, curriculum, request
+    )
+
+    assert (chapter_id, topic_id, level) == (chapter_id, target_topic_id, explicit_level)

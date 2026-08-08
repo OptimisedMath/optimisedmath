@@ -54,6 +54,10 @@ def resolve_chapter_change(
 ) -> tuple[int, int, int]:
     """Pick default topic and level when switching chapter."""
     next_chapter_topics = topics_for_chapter(curriculum, next_chapter_id)
+    if state.admin_mode:
+        next_topic_id = first_topic_id(next_chapter_topics)
+        next_topic_entry = find_topic_by_id(next_chapter_topics, next_topic_id)
+        return next_chapter_id, next_topic_id, clamp_level(1, next_topic_entry)
     next_chapter_progress = state.chapter_progress.get(next_chapter_id)
     next_topic_id = (
         next_chapter_progress.unlocked_topic_id
@@ -79,6 +83,10 @@ def resolve_topic_change(
 ) -> tuple[int, int]:
     """Pick default level when switching topic within a chapter."""
     chapter_topics = topics_for_chapter(curriculum, chapter_id)
+    if state.admin_mode:
+        next_topic_entry = find_topic_by_id(chapter_topics, next_topic_id)
+        return next_topic_id, clamp_level(1, next_topic_entry)
+
     unlocked_progress = get_unlocked_progress(
         state.chapter_progress.get(chapter_id), chapter_topics
     )
