@@ -1,0 +1,121 @@
+"""Play mode policy — student vs admin adapters resolved once per request."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Protocol
+
+import backend.config as config
+from backend.curriculum_loader import TopicDict
+from backend.models import ChapterFrontier
+from backend.unlock import (
+    Frontier,
+    chapter_max_frontier,
+    first_topic_id,
+    get_frontier,
+)
+
+
+class PlayMode(Protocol):
+    """Resolved identity and policy for one session request."""
+
+    @property
+    def is_admin(self) -> bool: ...
+
+    @property
+    def persists_profile(self) -> bool: ...
+
+    @property
+    def reveals_correct_answer(self) -> bool: ...
+
+    def effective_frontier(
+        self,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> Frontier: ...
+
+    def implicit_chapter_landing(
+        self,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> tuple[int, int]: ...
+
+    def implicit_topic_landing(
+        self,
+        chapter_topics: list[TopicDict],
+        topic_id: int,
+        frontier_record: ChapterFrontier | None,
+    ) -> int: ...
+
+
+@dataclass(frozen=True, slots=True)
+class StudentPlayMode:
+    """Normal student play — persisted Frontier, full profile writes."""
+
+    is_admin: bool = False
+    persists_profile: bool = True
+    reveals_correct_answer: bool = False
+
+    def effective_frontier(
+        self,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> Frontier:
+        return get_frontier(frontier_record, chapter_topics)
+
+    def implicit_chapter_landing(
+        self,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> tuple[int, int]:
+        frontier = get_frontier(frontier_record, chapter_topics)
+        return frontier.frontier_topic_id, frontier.frontier_level
+
+    def implicit_topic_landing(
+        self,
+        chapter_topics: list[TopicDict],
+        topic_id: int,
+        frontier_record: ChapterFrontier | None,
+    ) -> int:
+        frontier = get_frontier(frontier_record, chapter_topics)
+        if topic_id < frontier.frontier_topic_id:
+            return 1
+        return frontier.frontier_level
+
+
+@dataclass(frozen=True, slots=True)
+class AdminPlayMode:
+    """Admin QA play — effective full unlock, no profile progression writes."""
+
+    is_admin: bool = True
+    persists_profile: bool = False
+    reveals_correct_answer: bool = True
+
+    def effective_frontier(
+        self,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> Frontier:
+        return chapter_max_frontier(chapter_topics)
+
+    def implicit_chapter_landing(
+        self,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> tuple[int, int]:
+        return first_topic_id(chapter_topics), 1
+
+    def implicit_topic_landing(
+        self,
+        chapter_topics: list[TopicDict],
+        topic_id: int,
+        frontier_record: ChapterFrontier | None,
+    ) -> int:
+        return 1
+
+
+def resolve_play_mode(username: str | None) -> PlayMode:
+    """Resolve play mode from username once per session request."""
+    if config.is_admin_user(username):
+        return AdminPlayMode()
+    return StudentPlayMode()

@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import uuid
 from copy import deepcopy
-from typing import Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-import backend.config as config
+if TYPE_CHECKING:
+    from backend.play_mode import PlayMode
 
 # --- Progress & navigation ---
 
@@ -141,16 +142,21 @@ class SessionState(BaseModel):
     def for_response(
         self,
         public_problem_fn: Callable[[Dict[str, Any], SessionState], Dict[str, Any]],
+        *,
+        play_mode: PlayMode | None = None,
     ) -> SessionState:
         """Return a copy suitable for API serialization without mutating session state."""
+        from backend.play_mode import resolve_play_mode
+
         copy = deepcopy(self)
+        mode = play_mode if play_mode is not None else resolve_play_mode(copy.username)
         if copy.current_problem:
-            copy.current_problem = public_problem_fn(copy.current_problem, copy)
+            copy.current_problem = public_problem_fn(copy.current_problem, copy, mode)
         copy.can_submit = bool(copy.current_problem and not copy.problem_answered)
         copy.can_advance = bool(copy.problem_answered)
         copy.problem_start_time = None
         copy.recent_problem_fingerprints = []
-        copy.admin_mode = config.is_admin_user(copy.username)
+        copy.admin_mode = mode.is_admin
         return copy
 
 

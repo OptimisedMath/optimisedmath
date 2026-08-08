@@ -10,6 +10,7 @@ import backend.main as main
 from backend.core import db
 from backend.curriculum_loader import get_curriculum
 from backend.models import SessionState
+from backend.play_mode import StudentPlayMode
 
 
 def run(coro):
@@ -427,7 +428,7 @@ def test_radio_only_topic_keeps_radio_input():
     topics_by_id = get_topics_by_id(disabled_chapter_id)
 
     main.session_state.process_submission(
-        state, problem, "a", False, topics_by_id
+        state, problem, "a", False, topics_by_id, StudentPlayMode()
     )
 
     assert state.streak == 1

@@ -14,6 +14,7 @@ from backend.curriculum_loader import (
     get_chapter_name_by_id,
     get_topics_by_id,
 )
+from backend.play_mode import PlayMode, resolve_play_mode
 from backend.progression import SubmissionContext, SubmissionOutcome, apply_submission
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
@@ -106,9 +107,10 @@ def reset_submission_cycle(
         state.current_input_mode = "radio"
 
 
-def sync_to_db(state: SessionState) -> None:
+def sync_to_db(state: SessionState, play_mode: PlayMode | None = None) -> None:
     """Pushes current session state to the database."""
-    persist_state = _state_for_db_persist(state)
+    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
+    persist_state = _state_for_db_persist(state, mode)
     if persist_state.username:
         try:
             db.save_user(persist_state.username, persist_state)
@@ -123,9 +125,9 @@ def sync_to_db(state: SessionState) -> None:
             print(f"Error saving session {persist_state.session_id}: {e}")
 
 
-def _state_for_db_persist(state: SessionState) -> SessionState:
+def _state_for_db_persist(state: SessionState, play_mode: PlayMode) -> SessionState:
     """Return session snapshot for DB writes, preserving admin progression fields."""
-    if not state.username or not config.is_admin_user(state.username):
+    if not state.username or play_mode.persists_profile:
         return state
 
     persisted = db.load_user(state.username)
@@ -166,6 +168,7 @@ def hard_reset(
     state: SessionState,
     chapter_ids: list[int],
     curriculum: dict[int, list[TopicDict]],
+    play_mode: PlayMode | None = None,
 ) -> None:
     """Wipes all progress and resets to initial state."""
     state.xp = 0
@@ -182,7 +185,7 @@ def hard_reset(
     )
     state.selected_level = 1
     reset_submission_cycle(state)
-    sync_to_db(state)
+    sync_to_db(state, play_mode)
 
 
 def navigate_to(
@@ -191,6 +194,7 @@ def navigate_to(
     topic_id: int | None = None,
     level: int | None = None,
     topics_by_id: dict[int, TopicMeta] | None = None,
+    play_mode: PlayMode | None = None,
 ) -> None:
     """Navigate to a different chapter/topic/level, resetting submission cycle and syncing."""
     if chapter_id is not None:
@@ -200,7 +204,7 @@ def navigate_to(
     if level is not None:
         state.selected_level = level
     reset_submission_cycle(state, topics_by_id)
-    sync_to_db(state)
+    sync_to_db(state, play_mode)
 
 
 def _build_submission_context(
@@ -287,6 +291,7 @@ def process_submission(
     user_input: str,
     is_input_mode: bool,
     topics_by_id: dict[int, TopicMeta],
+    play_mode: PlayMode,
 ) -> EvalResult:
     """Process user submission: evaluate, log telemetry, handle rewards and progression."""
     eval_result = evaluate_answer(user_input, problem, is_input_mode)
@@ -339,10 +344,9 @@ def process_submission(
     )
 
     prog = state.chapter_frontiers[chapter_id]
-    admin_mode = config.is_admin_user(username)
-    if admin_mode:
+    if not play_mode.persists_profile:
         _apply_admin_session_streak(state, chapter_id, eval_result)
-        sync_to_db(state)
+        sync_to_db(state, play_mode)
         return eval_result
 
     submission_ctx = _build_submission_context(
@@ -351,5 +355,5 @@ def process_submission(
     submission_outcome = apply_submission(eval_result, submission_ctx)
     _apply_submission_outcome(state, chapter_id, submission_outcome)
 
-    sync_to_db(state)
+    sync_to_db(state, play_mode)
     return eval_result

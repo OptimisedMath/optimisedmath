@@ -10,7 +10,11 @@ import backend.session_state as session_state
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
 from backend.models import ChapterFrontier, SessionState
+from backend.play_mode import AdminPlayMode, StudentPlayMode
 from backend.unlock import first_topic_id
+
+_STUDENT = StudentPlayMode()
+_ADMIN = AdminPlayMode()
 
 
 @pytest.fixture(autouse=True)
@@ -209,7 +213,7 @@ def test_process_submission_grades_and_persists():
     session_state.sync_to_db(state)
 
     result = session_state.process_submission(
-        state, problem, "2", False, topics_by_id
+        state, problem, "2", False, topics_by_id, _STUDENT
     )
 
     assert result["is_correct"] is True
@@ -341,7 +345,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     telemetry_before = _telemetry_count(state.session_id)
 
     result = session_state.process_submission(
-        state, _correct_problem(), "2", False, topics_by_id
+        state, _correct_problem(), "2", False, topics_by_id, _ADMIN
     )
 
     assert result["is_correct"] is True
@@ -367,7 +371,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes():
     topics_by_id = get_topics_by_id(chapter_id)
 
     session_state.process_submission(
-        state, _wrong_problem(), "3", False, topics_by_id
+        state, _wrong_problem(), "3", False, topics_by_id, _ADMIN
     )
 
     assert state.streak == 1
@@ -389,7 +393,7 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold():
     topics_by_id = get_topics_by_id(chapter_id)
 
     session_state.process_submission(
-        state, _correct_problem(), "2", False, topics_by_id
+        state, _correct_problem(), "2", False, topics_by_id, _ADMIN
     )
 
     assert session_state.resolve_input_mode(state, topics_by_id) == "input"
@@ -407,7 +411,7 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold():
     topics_by_id = get_topics_by_id(chapter_id)
 
     session_state.process_submission(
-        state, _correct_problem(), "2", False, topics_by_id
+        state, _correct_problem(), "2", False, topics_by_id, _ADMIN
     )
 
     assert state.streak == 3

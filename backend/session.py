@@ -10,6 +10,7 @@ import backend.navigation_resolution as navigation_resolution
 import backend.navigation_view as navigation_view
 import backend.session_state as session_state
 import backend.unlock as unlock
+from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
 from backend.answer_grading import EvalResult
@@ -92,7 +93,9 @@ def _is_safe_svg_fragment(value: str) -> bool:
     return not any(token in lowered for token in blocked_tokens)
 
 
-def public_problem(problem: ProblemDict, state: SessionState) -> dict[str, Any]:
+def public_problem(
+    problem: ProblemDict, state: SessionState, play_mode: PlayMode
+) -> dict[str, Any]:
     """Return only fields needed by the visual layer."""
     public_keys = {
         "problem_id",
@@ -111,7 +114,7 @@ def public_problem(problem: ProblemDict, state: SessionState) -> dict[str, Any]:
     public["input_mode"] = state.current_input_mode
     if state.problem_answered:
         public["correct_answer"] = problem.get("correct")
-    elif config.is_admin_user(state.username):
+    elif play_mode.reveals_correct_answer:
         correct = problem.get("correct")
         if correct is not None:
             if state.current_input_mode == "input":
@@ -121,10 +124,17 @@ def public_problem(problem: ProblemDict, state: SessionState) -> dict[str, Any]:
     return public
 
 
-def respond(state: SessionState, curriculum: dict[int, list[TopicDict]]) -> SessionState:
+def respond(
+    state: SessionState,
+    curriculum: dict[int, list[TopicDict]],
+    play_mode: PlayMode | None = None,
+) -> SessionState:
     """Build an API-safe SessionState with navigation attached."""
-    response = state.for_response(public_problem)
-    response.navigation = navigation_view.build_navigation_view(response, curriculum)
+    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
+    response = state.for_response(public_problem, play_mode=mode)
+    response.navigation = navigation_view.build_navigation_view(
+        response, curriculum, mode
+    )
     return response
 
 
@@ -137,6 +147,7 @@ def begin_problem(
     topics_by_id: dict[int, Any],
     *,
     recent_fingerprints: list[str] | None = None,
+    play_mode: PlayMode | None = None,
 ) -> None:
     """Apply state mutations for a newly generated problem and persist."""
     state.current_input_mode = session_state.resolve_input_mode(
@@ -152,7 +163,7 @@ def begin_problem(
     state.level_completed = False
     state.problem_start_time = time.time()
     state.current_problem = problem
-    session_state.sync_to_db(state)
+    session_state.sync_to_db(state, play_mode)
 
 
 # --- Navigation guards ---
@@ -164,13 +175,12 @@ def _validate_unlocked_navigation(
     topic_id: int,
     selected_level: int,
     chapter_topics: list[TopicDict],
+    play_mode: PlayMode,
 ) -> None:
     """Reject navigation to locked topics or levels."""
-    admin_mode = config.is_admin_user(state.username)
-    frontier = unlock.effective_frontier(
+    frontier = play_mode.effective_frontier(
         chapter_topics,
         state.chapter_frontiers.get(chapter_id),
-        admin_mode=admin_mode,
     )
     if unlock.can_access(topic_id, selected_level, frontier):
         return
@@ -186,6 +196,7 @@ def _validate_unlocked_navigation(
 
 def start_session(request: SessionStartRequest) -> SessionState:
     """Create a session, load user progress, and return SessionState with navigation."""
+    play_mode = resolve_play_mode(request.username)
     curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
 
@@ -209,24 +220,25 @@ def start_session(request: SessionStartRequest) -> SessionState:
         state.selected_chapter_id = request.selected_chapter_id
         if request.selected_chapter_id != prev_chapter_id:
             _, topic_id, level = navigation_resolution.resolve_chapter_change(
-                state, curriculum, request.selected_chapter_id
+                state, curriculum, request.selected_chapter_id, play_mode
             )
             state.selected_topic_id = topic_id
             state.selected_level = level
 
     ACTIVE_SESSIONS[state.session_id] = state
-    session_state.sync_to_db(state)
+    session_state.sync_to_db(state, play_mode)
     state.problem_start_time = time.time()
 
-    return respond(state, curriculum)
+    return respond(state, curriculum, play_mode)
 
 
 def navigate_session(request: SessionNavigateRequest) -> SessionState:
     """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
+    play_mode = resolve_play_mode(state.username)
     curriculum = get_curriculum()
     chapter_id, topic_id, selected_level = navigation_resolution.resolve_navigate_request(
-        state, curriculum, request
+        state, curriculum, request, play_mode
     )
 
     if chapter_id not in curriculum:
@@ -256,7 +268,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionState:
         )
 
     _validate_unlocked_navigation(
-        state, chapter_id, topic_id, selected_level, chapter_topics
+        state, chapter_id, topic_id, selected_level, chapter_topics, play_mode
     )
 
     session_state.navigate_to(
@@ -265,23 +277,26 @@ def navigate_session(request: SessionNavigateRequest) -> SessionState:
         topic_id=topic_id,
         level=selected_level,
         topics_by_id=topics_by_id,
+        play_mode=play_mode,
     )
 
-    return respond(state, curriculum)
+    return respond(state, curriculum, play_mode)
 
 
 def reset_session(request: SessionResetRequest) -> SessionState:
     """Hard-reset session progress and return a fresh SessionState."""
     state = get_session(request.session_id)
+    play_mode = resolve_play_mode(state.username)
     curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
-    session_state.hard_reset(state, chapter_ids, curriculum)
-    return respond(state, curriculum)
+    session_state.hard_reset(state, chapter_ids, curriculum, play_mode)
+    return respond(state, curriculum, play_mode)
 
 
 def next_problem(session_id: str) -> ProblemResponse:
     """Generate the next problem, dedupe recent instances, and update input mode."""
     state = get_session(session_id)
+    play_mode = resolve_play_mode(state.username)
     curriculum = get_curriculum()
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
@@ -324,18 +339,23 @@ def next_problem(session_id: str) -> ProblemResponse:
         )
 
     begin_problem(
-        state, problem, topics_by_id, recent_fingerprints=recent_fingerprints
+        state,
+        problem,
+        topics_by_id,
+        recent_fingerprints=recent_fingerprints,
+        play_mode=play_mode,
     )
 
     return ProblemResponse(
-        problem=public_problem(problem, state),
-        state=respond(state, curriculum),
+        problem=public_problem(problem, state, play_mode),
+        state=respond(state, curriculum, play_mode),
     )
 
 
 def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     """Grade an answer, update streak and XP, and persist session state."""
     state = get_session(request.session_id)
+    play_mode = resolve_play_mode(state.username)
 
     if not state.current_problem:
         raise SessionError("No active problem in this session")
@@ -362,11 +382,11 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     )
 
     eval_result = _process_submission(
-        state, problem, user_input, request.is_input_mode, topics_by_id
+        state, problem, user_input, request.is_input_mode, topics_by_id, play_mode
     )
 
     return SubmissionResponse(
-        state=respond(state, curriculum),
+        state=respond(state, curriculum, play_mode),
         is_correct=eval_result.get("is_correct", False),
         feedback=state.feedback_msg,
     )
@@ -375,8 +395,9 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
 def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
     """Submit the correct answer for admin or dev testing."""
     state = get_session(request.session_id)
+    play_mode = resolve_play_mode(state.username)
 
-    if not config.ENABLE_DEV_TOOLS and not config.is_admin_user(state.username):
+    if not config.ENABLE_DEV_TOOLS and not play_mode.is_admin:
         raise SessionNotFoundError("Development tools are disabled")
 
     if not state.current_problem:
@@ -404,11 +425,11 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
     topics_by_id = get_topics_by_id(chapter_id)
 
     eval_result = _process_submission(
-        state, problem, user_input, is_input_mode, topics_by_id
+        state, problem, user_input, is_input_mode, topics_by_id, play_mode
     )
 
     return SubmissionResponse(
-        state=respond(state, curriculum),
+        state=respond(state, curriculum, play_mode),
         is_correct=eval_result.get("is_correct", False),
         feedback=state.feedback_msg,
     )
@@ -420,10 +441,11 @@ def _process_submission(
     user_input: str,
     is_input_mode: bool,
     topics_by_id: dict[int, Any],
+    play_mode: PlayMode,
 ) -> EvalResult:
     try:
         return session_state.process_submission(
-            state, problem, user_input, is_input_mode, topics_by_id
+            state, problem, user_input, is_input_mode, topics_by_id, play_mode
         )
     except Exception as exc:
         print(f"Error in process_submission: {exc}")

@@ -16,16 +16,18 @@ from backend.navigation_resolution import (
     get_level_options,
     topics_for_chapter,
 )
+from backend.play_mode import PlayMode
 from backend.unlock import (
     accessible_topics,
-    effective_frontier,
     first_topic_id,
     level_limit,
 )
 
 
 def build_navigation_view(
-    state: SessionState, curriculum: dict[int, list[TopicDict]]
+    state: SessionState,
+    curriculum: dict[int, list[TopicDict]],
+    play_mode: PlayMode,
 ) -> NavigationView:
     """Build dropdown options, progress counts, and level limits for the frontend."""
     chapter_summaries = get_chapters()
@@ -47,11 +49,10 @@ def build_navigation_view(
     )
     selected_level = clamp_level(state.selected_level, active_topic_entry)
 
-    admin_mode = state.admin_mode
-    frontier = effective_frontier(
+    admin_mode = play_mode.is_admin
+    frontier = play_mode.effective_frontier(
         chapter_topics,
         state.chapter_frontiers.get(selected_chapter_id),
-        admin_mode=admin_mode,
     )
 
     available_topic_entries = accessible_topics(chapter_topics, frontier)
