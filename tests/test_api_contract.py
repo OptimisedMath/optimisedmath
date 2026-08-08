@@ -372,6 +372,7 @@ def test_locked_navigation_is_rejected():
         )
     )
     chapter_id = state.selected_chapter_id
+    assert chapter_id is not None
     chapter_topics = get_curriculum()[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics for locked navigation test")
@@ -407,6 +408,8 @@ def test_radio_only_topic_keeps_radio_input():
 
     if not disabled_topic:
         pytest.skip("No radio_only topic in curriculum")
+
+    assert disabled_chapter_id is not None
 
     problem = {
         "problem_id": "p-radio-only",
@@ -509,6 +512,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
     def fake_compare():
         result = build_problem_dict(r"\text{q}", "<", t1=">", t2="=")
+        assert result is not None
         result["messages"] = {"t1": branch_message}
         return result
 
@@ -523,6 +527,6 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     )
 
     eval_result = evaluate_answer(">", problem, is_input_mode=False)
-    assert eval_result["trap_id"] == "t1"
-    assert eval_result["feedback_msg"] == branch_message
+    assert eval_result.get("trap_id") == "t1"
+    assert eval_result.get("feedback_msg") == branch_message
 

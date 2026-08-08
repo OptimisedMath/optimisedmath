@@ -28,6 +28,12 @@ def _fresh_state(*, username: str = "nav-view-user") -> SessionState:
     return state
 
 
+def _selected_chapter_id(state: SessionState) -> int:
+    chapter_id = state.selected_chapter_id
+    assert chapter_id is not None
+    return chapter_id
+
+
 def test_build_navigation_view_includes_dropdown_payload():
     state = _fresh_state()
     curriculum = get_curriculum()
@@ -43,7 +49,7 @@ def test_build_navigation_view_includes_dropdown_payload():
 def test_available_topics_respect_locks():
     state = _fresh_state()
     curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
@@ -63,7 +69,7 @@ def test_admin_sees_all_topics():
     state = _fresh_state(username="Antoni")
     state.admin_mode = True
     curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
 
     nav = view.build_navigation_view(state, curriculum)
@@ -76,7 +82,7 @@ def test_admin_progress_bars_show_full_completion():
     state.admin_mode = True
     state.selected_level = 1
     curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
     current_topic = next(
         topic_entry
@@ -88,6 +94,8 @@ def test_admin_progress_bars_show_full_completion():
 
     nav = view.build_navigation_view(state, curriculum)
 
+    assert nav.chapter_completion is not None
+    assert nav.topic_completion is not None
     assert nav.chapter_completion.percentage == 100.0
     assert nav.chapter_completion.completed == total
     assert nav.chapter_completion.total == total
@@ -100,7 +108,7 @@ def test_admin_has_next_unlocked_topic_is_false():
     state = _fresh_state(username="Antoni")
     state.admin_mode = True
     curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
@@ -117,7 +125,7 @@ def test_admin_has_next_unlocked_topic_is_false():
 def test_has_next_unlocked_topic():
     state = _fresh_state()
     curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
@@ -138,7 +146,7 @@ def test_has_next_unlocked_topic():
 def test_progress_counts():
     state = _fresh_state()
     curriculum = get_curriculum()
-    chapter_id = state.selected_chapter_id
+    chapter_id = _selected_chapter_id(state)
     chapter_topics = curriculum[chapter_id]
     frontier_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
     completed = sum(
@@ -150,6 +158,8 @@ def test_progress_counts():
 
     nav = view.build_navigation_view(state, curriculum)
 
+    assert nav.chapter_completion is not None
+    assert nav.topic_completion is not None
     assert nav.chapter_completion.completed == completed
     assert nav.chapter_completion.total == total
     assert nav.chapter_completion.percentage == pytest.approx(

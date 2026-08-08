@@ -1,7 +1,5 @@
 """Tests for curriculum YAML loading and validation."""
 
-from pathlib import Path
-
 import pytest
 
 import backend.curriculum_loader as loader
