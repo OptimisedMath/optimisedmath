@@ -9,7 +9,6 @@ from typing import Any
 import backend.config as config
 import backend.navigation_resolution as navigation_resolution
 import backend.navigation_snapshot as navigation_snapshot
-import backend.navigation_view as navigation_view
 import backend.session_state as session_state
 import backend.submission as submission
 from backend.curriculum import Curriculum, resolve_curriculum
@@ -156,7 +155,7 @@ def respond(
     snapshot = navigation_snapshot.build_navigation_snapshot(
         response, curriculum, mode
     )
-    response.navigation = navigation_view.build_navigation_view(snapshot)
+    response.navigation = navigation_snapshot.build_navigation_view(snapshot)
     return response
 
 

@@ -1,4 +1,4 @@
-"""Immutable navigation snapshot read model — one per request."""
+"""Immutable navigation snapshot and view read model — one per request."""
 
 from __future__ import annotations
 
@@ -6,7 +6,14 @@ from dataclasses import dataclass
 
 from backend.curriculum import Curriculum
 from backend.curriculum_loader import ChapterSummary, TopicDict
-from backend.models import ChapterFrontier, NavigationProgress, SessionState
+from backend.models import (
+    ChapterFrontier,
+    NavigationChapterOption,
+    NavigationProgress,
+    NavigationTopicOption,
+    NavigationView,
+    SessionState,
+)
 from backend.play_mode import PlayMode
 from backend.unlock import (
     Frontier,
@@ -138,13 +145,14 @@ class NavigationSnapshot:
     selected_level: int
     active_topic: TopicDict | None
     current: ChapterNavigationContext
+    chapter_summaries: tuple[ChapterSummary, ...]
     _state: SessionState
     _curriculum: Curriculum
     _play_mode: PlayMode
 
     def chapters(self) -> tuple[ChapterSummary, ...]:
-        """Chapter list from the Curriculum this snapshot was built from."""
-        return self._curriculum.chapters()
+        """Chapter list captured when this snapshot was built."""
+        return self.chapter_summaries
 
     def chapter_context(self, chapter_id: int) -> ChapterNavigationContext:
         return _build_chapter_context(
@@ -211,7 +219,53 @@ def build_navigation_snapshot(
         selected_level=selected_level,
         active_topic=active_topic,
         current=current,
+        chapter_summaries=curriculum.chapters(),
         _state=state,
         _curriculum=curriculum,
         _play_mode=play_mode,
+    )
+
+
+def build_navigation_view(snapshot: NavigationSnapshot) -> NavigationView:
+    """Map a navigation snapshot to the API NavigationView DTO."""
+    ctx = snapshot.current
+    available_chapters = [
+        NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
+        for chapter in snapshot.chapter_summaries
+    ]
+
+    available_topics_view = [
+        NavigationTopicOption(
+            topic_id=int(topic_entry["topic_id"]),
+            name=str(topic_entry["name"]),
+        )
+        for topic_entry in ctx.accessible_topics
+    ]
+
+    available_levels = (
+        ctx.level_options_for(
+            snapshot.selected_topic_id,
+            int(snapshot.active_topic["max_level"]),
+        )
+        if snapshot.active_topic
+        else [1]
+    )
+
+    radio_only = bool(
+        snapshot.active_topic and snapshot.active_topic.get("radio_only")
+    )
+
+    return NavigationView(
+        available_chapters=available_chapters,
+        current_topic_name=(
+            str(snapshot.active_topic["name"]) if snapshot.active_topic else None
+        ),
+        available_topics=available_topics_view,
+        available_levels=available_levels,
+        has_next_unlocked_topic=ctx.has_next_unlocked_topic(snapshot.selected_topic_id),
+        radio_only=radio_only,
+        chapter_completion=ctx.chapter_progress(),
+        topic_completion=ctx.topic_progress(
+            snapshot.selected_topic_id, snapshot.selected_level
+        ),
     )

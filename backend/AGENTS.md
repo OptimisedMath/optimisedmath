@@ -20,7 +20,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | Grading | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
 | Problems | `problem_generation.py` | Generator registry, level assembly (pure) |
 | Navigation resolution | `navigation_resolution.py` | Nav intents, clamping (pure) |
-| Navigation view | `navigation_view.py` | Dropdown/progress payload; reads state, never mutates |
+| Navigation snapshot & view | `navigation_snapshot.py` | Immutable snapshot + dropdown/progress view payload; reads state, never mutates |
 | Curriculum | `curriculum.py`, `curriculum_loader.py` | Read model + provider; YAML load, validate, cache |
 | Persistence | `core/db.py` | SQLite read/write |
 | API contract | `models.py` | Pydantic request/response models |
@@ -30,8 +30,8 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 
 1. **Strict layers:** HTTP → session → submission → state → pure rules. Pure modules never import session, state, or HTTP.
 2. **`models.py` is shared:** any layer may import Pydantic types from `models.py`.
-3. **`navigation_view` reads only:** may read `SessionState` from `models.py`; must not mutate state or call session use-cases.
-4. **`session.py` owns the response view:** `respond()` builds `SessionResponse` from persisted `SessionState` plus play mode and navigation; calls state helpers and `navigation_view.build_*`; does not embed view-building logic beyond assembling the payload.
+3. **`navigation_snapshot` reads only:** may read `SessionState` from `models.py`; must not mutate state or call session use-cases. View payload is derived from data captured on the snapshot at construction time.
+4. **`session.py` owns the response view:** `respond()` builds `SessionResponse` from persisted `SessionState` plus play mode and navigation; calls state helpers and `navigation_snapshot.build_*`; does not embed view-building logic beyond assembling the payload.
 5. **`Curriculum` is injected below session:** modules below the session use-case layer receive `Curriculum` as a parameter; only HTTP/session resolve it via `resolve_curriculum()`.
 
 ## Submission module
