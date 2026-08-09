@@ -3,13 +3,12 @@
 import uuid
 
 import backend.config as config
-from backend.answer_grading import EvalResult, evaluate_answer
+from backend.answer_grading import EvalResult
 from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
-import backend.submission_play_mode as submission_play_mode
-import backend.submission_telemetry as submission_telemetry
+import backend.submission as submission
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
@@ -195,20 +194,6 @@ def navigate_to(
     sync_to_db(state, play_mode)
 
 
-def _grade_submission(
-    state: SessionState,
-    user_input: str,
-    problem: ProblemDict,
-    is_input_mode: bool,
-) -> EvalResult:
-    """Grade one submission and apply immediate feedback fields to state."""
-    eval_result = evaluate_answer(user_input, problem, is_input_mode)
-    state.problem_answered = eval_result.get("lock_answer", False)
-    state.feedback_type = eval_result.get("feedback_type", None)
-    state.feedback_msg = eval_result.get("feedback_msg", "")
-    return eval_result
-
-
 def process_submission(
     state: SessionState,
     problem: ProblemDict,
@@ -218,21 +203,6 @@ def process_submission(
     play_mode: PlayMode,
 ) -> EvalResult:
     """Process user submission: grade, log telemetry, apply outcome, sync."""
-    if state.username is None or state.selected_chapter_id is None or state.selected_topic_id is None:
-        raise RuntimeError("Session missing required context for submission")
-
-    eval_result = _grade_submission(state, user_input, problem, is_input_mode)
-
-    submission_telemetry.log_submission_telemetry(
-        state,
-        problem,
-        user_input,
-        is_input_mode,
-        eval_result,
-        curriculum,
+    return submission.process_submission(
+        state, problem, user_input, is_input_mode, curriculum, play_mode
     )
-    submission_play_mode.apply_submission_outcome_via_play_mode(
-        state, eval_result, curriculum, play_mode
-    )
-    sync_to_db(state, play_mode)
-    return eval_result

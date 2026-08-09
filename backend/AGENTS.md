@@ -13,7 +13,8 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 |-------|--------|------|
 | HTTP | `main.py` | Routes, CORS, exception → HTTP status |
 | Session use-cases | `session.py` | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` owns the response view (`SessionResponse`) |
-| Session state | `session_state.py` | Load/save/mutate `SessionState`; grade → progression → persist |
+| Session state | `session_state.py` | Load/save/mutate `SessionState`; delegates submission pipeline |
+| Submission | `submission.py` | Grade → telemetry → progression → persist for one Submission |
 | Progression | `progression.py` | Streak, XP, level/topic progression per Submission (pure) |
 | Access | `unlock.py` | Reachable chapter/topic/level (pure) |
 | Grading | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
