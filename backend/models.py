@@ -131,6 +131,11 @@ class SessionResponse(SessionState):
 
     can_submit: bool = False
     can_advance: bool = False
+    streak_meter: int = Field(
+        default=0,
+        ge=0,
+        description="Streak meter display value for the star UI (API responses only)",
+    )
     admin_mode: bool = Field(
         default=False,
         description="Whether the user has admin privileges (all chapters + auto-solve)",

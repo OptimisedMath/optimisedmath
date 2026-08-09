@@ -159,6 +159,34 @@ def test_respond_attaches_navigation():
     assert response.navigation.available_topics
 
 
+def test_respond_serves_full_streak_meter_at_level_completion_feedback():
+    """While Level completion feedback is on screen, Streak meter stays full."""
+    state = _fresh_state()
+    curriculum, _, _ = _curriculum_and_chapters()
+    state.problem_answered = True
+    state.level_completed = True
+    state.streak = 0
+    state.max_streak = 3
+
+    response = session.respond(state, curriculum)
+
+    assert response.streak_meter == 3
+    assert "streak_meter" not in SessionState.model_fields
+
+
+def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion():
+    state = _fresh_state()
+    curriculum, _, _ = _curriculum_and_chapters()
+    state.problem_answered = True
+    state.level_completed = False
+    state.streak = 2
+    state.max_streak = 3
+
+    response = session.respond(state, curriculum)
+
+    assert response.streak_meter == 2
+
+
 def test_respond_builds_unanswered_problem_payload_without_mutating_state():
     state = _fresh_state()
     curriculum, _, _ = _curriculum_and_chapters()
@@ -193,6 +221,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state():
     assert state.current_problem["correct"] == "42"
     assert "can_submit" not in SessionState.model_fields
     assert "can_advance" not in SessionState.model_fields
+    assert "streak_meter" not in SessionState.model_fields
     assert "admin_mode" not in SessionState.model_fields
     assert "navigation" not in SessionState.model_fields
     assert not hasattr(SessionState, "for_response")
