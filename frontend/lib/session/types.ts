@@ -39,6 +39,7 @@ export interface SessionState {
   streak: number;
   flawless_eligible: boolean;
   max_streak: number;
+  streak_meter: number;
   selected_chapter_id: number | null;
   selected_topic_id: number | null;
   selected_level: number;

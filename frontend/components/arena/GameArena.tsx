@@ -123,10 +123,8 @@ export default function GameArena() {
 
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '240ms' }}>
         <MasteryScoreboard
-          streak={sessionState.streak}
+          streakMeter={sessionState.streak_meter}
           maxStreak={sessionState.max_streak}
-          problemAnswered={sessionState.problem_answered}
-          levelCompleted={sessionState.level_completed}
         />
       </div>
 

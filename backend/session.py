@@ -142,6 +142,14 @@ def respond(
         response.current_problem and not response.problem_answered
     )
     response.can_advance = bool(response.problem_answered)
+    if (
+        response.problem_answered
+        and response.level_completed
+        and response.streak == 0
+    ):
+        response.streak_meter = response.max_streak
+    else:
+        response.streak_meter = response.streak
     response.problem_start_time = None
     response.recent_problem_fingerprints = []
     response.admin_mode = mode.is_admin

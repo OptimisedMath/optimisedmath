@@ -3,32 +3,23 @@
 import { memo, useEffect, useRef, useState } from 'react';
 
 interface MasteryScoreboardProps {
-  streak: number;
+  streakMeter: number;
   maxStreak: number;
-  problemAnswered: boolean;
-  levelCompleted: boolean;
 }
 
-function MasteryScoreboard({
-  streak,
-  maxStreak,
-  problemAnswered,
-  levelCompleted,
-}: MasteryScoreboardProps) {
-  const completedStreakPendingAdvance = problemAnswered && levelCompleted && streak === 0;
-  const displayStreak = completedStreakPendingAdvance ? maxStreak : streak;
-  const prevDisplayStreak = useRef(displayStreak);
+function MasteryScoreboard({ streakMeter, maxStreak }: MasteryScoreboardProps) {
+  const prevStreakMeter = useRef(streakMeter);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (displayStreak > prevDisplayStreak.current) {
-      setAnimatingIndex(displayStreak - 1);
+    if (streakMeter > prevStreakMeter.current) {
+      setAnimatingIndex(streakMeter - 1);
       const timer = setTimeout(() => setAnimatingIndex(null), 400);
-      prevDisplayStreak.current = displayStreak;
+      prevStreakMeter.current = streakMeter;
       return () => clearTimeout(timer);
     }
-    prevDisplayStreak.current = displayStreak;
-  }, [displayStreak]);
+    prevStreakMeter.current = streakMeter;
+  }, [streakMeter]);
 
   return (
     <div className="glass-card w-full max-w-3xl mb-4 rounded-2xl p-4">
@@ -37,7 +28,7 @@ function MasteryScoreboard({
       </div>
       <div className="flex justify-center gap-1.5 sm:gap-2">
         {Array.from({ length: maxStreak }).map((_, i) => {
-          const earned = i < displayStreak;
+          const earned = i < streakMeter;
           return (
             <div
               key={i}
@@ -54,7 +45,7 @@ function MasteryScoreboard({
         })}
       </div>
       <div className="text-center text-slate-500 dark:text-slate-400 text-xs mt-3">
-        {displayStreak}/{maxStreak} gwiazdek
+        {streakMeter}/{maxStreak} gwiazdek
       </div>
     </div>
   );
