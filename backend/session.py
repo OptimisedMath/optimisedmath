@@ -23,7 +23,6 @@ from backend.problem_generation import (
 )
 from backend.models import (
     AutoSolveRequest,
-    NavigationChapterOption,
     SessionResponse,
     SessionState,
     ProblemResponse,
@@ -150,11 +149,6 @@ def respond(
         response, curriculum, mode
     )
     response.navigation = navigation_view.build_navigation_view(snapshot)
-    # TEMPORARY (#37): Chapters from the resolved Curriculum until #46 reads them from the snapshot.
-    response.navigation.available_chapters = [
-        NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
-        for chapter in curriculum.chapters()
-    ]
     return response
 
 

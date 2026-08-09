@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from backend.curriculum_loader import get_chapters
 from backend.models import (
     NavigationChapterOption,
     NavigationTopicOption,
@@ -14,10 +13,9 @@ from backend.navigation_snapshot import NavigationSnapshot
 def build_navigation_view(snapshot: NavigationSnapshot) -> NavigationView:
     """Map a navigation snapshot to the API NavigationView DTO."""
     ctx = snapshot.current
-    chapter_summaries = get_chapters()
     available_chapters = [
         NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
-        for chapter in chapter_summaries
+        for chapter in snapshot.chapters()
     ]
 
     available_topics_view = [
