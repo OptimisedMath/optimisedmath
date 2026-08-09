@@ -69,6 +69,7 @@ function FeedbackCard({
         </div>
       )}
       <div
+        data-feedback-type={feedback.feedback_type ?? ''}
         className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-base sm:text-xl font-bold ${
           feedback.correct
             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300'

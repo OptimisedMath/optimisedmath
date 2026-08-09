@@ -103,6 +103,7 @@ export default function GameArena() {
             {view.feedback && !view.canAdvance && (
               <div
                 ref={feedbackRef}
+                data-feedback-type={view.feedback.feedback_type ?? ''}
                 className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"
               >
                 {view.feedback.message}
