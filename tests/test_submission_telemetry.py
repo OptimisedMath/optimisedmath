@@ -4,20 +4,11 @@ import json
 import sqlite3
 import uuid
 
-import pytest
-
 import backend.session_state as session_state
 import backend.submission_telemetry as submission_telemetry
 from backend.core import db
 from backend.curriculum_loader import get_curriculum, get_topics_by_id
 from backend.models import SessionState
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "users.db")
-    db.init_db()
-    yield
 
 
 def _fresh_state() -> SessionState:

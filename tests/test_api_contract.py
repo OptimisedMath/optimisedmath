@@ -7,7 +7,6 @@ import pytest
 from fastapi import HTTPException
 
 import backend.main as main
-from backend.core import db
 from backend.curriculum_loader import get_curriculum
 from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import StudentPlayMode
@@ -18,9 +17,7 @@ def run(coro):
 
 
 @pytest.fixture(autouse=True)
-def isolated_state(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "users.db")
-    db.init_db()
+def isolated_state(isolated_db):
     main.ACTIVE_SESSIONS.clear()
     yield
     main.ACTIVE_SESSIONS.clear()

@@ -22,9 +22,7 @@ from backend.models import (
 
 
 @pytest.fixture(autouse=True)
-def isolated_sessions(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "users.db")
-    db.init_db()
+def isolated_sessions(isolated_db):
     session.ACTIVE_SESSIONS.clear()
     yield
     session.ACTIVE_SESSIONS.clear()

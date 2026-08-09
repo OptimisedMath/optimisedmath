@@ -2,8 +2,6 @@
 
 import uuid
 
-import pytest
-
 import backend.session_state as session_state
 import backend.submission_play_mode as submission_play_mode
 from backend.answer_grading import EvalResult
@@ -14,13 +12,6 @@ from backend.play_mode import AdminPlayMode, StudentPlayMode
 
 _STUDENT = StudentPlayMode()
 _ADMIN = AdminPlayMode()
-
-
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "users.db")
-    db.init_db()
-    yield
 
 
 def _fresh_state() -> SessionState:

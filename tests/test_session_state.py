@@ -17,13 +17,6 @@ _STUDENT = StudentPlayMode()
 _ADMIN = AdminPlayMode()
 
 
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "users.db")
-    db.init_db()
-    yield
-
-
 def _curriculum_and_chapters():
     curriculum = get_curriculum()
     chapter_ids = sorted(curriculum.keys())

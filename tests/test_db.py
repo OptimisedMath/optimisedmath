@@ -9,13 +9,6 @@ from backend.core import db
 from backend.models import ChapterFrontier, SessionState
 
 
-@pytest.fixture(autouse=True)
-def isolated_db(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "users.db")
-    db.init_db()
-    yield
-
-
 def _sample_state(**overrides) -> SessionState:
     state = SessionState(
         session_id=str(uuid.uuid4()),
