@@ -139,9 +139,3 @@ def grade(
         "trap_id": "w1",
     }
 
-
-def evaluate_answer(
-    user_input: str, problem: ProblemDict, is_input_mode: bool = False
-) -> EvalResult:
-    """Alias for :func:`grade` — kept for existing call sites."""
-    return grade(user_input, problem, is_input_mode=is_input_mode)

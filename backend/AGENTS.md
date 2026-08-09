@@ -13,7 +13,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 |-------|--------|------|
 | HTTP | `main.py` | Routes, CORS, exception → HTTP status |
 | Session use-cases | `session.py` | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` owns the response view (`SessionResponse`) |
-| Session state | `session_state.py` | Load/save/mutate `SessionState`; delegates submission pipeline |
+| Session state | `session_state.py` | Load/save/mutate `SessionState`; sync to DB |
 | Submission | `submission.py` | Grade → telemetry → progression → persist for one Submission |
 | Progression | `progression.py` | Streak, XP, level/topic progression per Submission (pure) |
 | Access | `unlock.py` | Reachable chapter/topic/level (pure) |
@@ -28,11 +28,27 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 
 ## Import rules
 
-1. **Strict layers:** HTTP → session → state → pure rules. Pure modules never import session, state, or HTTP.
+1. **Strict layers:** HTTP → session → submission → state → pure rules. Pure modules never import session, state, or HTTP.
 2. **`models.py` is shared:** any layer may import Pydantic types from `models.py`.
 3. **`navigation_view` reads only:** may read `SessionState` from `models.py`; must not mutate state or call session use-cases.
 4. **`session.py` owns the response view:** `respond()` builds `SessionResponse` from persisted `SessionState` plus play mode and navigation; calls state helpers and `navigation_view.build_*`; does not embed view-building logic beyond assembling the payload.
 5. **`Curriculum` is injected below session:** modules below the session use-case layer receive `Curriculum` as a parameter; only HTTP/session resolve it via `resolve_curriculum()`.
+
+## Submission module
+
+`submission.py` owns one Submission end-to-end. Call it from `session.py` — do not add pass-through wrappers in session or session_state.
+
+**Public API:** `process_submission(state, problem, user_input, is_input_mode, curriculum, play_mode) -> EvalResult` — grades the answer, logs telemetry, applies progression, and persists via `session_state.sync_to_db`.
+
+**Internal seams** (private helpers; keep testable but do not re-export):
+
+| Helper | Seam |
+|--------|------|
+| `_log_submission_telemetry` | Telemetry write to `core/db.py` |
+| `_apply_progression` | Pure rules in `progression.py` via `apply_submission` |
+| Grading | Pure `answer_grading.grade` — feedback fields applied inline in `process_submission` |
+
+Submission failures propagate with their original exception and context; do not wrap in generic internal errors or print-and-re-raise.
 
 ## Curriculum & problems
 

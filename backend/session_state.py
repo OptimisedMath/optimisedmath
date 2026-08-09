@@ -3,12 +3,9 @@
 import uuid
 
 import backend.config as config
-from backend.answer_grading import EvalResult
 from backend.core import db
-from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
-import backend.submission as submission
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
@@ -193,16 +190,3 @@ def navigate_to(
     reset_submission_cycle(state, curriculum)
     sync_to_db(state, play_mode)
 
-
-def process_submission(
-    state: SessionState,
-    problem: ProblemDict,
-    user_input: str,
-    is_input_mode: bool,
-    curriculum: Curriculum,
-    play_mode: PlayMode,
-) -> EvalResult:
-    """Process user submission: grade, log telemetry, apply outcome, sync."""
-    return submission.process_submission(
-        state, problem, user_input, is_input_mode, curriculum, play_mode
-    )

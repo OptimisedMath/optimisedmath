@@ -12,6 +12,7 @@ import pytest
 
 import backend.config as config
 import backend.session_state as session_state
+import backend.submission as submission
 from backend.core import db
 from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, SessionState
@@ -198,7 +199,7 @@ def _submit(
     state.current_problem = problem
     state.problem_start_time = 0
     session_state.sync_to_db(state, play_mode)
-    return session_state.process_submission(
+    return submission.process_submission(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
 

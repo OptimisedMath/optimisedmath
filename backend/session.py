@@ -11,11 +11,11 @@ import backend.navigation_resolution as navigation_resolution
 import backend.navigation_snapshot as navigation_snapshot
 import backend.navigation_view as navigation_view
 import backend.session_state as session_state
+import backend.submission as submission
 from backend.curriculum import Curriculum, resolve_curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
-from backend.answer_grading import EvalResult
 from backend.problem_generation import (
     ProblemGenerationError,
     generate_level_problem,
@@ -433,7 +433,7 @@ def _submit_active_problem(
     if chapter_id is None or not curriculum.has_chapter(chapter_id):
         raise SessionError(f"Chapter id {chapter_id} not found")
 
-    eval_result = _process_submission(
+    eval_result = submission.process_submission(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
 
@@ -476,20 +476,3 @@ def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
         is_input_mode=is_input_mode,
         require_admin=True,
     )
-
-
-def _process_submission(
-    state: SessionState,
-    problem: ProblemDict,
-    user_input: str,
-    is_input_mode: bool,
-    curriculum: Curriculum,
-    play_mode: PlayMode,
-) -> EvalResult:
-    try:
-        return session_state.process_submission(
-            state, problem, user_input, is_input_mode, curriculum, play_mode
-        )
-    except Exception as exc:
-        print(f"Error in process_submission: {exc}")
-        raise InternalError(f"Error processing submission: {exc}") from exc
