@@ -73,6 +73,16 @@ class Curriculum:
         """Keyboard type for a Chapter."""
         return self._keyboard_types.get(chapter_id, "default")
 
+    def as_nav_curriculum(self) -> dict[int, list[TopicDict]]:
+        """TEMPORARY (#37) — dict-shaped nav lookup for lower modules until they take Curriculum. Deleted in #50."""
+        return {
+            chapter_id: list(topics) for chapter_id, topics in self._topics.items()
+        }
+
+    def topics_by_id_for(self, chapter_id: int) -> dict[int, TopicMeta]:
+        """TEMPORARY (#37) — Chapter Topic-id lookup for lower modules until they take Curriculum. Deleted in #50."""
+        return dict(self._topics_by_id.get(chapter_id, {}))
+
 
 def curriculum_from_yaml() -> Curriculum:
     """Build a Curriculum from the YAML-backed loader (lru_cache stays in the loader)."""

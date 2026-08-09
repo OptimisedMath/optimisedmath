@@ -11,11 +11,11 @@ import backend.navigation_resolution as navigation_resolution
 import backend.navigation_snapshot as navigation_snapshot
 import backend.navigation_view as navigation_view
 import backend.session_state as session_state
+from backend.curriculum import Curriculum, resolve_curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
 from backend.answer_grading import EvalResult
-from backend.curriculum_loader import TopicDict, get_chapters, get_curriculum, get_topics_by_id
 from backend.problem_generation import (
     ProblemGenerationError,
     generate_level_problem,
@@ -23,6 +23,7 @@ from backend.problem_generation import (
 )
 from backend.models import (
     AutoSolveRequest,
+    NavigationChapterOption,
     SessionResponse,
     SessionState,
     ProblemResponse,
@@ -128,11 +129,12 @@ def public_problem(
 
 def respond(
     state: SessionState,
-    curriculum: dict[int, list[TopicDict]],
+    curriculum: Curriculum,
     play_mode: PlayMode | None = None,
 ) -> SessionResponse:
     """Build the client SessionResponse from persisted state and play mode."""
     mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
+    nav_curriculum = curriculum.as_nav_curriculum()
     response = SessionResponse.model_validate(deepcopy(state).model_dump())
     if response.current_problem:
         response.current_problem = public_problem(
@@ -146,9 +148,14 @@ def respond(
     response.recent_problem_fingerprints = []
     response.admin_mode = mode.is_admin
     snapshot = navigation_snapshot.build_navigation_snapshot(
-        response, curriculum, mode
+        response, nav_curriculum, mode
     )
     response.navigation = navigation_view.build_navigation_view(snapshot)
+    # TEMPORARY (#37): Chapters from the resolved Curriculum until #46 reads them from the snapshot.
+    response.navigation.available_chapters = [
+        NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
+        for chapter in curriculum.chapters()
+    ]
     return response
 
 
@@ -206,33 +213,36 @@ def _validate_unlocked_navigation(
 def start_session(request: SessionStartRequest) -> SessionResponse:
     """Create a session, load user progress, and return SessionResponse with navigation."""
     play_mode = resolve_play_mode(request.username)
-    curriculum = get_curriculum()
-    chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
+    curriculum = resolve_curriculum()
+    nav_curriculum = curriculum.as_nav_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
 
     if not chapter_ids:
         raise InternalError("No curriculum data available")
 
-    if request.selected_chapter_id is not None and request.selected_chapter_id not in curriculum:
+    if request.selected_chapter_id is not None and not curriculum.has_chapter(
+        request.selected_chapter_id
+    ):
         raise SessionError(
             f"Chapter id {request.selected_chapter_id} not found in curriculum"
         )
 
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, curriculum)
+    session_state.init_defaults(state, chapter_ids, nav_curriculum)
     session_state.load_profile(
-        state, request.username, chapter_ids, curriculum
+        state, request.username, chapter_ids, nav_curriculum
     )
-    navigation_resolution.clamp_selected_level(state, curriculum)
+    navigation_resolution.clamp_selected_level(state, nav_curriculum)
 
     if request.selected_chapter_id is not None:
         prev_chapter_id = state.selected_chapter_id
         state.selected_chapter_id = request.selected_chapter_id
         if request.selected_chapter_id != prev_chapter_id:
             snapshot = navigation_snapshot.build_navigation_snapshot(
-                state, curriculum, play_mode
+                state, nav_curriculum, play_mode
             )
             _, topic_id, level = navigation_resolution.resolve_chapter_change(
-                curriculum, request.selected_chapter_id, snapshot
+                nav_curriculum, request.selected_chapter_id, snapshot
             )
             state.selected_topic_id = topic_id
             state.selected_level = level
@@ -248,20 +258,21 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
+    nav_curriculum = curriculum.as_nav_curriculum()
     snapshot = navigation_snapshot.build_navigation_snapshot(
-        state, curriculum, play_mode
+        state, nav_curriculum, play_mode
     )
     chapter_id, topic_id, selected_level = navigation_resolution.resolve_navigate_request(
-        state, curriculum, request, snapshot
+        state, nav_curriculum, request, snapshot
     )
 
-    if chapter_id not in curriculum:
+    if not curriculum.has_chapter(chapter_id):
         raise SessionError(
             f"Chapter id {chapter_id} not found in curriculum"
         )
 
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = list(curriculum.topics(chapter_id))
     if not chapter_topics:
         raise SessionError(
             f"Chapter id {chapter_id} has no available topics"
@@ -273,7 +284,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
             f"Topic id {topic_id} not found in curriculum"
         )
 
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = curriculum.topics_by_id_for(chapter_id)
     selected_topic_meta = topics_by_id[topic_id]
     max_level = int(selected_topic_meta["max_level"])
 
@@ -300,9 +311,10 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
     """Hard-reset session progress and return a fresh SessionResponse."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
-    curriculum = get_curriculum()
-    chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
-    session_state.hard_reset(state, chapter_ids, curriculum, play_mode)
+    curriculum = resolve_curriculum()
+    nav_curriculum = curriculum.as_nav_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
+    session_state.hard_reset(state, chapter_ids, nav_curriculum, play_mode)
     return respond(state, curriculum, play_mode)
 
 
@@ -310,21 +322,22 @@ def next_problem(session_id: str) -> ProblemResponse:
     """Generate the next problem, dedupe recent instances, and update input mode."""
     state = get_session(session_id)
     play_mode = resolve_play_mode(state.username)
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
+    nav_curriculum = curriculum.as_nav_curriculum()
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
 
     if chapter_id is None or topic_id is None:
         raise SessionError("Session has no chapter/topic selected")
 
-    if chapter_id not in curriculum:
+    if not curriculum.has_chapter(chapter_id):
         raise SessionError(
             f"Chapter id {chapter_id} not found in curriculum"
         )
 
     if state.problem_answered and state.topic_completed:
         snapshot = navigation_snapshot.build_navigation_snapshot(
-            state, curriculum, play_mode
+            state, nav_curriculum, play_mode
         )
         ctx = snapshot.chapter_context(chapter_id)
         if not ctx.has_next_unlocked_topic(state.selected_topic_id):
@@ -337,7 +350,7 @@ def next_problem(session_id: str) -> ProblemResponse:
             )
 
         next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-        topics_by_id = get_topics_by_id(chapter_id)
+        topics_by_id = curriculum.topics_by_id_for(chapter_id)
         session_state.navigate_to(
             state,
             chapter_id=chapter_id,
@@ -349,7 +362,7 @@ def next_problem(session_id: str) -> ProblemResponse:
         chapter_id = state.selected_chapter_id
         topic_id = state.selected_topic_id
 
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = curriculum.topics_by_id_for(chapter_id)
     if topic_id not in topics_by_id:
         raise SessionError(
             f"Topic id {topic_id} not found in curriculum"
@@ -418,13 +431,13 @@ def _submit_active_problem(
     if problem_id and problem_id != problem.get("problem_id"):
         raise ConflictError("Submitted problem_id does not match the active problem")
 
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
     chapter_id = state.selected_chapter_id
 
-    if chapter_id is None or chapter_id not in curriculum:
+    if chapter_id is None or not curriculum.has_chapter(chapter_id):
         raise SessionError(f"Chapter id {chapter_id} not found")
 
-    topics_by_id = get_topics_by_id(chapter_id)
+    topics_by_id = curriculum.topics_by_id_for(chapter_id)
 
     eval_result = _process_submission(
         state, problem, user_input, is_input_mode, topics_by_id, play_mode

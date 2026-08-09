@@ -65,6 +65,14 @@ def test_fixture_curriculum_has_required_shape(fixture_curriculum: Curriculum):
     assert fixture_curriculum.keyboard_type(CHAPTER_ALPHA) == "fraction"
     assert fixture_curriculum.keyboard_type(999) == "default"
 
+    # TEMPORARY accessors (#37) — deleted in #50
+    nav = fixture_curriculum.as_nav_curriculum()
+    assert set(nav[CHAPTER_ALPHA][0]) >= {"topic_id", "name", "max_level", "radio_only"}
+    assert [t["topic_id"] for t in nav[CHAPTER_ALPHA]] == [TOPIC_MULTI, TOPIC_RADIO]
+    by_id = fixture_curriculum.topics_by_id_for(CHAPTER_ALPHA)
+    assert by_id[TOPIC_RADIO]["radio_only"] is True
+    assert fixture_curriculum.topics_by_id_for(999) == {}
+
 
 def test_provider_override_returns_fixture(fixture_curriculum: Curriculum):
     set_curriculum(fixture_curriculum)

@@ -8,9 +8,10 @@ import pytest
 import backend.config as config
 import backend.session as session
 import backend.session_state as session_state
+from backend.curriculum import resolve_curriculum, set_curriculum
 from backend.play_mode import resolve_play_mode
 from backend.core import db
-from backend.curriculum_loader import get_curriculum, get_topics_by_id
+from backend.curriculum_loader import get_topics_by_id
 from backend.core.utils import clean_latex
 from backend.models import (
     AutoSolveRequest,
@@ -21,6 +22,7 @@ from backend.models import (
     SessionState,
     SessionStartRequest,
 )
+from tests.support.fixture_curriculum import CHAPTER_ALPHA, CHAPTER_BETA
 
 
 @pytest.fixture(autouse=True)
@@ -31,15 +33,16 @@ def isolated_sessions(isolated_db):
 
 
 def _curriculum_and_chapters():
-    curriculum = get_curriculum()
-    chapter_ids = sorted(curriculum.keys())
-    return curriculum, chapter_ids
+    curriculum = resolve_curriculum()
+    nav = curriculum.as_nav_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
+    return curriculum, nav, chapter_ids
 
 
 def _fresh_state() -> SessionState:
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    _, nav, chapter_ids = _curriculum_and_chapters()
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, curriculum)
+    session_state.init_defaults(state, chapter_ids, nav)
     state.username = "session-user"
     state.session_id = str(uuid.uuid4())
     return state
@@ -147,7 +150,7 @@ def test_begin_problem_resolves_input_mode_from_streak():
 
 def test_respond_attaches_navigation():
     state = _fresh_state()
-    curriculum, _ = _curriculum_and_chapters()
+    curriculum, _, _ = _curriculum_and_chapters()
 
     response = session.respond(state, curriculum)
 
@@ -158,7 +161,7 @@ def test_respond_attaches_navigation():
 
 def test_respond_builds_unanswered_problem_payload_without_mutating_state():
     state = _fresh_state()
-    curriculum, _ = _curriculum_and_chapters()
+    curriculum, _, _ = _curriculum_and_chapters()
     state.current_problem = {
         "problem_id": "p1",
         "question": "q",
@@ -197,7 +200,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state():
 
 def test_respond_builds_answered_problem_payload():
     state = _fresh_state()
-    curriculum, _ = _curriculum_and_chapters()
+    curriculum, _, _ = _curriculum_and_chapters()
     state.current_problem = {
         "problem_id": "p1",
         "question": "q",
@@ -217,7 +220,7 @@ def test_respond_builds_answered_problem_payload():
 
 def test_respond_uses_passed_play_mode_for_admin_reveal():
     state = _fresh_state()
-    curriculum, _ = _curriculum_and_chapters()
+    curriculum, _, _ = _curriculum_and_chapters()
     state.username = "not-an-admin"
     state.current_input_mode = "radio"
     state.problem_answered = False
@@ -494,9 +497,9 @@ def test_admin_navigates_to_locked_topic_without_bypass():
     state = _fresh_state()
     state.username = next(iter(config.ADMIN_USERNAMES))
     session.ACTIVE_SESSIONS[state.session_id] = state
-    curriculum, _ = _curriculum_and_chapters()
+    _, nav, _ = _curriculum_and_chapters()
     chapter_id = _chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -532,6 +535,23 @@ def test_start_session_returns_state_with_navigation():
     assert response.session_id
     assert response.navigation is not None
     assert response.session_id in session.ACTIVE_SESSIONS
+
+
+def test_start_session_with_fixture_curriculum_lists_fixture_chapters(
+    fixture_curriculum,
+):
+    """Provider override must reach the started session's navigation Chapters."""
+    set_curriculum(fixture_curriculum)
+    try:
+        response = session.start_session(
+            SessionStartRequest(username=f"user-{uuid.uuid4()}")
+        )
+    finally:
+        set_curriculum(None)
+
+    chapter_ids = [c.chapter_id for c in response.navigation.available_chapters]
+    assert chapter_ids == [CHAPTER_ALPHA, CHAPTER_BETA]
+    assert all(c.name != "Ułamki Zwykłe" for c in response.navigation.available_chapters)
 
 
 def test_start_session_raises_for_unknown_chapter():
