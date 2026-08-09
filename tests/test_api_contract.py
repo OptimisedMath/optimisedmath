@@ -151,6 +151,63 @@ def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
     assert response.state.current_input_mode == "input"
 
 
+def test_level_completing_submit_serves_full_streak_meter():
+    problem = {
+        "problem_id": "p-level-complete",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, streak=2, input_mode="input")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-level-complete",
+                user_input="2",
+                is_input_mode=True,
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    assert response.state.level_completed is True
+    assert response.state.problem_answered is True
+    assert response.state.streak == 0
+    assert response.state.streak_meter == 3
+
+
+def test_non_completing_submit_serves_streak_meter_equal_to_streak():
+    problem = {
+        "problem_id": "p-streak-meter",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(problem, streak=1, input_mode="input")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-streak-meter",
+                user_input="2",
+                is_input_mode=True,
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    assert response.state.level_completed is False
+    assert response.state.streak == 2
+    assert response.state.streak_meter == 2
+
+
 def test_input_mode_defers_radio_to_input_until_next_problem():
     problem = {
         "problem_id": "p-radio-defer",

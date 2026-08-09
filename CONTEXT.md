@@ -27,6 +27,10 @@ Consecutive correct answers at the current Level. Resets to 0 on a penalized mis
 _UI (PL)_: Postęp do kolejnego poziomu (gwiazdki as the visual meter)
 _Avoid_: Level Streak, Power of 3, passa
 
+**Streak meter**:
+The star-meter display value served on the Session payload. Equals Streak everywhere except at Level completion while feedback is still on screen, when it stays full so the meter does not visibly empty at the moment the Student earns the Level.
+_Avoid_: display streak, meter streak, completed streak pending advance
+
 **Penalized mistake**:
 A wrong answer that is not a Soft Error. Resets or reduces streak and forfeits Flawless eligibility.
 _Avoid_: hard error, real mistake
