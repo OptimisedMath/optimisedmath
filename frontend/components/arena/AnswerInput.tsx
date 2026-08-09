@@ -25,7 +25,6 @@ interface AnswerInputProps {
   problem: Problem | null;
   currentInputMode: string;
   feedback?: { correct: boolean } | null;
-  radioOnly?: boolean;
   showAutoSolve?: boolean;
 }
 
@@ -37,7 +36,6 @@ function AnswerInput({
   problem,
   currentInputMode,
   feedback,
-  radioOnly = false,
   showAutoSolve = false,
 }: AnswerInputProps) {
   const [value, setValue] = useState('');
@@ -49,9 +47,7 @@ function AnswerInput({
     onSubmit(value);
   };
 
-  const rawInputMode = problem?.input_mode ?? currentInputMode;
-  const inputMode =
-    radioOnly || rawInputMode === 'radio' ? 'radio' : rawInputMode;
+  const inputMode = problem?.input_mode ?? currentInputMode;
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleRadioShortcuts = useCallback(

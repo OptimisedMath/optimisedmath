@@ -29,7 +29,6 @@ export default function GameArena() {
     showAdvance,
     canSubmit,
     adminMode,
-    radioOnly,
   } = useSession();
 
   const feedbackRef = useRef<HTMLDivElement>(null);
@@ -156,7 +155,6 @@ export default function GameArena() {
               problem={problem}
               currentInputMode={sessionState.current_input_mode}
               feedback={feedback}
-              radioOnly={radioOnly}
               showAutoSolve={adminMode}
             />
 

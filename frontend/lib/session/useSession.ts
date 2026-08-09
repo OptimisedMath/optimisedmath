@@ -138,7 +138,7 @@ export function useSession() {
     setFeedback({
       correct: response.is_correct,
       message: response.feedback,
-      feedback_type: nextState.feedback_type ?? (response.is_correct ? 'success' : 'warning'),
+      feedback_type: nextState.feedback_type,
       is_locked: nextState.can_advance,
     });
   }, []);
@@ -258,7 +258,6 @@ export function useSession() {
   const showAdvance = Boolean(sessionState?.can_advance && feedback !== null);
   const canSubmit = Boolean(sessionState?.can_submit && !isSubmitting);
   const adminMode = sessionState?.admin_mode ?? false;
-  const radioOnly = sessionState?.navigation?.radio_only ?? false;
 
   return {
     sessionState,
@@ -277,6 +276,5 @@ export function useSession() {
     showAdvance,
     canSubmit,
     adminMode,
-    radioOnly,
   };
 }

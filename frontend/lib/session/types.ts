@@ -112,7 +112,7 @@ export interface SubmissionResponse {
 export interface Feedback {
   correct: boolean;
   message: string;
-  feedback_type: string;
+  feedback_type: string | null;
   is_locked: boolean;
 }
 
