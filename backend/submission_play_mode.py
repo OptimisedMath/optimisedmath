@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.answer_grading import EvalResult
-from backend.curriculum_loader import TopicMeta
+from backend.curriculum import Curriculum
 from backend.play_mode import PlayMode
 from backend.progression import (
     PersistenceProfile,
@@ -23,16 +23,24 @@ def _persistence_profile_for(play_mode: PlayMode) -> PersistenceProfile:
 
 def _build_submission_context(
     state: SessionState,
+    curriculum: Curriculum,
     chapter_id: int,
     topic_id: int,
-    topics_by_id: dict[int, TopicMeta],
     *,
     profile: PersistenceProfile,
 ) -> SubmissionContext:
     prog = state.chapter_frontiers[chapter_id]
-    topic_meta = topics_by_id[topic_id]
+    topic_meta = curriculum.topic(chapter_id, topic_id)
+    if topic_meta is None:
+        raise RuntimeError(
+            f"Topic id {topic_id} not found in chapter {chapter_id}"
+        )
     next_topic_ids = tuple(
-        sorted(int(tid) for tid in topics_by_id if int(tid) > topic_id)
+        sorted(
+            int(topic_entry["topic_id"])
+            for topic_entry in curriculum.topics(chapter_id)
+            if int(topic_entry["topic_id"]) > topic_id
+        )
     )
     return SubmissionContext(
         chapter_id=chapter_id,
@@ -75,7 +83,7 @@ def _apply_submission_outcome(
 def apply_submission_outcome_via_play_mode(
     state: SessionState,
     eval_result: EvalResult,
-    topics_by_id: dict[int, TopicMeta],
+    curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> None:
     """Apply progression rules for one graded submission using play-mode policy."""
@@ -86,7 +94,7 @@ def apply_submission_outcome_via_play_mode(
 
     profile = _persistence_profile_for(play_mode)
     submission_ctx = _build_submission_context(
-        state, chapter_id, topic_id, topics_by_id, profile=profile
+        state, curriculum, chapter_id, topic_id, profile=profile
     )
     submission_outcome = apply_submission(eval_result, submission_ctx)
     _apply_submission_outcome(state, chapter_id, submission_outcome)

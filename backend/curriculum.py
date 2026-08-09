@@ -9,12 +9,7 @@ from backend.curriculum_loader import (
     LevelConfig,
     TopicDict,
     TopicMeta,
-    get_chapter_keyboard_type,
-    get_chapter_yaml,
-    get_chapters,
-    get_curriculum,
-    get_level_config,
-    get_topics_by_id,
+    load_curriculum_store,
 )
 
 _curriculum_override: Curriculum | None = None
@@ -73,40 +68,26 @@ class Curriculum:
         """Keyboard type for a Chapter."""
         return self._keyboard_types.get(chapter_id, "default")
 
-    def as_nav_curriculum(self) -> dict[int, list[TopicDict]]:
-        """TEMPORARY (#37) — dict-shaped nav lookup for lower modules until they take Curriculum. Deleted in #50."""
-        return {
-            chapter_id: list(topics) for chapter_id, topics in self._topics.items()
-        }
-
-    def topics_by_id_for(self, chapter_id: int) -> dict[int, TopicMeta]:
-        """TEMPORARY (#37) — Chapter Topic-id lookup for lower modules until they take Curriculum. Deleted in #50."""
-        return dict(self._topics_by_id.get(chapter_id, {}))
-
 
 def curriculum_from_yaml() -> Curriculum:
     """Build a Curriculum from the YAML-backed loader (lru_cache stays in the loader)."""
-    chapters = get_chapters()
-    chapter_ids = tuple(chapter.chapter_id for chapter in chapters)
-    chapter_names = {chapter.chapter_id: chapter.name for chapter in chapters}
-    nav_curriculum = get_curriculum()
-
-    topics: dict[int, tuple[TopicDict, ...]] = {}
-    topics_by_id: dict[int, dict[int, TopicMeta]] = {}
-    level_configs: dict[tuple[int, int, int], LevelConfig] = {}
-    keyboard_types: dict[int, str] = {}
-
-    for chapter_id in chapter_ids:
-        topics[chapter_id] = tuple(nav_curriculum.get(chapter_id, []))
-        topics_by_id[chapter_id] = get_topics_by_id(chapter_id)
-        keyboard_types[chapter_id] = get_chapter_keyboard_type(chapter_id)
-        for topic_entry in get_chapter_yaml(chapter_id).get("topics", []):
-            topic_id = int(topic_entry["id"])
-            for level_entry in topic_entry.get("levels", []):
-                level = int(level_entry["level"])
-                config = get_level_config(chapter_id, topic_id, level)
-                if config is not None:
-                    level_configs[(chapter_id, topic_id, level)] = config
+    store = load_curriculum_store()
+    chapter_ids = tuple(bundle.chapter_id for bundle in store.bundles)
+    chapter_names = {bundle.chapter_id: bundle.chapter_name for bundle in store.bundles}
+    topics: dict[int, tuple[TopicDict, ...]] = {
+        bundle.chapter_id: bundle.topics_meta for bundle in store.bundles
+    }
+    topics_by_id: dict[int, dict[int, TopicMeta]] = {
+        bundle.chapter_id: dict(bundle.topics_by_id) for bundle in store.bundles
+    }
+    keyboard_types: dict[int, str] = {
+        bundle.chapter_id: bundle.keyboard_type for bundle in store.bundles
+    }
+    level_configs: dict[tuple[int, int, int], LevelConfig] = {
+        (bundle.chapter_id, topic_id, level): config
+        for bundle in store.bundles
+        for (topic_id, level), config in bundle.level_configs.items()
+    }
 
     return Curriculum(
         _chapter_ids=chapter_ids,

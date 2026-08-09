@@ -6,6 +6,10 @@ Polish ed-tech math practice for klasy 4–8. Students work through structured s
 
 ## Curriculum
 
+**Curriculum**:
+The full set of Chapters, Topics, and Levels available to any Student — the content itself, not any one Student's progress through it. Resolved once per request from a single provider (`backend/curriculum.py`) and passed explicitly to lower layers. Distinct from Frontier, which is what one Student has earned.
+_Avoid_: content, curriculum data
+
 **Chapter**:
 A broad mathematical area (e.g. Ułamki Zwykłe).
 _Avoid_: Track, domain

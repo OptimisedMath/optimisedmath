@@ -223,7 +223,6 @@ def process_submission(
 
     eval_result = _grade_submission(state, user_input, problem, is_input_mode)
 
-    topics_by_id = curriculum.topics_by_id_for(state.selected_chapter_id)
     submission_telemetry.log_submission_telemetry(
         state,
         problem,
@@ -233,7 +232,7 @@ def process_submission(
         curriculum,
     )
     submission_play_mode.apply_submission_outcome_via_play_mode(
-        state, eval_result, topics_by_id, play_mode
+        state, eval_result, curriculum, play_mode
     )
     sync_to_db(state, play_mode)
     return eval_result

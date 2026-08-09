@@ -1,4 +1,4 @@
-"""Tests for curriculum YAML loading and validation."""
+"""Tests for the YAML curriculum adapter — loading and validation against real files."""
 
 import pytest
 
@@ -7,31 +7,23 @@ from backend.curriculum import resolve_curriculum
 from backend.problem_generation import FUNCTION_REGISTRY, get_curriculum_response
 
 
-@pytest.fixture(autouse=True)
-def reset_curriculum_cache():
-    loader._load_curriculum_store.cache_clear()
-    loader.set_function_registry(FUNCTION_REGISTRY)
-    yield
-    loader._load_curriculum_store.cache_clear()
-    loader.set_function_registry(FUNCTION_REGISTRY)
-
-
 def test_loads_real_curriculum_with_topics():
-    curriculum = loader.get_curriculum()
-    assert 10 in curriculum
-    assert 20 in curriculum
-    assert curriculum[10][0]["name"] == "Zapisywanie"
+    store = loader.load_curriculum_store()
+    assert 10 in store.bundles_by_chapter_id
+    assert 20 in store.bundles_by_chapter_id
+    assert store.curriculum[10][0]["name"] == "Zapisywanie"
 
 
 def test_chapters_ordered_by_yaml_id():
-    chapters = loader.get_chapters()
+    chapters = loader.load_curriculum_store().chapters
     assert chapters[0].chapter_id < chapters[1].chapter_id
 
 
-def test_get_chapter_yaml_uses_topics_key():
-    data = loader.get_chapter_yaml(10)
-    assert "topics" in data
-    assert "chapter" in data
+def test_chapter_yaml_uses_topics_key():
+    store = loader.load_curriculum_store()
+    raw = store.bundles_by_chapter_id[10].raw
+    assert "topics" in raw
+    assert "chapter" in raw
 
 
 def test_curriculum_response_uses_chapters_field():
@@ -64,10 +56,9 @@ skills:
         encoding="utf-8",
     )
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
-    loader._load_curriculum_store.cache_clear()
 
     with pytest.raises(loader.CurriculumLoadError, match="topics"):
-        loader.get_curriculum()
+        loader.load_curriculum_store()
 
 
 def test_rejects_unknown_generator_function(tmp_path, monkeypatch):
@@ -88,10 +79,9 @@ topics:
         encoding="utf-8",
     )
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
-    loader._load_curriculum_store.cache_clear()
 
     with pytest.raises(loader.CurriculumLoadError, match="nonexistent_generator"):
-        loader.get_curriculum()
+        loader.load_curriculum_store()
 
 
 def test_rejects_duplicate_chapter_name(tmp_path, monkeypatch):
@@ -120,10 +110,9 @@ def test_rejects_duplicate_chapter_name(tmp_path, monkeypatch):
 
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
     monkeypatch.setattr(loader, "_validate_file", lambda _fp, _data: bundle)
-    loader._load_curriculum_store.cache_clear()
 
     with pytest.raises(loader.CurriculumLoadError, match="Duplicate chapter id"):
-        loader.get_curriculum()
+        loader.load_curriculum_store()
 
 
 def test_rejects_filename_chapter_mismatch(tmp_path, monkeypatch):
@@ -144,7 +133,6 @@ topics:
         encoding="utf-8",
     )
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
-    loader._load_curriculum_store.cache_clear()
 
     with pytest.raises(loader.CurriculumLoadError, match="filename must be"):
-        loader.get_curriculum()
+        loader.load_curriculum_store()

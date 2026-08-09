@@ -8,7 +8,6 @@ from fastapi import HTTPException
 
 import backend.main as main
 from backend.curriculum import resolve_curriculum
-from backend.curriculum_loader import get_curriculum
 from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import StudentPlayMode
 
@@ -429,7 +428,7 @@ def test_locked_navigation_is_rejected():
     )
     chapter_id = state.selected_chapter_id
     assert chapter_id is not None
-    chapter_topics = get_curriculum()[chapter_id]
+    chapter_topics = resolve_curriculum().topics(chapter_id)
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics for locked navigation test")
 
@@ -450,11 +449,11 @@ def test_locked_navigation_is_rejected():
 
 
 def test_radio_only_topic_keeps_radio_input():
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
     disabled_topic = None
     disabled_chapter_id = None
-    for chapter_id_key, chapter_topics in curriculum.items():
-        for topic_entry in chapter_topics:
+    for chapter_id_key in curriculum.chapter_ids():
+        for topic_entry in curriculum.topics(chapter_id_key):
             if topic_entry.get("radio_only"):
                 disabled_topic = topic_entry
                 disabled_chapter_id = chapter_id_key
@@ -657,9 +656,9 @@ def test_next_problem_serves_unlocked_level_within_topic():
 
 
 def test_next_problem_at_chapter_end_returns_without_error():
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
     chapter_id = 10
-    last_topic = curriculum[chapter_id][-1]
+    last_topic = curriculum.topics(chapter_id)[-1]
     last_topic_id = int(last_topic["topic_id"])
     last_level = int(last_topic["max_level"])
     state = _make_topic_completed_state(

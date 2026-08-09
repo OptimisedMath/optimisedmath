@@ -33,7 +33,6 @@ def test_apply_submission_outcome_via_play_mode_updates_student_progress(
 ):
     state = _fresh_state(fixture_curriculum)
     chapter_id = _chapter_id(state)
-    topics_by_id = fixture_curriculum.topics_by_id_for(chapter_id)
     eval_result: EvalResult = {
         "is_correct": True,
         "lock_answer": True,
@@ -42,7 +41,7 @@ def test_apply_submission_outcome_via_play_mode_updates_student_progress(
     }
 
     submission_play_mode.apply_submission_outcome_via_play_mode(
-        state, eval_result, topics_by_id, _STUDENT
+        state, eval_result, fixture_curriculum, _STUDENT
     )
 
     assert state.streak == 1
@@ -63,7 +62,6 @@ def test_apply_submission_outcome_via_play_mode_skips_profile_writes_for_admin(
     state.selected_topic_id = TOPIC_MULTI
     state.selected_level = 2
     db.save_user(state.username, state.model_copy(update={"streak": 0}))
-    topics_by_id = fixture_curriculum.topics_by_id_for(chapter_id)
     eval_result: EvalResult = {
         "is_correct": True,
         "lock_answer": True,
@@ -72,7 +70,7 @@ def test_apply_submission_outcome_via_play_mode_skips_profile_writes_for_admin(
     }
 
     submission_play_mode.apply_submission_outcome_via_play_mode(
-        state, eval_result, topics_by_id, _ADMIN
+        state, eval_result, fixture_curriculum, _ADMIN
     )
 
     assert state.streak == 1

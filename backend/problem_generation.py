@@ -121,8 +121,7 @@ def generate_level_problem(
     if not curriculum.has_chapter(chapter_id):
         raise ProblemGenerationError(f"Missing curriculum for chapter id: {chapter_id}")
 
-    topics_by_id = curriculum.topics_by_id_for(chapter_id)
-    if topic_id not in topics_by_id:
+    if curriculum.topic(chapter_id, topic_id) is None:
         topic_name = curriculum.topic_name(chapter_id, topic_id)
         raise ProblemGenerationError(
             f"Topic id {topic_id} ({topic_name!r}) not found in chapter {chapter_id}"

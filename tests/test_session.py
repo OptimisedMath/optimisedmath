@@ -154,37 +154,36 @@ def test_respond_attaches_navigation(fixture_curriculum: Curriculum):
     assert response.navigation.available_topics
 
 
-def test_respond_serves_full_streak_meter_at_level_completion_feedback():
+def test_respond_serves_full_streak_meter_at_level_completion_feedback(
+    fixture_curriculum: Curriculum,
+):
     """While Level completion feedback is on screen, Streak meter stays full."""
-    state = _fresh_state()
-    curriculum, _, _ = _curriculum_and_chapters()
+    state = _fresh_state(fixture_curriculum)
     state.problem_answered = True
     state.level_completed = True
     state.streak = 0
     state.max_streak = 3
 
-    response = session.respond(state, curriculum)
+    response = session.respond(state, fixture_curriculum)
 
     assert response.streak_meter == 3
     assert "streak_meter" not in SessionState.model_fields
 
 
-def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion():
-    state = _fresh_state()
-    curriculum, _, _ = _curriculum_and_chapters()
+def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
     state.problem_answered = True
     state.level_completed = False
     state.streak = 2
     state.max_streak = 3
 
-    response = session.respond(state, curriculum)
+    response = session.respond(state, fixture_curriculum)
 
     assert response.streak_meter == 2
 
 
-def test_respond_builds_unanswered_problem_payload_without_mutating_state():
-    state = _fresh_state()
-    curriculum, _, _ = _curriculum_and_chapters()
 def test_respond_builds_unanswered_problem_payload_without_mutating_state(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
     state.current_problem = {

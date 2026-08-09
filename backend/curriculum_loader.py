@@ -102,7 +102,7 @@ def set_function_registry(registry: dict[str, Callable[..., Any]]) -> None:
     """Provide generator registry for function-name validation."""
     global _function_registry
     _function_registry = registry
-    _load_curriculum_store.cache_clear()
+    _load_store.cache_clear()
 
 
 # --- Derivation helpers ---
@@ -308,16 +308,16 @@ def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
     )
 
 
-@functools.lru_cache(maxsize=1)
-def _load_curriculum_store() -> CurriculumStore:
-    if not DATA_DIR.exists():
+@functools.lru_cache(maxsize=32)
+def _load_store(data_dir: Path) -> CurriculumStore:
+    if not data_dir.exists():
         return _EMPTY_STORE
 
     bundles: list[ChapterBundle] = []
     seen_chapter_ids: set[int] = set()
     seen_chapter_names: set[str] = set()
 
-    for file_path in sorted(DATA_DIR.glob("*.yaml")):
+    for file_path in sorted(data_dir.glob("*.yaml")):
         try:
             with open(file_path, encoding="utf-8") as handle:
                 data = yaml.safe_load(handle)
@@ -345,50 +345,11 @@ def _load_curriculum_store() -> CurriculumStore:
 # --- Public API ---
 
 
-def get_chapters() -> list[ChapterSummary]:
-    """Return chapters sorted by chapter id."""
-    return list(_load_curriculum_store().chapters)
+def load_curriculum_store() -> CurriculumStore:
+    """Return the fully loaded, cached curriculum store for `DATA_DIR`.
 
-
-def get_curriculum() -> dict[int, list[TopicDict]]:
-    """Return navigation metadata keyed by chapter id."""
-    return _load_curriculum_store().curriculum
-
-
-def get_chapter_yaml(chapter_id: int) -> dict[str, Any]:
-    """Return full parsed YAML for one chapter."""
-    bundle = _load_curriculum_store().bundles_by_chapter_id.get(chapter_id)
-    return bundle.raw if bundle else {}
-
-
-def get_topics_by_id(chapter_id: int) -> dict[int, TopicMeta]:
-    """Return precomputed topic lookup for one chapter."""
-    bundle = _load_curriculum_store().bundles_by_chapter_id.get(chapter_id)
-    return dict(bundle.topics_by_id) if bundle else {}
-
-
-def get_topic_name(chapter_id: int, topic_id: int) -> str | None:
-    """Return the display name for a topic id, or None if not found."""
-    bundle = _load_curriculum_store().bundles_by_chapter_id.get(chapter_id)
-    if not bundle:
-        return None
-    return bundle.topic_name_by_id.get(int(topic_id))
-
-
-def get_chapter_name_by_id(chapter_id: int) -> str | None:
-    """Resolve a chapter id to its display name."""
-    return _load_curriculum_store().chapter_name_by_id.get(chapter_id)
-
-
-def get_level_config(chapter_id: int, topic_id: int, level: int) -> LevelConfig | None:
-    """Return precomputed level metadata for problem generation."""
-    bundle = _load_curriculum_store().bundles_by_chapter_id.get(chapter_id)
-    if not bundle:
-        return None
-    return bundle.level_configs.get((int(topic_id), int(level)))
-
-
-def get_chapter_keyboard_type(chapter_id: int) -> str:
-    """Return keyboard type configured for a chapter."""
-    bundle = _load_curriculum_store().bundles_by_chapter_id.get(chapter_id)
-    return bundle.keyboard_type if bundle else "default"
+    The lru_cache is keyed on the data directory, so tests that monkeypatch
+    `DATA_DIR` to a fresh `tmp_path` get an uncached load without needing to
+    clear the cache themselves.
+    """
+    return _load_store(DATA_DIR)
