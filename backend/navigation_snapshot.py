@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from backend.curriculum_loader import TopicDict, get_chapters
+from backend.curriculum import Curriculum
+from backend.curriculum_loader import ChapterSummary, TopicDict
 from backend.models import ChapterFrontier, NavigationProgress, SessionState
 from backend.navigation_helpers import (
     clamp_level,
@@ -70,7 +71,14 @@ class ChapterNavigationContext:
     def topic_progress(
         self, topic_id: int, selected_level: int
     ) -> NavigationProgress | None:
-        topic_entry = find_topic_by_id(list(self.chapter_topics), topic_id)
+        topic_entry = next(
+            (
+                entry
+                for entry in self.chapter_topics
+                if int(entry["topic_id"]) == topic_id
+            ),
+            None,
+        )
         if topic_entry is None:
             return None
         max_level = int(topic_entry["max_level"])
@@ -105,8 +113,12 @@ class NavigationSnapshot:
     active_topic: TopicDict | None
     current: ChapterNavigationContext
     _state: SessionState
-    _curriculum: dict[int, list[TopicDict]]
+    _curriculum: Curriculum
     _play_mode: PlayMode
+
+    def chapters(self) -> tuple[ChapterSummary, ...]:
+        """Chapter list from the Curriculum this snapshot was built from."""
+        return self._curriculum.chapters()
 
     def chapter_context(self, chapter_id: int) -> ChapterNavigationContext:
         return _build_chapter_context(
@@ -119,7 +131,7 @@ class NavigationSnapshot:
 
 def _build_chapter_context(
     state: SessionState,
-    curriculum: dict[int, list[TopicDict]],
+    curriculum: Curriculum,
     play_mode: PlayMode,
     chapter_id: int,
 ) -> ChapterNavigationContext:
@@ -143,22 +155,27 @@ def _build_chapter_context(
 
 def build_navigation_snapshot(
     state: SessionState,
-    curriculum: dict[int, list[TopicDict]],
+    curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> NavigationSnapshot:
-    """Build one immutable navigation snapshot from session state and play mode."""
-    chapter_summaries = get_chapters()
+    """Build one immutable navigation snapshot from session state and Curriculum."""
+    chapter_ids = curriculum.chapter_ids()
     selected_chapter_id = state.selected_chapter_id or (
-        chapter_summaries[0].chapter_id if chapter_summaries else 0
+        chapter_ids[0] if chapter_ids else 0
     )
     chapter_topics = topics_for_chapter(curriculum, selected_chapter_id)
     default_topic_id = first_topic_id(chapter_topics)
     selected_topic_id = state.selected_topic_id or default_topic_id
     active_topic = (
-        find_topic_by_id(chapter_topics, selected_topic_id)
+        find_topic_by_id(curriculum, selected_chapter_id, selected_topic_id)
         or (chapter_topics[0] if chapter_topics else None)
     )
-    selected_level = clamp_level(state.selected_level, active_topic)
+    active_topic_id = (
+        int(active_topic["topic_id"]) if active_topic is not None else None
+    )
+    selected_level = clamp_level(
+        state.selected_level, curriculum, selected_chapter_id, active_topic_id
+    )
     current = _build_chapter_context(
         state, curriculum, play_mode, selected_chapter_id
     )

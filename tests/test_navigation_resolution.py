@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from backend.curriculum_loader import get_curriculum
+from backend.curriculum import resolve_curriculum
 from backend.models import ChapterFrontier, SessionState, SessionNavigateRequest
 from backend.navigation_snapshot import build_navigation_snapshot
 from backend.play_mode import AdminPlayMode, StudentPlayMode
@@ -17,22 +17,23 @@ _ADMIN = AdminPlayMode()
 
 
 def _curriculum_and_chapters():
-    curriculum = get_curriculum()
-    chapter_ids = sorted(curriculum.keys())
-    return curriculum, chapter_ids
+    curriculum = resolve_curriculum()
+    nav = curriculum.as_nav_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
+    return curriculum, nav, chapter_ids
 
 
 def _fresh_state() -> SessionState:
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    _, nav, chapter_ids = _curriculum_and_chapters()
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, curriculum)
+    session_state.init_defaults(state, chapter_ids, nav)
     state.username = "nav-resolution-user"
     state.session_id = str(uuid.uuid4())
     return state
 
 
 def _snapshot(state: SessionState, play_mode):
-    return build_navigation_snapshot(state, get_curriculum(), play_mode)
+    return build_navigation_snapshot(state, resolve_curriculum(), play_mode)
 
 
 def test_get_level_options_returns_one_through_limit():
@@ -42,7 +43,7 @@ def test_get_level_options_returns_one_through_limit():
 
 
 def test_resolve_chapter_change_uses_unlocked_topic_and_level():
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     if len(chapter_ids) < 2:
         pytest.skip("Need at least two chapters")
 
@@ -50,7 +51,7 @@ def test_resolve_chapter_change_uses_unlocked_topic_and_level():
     target_chapter_id = chapter_ids[1]
     progress = state.chapter_frontiers[target_chapter_id]
     expected_topic_id = progress.frontier_topic_id
-    chapter_topics = curriculum[target_chapter_id]
+    chapter_topics = nav[target_chapter_id]
     topic_entry = next(
         topic
         for topic in chapter_topics
@@ -70,10 +71,10 @@ def test_resolve_chapter_change_uses_unlocked_topic_and_level():
 
 
 def test_resolve_topic_change_resets_level_for_completed_topic():
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     state = _fresh_state()
     chapter_id = chapter_ids[0]
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -97,9 +98,9 @@ def test_resolve_topic_change_resets_level_for_completed_topic():
 
 def test_clamp_selected_level_caps_stale_level():
     state = _fresh_state()
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     chapter_id = chapter_ids[0]
-    topic_entry = curriculum[chapter_id][0]
+    topic_entry = nav[chapter_id][0]
     max_level = int(topic_entry["max_level"])
 
     state.selected_chapter_id = chapter_id
@@ -112,7 +113,7 @@ def test_clamp_selected_level_caps_stale_level():
 
 
 def test_resolve_navigate_request_chapter_change():
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, _, chapter_ids = _curriculum_and_chapters()
     if len(chapter_ids) < 2:
         pytest.skip("Need at least two chapters")
 
@@ -134,7 +135,7 @@ def test_resolve_navigate_request_chapter_change():
 
 def test_resolve_navigate_request_level_only():
     state = _fresh_state()
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, _, chapter_ids = _curriculum_and_chapters()
     chapter_id = chapter_ids[0]
     state.selected_chapter_id = chapter_id
 
@@ -152,13 +153,13 @@ def test_resolve_navigate_request_level_only():
 
 
 def test_admin_chapter_change_lands_on_first_topic_at_level_one():
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     if len(chapter_ids) < 2:
         pytest.skip("Need at least two chapters")
 
     state = _fresh_state()
     target_chapter_id = chapter_ids[1]
-    chapter_topics = curriculum[target_chapter_id]
+    chapter_topics = nav[target_chapter_id]
     last_topic_id = int(chapter_topics[-1]["topic_id"])
     state.chapter_frontiers[target_chapter_id] = ChapterFrontier(
         frontier_topic_id=last_topic_id,
@@ -178,10 +179,10 @@ def test_admin_chapter_change_lands_on_first_topic_at_level_one():
 
 
 def test_admin_topic_change_lands_on_level_one():
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     state = _fresh_state()
     chapter_id = chapter_ids[0]
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav[chapter_id]
     target_topic_id = int(chapter_topics[0]["topic_id"])
     state.chapter_frontiers[chapter_id] = ChapterFrontier(
         frontier_topic_id=target_topic_id,
@@ -196,10 +197,10 @@ def test_admin_topic_change_lands_on_level_one():
 
 
 def test_admin_explicit_topic_and_level_unchanged():
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     state = _fresh_state()
     chapter_id = chapter_ids[0]
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav[chapter_id]
     target_topic_id = int(chapter_topics[0]["topic_id"])
     explicit_level = 3
 

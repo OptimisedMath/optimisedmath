@@ -134,7 +134,6 @@ def respond(
 ) -> SessionResponse:
     """Build the client SessionResponse from persisted state and play mode."""
     mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    nav_curriculum = curriculum.as_nav_curriculum()
     response = SessionResponse.model_validate(deepcopy(state).model_dump())
     if response.current_problem:
         response.current_problem = public_problem(
@@ -148,7 +147,7 @@ def respond(
     response.recent_problem_fingerprints = []
     response.admin_mode = mode.is_admin
     snapshot = navigation_snapshot.build_navigation_snapshot(
-        response, nav_curriculum, mode
+        response, curriculum, mode
     )
     response.navigation = navigation_view.build_navigation_view(snapshot)
     # TEMPORARY (#37): Chapters from the resolved Curriculum until #46 reads them from the snapshot.
@@ -232,17 +231,17 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     session_state.load_profile(
         state, request.username, chapter_ids, nav_curriculum
     )
-    navigation_resolution.clamp_selected_level(state, nav_curriculum)
+    navigation_resolution.clamp_selected_level(state, curriculum)
 
     if request.selected_chapter_id is not None:
         prev_chapter_id = state.selected_chapter_id
         state.selected_chapter_id = request.selected_chapter_id
         if request.selected_chapter_id != prev_chapter_id:
             snapshot = navigation_snapshot.build_navigation_snapshot(
-                state, nav_curriculum, play_mode
+                state, curriculum, play_mode
             )
             _, topic_id, level = navigation_resolution.resolve_chapter_change(
-                nav_curriculum, request.selected_chapter_id, snapshot
+                curriculum, request.selected_chapter_id, snapshot
             )
             state.selected_topic_id = topic_id
             state.selected_level = level
@@ -259,12 +258,11 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    nav_curriculum = curriculum.as_nav_curriculum()
     snapshot = navigation_snapshot.build_navigation_snapshot(
-        state, nav_curriculum, play_mode
+        state, curriculum, play_mode
     )
     chapter_id, topic_id, selected_level = navigation_resolution.resolve_navigate_request(
-        state, nav_curriculum, request, snapshot
+        state, curriculum, request, snapshot
     )
 
     if not curriculum.has_chapter(chapter_id):
@@ -323,7 +321,6 @@ def next_problem(session_id: str) -> ProblemResponse:
     state = get_session(session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    nav_curriculum = curriculum.as_nav_curriculum()
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
 
@@ -337,7 +334,7 @@ def next_problem(session_id: str) -> ProblemResponse:
 
     if state.problem_answered and state.topic_completed:
         snapshot = navigation_snapshot.build_navigation_snapshot(
-            state, nav_curriculum, play_mode
+            state, curriculum, play_mode
         )
         ctx = snapshot.chapter_context(chapter_id)
         if not ctx.has_next_unlocked_topic(state.selected_topic_id):

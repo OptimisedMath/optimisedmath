@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from backend.curriculum_loader import get_curriculum
+from backend.curriculum import resolve_curriculum
 from backend.models import SessionState
 from backend import navigation_snapshot as snapshot_module
 from backend import navigation_view as view
@@ -13,19 +13,20 @@ import backend.session_state as session_state
 
 
 def _curriculum_and_chapters():
-    curriculum = get_curriculum()
-    chapter_ids = sorted(curriculum.keys())
-    return curriculum, chapter_ids
+    curriculum = resolve_curriculum()
+    nav = curriculum.as_nav_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
+    return curriculum, nav, chapter_ids
 
 
 def _fresh_state(*, username: str = "nav-view-user") -> SessionState:
-    curriculum, chapter_ids = _curriculum_and_chapters()
+    _, nav, chapter_ids = _curriculum_and_chapters()
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, curriculum)
+    session_state.init_defaults(state, chapter_ids, nav)
     state.username = username
     state.session_id = str(uuid.uuid4())
     state.selected_chapter_id = chapter_ids[0]
-    state.selected_topic_id = int(curriculum[chapter_ids[0]][0]["topic_id"])
+    state.selected_topic_id = int(nav[chapter_ids[0]][0]["topic_id"])
     state.selected_level = 1
     return state
 
@@ -37,7 +38,7 @@ def _selected_chapter_id(state: SessionState) -> int:
 
 
 def _build_view(state: SessionState):
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
     play_mode = resolve_play_mode(state.username)
     snapshot = snapshot_module.build_navigation_snapshot(state, curriculum, play_mode)
     return view.build_navigation_view(snapshot)
@@ -55,9 +56,9 @@ def test_build_navigation_view_includes_dropdown_payload():
 
 def test_available_topics_respect_locks():
     state = _fresh_state()
-    curriculum = get_curriculum()
+    _, nav_curriculum, _ = _curriculum_and_chapters()
     chapter_id = _selected_chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav_curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -74,9 +75,9 @@ def test_available_topics_respect_locks():
 
 def test_admin_sees_all_topics():
     state = _fresh_state(username="Antoni")
-    curriculum = get_curriculum()
+    _, nav_curriculum, _ = _curriculum_and_chapters()
     chapter_id = _selected_chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav_curriculum[chapter_id]
 
     nav = _build_view(state)
 
@@ -86,9 +87,9 @@ def test_admin_sees_all_topics():
 def test_admin_progress_bars_show_full_completion():
     state = _fresh_state(username="Antoni")
     state.selected_level = 1
-    curriculum = get_curriculum()
+    _, nav_curriculum, _ = _curriculum_and_chapters()
     chapter_id = _selected_chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav_curriculum[chapter_id]
     current_topic = next(
         topic_entry
         for topic_entry in chapter_topics
@@ -111,9 +112,9 @@ def test_admin_progress_bars_show_full_completion():
 
 def test_admin_has_next_unlocked_topic_is_false():
     state = _fresh_state(username="Antoni")
-    curriculum = get_curriculum()
+    _, nav_curriculum, _ = _curriculum_and_chapters()
     chapter_id = _selected_chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav_curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -128,9 +129,9 @@ def test_admin_has_next_unlocked_topic_is_false():
 
 def test_has_next_unlocked_topic():
     state = _fresh_state()
-    curriculum = get_curriculum()
+    _, nav_curriculum, _ = _curriculum_and_chapters()
     chapter_id = _selected_chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav_curriculum[chapter_id]
     if len(chapter_topics) < 2:
         pytest.skip("Need at least two topics")
 
@@ -149,9 +150,9 @@ def test_has_next_unlocked_topic():
 
 def test_progress_counts():
     state = _fresh_state()
-    curriculum = get_curriculum()
+    _, nav_curriculum, _ = _curriculum_and_chapters()
     chapter_id = _selected_chapter_id(state)
-    chapter_topics = curriculum[chapter_id]
+    chapter_topics = nav_curriculum[chapter_id]
     frontier_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
     completed = sum(
         1

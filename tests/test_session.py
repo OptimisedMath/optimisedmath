@@ -274,7 +274,7 @@ def test_legacy_stored_response_fields_load_and_serve_correct_payload():
 
     loaded = db.load_session(state.session_id)
     assert loaded is not None
-    curriculum, _ = _curriculum_and_chapters()
+    curriculum, _, _ = _curriculum_and_chapters()
     response = session.respond(loaded, curriculum)
 
     assert isinstance(response, SessionResponse)
