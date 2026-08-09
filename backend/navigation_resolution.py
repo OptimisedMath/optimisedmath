@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from backend.curriculum import Curriculum
-from backend.curriculum_loader import get_chapters
 from backend.models import SessionState, SessionNavigateRequest
 from backend.navigation_helpers import (
     clamp_level,
@@ -87,8 +86,8 @@ def resolve_navigate_request(
 
     chapter_id = request.selected_chapter_id or state.selected_chapter_id
     if chapter_id is None:
-        chapter_summaries = get_chapters()
-        chapter_id = chapter_summaries[0].chapter_id if chapter_summaries else 0
+        chapter_ids = curriculum.chapter_ids()
+        chapter_id = chapter_ids[0] if chapter_ids else 0
 
     chapter_topics = topics_for_chapter(curriculum, chapter_id)
 

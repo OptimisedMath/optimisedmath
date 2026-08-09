@@ -142,19 +142,29 @@ def test_snapshot_implicit_chapter_landing_student(fixture_curriculum: Curriculu
 
 def test_snapshot_implicit_chapter_landing_admin(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum, username="Antoni")
-    state.chapter_frontiers[CHAPTER_BETA] = ChapterFrontier(
-        frontier_topic_id=TOPIC_SINGLE,
+    # Non-default frontier on a multi-topic chapter — admin still lands on first/1.
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
         frontier_level=1,
     )
 
     snapshot = build_navigation_snapshot(state, fixture_curriculum, _ADMIN)
-    ctx = snapshot.chapter_context(CHAPTER_BETA)
+    ctx = snapshot.chapter_context(CHAPTER_ALPHA)
 
-    assert ctx.implicit_chapter_landing == (TOPIC_SINGLE, 1)
+    assert ctx.implicit_chapter_landing == (TOPIC_MULTI, 1)
 
 
 def test_snapshot_implicit_topic_landing(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=2,
+    )
+    snapshot = build_navigation_snapshot(state, fixture_curriculum, _STUDENT)
+    ctx = snapshot.chapter_context(CHAPTER_ALPHA)
+
+    assert ctx.implicit_topic_landing(TOPIC_MULTI) == 2
+
     state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
         frontier_topic_id=TOPIC_RADIO,
         frontier_level=1,
