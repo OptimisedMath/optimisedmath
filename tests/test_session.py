@@ -154,6 +154,79 @@ def test_respond_attaches_navigation():
     assert response.navigation.available_topics
 
 
+def test_respond_builds_unanswered_problem_payload_without_mutating_state():
+    state = _fresh_state()
+    curriculum, _ = _curriculum_and_chapters()
+    state.current_problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "42",
+        "options": ["41", "42"],
+        "options_map": {"42": "correct"},
+        "messages": {},
+    }
+    state.problem_answered = False
+    state.problem_start_time = 123.0
+    state.recent_problem_fingerprints = ["fp1"]
+
+    response = session.respond(state, curriculum)
+
+    assert response.can_submit is True
+    assert response.can_advance is False
+    assert response.admin_mode is False
+    assert response.problem_start_time is None
+    assert response.recent_problem_fingerprints == []
+    assert response.current_problem is not None
+    assert response.current_problem["answer_options"] == ["41", "42"]
+    assert "correct_answer" not in response.current_problem
+    assert "correct" not in response.current_problem
+    assert "options_map" not in response.current_problem
+    assert state.problem_start_time == 123.0
+    assert state.recent_problem_fingerprints == ["fp1"]
+    assert state.current_problem["correct"] == "42"
+    assert not hasattr(SessionState, "for_response")
+
+
+def test_respond_builds_answered_problem_payload():
+    state = _fresh_state()
+    curriculum, _ = _curriculum_and_chapters()
+    state.current_problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "42",
+        "options": ["42"],
+    }
+    state.problem_answered = True
+
+    response = session.respond(state, curriculum)
+
+    assert response.can_submit is False
+    assert response.can_advance is True
+    assert response.current_problem is not None
+    assert response.current_problem["correct_answer"] == "42"
+
+
+def test_respond_uses_passed_play_mode_for_admin_reveal():
+    state = _fresh_state()
+    curriculum, _ = _curriculum_and_chapters()
+    state.username = "not-an-admin"
+    state.current_input_mode = "radio"
+    state.problem_answered = False
+    state.current_problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "42",
+        "options": ["41", "42"],
+    }
+    admin_mode = resolve_play_mode(next(iter(config.ADMIN_USERNAMES)))
+
+    response = session.respond(state, curriculum, play_mode=admin_mode)
+
+    assert response.admin_mode is True
+    assert response.current_problem is not None
+    assert response.current_problem["correct_answer"] == "42"
+
+
 # --- public_problem ---
 
 
