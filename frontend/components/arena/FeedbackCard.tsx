@@ -2,33 +2,29 @@ import { memo, useEffect, useRef, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
 import { InlineMath } from 'react-katex';
-import type { Feedback, Problem } from '@/lib/session';
+import type { SessionActions, SessionView } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 interface FeedbackCardProps {
-  feedback: Feedback | null;
-  onNextProblem: () => void;
-  topicCompleted?: boolean;
-  levelCompleted: boolean;
-  hasNextTopic: boolean;
-  currentInputMode: string;
-  disabled?: boolean;
+  view: SessionView;
+  actions: SessionActions;
   nextButtonRef?: RefObject<HTMLButtonElement | null>;
-  problem?: Problem | null;
 }
 
 function FeedbackCard({
-  feedback,
-  onNextProblem,
-  topicCompleted,
-  levelCompleted,
-  hasNextTopic,
-  currentInputMode,
-  disabled = false,
+  view,
+  actions,
   nextButtonRef,
-  problem,
 }: FeedbackCardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const session = view.session!;
+  const feedback = view.feedback!;
+  const problem = view.problem;
+  const topicCompleted = session.topic_completed;
+  const levelCompleted = session.level_completed;
+  const hasNextTopic = session.navigation?.has_next_unlocked_topic ?? false;
+  const currentInputMode = session.current_input_mode;
+  const disabled = view.isAdvancing;
   const showNextButton = !(topicCompleted && !hasNextTopic);
 
   useEffect(() => {
@@ -39,10 +35,6 @@ function FeedbackCard({
     }
     nextButtonRef?.current?.focus();
   }, [feedback, showNextButton, disabled, nextButtonRef]);
-
-  if (!feedback) {
-    return null;
-  }
 
   const inputMode = problem?.input_mode ?? currentInputMode;
   const correctAnswer =
@@ -60,7 +52,7 @@ function FeedbackCard({
     if ((e.target as HTMLElement).tagName === 'BUTTON') return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onNextProblem();
+      actions.advance();
     }
   };
 
@@ -110,7 +102,7 @@ function FeedbackCard({
         <Button
           ref={nextButtonRef}
           type="button"
-          onClick={onNextProblem}
+          onClick={actions.advance}
           disabled={disabled}
           className="gradient-primary text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40 active:translate-y-0 active:scale-[0.98] disabled:hover:translate-y-0"
         >

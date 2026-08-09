@@ -5,14 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { useAnimatedNumber } from '@/lib/hooks';
 import { useTheme } from '@/components/ThemeProvider';
 import LogoutLink from '@/components/navigation/LogoutLink';
+import type { SessionView } from '@/lib/session';
 
 interface XPBarProps {
-  xp: number;
-  flawlessEligible: boolean;
+  view: SessionView;
 }
 
-function XPBar({ xp, flawlessEligible }: XPBarProps) {
-  const animatedXP = useAnimatedNumber(xp);
+function XPBar({ view }: XPBarProps) {
+  const animatedXP = useAnimatedNumber(view.session!.xp);
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -33,10 +33,10 @@ function XPBar({ xp, flawlessEligible }: XPBarProps) {
         <div className="text-sm sm:text-base text-slate-700 dark:text-slate-200">
           Bonus:{' '}
           <Badge
-            variant={flawlessEligible ? 'default' : 'destructive'}
+            variant={view.session!.flawless_eligible ? 'default' : 'destructive'}
             className="ml-1 sm:ml-2 shadow-sm"
           >
-            {flawlessEligible ? 'Aktywny 💎' : 'Stracony ❌'}
+            {view.session!.flawless_eligible ? 'Aktywny 💎' : 'Stracony ❌'}
           </Badge>
         </div>
         <button

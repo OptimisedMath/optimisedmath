@@ -1,30 +1,21 @@
 import { memo } from 'react';
-import type { NavigationProgress } from '@/lib/session';
+import type { SessionView } from '@/lib/session';
 
 interface ProgressBarProps {
   type: 'chapter' | 'topic';
-  selectedChapterName?: string | null;
-  selectedLevel?: number;
-  chapterCompletion?: NavigationProgress | null;
-  topicCompletion?: NavigationProgress | null;
-  currentTopicName?: string | null;
+  view: SessionView;
 }
 
-function ProgressBar({
-  type,
-  selectedChapterName,
-  selectedLevel,
-  chapterCompletion,
-  topicCompletion,
-  currentTopicName,
-}: ProgressBarProps) {
-  if (type === 'chapter' && selectedChapterName && chapterCompletion) {
-    const { completed, total, percentage } = chapterCompletion;
+function ProgressBar({ type, view }: ProgressBarProps) {
+  const navigation = view.session?.navigation;
+
+  if (type === 'chapter' && view.selectedChapterName && navigation?.chapter_completion) {
+    const { completed, total, percentage } = navigation.chapter_completion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">🏆 {selectedChapterName}</span>
+          <span className="truncate font-medium">🏆 {view.selectedChapterName}</span>
           <span className="shrink-0 tabular-nums">{completed}/{total} tematów ukończonych</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -37,14 +28,15 @@ function ProgressBar({
     );
   }
 
-  if (type === 'topic' && topicCompletion && selectedLevel !== undefined) {
-    const { total, percentage } = topicCompletion;
+  if (type === 'topic' && navigation?.topic_completion) {
+    const session = view.session!;
+    const { total, percentage } = navigation.topic_completion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">📚 {currentTopicName || 'Aktualny temat'}</span>
-          <span className="shrink-0 tabular-nums">Poziom {selectedLevel}/{total}</span>
+          <span className="truncate font-medium">📚 {view.topicName}</span>
+          <span className="shrink-0 tabular-nums">Poziom {session.selected_level}/{total}</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div

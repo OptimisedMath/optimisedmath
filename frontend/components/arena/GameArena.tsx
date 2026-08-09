@@ -13,41 +13,25 @@ import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 
 export default function GameArena() {
-  const {
-    sessionState,
-    feedback,
-    error,
-    isNavigating,
-    isAdvancing,
-    needsLogin,
-    problem,
-    handleSubmit,
-    handleNavigate,
-    handleAdvance,
-    handleReset,
-    clearErrorAndReload,
-    showAdvance,
-    canSubmit,
-    adminMode,
-  } = useSession();
+  const { view, actions } = useSession();
 
   const feedbackRef = useRef<HTMLDivElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!feedback) return;
+    if (!view.feedback) return;
 
     const frameId = requestAnimationFrame(() => {
-      const target = feedback.is_locked ? nextButtonRef.current : feedbackRef.current;
+      const target = view.feedback!.is_locked ? nextButtonRef.current : feedbackRef.current;
       if (target) {
         scrollElementClearOfMobileChrome(target);
       }
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [feedback]);
+  }, [view.feedback]);
 
-  if (error) {
+  if (view.error) {
     return (
       <div className="gradient-bg flex h-screen items-center justify-center p-8 text-slate-900 dark:text-white">
         <div className="glass-card-strong animate-scale-in max-w-md rounded-2xl p-6 text-center">
@@ -55,9 +39,9 @@ export default function GameArena() {
             ⚠️
           </div>
           <h2 className="text-2xl font-bold mb-4 text-red-600 dark:text-red-300">Wystąpił błąd</h2>
-          <p className="text-lg mb-6 text-slate-600 dark:text-slate-300">{error}</p>
+          <p className="text-lg mb-6 text-slate-600 dark:text-slate-300">{view.error}</p>
           <button
-            onClick={clearErrorAndReload}
+            onClick={actions.clearErrorAndReload}
             className="bg-red-600 hover:bg-red-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-red-500/30"
           >
             Spróbuj ponownie
@@ -67,64 +51,42 @@ export default function GameArena() {
     );
   }
 
-  if (!sessionState) {
+  if (view.isLoading) {
     return (
       <div className="gradient-bg flex h-screen flex-col items-center justify-center gap-4 text-slate-900 dark:text-white">
         <Spinner className="h-8 w-8 text-sky-500 dark:text-sky-400" />
         <span className="text-lg font-semibold text-slate-600 dark:text-slate-300">
-          {needsLogin ? 'Przekierowywanie do logowania...' : 'Łączenie z serwerem...'}
+          {view.needsLogin ? 'Przekierowywanie do logowania...' : 'Łączenie z serwerem...'}
         </span>
       </div>
     );
   }
+
+  const session = view.session!;
 
   return (
     <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '0ms' }}>
-      <XPBar
-        xp={sessionState.xp}
-        flawlessEligible={sessionState.flawless_eligible}
-      />
+      <XPBar view={view} />
       </div>
 
-      {sessionState.navigation && (
+      {session.navigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '80ms' }}>
-          <TopicToolbar
-            sessionState={sessionState}
-            isNavigating={isNavigating}
-            onNavigate={handleNavigate}
-            onReset={handleReset}
-          />
+          <TopicToolbar view={view} actions={actions} />
         </div>
       )}
 
-      {sessionState.navigation && (
+      {session.navigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
-          <ProgressBar
-            type="chapter"
-            selectedChapterName={
-              sessionState.navigation.available_chapters.find(
-                (chapter) => chapter.chapter_id === sessionState.selected_chapter_id
-              )?.name
-            }
-            chapterCompletion={sessionState.navigation.chapter_completion}
-          />
-          <ProgressBar
-            type="topic"
-            selectedLevel={sessionState.selected_level}
-            topicCompletion={sessionState.navigation.topic_completion}
-            currentTopicName={sessionState.navigation.current_topic_name}
-          />
+          <ProgressBar type="chapter" view={view} />
+          <ProgressBar type="topic" view={view} />
         </div>
       )}
 
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '240ms' }}>
-        <MasteryScoreboard
-          streakMeter={sessionState.streak_meter}
-          maxStreak={sessionState.max_streak}
-        />
+        <MasteryScoreboard view={view} />
       </div>
 
       <div
@@ -132,52 +94,26 @@ export default function GameArena() {
         style={{ animationDelay: '320ms' }}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-300" />
-        <ProblemDisplay
-          problem={problem}
-          selectedChapterName={
-            sessionState.navigation?.available_chapters.find(
-              (chapter) => chapter.chapter_id === sessionState.selected_chapter_id
-            )?.name ?? null
-          }
-          selectedLevel={sessionState.selected_level}
-          topicName={sessionState.navigation?.current_topic_name ?? 'Aktualny temat'}
-          isLoading={!problem}
-        />
+        <ProblemDisplay view={view} />
 
-        {problem && (
+        {view.problem && (
           <>
-            <AnswerInput
-              key={problem.problem_id}
-              onSubmit={handleSubmit}
-              disabled={!canSubmit}
-              canSubmit={canSubmit}
-              showFeedback={showAdvance}
-              problem={problem}
-              currentInputMode={sessionState.current_input_mode}
-              feedback={feedback}
-              showAutoSolve={adminMode}
-            />
+            <AnswerInput key={view.problem.problem_id} view={view} actions={actions} />
 
-            {feedback && !showAdvance && (
+            {view.feedback && !view.canAdvance && (
               <div
                 ref={feedbackRef}
                 className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"
               >
-                {feedback.message}
+                {view.feedback.message}
               </div>
             )}
 
-            {feedback && showAdvance && (
+            {view.feedback && view.canAdvance && (
               <FeedbackCard
-                feedback={feedback}
-                onNextProblem={handleAdvance}
-                topicCompleted={sessionState.topic_completed}
-                levelCompleted={sessionState.level_completed}
-                hasNextTopic={sessionState.navigation?.has_next_unlocked_topic ?? false}
-                currentInputMode={sessionState.current_input_mode}
-                disabled={isAdvancing}
+                view={view}
+                actions={actions}
                 nextButtonRef={nextButtonRef}
-                problem={problem}
               />
             )}
           </>

@@ -1,40 +1,34 @@
 import { memo, type ChangeEvent } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { NavigateIntent, SessionState } from '@/lib/session';
+import type { SessionActions, SessionView } from '@/lib/session';
 
 interface TopicToolbarProps {
-  sessionState: SessionState;
-  isNavigating: boolean;
-  onNavigate: (intent: NavigateIntent) => void;
-  onReset: () => void;
+  view: SessionView;
+  actions: SessionActions;
 }
 
-function TopicToolbar({
-  sessionState,
-  isNavigating,
-  onNavigate,
-  onReset,
-}: TopicToolbarProps) {
-  const navigation = sessionState.navigation;
+function TopicToolbar({ view, actions }: TopicToolbarProps) {
+  const session = view.session!;
+  const navigation = session.navigation;
   if (!navigation) {
     return null;
   }
 
-  const selectedChapterId = sessionState.selected_chapter_id ?? navigation.available_chapters[0]?.chapter_id ?? 0;
-  const selectedTopicId = sessionState.selected_topic_id ?? navigation.available_topics[0]?.topic_id ?? 1;
-  const selectedLevel = sessionState.selected_level;
+  const selectedChapterId = session.selected_chapter_id ?? navigation.available_chapters[0]?.chapter_id ?? 0;
+  const selectedTopicId = session.selected_topic_id ?? navigation.available_topics[0]?.topic_id ?? 1;
+  const selectedLevel = session.selected_level;
 
   const handleChapterChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate({ selected_chapter_id: Number(event.target.value) });
+    actions.navigate({ selected_chapter_id: Number(event.target.value) });
   };
 
   const handleTopicChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate({ selected_topic_id: Number(event.target.value) });
+    actions.navigate({ selected_topic_id: Number(event.target.value) });
   };
 
   const handleLevelChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onNavigate({ selected_level: Number(event.target.value) });
+    actions.navigate({ selected_level: Number(event.target.value) });
   };
 
   const selectClasses =
@@ -47,8 +41,8 @@ function TopicToolbar({
         <div className="flex items-center justify-between">
           <div className="text-sm font-medium text-slate-600 dark:text-slate-300">Wybór tematu</div>
           <Button
-            onClick={onReset}
-            disabled={isNavigating}
+            onClick={actions.reset}
+            disabled={view.isNavigating}
             variant="destructive"
             size="sm"
             className="text-sm hover:-translate-y-0.5"
@@ -63,7 +57,7 @@ function TopicToolbar({
             <select
               value={selectedChapterId}
               onChange={handleChapterChange}
-              disabled={isNavigating}
+              disabled={view.isNavigating}
               className={selectClasses}
             >
               {navigation.available_chapters.map((chapter) => (
@@ -79,7 +73,7 @@ function TopicToolbar({
             <select
               value={selectedTopicId}
               onChange={handleTopicChange}
-              disabled={isNavigating || navigation.available_topics.length === 0}
+              disabled={view.isNavigating || navigation.available_topics.length === 0}
               className={selectClasses}
             >
               {navigation.available_topics.map((topic, index) => (
@@ -95,7 +89,7 @@ function TopicToolbar({
             <select
               value={selectedLevel}
               onChange={handleLevelChange}
-              disabled={isNavigating}
+              disabled={view.isNavigating}
               className={selectClasses}
             >
               {navigation.available_levels.map((level) => (
@@ -108,10 +102,10 @@ function TopicToolbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <Badge variant="secondary">{navigation.current_topic_name || 'Brak tematu'}</Badge>
+          <Badge variant="secondary">{view.topicName}</Badge>
           <span>Poziom {selectedLevel}</span>
-          {isNavigating && <span className="text-sky-500 dark:text-sky-300">Ładowanie tematu...</span>}
-          {sessionState.admin_mode && (
+          {view.isNavigating && <span className="text-sky-500 dark:text-sky-300">Ładowanie tematu...</span>}
+          {view.adminMode && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />

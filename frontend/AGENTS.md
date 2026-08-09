@@ -9,6 +9,6 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **App Router:** pages live under `app/` (`/`, `/login`, `/arena`).
 - **API calls:** use relative `/api/*` paths — Next.js rewrites to the FastAPI backend on `:8000`.
 - **Components:** arena UI in `components/arena/`, shared UI in `components/ui/` (shadcn).
-- **Session:** arena/login session state lives in `lib/session/` — types, API calls, localStorage, constants, and `useSession()`. Import from `@/lib/session`; do not call session APIs or touch session localStorage elsewhere.
+- **Session:** arena/login session state lives in `lib/session/` — types, API calls, localStorage, constants, and `useSession()`. Import from `@/lib/session`; do not call session APIs or touch session localStorage elsewhere. `useSession()` returns `{ view, actions }`; arena children read the slices of `view` they render and call handlers on `actions`.
 - **Curriculum types:** static catalog types in `lib/types.ts` (mirror backend curriculum models).
 - **Dev server:** `npm run dev` (binds `0.0.0.0` for LAN access).

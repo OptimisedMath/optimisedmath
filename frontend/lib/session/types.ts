@@ -117,3 +117,30 @@ export type NavigateIntent = Pick<
   SessionNavigateRequest,
   'selected_chapter_id' | 'selected_topic_id' | 'selected_level'
 >;
+
+/** Render model returned by useSession — arena children read slices of this. */
+export interface SessionView {
+  needsLogin: boolean;
+  isLoading: boolean;
+  error: string | null;
+  isNavigating: boolean;
+  isSubmitting: boolean;
+  isAdvancing: boolean;
+  canSubmit: boolean;
+  canAdvance: boolean;
+  session: SessionState | null;
+  problem: Problem | null;
+  feedback: Feedback | null;
+  selectedChapterName: string | null;
+  topicName: string;
+  adminMode: boolean;
+}
+
+/** Handlers returned by useSession — arena children call these for interactions. */
+export interface SessionActions {
+  submit: SubmitAnswerHandler;
+  navigate: (intent: NavigateIntent) => Promise<void>;
+  advance: () => Promise<void>;
+  reset: () => Promise<void>;
+  clearErrorAndReload: () => void;
+}

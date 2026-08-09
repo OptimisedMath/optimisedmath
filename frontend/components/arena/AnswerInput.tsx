@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import { useDocumentKeydown } from '@/hooks/useDocumentKeydown';
-import type { Problem, SubmitAnswerHandler } from '@/lib/session';
+import type { SessionActions, SessionView } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 const AUTO_SOLVE_RADIO_DELAY_MS = 450;
@@ -18,33 +18,29 @@ const sleep = (ms: number) => new Promise<void>((resolve) => {
 });
 
 interface AnswerInputProps {
-  onSubmit: SubmitAnswerHandler;
-  disabled: boolean;
-  showFeedback: boolean;
-  canSubmit: boolean;
-  problem: Problem | null;
-  currentInputMode: string;
-  feedback?: { correct: boolean } | null;
-  showAutoSolve?: boolean;
+  view: SessionView;
+  actions: SessionActions;
 }
 
 function AnswerInput({
-  onSubmit,
-  disabled,
-  showFeedback,
-  canSubmit,
-  problem,
-  currentInputMode,
-  feedback,
-  showAutoSolve = false,
+  view,
+  actions,
 }: AnswerInputProps) {
   const [value, setValue] = useState('');
   const [isAutoSolving, setIsAutoSolving] = useState(false);
   const autoSolveRunRef = useRef(0);
 
+  const problem = view.problem;
+  const feedback = view.feedback;
+  const canSubmit = view.canSubmit;
+  const showFeedback = view.canAdvance;
+  const disabled = !canSubmit;
+  const showAutoSolve = view.adminMode;
+  const currentInputMode = view.session!.current_input_mode;
+
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit(value);
+    actions.submit(value);
   };
 
   const inputMode = problem?.input_mode ?? currentInputMode;
@@ -69,7 +65,7 @@ function AnswerInput({
 
       if (e.key === 'Enter' && value.trim() !== '' && !e.repeat) {
         e.preventDefault();
-        onSubmit(value);
+        actions.submit(value);
         return;
       }
 
@@ -79,7 +75,7 @@ function AnswerInput({
         setValue(problem.answer_options[num - 1]);
       }
     },
-    [inputMode, problem, showFeedback, canSubmit, disabled, value, onSubmit]
+    [inputMode, problem, showFeedback, canSubmit, disabled, value, actions]
   );
 
   useDocumentKeydown(handleRadioShortcuts, [handleRadioShortcuts]);
@@ -121,7 +117,7 @@ function AnswerInput({
         return;
       }
 
-      await onSubmit(correctAnswer);
+      await actions.submit(correctAnswer);
     } finally {
       if (autoSolveRunRef.current === runId) {
         setIsAutoSolving(false);
@@ -135,7 +131,7 @@ function AnswerInput({
     canSubmit,
     disabled,
     inputMode,
-    onSubmit,
+    actions,
   ]);
 
   const appendChar = (char: string) => {
@@ -212,7 +208,7 @@ function AnswerInput({
         {!showFeedback && (
             <div className="flex flex-wrap items-center justify-center gap-3">
             <Button
-              onClick={() => onSubmit(value)}
+              onClick={() => actions.submit(value)}
               disabled={submitDisabled}
               className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:-translate-y-0.5 hover:shadow-sky-500/30 active:translate-y-0 active:scale-[0.98]"
             >
