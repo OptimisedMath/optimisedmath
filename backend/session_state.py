@@ -6,11 +6,7 @@ import backend.config as config
 from backend.answer_grading import EvalResult, evaluate_answer
 from backend.core import db
 from backend.core.utils import ProblemDict
-from backend.curriculum_loader import (
-    TopicDict,
-    TopicMeta,
-    get_topics_by_id,
-)
+from backend.curriculum import Curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 import backend.submission_play_mode as submission_play_mode
 import backend.submission_telemetry as submission_telemetry
@@ -18,23 +14,22 @@ from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
 
-def _get_first_topic_id(
-    curriculum: dict[int, list[TopicDict]], chapter_id: int | None
-) -> int:
+def _get_first_topic_id(curriculum: Curriculum, chapter_id: int | None) -> int:
     """Extract the first topic id for a chapter, with safe fallback."""
-    if chapter_id is not None and curriculum.get(chapter_id):
-        return first_topic_id(curriculum[chapter_id])
+    if chapter_id is not None:
+        topics = list(curriculum.topics(chapter_id))
+        if topics:
+            return first_topic_id(topics)
     return 1
 
 
-def resolve_input_mode(
-    state: SessionState, topics_by_id: dict[int, TopicMeta]
-) -> str:
+def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
     """Determine input mode respecting streak threshold and radio-only topics."""
     topic_id = state.selected_topic_id
-    if topic_id is None:
+    chapter_id = state.selected_chapter_id
+    if topic_id is None or chapter_id is None:
         return "radio"
-    topic_cfg = topics_by_id.get(int(topic_id), {})
+    topic_cfg = curriculum.topic(int(chapter_id), int(topic_id)) or {}
     radio_only = topic_cfg.get("radio_only", False)
     if (
         not radio_only
@@ -44,12 +39,9 @@ def resolve_input_mode(
     return "radio"
 
 
-def init_defaults(
-    state: SessionState,
-    chapter_ids: list[int],
-    curriculum: dict[int, list[TopicDict]],
-) -> None:
+def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
     """Initialize session state with defaults. Heals broken saves from old versions."""
+    chapter_ids = list(curriculum.chapter_ids())
     if not state.session_id:
         state.session_id = str(uuid.uuid4())
     if state.xp == 0 and state.streak == 0 and not state.chapter_frontiers:
@@ -88,7 +80,7 @@ def init_defaults(
 
 
 def reset_submission_cycle(
-    state: SessionState, topics_by_id: dict[int, TopicMeta] | None = None
+    state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
     """Clears the current problem state when navigating or advancing."""
     state.streak = 0
@@ -99,8 +91,8 @@ def reset_submission_cycle(
     state.feedback_type = None
     state.feedback_msg = ""
     state.current_problem = None
-    if topics_by_id is not None:
-        state.current_input_mode = resolve_input_mode(state, topics_by_id)
+    if curriculum is not None:
+        state.current_input_mode = resolve_input_mode(state, curriculum)
     else:
         state.current_input_mode = "radio"
 
@@ -142,8 +134,7 @@ def _state_for_db_persist(state: SessionState, play_mode: PlayMode) -> SessionSt
 def load_profile(
     state: SessionState,
     username: str,
-    chapter_ids: list[int],
-    curriculum: dict[int, list[TopicDict]],
+    curriculum: Curriculum,
 ) -> None:
     """Loads user data from DB or initializes a fresh profile."""
     state.username = username
@@ -156,19 +147,18 @@ def load_profile(
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
         state.chapter_frontiers = user_data["chapter_frontiers"]
-        topics_by_id = get_topics_by_id(state.selected_chapter_id or 0)
-        reset_submission_cycle(state, topics_by_id)
+        reset_submission_cycle(state, curriculum)
     else:
-        hard_reset(state, chapter_ids, curriculum)
+        hard_reset(state, curriculum)
 
 
 def hard_reset(
     state: SessionState,
-    chapter_ids: list[int],
-    curriculum: dict[int, list[TopicDict]],
+    curriculum: Curriculum,
     play_mode: PlayMode | None = None,
 ) -> None:
     """Wipes all progress and resets to initial state."""
+    chapter_ids = list(curriculum.chapter_ids())
     state.xp = 0
     state.chapter_frontiers = {
         chapter_id: ChapterFrontier(
@@ -182,7 +172,7 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
-    reset_submission_cycle(state)
+    reset_submission_cycle(state, curriculum)
     sync_to_db(state, play_mode)
 
 
@@ -191,7 +181,7 @@ def navigate_to(
     chapter_id: int | None = None,
     topic_id: int | None = None,
     level: int | None = None,
-    topics_by_id: dict[int, TopicMeta] | None = None,
+    curriculum: Curriculum | None = None,
     play_mode: PlayMode | None = None,
 ) -> None:
     """Navigate to a different chapter/topic/level, resetting submission cycle and syncing."""
@@ -201,7 +191,7 @@ def navigate_to(
         state.selected_topic_id = topic_id
     if level is not None:
         state.selected_level = level
-    reset_submission_cycle(state, topics_by_id)
+    reset_submission_cycle(state, curriculum)
     sync_to_db(state, play_mode)
 
 
@@ -224,7 +214,7 @@ def process_submission(
     problem: ProblemDict,
     user_input: str,
     is_input_mode: bool,
-    topics_by_id: dict[int, TopicMeta],
+    curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> EvalResult:
     """Process user submission: grade, log telemetry, apply outcome, sync."""
@@ -233,13 +223,14 @@ def process_submission(
 
     eval_result = _grade_submission(state, user_input, problem, is_input_mode)
 
+    topics_by_id = curriculum.topics_by_id_for(state.selected_chapter_id)
     submission_telemetry.log_submission_telemetry(
         state,
         problem,
         user_input,
         is_input_mode,
         eval_result,
-        topics_by_id,
+        curriculum,
     )
     submission_play_mode.apply_submission_outcome_via_play_mode(
         state, eval_result, topics_by_id, play_mode

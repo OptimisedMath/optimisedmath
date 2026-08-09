@@ -24,10 +24,8 @@ _ADMIN = AdminPlayMode()
 def _fresh_state(
     fixture_curriculum: Curriculum, *, username: str = "nav-snapshot-user"
 ) -> SessionState:
-    nav = fixture_curriculum.as_nav_curriculum()
-    chapter_ids = list(fixture_curriculum.chapter_ids())
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, nav)
+    session_state.init_defaults(state, fixture_curriculum)
     state.username = username
     state.session_id = str(uuid.uuid4())
     state.selected_chapter_id = CHAPTER_ALPHA

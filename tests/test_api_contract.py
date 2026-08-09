@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 import backend.main as main
+from backend.curriculum import resolve_curriculum
 from backend.curriculum_loader import get_curriculum
 from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import StudentPlayMode
@@ -25,13 +26,13 @@ def isolated_state(isolated_db):
 
 def make_state(problem, *, streak=0, input_mode="radio"):
     """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS."""
-    curriculum = get_curriculum()
-    chapter_ids = list(curriculum.keys())
+    curriculum = resolve_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
     chapter_id = chapter_ids[0]
-    topic_entry = curriculum[chapter_id][0]
+    topic_entry = curriculum.topics(chapter_id)[0]
     session_id = str(uuid.uuid4())
     state = SessionState()
-    main.session_state.init_defaults(state, chapter_ids, curriculum)
+    main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
@@ -477,12 +478,8 @@ def test_radio_only_topic_keeps_radio_input():
     state = make_state(problem, streak=0, input_mode="radio")
     state.selected_chapter_id = disabled_chapter_id
     state.selected_topic_id = disabled_topic["topic_id"]
-    from backend.curriculum_loader import get_topics_by_id
-
-    topics_by_id = get_topics_by_id(disabled_chapter_id)
-
     main.session_state.process_submission(
-        state, problem, "a", False, topics_by_id, StudentPlayMode()
+        state, problem, "a", False, resolve_curriculum(), StudentPlayMode()
     )
 
     assert state.streak == 1
@@ -493,13 +490,13 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     import backend.problem_generation as problem_generation
     import backend.session as session_module
 
-    curriculum = get_curriculum()
-    chapter_ids = list(curriculum.keys())
+    curriculum = resolve_curriculum()
+    chapter_ids = list(curriculum.chapter_ids())
     chapter_id = chapter_ids[0]
-    topic_entry = curriculum[chapter_id][0]
+    topic_entry = curriculum.topics(chapter_id)[0]
     session_id = str(uuid.uuid4())
     state = SessionState()
-    main.session_state.init_defaults(state, chapter_ids, curriculum)
+    main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
@@ -524,7 +521,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
 
     call_count = {"value": 0}
 
-    def fake_generate_level_problem(_chapter_id, _topic_id, _level):
+    def fake_generate_level_problem(_curriculum, _chapter_id, _topic_id, _level):
         call_count["value"] += 1
         return {
             **duplicate_problem,
@@ -537,7 +534,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         "problem_id": "unique-1",
     }
 
-    def fake_generate_with_unique_second(_chapter_id, _topic_id, _level):
+    def fake_generate_with_unique_second(_curriculum, _chapter_id, _topic_id, _level):
         call_count["value"] += 1
         if call_count["value"] == 1:
             return {
@@ -567,11 +564,10 @@ def _make_topic_completed_state(
     frontier_level: int = 1,
 ) -> SessionState:
     """Build a session ready for next-problem advance after topic completion."""
-    curriculum = get_curriculum()
-    chapter_ids = list(curriculum.keys())
+    curriculum = resolve_curriculum()
     session_id = str(uuid.uuid4())
     state = SessionState()
-    main.session_state.init_defaults(state, chapter_ids, curriculum)
+    main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
@@ -621,12 +617,12 @@ def test_next_problem_advances_to_frontier_topic_after_topic_completion():
 
 
 def test_next_problem_serves_unlocked_level_within_topic():
-    curriculum = get_curriculum()
+    curriculum = resolve_curriculum()
     chapter_id = 10
     topic_id = 20
     session_id = str(uuid.uuid4())
     state = SessionState()
-    main.session_state.init_defaults(state, list(curriculum.keys()), curriculum)
+    main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
@@ -700,7 +696,11 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
     monkeypatch.setitem(problem_generation.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
 
-    problem = problem_generation.generate_level_problem(20, 20, 1)
+    from backend.curriculum import resolve_curriculum
+
+    problem = problem_generation.generate_level_problem(
+        resolve_curriculum(), 20, 20, 1
+    )
     assert problem is not None
     assert problem["messages"]["t1"] == branch_message
     assert (

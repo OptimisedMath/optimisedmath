@@ -8,7 +8,7 @@ import time
 from backend.answer_grading import EvalResult
 from backend.core import db
 from backend.core.utils import ProblemDict
-from backend.curriculum_loader import TopicMeta, get_chapter_name_by_id
+from backend.curriculum import Curriculum
 from backend.models import SessionState
 
 _TELEMETRY_STRIP_KEYS = frozenset(
@@ -37,7 +37,7 @@ def log_submission_telemetry(
     user_input: str,
     is_input_mode: bool,
     eval_result: EvalResult,
-    topics_by_id: dict[int, TopicMeta],
+    curriculum: Curriculum,
 ) -> None:
     """Persist one submission attempt with sanitized problem state."""
     username = state.username
@@ -50,8 +50,8 @@ def log_submission_telemetry(
     if state.problem_start_time is not None:
         time_spent = int(time.time() - state.problem_start_time)
 
-    chapter_name = get_chapter_name_by_id(chapter_id) or str(chapter_id)
-    topic_name = topics_by_id[topic_id]["name"]
+    chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
+    topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
     db.log_telemetry(
         session_id=state.session_id,
