@@ -23,6 +23,7 @@ from backend.problem_generation import (
 )
 from backend.models import (
     AutoSolveRequest,
+    SessionResponse,
     SessionState,
     ProblemResponse,
     ProblemSubmissionRequest,
@@ -129,10 +130,10 @@ def respond(
     state: SessionState,
     curriculum: dict[int, list[TopicDict]],
     play_mode: PlayMode | None = None,
-) -> SessionState:
-    """Build an API-safe SessionState with navigation attached."""
+) -> SessionResponse:
+    """Build the client SessionResponse from persisted state and play mode."""
     mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    response = deepcopy(state)
+    response = SessionResponse.model_validate(deepcopy(state).model_dump())
     if response.current_problem:
         response.current_problem = public_problem(
             response.current_problem, response, mode
@@ -202,8 +203,8 @@ def _validate_unlocked_navigation(
 # --- Session use-cases ---
 
 
-def start_session(request: SessionStartRequest) -> SessionState:
-    """Create a session, load user progress, and return SessionState with navigation."""
+def start_session(request: SessionStartRequest) -> SessionResponse:
+    """Create a session, load user progress, and return SessionResponse with navigation."""
     play_mode = resolve_play_mode(request.username)
     curriculum = get_curriculum()
     chapter_ids = [chapter.chapter_id for chapter in get_chapters()]
@@ -243,7 +244,7 @@ def start_session(request: SessionStartRequest) -> SessionState:
     return respond(state, curriculum, play_mode)
 
 
-def navigate_session(request: SessionNavigateRequest) -> SessionState:
+def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
@@ -295,8 +296,8 @@ def navigate_session(request: SessionNavigateRequest) -> SessionState:
     return respond(state, curriculum, play_mode)
 
 
-def reset_session(request: SessionResetRequest) -> SessionState:
-    """Hard-reset session progress and return a fresh SessionState."""
+def reset_session(request: SessionResetRequest) -> SessionResponse:
+    """Hard-reset session progress and return a fresh SessionResponse."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = get_curriculum()

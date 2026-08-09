@@ -11,7 +11,7 @@ from backend.core import db
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
-    SessionState,
+    SessionResponse,
     ProblemResponse,
     ProblemSubmissionRequest,
     SessionNavigateRequest,
@@ -101,17 +101,17 @@ async def curriculum_index() -> CurriculumResponse:
 # --- Session endpoints ---
 
 
-@app.post("/session/start", response_model=SessionState, tags=["Session"])
-async def session_start(request: SessionStartRequest) -> SessionState:
-    """Create a session, load user progress, and return SessionState with navigation."""
+@app.post("/session/start", response_model=SessionResponse, tags=["Session"])
+async def session_start(request: SessionStartRequest) -> SessionResponse:
+    """Create a session, load user progress, and return SessionResponse with navigation."""
     try:
         return start_session(request)
     except SessionError as exc:
         raise _map_session_error(exc) from exc
 
 
-@app.post("/session/navigate", response_model=SessionState, tags=["Session"])
-async def session_navigate(request: SessionNavigateRequest) -> SessionState:
+@app.post("/session/navigate", response_model=SessionResponse, tags=["Session"])
+async def session_navigate(request: SessionNavigateRequest) -> SessionResponse:
     """Change chapter, topic, or level with unlock validation."""
     try:
         return navigate_session(request)
@@ -119,9 +119,9 @@ async def session_navigate(request: SessionNavigateRequest) -> SessionState:
         raise _map_session_error(exc) from exc
 
 
-@app.post("/session/reset", response_model=SessionState, tags=["Session"])
-async def session_reset(request: SessionResetRequest) -> SessionState:
-    """Hard-reset session progress and return a fresh SessionState."""
+@app.post("/session/reset", response_model=SessionResponse, tags=["Session"])
+async def session_reset(request: SessionResetRequest) -> SessionResponse:
+    """Hard-reset session progress and return a fresh SessionResponse."""
     try:
         return reset_session(request)
     except SessionError as exc:

@@ -46,7 +46,7 @@ class NavigationProgress(BaseModel):
 
 
 class NavigationView(BaseModel):
-    """Computed navigation state attached to every SessionState API response."""
+    """Computed navigation state attached to every SessionResponse."""
 
     available_chapters: list[NavigationChapterOption]
     current_topic_name: Optional[str] = None
@@ -62,7 +62,7 @@ class NavigationView(BaseModel):
 
 
 class SessionState(BaseModel):
-    """Mutable session state used by session_state and API responses."""
+    """Persisted Session — identity, progression, selection, submission cycle, Frontier, problem plumbing."""
 
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: Optional[str] = None
@@ -93,18 +93,8 @@ class SessionState(BaseModel):
         description="Recent generated problem fingerprints for duplicate avoidance",
     )
 
-    can_submit: bool = False
-    can_advance: bool = False
-    admin_mode: bool = Field(
-        default=False,
-        description="Whether the user has admin privileges (all chapters + auto-solve)",
-    )
-    navigation: Optional[NavigationView] = Field(
-        default=None,
-        description="Computed UI navigation state (API responses only, not persisted)",
-    )
-
     model_config = ConfigDict(
+        extra="ignore",
         json_schema_extra={
             "example": {
                 "session_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -132,8 +122,23 @@ class SessionState(BaseModel):
     )
 
     def to_storage(self) -> str:
-        """Serialize session state for SQLite persistence."""
-        return self.model_dump_json(exclude={"navigation"})
+        """Serialize persisted Session fields for SQLite."""
+        return self.model_dump_json(include=set(SessionState.model_fields))
+
+
+class SessionResponse(SessionState):
+    """Client Session payload — persisted fields plus derived response view."""
+
+    can_submit: bool = False
+    can_advance: bool = False
+    admin_mode: bool = Field(
+        default=False,
+        description="Whether the user has admin privileges (all chapters + auto-solve)",
+    )
+    navigation: Optional[NavigationView] = Field(
+        default=None,
+        description="Computed UI navigation state (API responses only, not persisted)",
+    )
 
 
 # --- Request models ---
@@ -203,12 +208,12 @@ class ProblemResponse(BaseModel):
     """Next problem payload plus updated session state."""
 
     problem: Dict[str, Any]
-    state: SessionState
+    state: SessionResponse
 
 
 class SubmissionResponse(BaseModel):
     """Grading outcome plus updated session state."""
 
-    state: SessionState
+    state: SessionResponse
     is_correct: bool
     feedback: str

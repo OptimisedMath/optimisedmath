@@ -12,7 +12,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | Layer | Module | Owns |
 |-------|--------|------|
 | HTTP | `main.py` | Routes, CORS, exception → HTTP status |
-| Session use-cases | `session.py` | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` |
+| Session use-cases | `session.py` | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` owns the response view (`SessionResponse`) |
 | Session state | `session_state.py` | Load/save/mutate `SessionState`; grade → progression → persist |
 | Progression | `progression.py` | Streak, XP, level/topic progression per Submission (pure) |
 | Access | `unlock.py` | Reachable chapter/topic/level (pure) |
@@ -30,7 +30,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 1. **Strict layers:** HTTP → session → state → pure rules. Pure modules never import session, state, or HTTP.
 2. **`models.py` is shared:** any layer may import Pydantic types from `models.py`.
 3. **`navigation_view` reads only:** may read `SessionState` from `models.py`; must not mutate state or call session use-cases.
-4. **`session.py` orchestrates responses:** owns `respond()` — calls state helpers and `navigation_view.build_*`; does not embed view-building logic.
+4. **`session.py` owns the response view:** `respond()` builds `SessionResponse` from persisted `SessionState` plus play mode and navigation; calls state helpers and `navigation_view.build_*`; does not embed view-building logic beyond assembling the payload.
 5. **`Curriculum` is injected below session:** modules below the session use-case layer receive `Curriculum` as a parameter; only HTTP/session resolve it via `resolve_curriculum()`.
 
 ## Curriculum & problems

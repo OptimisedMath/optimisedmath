@@ -1,5 +1,6 @@
 """Unit tests for the persistence layer public API (backend/core/db.py)."""
 
+import json
 import sqlite3
 import uuid
 
@@ -7,6 +8,8 @@ import pytest
 
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
+
+RESPONSE_ONLY_FIELDS = frozenset({"can_submit", "can_advance", "admin_mode", "navigation"})
 
 
 def _sample_state(**overrides) -> SessionState:
@@ -25,6 +28,16 @@ def _sample_state(**overrides) -> SessionState:
     for key, value in overrides.items():
         setattr(state, key, value)
     return state
+
+
+def _raw_session_json(session_id: str) -> dict:
+    with db.get_connection() as conn:
+        row = conn.execute(
+            "SELECT state_json FROM sessions WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+    assert row is not None
+    return json.loads(row[0])
 
 
 def test_init_db_is_idempotent(tmp_path):
@@ -85,7 +98,55 @@ def test_save_and_load_session_round_trip():
     assert loaded.streak == state.streak
     assert loaded.selected_chapter_id == state.selected_chapter_id
     assert loaded.chapter_frontiers == state.chapter_frontiers
-    assert loaded.navigation is None
+    assert RESPONSE_ONLY_FIELDS.isdisjoint(type(loaded).model_fields)
+
+
+def test_saved_session_json_omits_response_only_fields():
+    state = _sample_state(
+        current_problem={"problem_id": "p1", "question": "q", "correct": "1"},
+        problem_answered=False,
+    )
+    db.save_session(state.session_id, "alice", state)
+
+    stored = _raw_session_json(state.session_id)
+
+    assert RESPONSE_ONLY_FIELDS.isdisjoint(stored)
+
+
+def test_load_session_tolerates_legacy_response_only_fields():
+    state = _sample_state(streak=2, xp=50)
+    legacy = json.loads(state.to_storage())
+    legacy.update(
+        {
+            "can_submit": True,
+            "can_advance": False,
+            "admin_mode": True,
+            "navigation": {
+                "available_chapters": [],
+                "available_topics": [],
+                "available_levels": [],
+                "has_next_unlocked_topic": False,
+                "radio_only": False,
+            },
+        }
+    )
+    with db.get_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO sessions (session_id, username, state_json, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (state.session_id, "alice", json.dumps(legacy)),
+        )
+        conn.commit()
+
+    loaded = db.load_session(state.session_id)
+
+    assert loaded is not None
+    assert loaded.session_id == state.session_id
+    assert loaded.streak == 2
+    assert loaded.xp == 50
+    assert RESPONSE_ONLY_FIELDS.isdisjoint(type(loaded).model_fields)
 
 
 def test_load_session_returns_none_when_missing():

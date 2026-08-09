@@ -1,5 +1,6 @@
 """Unit tests for the session use-case layer."""
 
+import json
 import uuid
 
 import pytest
@@ -16,6 +17,7 @@ from backend.models import (
     ChapterFrontier,
     ProblemSubmissionRequest,
     SessionNavigateRequest,
+    SessionResponse,
     SessionState,
     SessionStartRequest,
 )
@@ -171,6 +173,8 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state():
 
     response = session.respond(state, curriculum)
 
+    assert isinstance(response, SessionResponse)
+    assert not isinstance(state, SessionResponse)
     assert response.can_submit is True
     assert response.can_advance is False
     assert response.admin_mode is False
@@ -184,6 +188,10 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state():
     assert state.problem_start_time == 123.0
     assert state.recent_problem_fingerprints == ["fp1"]
     assert state.current_problem["correct"] == "42"
+    assert "can_submit" not in SessionState.model_fields
+    assert "can_advance" not in SessionState.model_fields
+    assert "admin_mode" not in SessionState.model_fields
+    assert "navigation" not in SessionState.model_fields
     assert not hasattr(SessionState, "for_response")
 
 
@@ -200,6 +208,7 @@ def test_respond_builds_answered_problem_payload():
 
     response = session.respond(state, curriculum)
 
+    assert isinstance(response, SessionResponse)
     assert response.can_submit is False
     assert response.can_advance is True
     assert response.current_problem is not None
@@ -222,9 +231,55 @@ def test_respond_uses_passed_play_mode_for_admin_reveal():
 
     response = session.respond(state, curriculum, play_mode=admin_mode)
 
+    assert isinstance(response, SessionResponse)
     assert response.admin_mode is True
+    assert response.can_submit is True
+    assert response.can_advance is False
+    assert response.navigation is not None
     assert response.current_problem is not None
     assert response.current_problem["correct_answer"] == "42"
+
+
+def test_legacy_stored_response_fields_load_and_serve_correct_payload():
+    """Old session rows with response-only fields still load and respond correctly."""
+    state = _fresh_state()
+    state.current_problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "42",
+        "options": ["41", "42"],
+    }
+    state.problem_answered = False
+    legacy = json.loads(state.to_storage())
+    legacy.update(
+        {
+            "can_submit": False,
+            "can_advance": True,
+            "admin_mode": True,
+            "navigation": None,
+        }
+    )
+    with db.get_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO sessions (session_id, username, state_json, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (state.session_id, state.username, json.dumps(legacy)),
+        )
+        conn.commit()
+
+    loaded = db.load_session(state.session_id)
+    assert loaded is not None
+    curriculum, _ = _curriculum_and_chapters()
+    response = session.respond(loaded, curriculum)
+
+    assert isinstance(response, SessionResponse)
+    assert response.can_submit is True
+    assert response.can_advance is False
+    assert response.admin_mode is False
+    assert response.current_problem is not None
+    assert "correct_answer" not in response.current_problem
 
 
 # --- public_problem ---
