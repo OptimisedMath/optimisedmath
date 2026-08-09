@@ -10,10 +10,9 @@ from typing import Any
 
 import backend.config as config
 from backend.core.utils import ProblemDict
+from backend.curriculum import Curriculum
 from backend.curriculum_loader import (
     get_chapter_keyboard_type,
-    get_chapters,
-    get_curriculum,
     get_level_config,
     get_topic_name,
     get_topics_by_id,
@@ -81,12 +80,11 @@ FUNCTION_REGISTRY: dict[str, GeneratorFunc] = _load_generator_registry(CHAPTERS_
 set_function_registry(FUNCTION_REGISTRY)
 
 
-def get_curriculum_response() -> CurriculumResponse:
+def get_curriculum_response(curriculum: Curriculum) -> CurriculumResponse:
     """Return curriculum metadata formatted for the API."""
-    curriculum = get_curriculum()
     chapters: list[ChapterSummary] = []
-    for chapter in get_chapters():
-        topic_list = curriculum.get(chapter.chapter_id, [])
+    for chapter in curriculum.chapters():
+        topic_list = curriculum.topics(chapter.chapter_id)
         chapters.append(
             ChapterSummary(
                 chapter_id=chapter.chapter_id,

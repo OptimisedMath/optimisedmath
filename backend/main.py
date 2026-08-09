@@ -19,6 +19,7 @@ from backend.models import (
     SessionStartRequest,
     SubmissionResponse,
 )
+from backend.curriculum import resolve_curriculum
 from backend.problem_generation import get_curriculum_response
 from backend.session import (
     ACTIVE_SESSIONS,
@@ -94,7 +95,7 @@ async def root() -> dict[str, str]:
 @app.get("/curriculum", response_model=CurriculumResponse, tags=["Curriculum"])
 async def curriculum_index() -> CurriculumResponse:
     """Return available chapters and their topic metadata."""
-    return get_curriculum_response()
+    return get_curriculum_response(resolve_curriculum())
 
 
 # --- Session endpoints ---

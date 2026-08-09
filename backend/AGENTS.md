@@ -20,7 +20,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | Problems | `problem_generation.py` | Generator registry, level assembly (pure) |
 | Navigation resolution | `navigation_resolution.py` | Nav intents, clamping (pure) |
 | Navigation view | `navigation_view.py` | Dropdown/progress payload; reads state, never mutates |
-| Curriculum | `curriculum_loader.py` | YAML load, validate, cache |
+| Curriculum | `curriculum.py`, `curriculum_loader.py` | Read model + provider; YAML load, validate, cache |
 | Persistence | `core/db.py` | SQLite read/write |
 | API contract | `models.py` | Pydantic request/response models |
 | Config | `config.py` | Settings; `PROJECT_ROOT` is `backend/`, not repo root |
@@ -31,10 +31,11 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 2. **`models.py` is shared:** any layer may import Pydantic types from `models.py`.
 3. **`navigation_view` reads only:** may read `SessionState` from `models.py`; must not mutate state or call session use-cases.
 4. **`session.py` orchestrates responses:** owns `respond()` — calls state helpers and `navigation_view.build_*`; does not embed view-building logic.
+5. **`Curriculum` is injected below session:** modules below the session use-case layer receive `Curriculum` as a parameter; only HTTP/session resolve it via `resolve_curriculum()`.
 
 ## Curriculum & problems
 
-- Curriculum YAML in `backend/data/`; loaded by `curriculum_loader.py`.
+- Curriculum YAML in `backend/data/`; loaded by `curriculum_loader.py`; read model + provider in `curriculum.py`.
 - Problem generators in `backend/chapters/<slug>/topic_{id}_{slug}.py` (auto-registered; `_` prefix for helpers).
 - Copy an existing chapter file when adding content.
 

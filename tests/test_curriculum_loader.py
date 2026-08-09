@@ -3,6 +3,7 @@
 import pytest
 
 import backend.curriculum_loader as loader
+from backend.curriculum import resolve_curriculum
 from backend.problem_generation import FUNCTION_REGISTRY, get_curriculum_response
 
 
@@ -34,7 +35,7 @@ def test_get_chapter_yaml_uses_topics_key():
 
 
 def test_curriculum_response_uses_chapters_field():
-    response = get_curriculum_response()
+    response = get_curriculum_response(resolve_curriculum())
     assert response.chapters[0].name == "Ułamki Zwykłe"
     assert response.chapters[0].topics[0].name == "Zapisywanie"
 
