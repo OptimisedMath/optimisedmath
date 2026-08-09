@@ -158,14 +158,14 @@ def respond(
 def begin_problem(
     state: SessionState,
     problem: ProblemDict,
-    topics_by_id: dict[int, Any],
+    curriculum: Curriculum,
     *,
     recent_fingerprints: list[str] | None = None,
     play_mode: PlayMode | None = None,
 ) -> None:
     """Apply state mutations for a newly generated problem and persist."""
     state.current_input_mode = session_state.resolve_input_mode(
-        state, topics_by_id
+        state, curriculum
     )
     if recent_fingerprints is not None:
         state.recent_problem_fingerprints = recent_fingerprints[
@@ -207,10 +207,8 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     """Create a session, load user progress, and return SessionResponse with navigation."""
     play_mode = resolve_play_mode(request.username)
     curriculum = resolve_curriculum()
-    nav_curriculum = curriculum.as_nav_curriculum()
-    chapter_ids = list(curriculum.chapter_ids())
 
-    if not chapter_ids:
+    if not curriculum.chapter_ids():
         raise InternalError("No curriculum data available")
 
     if request.selected_chapter_id is not None and not curriculum.has_chapter(
@@ -221,10 +219,8 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
         )
 
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, nav_curriculum)
-    session_state.load_profile(
-        state, request.username, chapter_ids, nav_curriculum
-    )
+    session_state.init_defaults(state, curriculum)
+    session_state.load_profile(state, request.username, curriculum)
     navigation_resolution.clamp_selected_level(state, curriculum)
 
     if request.selected_chapter_id is not None:
@@ -276,8 +272,11 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
             f"Topic id {topic_id} not found in curriculum"
         )
 
-    topics_by_id = curriculum.topics_by_id_for(chapter_id)
-    selected_topic_meta = topics_by_id[topic_id]
+    selected_topic_meta = curriculum.topic(chapter_id, topic_id)
+    if selected_topic_meta is None:
+        raise SessionError(
+            f"Topic id {topic_id} not found in curriculum"
+        )
     max_level = int(selected_topic_meta["max_level"])
 
     if selected_level < 1 or selected_level > max_level:
@@ -292,7 +291,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
         chapter_id=chapter_id,
         topic_id=topic_id,
         level=selected_level,
-        topics_by_id=topics_by_id,
+        curriculum=curriculum,
         play_mode=play_mode,
     )
 
@@ -304,9 +303,7 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    nav_curriculum = curriculum.as_nav_curriculum()
-    chapter_ids = list(curriculum.chapter_ids())
-    session_state.hard_reset(state, chapter_ids, nav_curriculum, play_mode)
+    session_state.hard_reset(state, curriculum, play_mode)
     return respond(state, curriculum, play_mode)
 
 
@@ -341,20 +338,18 @@ def next_problem(session_id: str) -> ProblemResponse:
             )
 
         next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-        topics_by_id = curriculum.topics_by_id_for(chapter_id)
         session_state.navigate_to(
             state,
             chapter_id=chapter_id,
             topic_id=next_topic_id,
             level=1,
-            topics_by_id=topics_by_id,
+            curriculum=curriculum,
             play_mode=play_mode,
         )
         chapter_id = state.selected_chapter_id
         topic_id = state.selected_topic_id
 
-    topics_by_id = curriculum.topics_by_id_for(chapter_id)
-    if topic_id not in topics_by_id:
+    if curriculum.topic(chapter_id, topic_id) is None:
         raise SessionError(
             f"Topic id {topic_id} not found in curriculum"
         )
@@ -387,7 +382,7 @@ def next_problem(session_id: str) -> ProblemResponse:
     begin_problem(
         state,
         problem,
-        topics_by_id,
+        curriculum,
         recent_fingerprints=recent_fingerprints,
         play_mode=play_mode,
     )
@@ -430,10 +425,8 @@ def _submit_active_problem(
     if chapter_id is None or not curriculum.has_chapter(chapter_id):
         raise SessionError(f"Chapter id {chapter_id} not found")
 
-    topics_by_id = curriculum.topics_by_id_for(chapter_id)
-
     eval_result = _process_submission(
-        state, problem, user_input, is_input_mode, topics_by_id, play_mode, curriculum
+        state, problem, user_input, is_input_mode, curriculum, play_mode
     )
 
     return SubmissionResponse(
@@ -482,19 +475,12 @@ def _process_submission(
     problem: ProblemDict,
     user_input: str,
     is_input_mode: bool,
-    topics_by_id: dict[int, Any],
-    play_mode: PlayMode,
     curriculum: Curriculum,
+    play_mode: PlayMode,
 ) -> EvalResult:
     try:
         return session_state.process_submission(
-            state,
-            problem,
-            user_input,
-            is_input_mode,
-            topics_by_id,
-            play_mode,
-            curriculum,
+            state, problem, user_input, is_input_mode, curriculum, play_mode
         )
     except Exception as exc:
         print(f"Error in process_submission: {exc}")
