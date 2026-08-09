@@ -15,11 +15,8 @@ from tests.support.fixture_curriculum import (
 
 
 def _fresh_state(fixture_curriculum) -> SessionState:
-    chapter_ids = list(fixture_curriculum.chapter_ids())
     state = SessionState()
-    session_state.init_defaults(
-        state, chapter_ids, fixture_curriculum.as_nav_curriculum()
-    )
+    session_state.init_defaults(state, fixture_curriculum)
     state.username = "telemetry-user"
     state.session_id = str(uuid.uuid4())
     state.selected_chapter_id = CHAPTER_ALPHA
