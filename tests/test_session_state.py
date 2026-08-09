@@ -7,6 +7,7 @@ import pytest
 
 import backend.config as config
 import backend.session_state as session_state
+import backend.submission as submission
 from backend.core import db
 from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, SessionState
@@ -206,7 +207,7 @@ def test_process_submission_grades_and_persists(fixture_curriculum: Curriculum):
     state.current_problem = problem
     session_state.sync_to_db(state)
 
-    result = session_state.process_submission(
+    result = submission.process_submission(
         state, problem, "2", False, fixture_curriculum, _STUDENT
     )
 
@@ -339,7 +340,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     )
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = session_state.process_submission(
+    result = submission.process_submission(
         state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
     )
 
@@ -366,7 +367,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
         streak=2,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _wrong_problem(), "3", False, fixture_curriculum, _ADMIN
     )
 
@@ -389,7 +390,7 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
         streak=0,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
     )
 
@@ -408,7 +409,7 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
         streak=2,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
     )
 
@@ -425,7 +426,7 @@ def test_process_submission_wrong_answer_sets_warning_feedback_type_for_student(
     state.current_problem = _wrong_problem()
     session_state.sync_to_db(state)
 
-    result = session_state.process_submission(
+    result = submission.process_submission(
         state, _wrong_problem(), "3", False, fixture_curriculum, _STUDENT
     )
 
@@ -458,7 +459,7 @@ def test_process_submission_trap_answer_sets_warning_feedback_type_for_student(
     state.current_problem = _trap_problem()
     session_state.sync_to_db(state)
 
-    result = session_state.process_submission(
+    result = submission.process_submission(
         state, _trap_problem(), "1/3", True, fixture_curriculum, _STUDENT
     )
 
@@ -474,7 +475,7 @@ def test_process_submission_soft_error_preserves_streak_and_flawless_for_student
     state.current_problem = _soft_error_problem()
     session_state.sync_to_db(state)
 
-    result = session_state.process_submission(
+    result = submission.process_submission(
         state, _soft_error_problem(), "2/4", True, fixture_curriculum, _STUDENT
     )
 
@@ -496,7 +497,7 @@ def test_admin_trap_answer_sets_warning_feedback_type(
         streak=2,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _trap_problem(), "1/3", True, fixture_curriculum, _ADMIN
     )
 
@@ -519,7 +520,7 @@ def test_admin_soft_error_preserves_session_streak(
         streak=2,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _soft_error_problem(), "2/4", True, fixture_curriculum, _ADMIN
     )
 
@@ -554,7 +555,7 @@ def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
         streak=2,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
     )
 
@@ -574,7 +575,7 @@ def test_admin_resets_streak_at_stored_frontier_boundary(
         streak=2,
     )
 
-    session_state.process_submission(
+    submission.process_submission(
         state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
     )
 

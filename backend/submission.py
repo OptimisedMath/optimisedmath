@@ -48,7 +48,11 @@ def process_submission(
     ):
         raise RuntimeError("Session missing required context for submission")
 
-    eval_result = _grade_submission(state, user_input, problem, is_input_mode)
+    eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
+    state.problem_answered = eval_result.get("lock_answer", False)
+    state.feedback_type = eval_result.get("feedback_type", None)
+    state.feedback_msg = eval_result.get("feedback_msg", "")
+
     _log_submission_telemetry(
         state, problem, user_input, is_input_mode, eval_result, curriculum
     )
@@ -57,20 +61,6 @@ def process_submission(
     from backend.session_state import sync_to_db
 
     sync_to_db(state, play_mode)
-    return eval_result
-
-
-def _grade_submission(
-    state: SessionState,
-    user_input: str,
-    problem: ProblemDict,
-    is_input_mode: bool,
-) -> EvalResult:
-    """Grade one submission and apply immediate feedback fields to state."""
-    eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
-    state.problem_answered = eval_result.get("lock_answer", False)
-    state.feedback_type = eval_result.get("feedback_type", None)
-    state.feedback_msg = eval_result.get("feedback_msg", "")
     return eval_result
 
 

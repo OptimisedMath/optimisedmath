@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 import backend.main as main
+import backend.submission as submission
 from backend.curriculum import resolve_curriculum
 from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import StudentPlayMode
@@ -477,7 +478,7 @@ def test_radio_only_topic_keeps_radio_input():
     state = make_state(problem, streak=0, input_mode="radio")
     state.selected_chapter_id = disabled_chapter_id
     state.selected_topic_id = disabled_topic["topic_id"]
-    main.session_state.process_submission(
+    submission.process_submission(
         state, problem, "a", False, resolve_curriculum(), StudentPlayMode()
     )
 
@@ -683,7 +684,7 @@ def test_next_problem_at_chapter_end_returns_without_error():
 def test_generator_messages_override_yaml_traps(monkeypatch):
     from backend.core.utils import build_problem_dict
     import backend.problem_generation as problem_generation
-    from backend.answer_grading import evaluate_answer
+    from backend.answer_grading import grade
 
     branch_message = "branch-specific trap feedback"
 
@@ -707,7 +708,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         == "Liczby nie są równe — nie wybieraj znaku równości!"
     )
 
-    eval_result = evaluate_answer(">", problem, is_input_mode=False)
+    eval_result = grade(">", problem, is_input_mode=False)
     assert eval_result.get("trap_id") == "t1"
     assert eval_result.get("feedback_msg") == branch_message
 
