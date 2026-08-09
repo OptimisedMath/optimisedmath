@@ -1,6 +1,5 @@
 export { PREFERRED_CHAPTER_ID, SESSION_STORAGE_KEYS } from './constants';
 export {
-  autoSolve,
   getNextProblem,
   navigateSession,
   resetSession,
@@ -16,7 +15,6 @@ export {
 } from './storage';
 export { useSession } from './useSession';
 export type {
-  AutoSolveRequest,
   ChapterFrontier,
   Feedback,
   NavigateIntent,

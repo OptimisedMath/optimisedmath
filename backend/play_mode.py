@@ -17,9 +17,11 @@ pipeline (see `session.py`) and telemetry still logs, but
 never written back to the profile, and progress bars render fully
 complete. Session streak still runs in-cycle (radio → input mode, wrong
 answers decrement) for a realistic feel, but is never persisted — navigation
-still resets it. Auto-solve (`session.auto_solve_problem`) is a visible
-shortcut through that same Submission pipeline: the caller supplies the
-correct answer instead of the admin typing/selecting it.
+still resets it. Admin auto-solve in the UI is a visible shortcut through
+that same Submission pipeline: the client selects or types the correct
+answer, then calls `/problem/submit`. `session.auto_solve_problem` and
+`/problem/auto-solve` are dev-tools-only shortcuts that skip the UI fill
+step; the frontend does not call them.
 """
 
 from __future__ import annotations

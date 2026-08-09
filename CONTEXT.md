@@ -136,5 +136,5 @@ _Avoid_: GameState (code name)
 Experience points earned per correct answer and level completion.
 
 **Admin mode**:
-QA and debug access for designated Usernames, invisible to normal Students. Lets the admin reach every Topic and Level without earning them, and never writes progression (XP, Flawless, Frontier) to the profile. To dogfood the mastery loop, use a normal Student account. Mechanics: `backend/play_mode.py`.
+QA and debug access for designated Usernames, invisible to normal Students. Lets the admin reach every Topic and Level without earning them, and never writes progression (XP, Flawless, Frontier) to the profile. To dogfood the mastery loop, use a normal Student account. Admin auto-solve is a visible shortcut through the normal Submission pipeline: the UI selects or types the correct answer, then submits via `/problem/submit` (not a separate client API). A backend `/problem/auto-solve` endpoint exists for dev-tools and tests only. Mechanics: `backend/play_mode.py`.
 _Avoid_: cheat mode, debug mode, preview mode

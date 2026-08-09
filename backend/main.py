@@ -149,9 +149,13 @@ async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionRespons
         raise _map_session_error(exc) from exc
 
 
-@app.post("/problem/auto-solve", response_model=SubmissionResponse, tags=["Problem"])
+@app.post(
+    "/problem/auto-solve",
+    response_model=SubmissionResponse,
+    tags=["Problem", "Dev tools"],
+)
 async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
-    """Submit the correct answer for admin or dev testing."""
+    """Dev-tools shortcut: submit the correct answer without UI fill-then-submit."""
     try:
         return auto_solve_problem(request)
     except SessionError as exc:

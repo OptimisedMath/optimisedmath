@@ -1,6 +1,5 @@
 import api from '@/lib/api';
 import type {
-  AutoSolveRequest,
   ProblemResponse,
   SessionNavigateRequest,
   SessionResetRequest,
@@ -34,10 +33,5 @@ export const getNextProblem = async (sessionId: string): Promise<ProblemResponse
 
 export const submitAnswer = async (request: ProblemSubmissionRequest): Promise<SubmissionResponse> => {
   const response = await api.post<SubmissionResponse>('/problem/submit', request);
-  return response.data;
-};
-
-export const autoSolve = async (request: AutoSolveRequest): Promise<SubmissionResponse> => {
-  const response = await api.post<SubmissionResponse>('/problem/auto-solve', request);
   return response.data;
 };

@@ -93,11 +93,6 @@ export interface ProblemSubmissionRequest {
   problem_id?: string;
 }
 
-export interface AutoSolveRequest {
-  session_id: string;
-  problem_id?: string;
-}
-
 export interface ProblemResponse {
   problem: Problem;
   state: SessionState;
