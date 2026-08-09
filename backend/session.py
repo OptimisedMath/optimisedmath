@@ -7,8 +7,7 @@ from copy import deepcopy
 from typing import Any
 
 import backend.config as config
-import backend.navigation_resolution as navigation_resolution
-import backend.navigation_snapshot as navigation_snapshot
+import backend.navigation as navigation
 import backend.session_state as session_state
 import backend.submission as submission
 from backend.curriculum import Curriculum, resolve_curriculum
@@ -152,10 +151,10 @@ def respond(
     response.problem_start_time = None
     response.recent_problem_fingerprints = []
     response.admin_mode = mode.is_admin
-    snapshot = navigation_snapshot.build_navigation_snapshot(
+    snapshot = navigation.build_navigation_snapshot(
         response, curriculum, mode
     )
-    response.navigation = navigation_snapshot.build_navigation_view(snapshot)
+    response.navigation = navigation.build_navigation_view(snapshot)
     return response
 
 
@@ -191,7 +190,7 @@ def begin_problem(
 
 
 def _validate_unlocked_navigation(
-    snapshot: navigation_snapshot.NavigationSnapshot,
+    snapshot: navigation.NavigationSnapshot,
     chapter_id: int,
     topic_id: int,
     selected_level: int,
@@ -228,16 +227,16 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     state = SessionState()
     session_state.init_defaults(state, curriculum)
     session_state.load_profile(state, request.username, curriculum)
-    navigation_resolution.clamp_selected_level(state, curriculum)
+    navigation.clamp_selected_level(state, curriculum)
 
     if request.selected_chapter_id is not None:
         prev_chapter_id = state.selected_chapter_id
         state.selected_chapter_id = request.selected_chapter_id
         if request.selected_chapter_id != prev_chapter_id:
-            snapshot = navigation_snapshot.build_navigation_snapshot(
+            snapshot = navigation.build_navigation_snapshot(
                 state, curriculum, play_mode
             )
-            _, topic_id, level = navigation_resolution.resolve_chapter_change(
+            _, topic_id, level = navigation.resolve_chapter_change(
                 curriculum, request.selected_chapter_id, snapshot
             )
             state.selected_topic_id = topic_id
@@ -255,10 +254,10 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    snapshot = navigation_snapshot.build_navigation_snapshot(
+    snapshot = navigation.build_navigation_snapshot(
         state, curriculum, play_mode
     )
-    chapter_id, topic_id, selected_level = navigation_resolution.resolve_navigate_request(
+    chapter_id, topic_id, selected_level = navigation.resolve_navigate_request(
         state, curriculum, request, snapshot
     )
 
@@ -331,7 +330,7 @@ def next_problem(session_id: str) -> ProblemResponse:
         )
 
     if state.problem_answered and state.topic_completed:
-        snapshot = navigation_snapshot.build_navigation_snapshot(
+        snapshot = navigation.build_navigation_snapshot(
             state, curriculum, play_mode
         )
         ctx = snapshot.chapter_context(chapter_id)

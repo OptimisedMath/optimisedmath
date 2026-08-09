@@ -6,7 +6,7 @@ import pytest
 
 from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, SessionState
-from backend.navigation_snapshot import build_navigation_snapshot, build_navigation_view
+from backend.navigation import build_navigation_snapshot, build_navigation_view
 from backend.play_mode import AdminPlayMode, StudentPlayMode, resolve_play_mode
 import backend.session_state as session_state
 from tests.support.fixture_curriculum import (
