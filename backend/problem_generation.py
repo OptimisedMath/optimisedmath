@@ -11,13 +11,7 @@ from typing import Any
 import backend.config as config
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
-from backend.curriculum_loader import (
-    get_chapter_keyboard_type,
-    get_level_config,
-    get_topic_name,
-    get_topics_by_id,
-    set_function_registry,
-)
+from backend.curriculum_loader import set_function_registry
 from backend.models import ChapterSummary, CurriculumResponse, TopicSummary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -120,21 +114,23 @@ def generate_problem(generator_func: GeneratorFunc) -> ProblemDict:
     )
 
 
-def generate_level_problem(chapter_id: int, topic_id: int, level: int) -> ProblemDict:
+def generate_level_problem(
+    curriculum: Curriculum, chapter_id: int, topic_id: int, level: int
+) -> ProblemDict:
     """Generate a problem for a curriculum level."""
-    topics_by_id = get_topics_by_id(chapter_id)
-    if not topics_by_id:
+    if not curriculum.has_chapter(chapter_id):
         raise ProblemGenerationError(f"Missing curriculum for chapter id: {chapter_id}")
 
+    topics_by_id = curriculum.topics_by_id_for(chapter_id)
     if topic_id not in topics_by_id:
-        topic_name = get_topic_name(chapter_id, topic_id)
+        topic_name = curriculum.topic_name(chapter_id, topic_id)
         raise ProblemGenerationError(
             f"Topic id {topic_id} ({topic_name!r}) not found in chapter {chapter_id}"
         )
 
-    level_config = get_level_config(chapter_id, topic_id, level)
+    level_config = curriculum.level_config(chapter_id, topic_id, level)
     if level_config is None or not level_config.published:
-        topic_name = get_topic_name(chapter_id, topic_id) or str(topic_id)
+        topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
         raise ProblemGenerationError(
             f"Level {level} is not available for topic '{topic_name}' in chapter {chapter_id}"
         )
@@ -163,7 +159,7 @@ def generate_level_problem(chapter_id: int, topic_id: int, level: int) -> Proble
     gen_messages = problem_dict.pop("messages", {})
     problem_dict["messages"] = yaml_messages | gen_messages
     problem_dict["level_display"] = f"{level_config.name} (Lvl {level})"
-    problem_dict["keyboard_type"] = get_chapter_keyboard_type(chapter_id)
+    problem_dict["keyboard_type"] = curriculum.keyboard_type(chapter_id)
     return problem_dict
 
 

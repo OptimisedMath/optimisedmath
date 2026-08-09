@@ -371,7 +371,9 @@ def next_problem(session_id: str) -> ProblemResponse:
 
     for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
         try:
-            candidate = generate_level_problem(chapter_id, topic_id, level)
+            candidate = generate_level_problem(
+                curriculum, chapter_id, topic_id, level
+            )
         except ProblemGenerationError as exc:
             raise InternalError(str(exc)) from exc
 
@@ -437,7 +439,7 @@ def _submit_active_problem(
     topics_by_id = curriculum.topics_by_id_for(chapter_id)
 
     eval_result = _process_submission(
-        state, problem, user_input, is_input_mode, topics_by_id, play_mode
+        state, problem, user_input, is_input_mode, topics_by_id, play_mode, curriculum
     )
 
     return SubmissionResponse(
@@ -488,10 +490,17 @@ def _process_submission(
     is_input_mode: bool,
     topics_by_id: dict[int, Any],
     play_mode: PlayMode,
+    curriculum: Curriculum,
 ) -> EvalResult:
     try:
         return session_state.process_submission(
-            state, problem, user_input, is_input_mode, topics_by_id, play_mode
+            state,
+            problem,
+            user_input,
+            is_input_mode,
+            topics_by_id,
+            play_mode,
+            curriculum,
         )
     except Exception as exc:
         print(f"Error in process_submission: {exc}")

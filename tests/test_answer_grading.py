@@ -173,21 +173,45 @@ class TestFormatMismatch:
 
 
 class TestGenerateLevelProblem:
-    def test_generates_real_fraction_problem(self):
-        problem = generate_level_problem(10, 10, 1)
-        assert problem["question"]
-        assert problem["correct"]
+    def test_generates_problem_from_fixture(
+        self, fixture_curriculum, monkeypatch
+    ):
+        import backend.problem_generation as problem_generation
+        from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
+
+        def fake_multi_1():
+            return {
+                "question": r"\text{grading fixture}",
+                "correct": "1",
+                "options": ["1", "2", "3", "4"],
+                "options_map": {"1": "correct", "2": "t1", "3": "t2", "4": "t3"},
+            }
+
+        monkeypatch.setitem(
+            problem_generation.FUNCTION_REGISTRY, "fixture_multi_1", fake_multi_1
+        )
+        problem = generate_level_problem(
+            fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 1
+        )
+        assert problem["question"] == r"\text{grading fixture}"
+        assert problem["correct"] == "1"
         assert problem["problem_id"]
         assert "error" not in problem
 
-    def test_missing_chapter_raises(self):
+    def test_missing_chapter_raises(self, fixture_curriculum):
         with pytest.raises(ProblemGenerationError, match="Missing curriculum"):
-            generate_level_problem(999, 10, 1)
+            generate_level_problem(fixture_curriculum, 999, 10, 1)
 
-    def test_missing_topic_raises(self):
+    def test_missing_topic_raises(self, fixture_curriculum):
+        from tests.support.fixture_curriculum import CHAPTER_ALPHA
+
         with pytest.raises(ProblemGenerationError, match="Topic id"):
-            generate_level_problem(10, 99999, 1)
+            generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, 99999, 1)
 
-    def test_missing_level_raises(self):
+    def test_missing_level_raises(self, fixture_curriculum):
+        from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
+
         with pytest.raises(ProblemGenerationError, match="Level 999"):
-            generate_level_problem(10, 10, 999)
+            generate_level_problem(
+                fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 999
+            )

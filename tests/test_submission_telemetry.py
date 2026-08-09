@@ -7,17 +7,24 @@ import uuid
 import backend.session_state as session_state
 import backend.submission_telemetry as submission_telemetry
 from backend.core import db
-from backend.curriculum_loader import get_curriculum, get_topics_by_id
 from backend.models import SessionState
+from tests.support.fixture_curriculum import (
+    CHAPTER_ALPHA,
+    TOPIC_MULTI,
+)
 
 
-def _fresh_state() -> SessionState:
-    curriculum = get_curriculum()
-    chapter_ids = sorted(curriculum.keys())
+def _fresh_state(fixture_curriculum) -> SessionState:
+    chapter_ids = list(fixture_curriculum.chapter_ids())
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, curriculum)
+    session_state.init_defaults(
+        state, chapter_ids, fixture_curriculum.as_nav_curriculum()
+    )
     state.username = "telemetry-user"
     state.session_id = str(uuid.uuid4())
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_MULTI
+    state.selected_level = 1
     return state
 
 
@@ -40,11 +47,9 @@ def test_sanitize_problem_strips_internal_fields():
     assert sanitized == {"question": "What is 2+2?", "correct": "4"}
 
 
-def test_log_submission_telemetry_persists_sanitized_problem():
-    state = _fresh_state()
-    chapter_id = state.selected_chapter_id
-    assert chapter_id is not None
-    topics_by_id = get_topics_by_id(chapter_id)
+def test_log_submission_telemetry_persists_fixture_names(fixture_curriculum):
+    """Persisted Chapter and Topic names come from the fixture Curriculum."""
+    state = _fresh_state(fixture_curriculum)
     problem = {
         "problem_id": "p1",
         "question": "q",
@@ -62,13 +67,13 @@ def test_log_submission_telemetry_persists_sanitized_problem():
         user_input="2",
         is_input_mode=False,
         eval_result={"is_correct": True},
-        topics_by_id=topics_by_id,
+        curriculum=fixture_curriculum,
     )
 
     with sqlite3.connect(db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT equation_state, is_correct, user_input
+            SELECT equation_state, is_correct, user_input, chapter, topic
             FROM telemetry_logs WHERE session_id = ?
             """,
             (state.session_id,),
@@ -80,3 +85,5 @@ def test_log_submission_telemetry_persists_sanitized_problem():
     assert "options" not in stored
     assert row[1] == 1
     assert row[2] == "2"
+    assert row[3] == "Chapter Alpha"
+    assert row[4] == "Multi Level Topic"

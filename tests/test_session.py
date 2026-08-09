@@ -554,6 +554,47 @@ def test_start_session_with_fixture_curriculum_lists_fixture_chapters(
     assert all(c.name != "Ułamki Zwykłe" for c in response.navigation.available_chapters)
 
 
+
+def test_start_next_submit_cycle_with_fixture_curriculum(
+    fixture_curriculum, monkeypatch
+):
+    """Full start → next problem → submit runs on the fixture Curriculum only."""
+    import backend.problem_generation as problem_generation
+
+    def fake_multi_1():
+        return {
+            "question": r"\text{fixture e2e}",
+            "correct": "1",
+            "options": ["1", "2", "3", "4"],
+            "options_map": {"1": "correct", "2": "t1", "3": "t2", "4": "t3"},
+        }
+
+    monkeypatch.setitem(
+        problem_generation.FUNCTION_REGISTRY, "fixture_multi_1", fake_multi_1
+    )
+    set_curriculum(fixture_curriculum)
+    try:
+        started = session.start_session(
+            SessionStartRequest(username=f"user-{uuid.uuid4()}")
+        )
+        problem_response = session.next_problem(started.session_id)
+        submission = session.submit_problem(
+            ProblemSubmissionRequest(
+                session_id=started.session_id,
+                problem_id=problem_response.problem["problem_id"],
+                user_input="1",
+                is_input_mode=False,
+            )
+        )
+    finally:
+        set_curriculum(None)
+
+    assert problem_response.problem["question"] == r"\text{fixture e2e}"
+    assert problem_response.state.selected_chapter_id == CHAPTER_ALPHA
+    assert submission.is_correct is True
+    assert submission.state.streak == 1
+
+
 def test_start_session_raises_for_unknown_chapter():
     with pytest.raises(session.SessionError) as exc_info:
         session.start_session(

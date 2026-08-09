@@ -424,8 +424,10 @@ def test_radio_only_topic_keeps_radio_input():
 
     topics_by_id = get_topics_by_id(disabled_chapter_id)
 
+    from backend.curriculum import resolve_curriculum
+
     main.session_state.process_submission(
-        state, problem, "a", False, topics_by_id, StudentPlayMode()
+        state, problem, "a", False, topics_by_id, StudentPlayMode(), resolve_curriculum()
     )
 
     assert state.streak == 1
@@ -467,7 +469,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
 
     call_count = {"value": 0}
 
-    def fake_generate_level_problem(_chapter_id, _topic_id, _level):
+    def fake_generate_level_problem(_curriculum, _chapter_id, _topic_id, _level):
         call_count["value"] += 1
         return {
             **duplicate_problem,
@@ -480,7 +482,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         "problem_id": "unique-1",
     }
 
-    def fake_generate_with_unique_second(_chapter_id, _topic_id, _level):
+    def fake_generate_with_unique_second(_curriculum, _chapter_id, _topic_id, _level):
         call_count["value"] += 1
         if call_count["value"] == 1:
             return {
@@ -643,7 +645,11 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
     monkeypatch.setitem(problem_generation.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
 
-    problem = problem_generation.generate_level_problem(20, 20, 1)
+    from backend.curriculum import resolve_curriculum
+
+    problem = problem_generation.generate_level_problem(
+        resolve_curriculum(), 20, 20, 1
+    )
     assert problem is not None
     assert problem["messages"]["t1"] == branch_message
     assert (

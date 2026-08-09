@@ -6,6 +6,7 @@ import backend.config as config
 from backend.answer_grading import EvalResult, evaluate_answer
 from backend.core import db
 from backend.core.utils import ProblemDict
+from backend.curriculum import Curriculum
 from backend.curriculum_loader import (
     TopicDict,
     TopicMeta,
@@ -226,6 +227,7 @@ def process_submission(
     is_input_mode: bool,
     topics_by_id: dict[int, TopicMeta],
     play_mode: PlayMode,
+    curriculum: Curriculum,
 ) -> EvalResult:
     """Process user submission: grade, log telemetry, apply outcome, sync."""
     if state.username is None or state.selected_chapter_id is None or state.selected_topic_id is None:
@@ -239,7 +241,7 @@ def process_submission(
         user_input,
         is_input_mode,
         eval_result,
-        topics_by_id,
+        curriculum,
     )
     submission_play_mode.apply_submission_outcome_via_play_mode(
         state, eval_result, topics_by_id, play_mode
