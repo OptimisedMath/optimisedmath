@@ -58,3 +58,11 @@ Five canonical roles with matching label strings (`needs-triage`, `needs-info`, 
 ### Domain docs
 
 Single-context: root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+
+## Cursor Cloud specific instructions
+
+- `./start.command` is macOS-only (uses `osascript`/`open`). On the cloud VM, start the two dev servers separately in the background (see "Run commands" above): backend via `.venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000`, and frontend via `cd frontend && npm run dev` (binds `0.0.0.0`, serves on port 3000).
+- Auth is username-only — there is no password. Log in by entering any name on `/login`. Usernames in `backend/config.ADMIN_USERNAMES` (`Antoni`/`Antonio`/`Tony`) get admin mode (all topics unlocked + auto-solve). The UI is in Polish.
+- SQLite DB (`backend/storage/users.db`) is created automatically on backend startup; no migration step. It is gitignored and holds all user progress/telemetry.
+- The frontend proxies `/api/*` to `http://127.0.0.1:8000` (`frontend/next.config.ts`), so the backend must be running for login/problems to work.
+- `black` is unpinned in `requirements.txt`; `black --check` may report many "would reformat" diffs against the currently committed code. That is a formatter-version artifact, not a broken checkout — do not mass-reformat existing files. Python-relevant lint/format is `black`; frontend lint is `npm run lint` (ESLint) and passes clean.
