@@ -8,7 +8,7 @@ from backend.curriculum import resolve_curriculum
 from backend.models import ChapterFrontier, SessionState, SessionNavigateRequest
 from backend.navigation_snapshot import build_navigation_snapshot
 from backend.play_mode import AdminPlayMode, StudentPlayMode
-from backend.navigation_helpers import get_level_options
+from backend.navigation_snapshot import _get_level_options as get_level_options
 from backend import navigation_resolution as resolution
 import backend.session_state as session_state
 

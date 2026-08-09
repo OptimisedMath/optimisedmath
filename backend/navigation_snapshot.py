@@ -7,12 +7,6 @@ from dataclasses import dataclass
 from backend.curriculum import Curriculum
 from backend.curriculum_loader import ChapterSummary, TopicDict
 from backend.models import ChapterFrontier, NavigationProgress, SessionState
-from backend.navigation_helpers import (
-    clamp_level,
-    find_topic_by_id,
-    get_level_options,
-    topics_for_chapter,
-)
 from backend.play_mode import PlayMode
 from backend.unlock import (
     Frontier,
@@ -21,6 +15,38 @@ from backend.unlock import (
     first_topic_id,
     level_limit,
 )
+
+
+def _topics_for_chapter(curriculum: Curriculum, chapter_id: int) -> list[TopicDict]:
+    return list(curriculum.topics(chapter_id))
+
+
+def _find_topic_by_id(
+    curriculum: Curriculum, chapter_id: int, topic_id: int
+) -> TopicDict | None:
+    for topic_entry in curriculum.topics(chapter_id):
+        if int(topic_entry["topic_id"]) == topic_id:
+            return topic_entry
+    return None
+
+
+def _clamp_level(
+    level: int | None,
+    curriculum: Curriculum,
+    chapter_id: int,
+    topic_id: int | None,
+) -> int:
+    """Return level capped to the topic's max_level (defensive for stale saves)."""
+    effective = level if level is not None else 1
+    if topic_id is None:
+        return min(effective, 1)
+    meta = curriculum.topic(chapter_id, topic_id)
+    max_level = int(meta["max_level"]) if meta else 1
+    return min(effective, max_level)
+
+
+def _get_level_options(level_limit_value: int) -> list[int]:
+    return list(range(1, max(level_limit_value, 1) + 1))
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +67,7 @@ class ChapterNavigationContext:
         return level_limit(topic_id, topic_max_level, self.effective_frontier)
 
     def level_options_for(self, topic_id: int, topic_max_level: int) -> list[int]:
-        return get_level_options(self.level_limit_for(topic_id, topic_max_level))
+        return _get_level_options(self.level_limit_for(topic_id, topic_max_level))
 
     def implicit_topic_landing(self, topic_id: int) -> int:
         return self._play_mode.implicit_topic_landing(
@@ -135,7 +161,7 @@ def _build_chapter_context(
     play_mode: PlayMode,
     chapter_id: int,
 ) -> ChapterNavigationContext:
-    chapter_topics = topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
     frontier_record = state.chapter_frontiers.get(chapter_id)
     effective = play_mode.effective_frontier(chapter_topics, frontier_record)
     accessible = tuple(accessible_topics(chapter_topics, effective))
@@ -163,17 +189,17 @@ def build_navigation_snapshot(
     selected_chapter_id = state.selected_chapter_id or (
         chapter_ids[0] if chapter_ids else 0
     )
-    chapter_topics = topics_for_chapter(curriculum, selected_chapter_id)
+    chapter_topics = _topics_for_chapter(curriculum, selected_chapter_id)
     default_topic_id = first_topic_id(chapter_topics)
     selected_topic_id = state.selected_topic_id or default_topic_id
     active_topic = (
-        find_topic_by_id(curriculum, selected_chapter_id, selected_topic_id)
+        _find_topic_by_id(curriculum, selected_chapter_id, selected_topic_id)
         or (chapter_topics[0] if chapter_topics else None)
     )
     active_topic_id = (
         int(active_topic["topic_id"]) if active_topic is not None else None
     )
-    selected_level = clamp_level(
+    selected_level = _clamp_level(
         state.selected_level, curriculum, selected_chapter_id, active_topic_id
     )
     current = _build_chapter_context(

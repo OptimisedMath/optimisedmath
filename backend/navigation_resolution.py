@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from backend.curriculum import Curriculum
 from backend.models import SessionState, SessionNavigateRequest
-from backend.navigation_helpers import (
-    clamp_level,
-    find_topic_by_id,
-    topics_for_chapter,
+from backend.navigation_snapshot import (
+    NavigationSnapshot,
+    _clamp_level,
+    _find_topic_by_id,
+    _topics_for_chapter,
 )
-from backend.navigation_snapshot import NavigationSnapshot
 from backend.unlock import first_topic_id
 
 
@@ -18,13 +18,13 @@ def clamp_selected_level(state: SessionState, curriculum: Curriculum) -> None:
     chapter_id = state.selected_chapter_id
     if chapter_id is None:
         return
-    chapter_topics = topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
     if not chapter_topics:
         return
     first_topic_entry = chapter_topics[0]
     topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
-    topic_entry = find_topic_by_id(curriculum, chapter_id, topic_id) or first_topic_entry
-    state.selected_level = clamp_level(
+    topic_entry = _find_topic_by_id(curriculum, chapter_id, topic_id) or first_topic_entry
+    state.selected_level = _clamp_level(
         state.selected_level,
         curriculum,
         chapter_id,
@@ -40,9 +40,9 @@ def resolve_chapter_change(
     """Pick default topic and level when switching chapter."""
     ctx = snapshot.chapter_context(next_chapter_id)
     next_topic_id, next_level = ctx.implicit_chapter_landing
-    next_chapter_topics = topics_for_chapter(curriculum, next_chapter_id)
+    next_chapter_topics = _topics_for_chapter(curriculum, next_chapter_id)
     next_topic_entry = (
-        find_topic_by_id(curriculum, next_chapter_id, next_topic_id)
+        _find_topic_by_id(curriculum, next_chapter_id, next_topic_id)
         or (next_chapter_topics[0] if next_chapter_topics else None)
     )
     next_topic_for_clamp = (
@@ -51,7 +51,7 @@ def resolve_chapter_change(
     return (
         next_chapter_id,
         next_topic_id,
-        clamp_level(next_level, curriculum, next_chapter_id, next_topic_for_clamp),
+        _clamp_level(next_level, curriculum, next_chapter_id, next_topic_for_clamp),
     )
 
 
@@ -64,7 +64,7 @@ def resolve_topic_change(
     """Pick default level when switching topic within a chapter."""
     ctx = snapshot.chapter_context(chapter_id)
     next_level = ctx.implicit_topic_landing(next_topic_id)
-    return next_topic_id, clamp_level(
+    return next_topic_id, _clamp_level(
         next_level, curriculum, chapter_id, next_topic_id
     )
 
@@ -89,7 +89,7 @@ def resolve_navigate_request(
         chapter_ids = curriculum.chapter_ids()
         chapter_id = chapter_ids[0] if chapter_ids else 0
 
-    chapter_topics = topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
 
     if request.selected_topic_id is not None:
         topic_id, level = resolve_topic_change(
