@@ -24,9 +24,9 @@ def _curriculum_and_chapters():
 
 
 def _fresh_state() -> SessionState:
-    _, nav, chapter_ids = _curriculum_and_chapters()
+    curriculum, nav, chapter_ids = _curriculum_and_chapters()
     state = SessionState()
-    session_state.init_defaults(state, chapter_ids, nav)
+    session_state.init_defaults(state, curriculum)
     state.username = "nav-resolution-user"
     state.session_id = str(uuid.uuid4())
     return state
