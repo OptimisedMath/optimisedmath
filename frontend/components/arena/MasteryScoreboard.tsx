@@ -8,17 +8,17 @@ interface MasteryScoreboardProps {
 }
 
 function MasteryScoreboard({ streakMeter, maxStreak }: MasteryScoreboardProps) {
-  const prevDisplayStreak = useRef(streakMeter);
+  const prevStreakMeter = useRef(streakMeter);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (streakMeter > prevDisplayStreak.current) {
+    if (streakMeter > prevStreakMeter.current) {
       setAnimatingIndex(streakMeter - 1);
       const timer = setTimeout(() => setAnimatingIndex(null), 400);
-      prevDisplayStreak.current = streakMeter;
+      prevStreakMeter.current = streakMeter;
       return () => clearTimeout(timer);
     }
-    prevDisplayStreak.current = streakMeter;
+    prevStreakMeter.current = streakMeter;
   }, [streakMeter]);
 
   return (
