@@ -7,6 +7,7 @@ from enum import Enum
 
 import backend.config as config
 from backend.answer_grading import EvalResult
+from backend.models import SessionState
 from backend.unlock import advance_on_mastery
 
 
@@ -48,6 +49,13 @@ class SubmissionOutcome:
     new_selected_level: int | None = None
     new_frontier_level: int | None = None
     unlock_topic_id: int | None = None
+
+
+def streak_meter_for(state: SessionState) -> int:
+    """Streak meter display value for the Session payload."""
+    if state.problem_answered and state.level_completed and state.streak == 0:
+        return state.max_streak
+    return state.streak
 
 
 def apply_submission(eval_result: EvalResult, ctx: SubmissionContext) -> SubmissionOutcome:

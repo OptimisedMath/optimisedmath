@@ -19,6 +19,7 @@ from backend.problem_generation import (
     generate_level_problem,
     problem_fingerprint,
 )
+from backend.progression import streak_meter_for
 from backend.models import (
     AutoSolveRequest,
     SessionResponse,
@@ -138,10 +139,6 @@ def respond(
     )
     can_submit = bool(current_problem and not state.problem_answered)
     can_advance = bool(state.problem_answered)
-    if state.problem_answered and state.level_completed and state.streak == 0:
-        streak_meter = state.max_streak
-    else:
-        streak_meter = state.streak
     snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
     navigation_view = navigation.build_navigation_view(snapshot)
     return SessionResponse(
@@ -164,7 +161,7 @@ def respond(
         current_problem=current_problem,
         can_submit=can_submit,
         can_advance=can_advance,
-        streak_meter=streak_meter,
+        streak_meter=streak_meter_for(state),
         admin_mode=mode.is_admin,
         navigation=navigation_view,
     )

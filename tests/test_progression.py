@@ -3,7 +3,8 @@
 import pytest
 
 import backend.config as config
-from backend.progression import PersistenceProfile, SubmissionContext, apply_submission
+from backend.models import SessionState
+from backend.progression import PersistenceProfile, SubmissionContext, apply_submission, streak_meter_for
 
 
 def _ctx(
@@ -30,6 +31,45 @@ def _ctx(
         next_topic_ids=next_topic_ids,
         persistence_profile=persistence_profile,
     )
+
+
+def test_streak_meter_equals_streak_by_default():
+    state = SessionState(streak=2, max_streak=3)
+
+    assert streak_meter_for(state) == 2
+
+
+def test_streak_meter_stays_full_during_level_completion_feedback():
+    state = SessionState(
+        streak=0,
+        max_streak=3,
+        problem_answered=True,
+        level_completed=True,
+    )
+
+    assert streak_meter_for(state) == 3
+
+
+@pytest.mark.parametrize(
+    ("problem_answered", "level_completed", "streak", "expected"),
+    [
+        (True, True, 1, 1),
+        (True, False, 0, 0),
+        (False, True, 0, 0),
+        (False, False, 2, 2),
+    ],
+)
+def test_streak_meter_exception_requires_all_three_conditions(
+    problem_answered, level_completed, streak, expected
+):
+    state = SessionState(
+        streak=streak,
+        max_streak=3,
+        problem_answered=problem_answered,
+        level_completed=level_completed,
+    )
+
+    assert streak_meter_for(state) == expected
 
 
 def test_correct_increments_streak_without_unlock():
