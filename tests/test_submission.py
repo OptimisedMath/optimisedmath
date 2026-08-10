@@ -514,7 +514,7 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
 # --- Topic completion ---
 
 
-def test_topic_completion_advances_frontier_to_next_topic(fixture_curriculum: Curriculum):
+def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curriculum):
     state = _student_state_at(
         fixture_curriculum,
         streak=2,

@@ -160,7 +160,7 @@ class SessionResponse(BaseModel):
     current_problem: Optional[Dict[str, Any]] = None
 
     can_submit: bool = False
-    can_advance: bool = False
+    can_next_problem: bool = False
     streak_meter: int = Field(
         default=0,
         ge=0,

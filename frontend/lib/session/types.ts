@@ -52,7 +52,7 @@ export interface SessionState {
   chapter_frontiers: Record<number, ChapterFrontier>;
   current_problem: Problem | null;
   can_submit: boolean;
-  can_advance: boolean;
+  can_next_problem: boolean;
   admin_mode?: boolean;
   navigation?: NavigationView | null;
 }
@@ -108,7 +108,7 @@ export interface Feedback {
   correct: boolean;
   message: string;
   feedback_type: string | null;
-  is_locked: boolean;
+  answer_locked: boolean;
 }
 
 export type SubmitAnswerHandler = (answer: string) => void | Promise<void>;
@@ -125,9 +125,9 @@ export interface SessionView {
   error: string | null;
   isNavigating: boolean;
   isSubmitting: boolean;
-  isAdvancing: boolean;
+  isLoadingNextProblem: boolean;
   canSubmit: boolean;
-  canAdvance: boolean;
+  canNextProblem: boolean;
   session: SessionState | null;
   problem: Problem | null;
   feedback: Feedback | null;
@@ -140,7 +140,7 @@ export interface SessionView {
 export interface SessionActions {
   submit: SubmitAnswerHandler;
   navigate: (intent: NavigateIntent) => Promise<void>;
-  advance: () => Promise<void>;
+  nextProblem: () => Promise<void>;
   reset: () => Promise<void>;
   clearErrorAndReload: () => void;
 }

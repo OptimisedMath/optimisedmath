@@ -13,7 +13,7 @@ position; explicit Topic/Level picks are unchanged.
 
 Every Submission still runs the normal grade → progression → respond
 pipeline (see `session.py`) and telemetry still logs, but
-`persists_profile = False` means XP, Flawless, and Frontier advances are
+`persists_profile = False` means XP, Flawless, and Frontier updates are
 never written back to the profile, and progress bars render fully
 complete. Session streak still runs in-cycle (radio → input mode, wrong
 answers decrement) for a realistic feel, but is never persisted — navigation

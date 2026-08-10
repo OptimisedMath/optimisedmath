@@ -138,7 +138,7 @@ def respond(
         else None
     )
     can_submit = bool(current_problem and not state.problem_answered)
-    can_advance = bool(state.problem_answered)
+    can_next_problem = bool(state.problem_answered)
     snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
     navigation_view = navigation.build_navigation_view(snapshot)
     return SessionResponse(
@@ -160,7 +160,7 @@ def respond(
         chapter_frontiers=deepcopy(state.chapter_frontiers),
         current_problem=current_problem,
         can_submit=can_submit,
-        can_advance=can_advance,
+        can_next_problem=can_next_problem,
         streak_meter=streak_meter_for(state),
         admin_mode=mode.is_admin,
         navigation=navigation_view,

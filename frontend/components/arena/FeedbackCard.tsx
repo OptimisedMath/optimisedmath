@@ -24,7 +24,7 @@ function FeedbackCard({
   const levelCompleted = session.level_completed;
   const hasNextTopic = session.navigation?.has_next_unlocked_topic ?? false;
   const currentInputMode = session.current_input_mode;
-  const disabled = view.isAdvancing;
+  const disabled = view.isLoadingNextProblem;
   const showNextButton = !(topicCompleted && !hasNextTopic);
 
   useEffect(() => {
@@ -47,12 +47,12 @@ function FeedbackCard({
     buttonLabel = 'Następny poziom ➡️';
   }
 
-  const handleAdvanceKeyDown = (e: React.KeyboardEvent) => {
+  const handleNextProblemKeyDown = (e: React.KeyboardEvent) => {
     if (disabled || !showNextButton) return;
     if ((e.target as HTMLElement).tagName === 'BUTTON') return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      actions.advance();
+      actions.nextProblem();
     }
   };
 
@@ -60,7 +60,7 @@ function FeedbackCard({
     <div
       ref={wrapperRef}
       tabIndex={-1}
-      onKeyDown={handleAdvanceKeyDown}
+      onKeyDown={handleNextProblemKeyDown}
       className="glass-card w-full flex flex-col items-center gap-4 mt-4 rounded-2xl p-4 animate-[fadeSlideIn_0.3s_ease-out] outline-none"
     >
       {levelCompleted && (
@@ -103,7 +103,7 @@ function FeedbackCard({
         <Button
           ref={nextButtonRef}
           type="button"
-          onClick={actions.advance}
+          onClick={actions.nextProblem}
           disabled={disabled}
           className="gradient-primary text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40 active:translate-y-0 active:scale-[0.98] disabled:hover:translate-y-0"
         >

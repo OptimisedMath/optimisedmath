@@ -1,4 +1,4 @@
-"""Chapter/Topic/Level Frontier — read gates and write advances."""
+"""Chapter/Topic/Level Frontier — read gates and Frontier writes."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ class Frontier:
 
 
 @dataclass(frozen=True)
-class AdvanceResult:
+class FrontierUpdate:
     """Frontier changes when a Level is mastered at the current boundary."""
 
     level_unlocked: bool = False
@@ -101,25 +101,25 @@ def accessible_topics(
     return chapter_topics[:1]
 
 
-def advance_on_mastery(
+def apply_frontier_on_mastery(
     frontier_level: int,
     topic_max_level: int,
     next_topic_ids: tuple[int, ...],
-) -> AdvanceResult:
-    """Advance the Frontier after streak mastery at the current boundary."""
+) -> FrontierUpdate:
+    """Apply a Frontier update after streak mastery at the current boundary."""
     if frontier_level < topic_max_level:
         new_level = frontier_level + 1
-        return AdvanceResult(
+        return FrontierUpdate(
             level_unlocked=True,
             new_frontier_level=new_level,
             new_selected_level=new_level,
         )
 
     if next_topic_ids:
-        return AdvanceResult(
+        return FrontierUpdate(
             topic_completed=True,
             unlock_topic_id=next_topic_ids[0],
             new_frontier_level=1,
         )
 
-    return AdvanceResult(topic_completed=True)
+    return FrontierUpdate(topic_completed=True)

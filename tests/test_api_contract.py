@@ -563,7 +563,7 @@ def _make_topic_completed_state(
     frontier_topic_id: int,
     frontier_level: int = 1,
 ) -> SessionState:
-    """Build a session ready for next-problem advance after topic completion."""
+    """Build a session ready for next problem after topic completion."""
     curriculum = resolve_curriculum()
     session_id = str(uuid.uuid4())
     state = SessionState()
@@ -596,7 +596,7 @@ def _make_topic_completed_state(
     return state
 
 
-def test_next_problem_advances_to_frontier_topic_after_topic_completion():
+def test_next_problem_moves_to_frontier_topic_after_topic_completion():
     state = _make_topic_completed_state(
         chapter_id=10,
         completed_topic_id=10,
@@ -675,7 +675,7 @@ def test_next_problem_at_chapter_end_returns_without_error():
     assert response.state.selected_topic_id == last_topic_id
     assert response.state.selected_level == last_level
     assert response.state.topic_completed is True
-    assert response.state.can_advance is True
+    assert response.state.can_next_problem is True
     assert response.state.navigation is not None
     assert response.state.navigation.has_next_unlocked_topic is False
     assert response.problem["problem_id"] == "p-topic-complete"

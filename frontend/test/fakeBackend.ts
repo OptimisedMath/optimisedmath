@@ -40,7 +40,7 @@ export function baseSession(overrides: Partial<SessionState> = {}): SessionState
     chapter_frontiers: {},
     current_problem: null,
     can_submit: true,
-    can_advance: false,
+    can_next_problem: false,
     navigation: defaultNavigation(),
     ...overrides,
   };
@@ -76,7 +76,7 @@ export function wireArenaFlow({
       ...session,
       current_problem: problem,
       can_submit: true,
-      can_advance: false,
+      can_next_problem: false,
     };
     const response: ProblemResponse = { problem, state };
     return response;

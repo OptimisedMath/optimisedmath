@@ -9,7 +9,7 @@ import pytest
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
 
-RESPONSE_ONLY_FIELDS = frozenset({"can_submit", "can_advance", "admin_mode", "navigation"})
+RESPONSE_ONLY_FIELDS = frozenset({"can_submit", "can_next_problem", "admin_mode", "navigation"})
 
 
 def _sample_state(**overrides) -> SessionState:
@@ -119,7 +119,7 @@ def test_load_session_tolerates_legacy_response_only_fields():
     legacy.update(
         {
             "can_submit": True,
-            "can_advance": False,
+            "can_next_problem": False,
             "admin_mode": True,
             "navigation": {
                 "available_chapters": [],

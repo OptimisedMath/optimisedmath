@@ -1,6 +1,6 @@
 # Optimised Math Learning
 
-Polish ed-tech math practice for klasy 4–8. Students work through structured skills, earn XP, and advance by demonstrating mastery at each level.
+Polish ed-tech math practice for klasy 4–8. Students work through structured skills, earn XP, and progress by demonstrating Mastery at each Level.
 
 **Language:** Canonical terms here and in code are English. User-facing copy is Polish — see `docs/adr/0001-english-code-polish-ui.md`.
 
@@ -32,23 +32,31 @@ _UI (PL)_: Postęp do kolejnego poziomu (gwiazdki as the visual meter)
 _Avoid_: Level Streak, Power of 3, passa
 
 **Streak meter**:
-The star-meter display value served on the Session payload. Equals Streak everywhere except at Level completion while feedback is still on screen, when it stays full so the meter does not visibly empty at the moment the Student earns the Level.
-_Avoid_: display streak, meter streak, completed streak pending advance
+The star-meter display value served on the Session payload. Equals Streak everywhere except at Level completion while Feedback is still on screen, when it stays full so the meter does not visibly empty at the moment the Student earns the Level.
+_Avoid_: display streak, meter streak, completed streak pending next problem
+
+**Mastery threshold**:
+The streak count required for Level completion at the current Level (currently 3).
+_Avoid_: Power of 3, stars for unlock
+
+**Mastery**:
+Demonstrating sufficient correctness at the current Level — streak reaching the Mastery threshold while playing At the Frontier.
+_Avoid_: pass, complete (as verbs for progression)
 
 **Penalized mistake**:
 A wrong answer that is not a Soft Error. Resets or reduces streak and forfeits Flawless eligibility.
 _Avoid_: hard error, real mistake
 
 **Level completion**:
-A Level is done when streak reaches 3. Triggers a level unlock or topic completion depending on position in the Topic.
+A Level is done when streak reaches the Mastery threshold. Triggers a level unlock or topic completion depending on position in the Topic.
 _Avoid_: Advance
 
 **Level unlock**:
-The next Level within the same Topic becomes reachable after level completion at the Frontier.
+The next Level within the same Topic becomes Reachable after level completion At the Frontier.
 _Avoid_: Advance, progress unlock, boundary unlock
 
 **Topic completion**:
-Finishing the last Level of a Topic. On the completing Submission, the Frontier advances to open the next Topic. The student still chooses when to start it via Next problem.
+Finishing the last Level of a Topic At the Frontier. On the completing Submission, the Frontier moves to open the next Topic. The student still chooses when to start it via Next problem.
 _Avoid_: Advance
 
 **Flawless**:
@@ -57,17 +65,29 @@ _UI (PL)_: Bonus — Aktywny 💎 / Stracony ❌
 _Avoid_: flawless eligible, flawless bonus
 
 **Frontier**:
-The furthest Topic and Level a Student has earned within a Chapter — persisted per Chapter on the profile. Not the topic max level, and not necessarily where they are playing right now. Defines what is locked vs reachable for Students.
+The furthest Topic and Level a Student has earned within a Chapter — persisted per Chapter on the profile. Not the topic max level, and not necessarily where they are playing right now. Defines what is Locked vs Reachable for Students.
 _Avoid_: UnlockedProgress, unlock frontier, progress boundary, chapter progress, progress map
 
 **Behind the Frontier**:
-A Topic or Level before the earned boundary — fully reachable for Students.
+A Topic or Level before the earned boundary — fully Reachable for Students.
 
 **At the Frontier**:
 The current earned boundary Topic and Level — where level unlock and topic completion happen.
 
 **Beyond the Frontier**:
-A Topic or Level past what the Student has earned — locked until mastery advances the Frontier.
+A Topic or Level past what the Student has earned — Locked until Mastery At the Frontier moves the earned boundary.
+
+**Locked**:
+Beyond the Frontier for Students — visible in the curriculum but not selectable until the Frontier moves.
+_Avoid_: blocked, gated
+
+**Reachable**:
+Selectable by a Student: Behind the Frontier, At the Frontier, or any Topic and Level in Admin mode.
+_Avoid_: unlocked (as an adjective for content), accessible
+
+**Replay**:
+Practising a Topic or Level Behind the Frontier. Streak and XP still run; level unlock and topic completion do not.
+_Avoid_: review mode, practice mode
 
 ## Input modes
 
@@ -110,16 +130,28 @@ _Avoid_: format error
 One answered Problem within a Session — grading, streak/XP updates, and level/topic progression run once per submission.
 _Avoid_: turn, answer event, Advance
 
+**Feedback**:
+The graded result shown after a Submission while the Problem stays under Answer lock — message, type, and whether the answer was Correct. Cleared by Next problem.
+_Avoid_: result screen, response state
+
+**Answer lock**:
+After a Submission, the active Problem cannot be re-answered until Next problem.
+_Avoid_: problem_answered (code name), lock_answer
+
 **Next problem**:
-The student dismisses feedback and continues. Loads the next Problem at the current or newly unlocked Level; after topic completion, also navigates to the next Topic at level 1.
+The student dismisses Feedback and continues. Loads the next Problem at the current or newly unlocked Level; after topic completion, also navigates to the next Topic at level 1.
 _Avoid_: Advance, continue, proceed
 
 **Navigation**:
-Changing the selected Chapter, Topic, or Level — via the toolbar or as part of Next problem after topic completion.
+Changing the Selected chapter, topic, or level — via the toolbar or as part of Next problem after topic completion.
 _Avoid_: Advance
 
 **Submission cycle**:
-One Problem lifecycle within a Session: served → answered (Submission) → Next problem. Navigation or Next problem starts a fresh cycle (streak resets).
+One Problem lifecycle within a Session: served → answered (Submission) → Feedback → Next problem. Navigation or Next problem starts a fresh cycle (streak resets).
+
+**Selected**:
+Prefix for the Chapter, Topic, or Level the Session is currently set to — where the Student is playing now, not necessarily At the Frontier. Used as Selected chapter, Selected topic, Selected level.
+_Avoid_: current, active, selection
 
 **Student**:
 The person practicing. May also be called **User** in login and persistence contexts.
@@ -129,12 +161,12 @@ _Avoid_: player
 The login handle that identifies a Student across sessions.
 
 **Session**:
-One play session: current chapter/topic/level selection, streak, active problem, and feedback state.
+One play session: Selected chapter/topic/level, streak, active problem, and Feedback state.
 _Avoid_: GameState (code name)
 
 **XP**:
 Experience points earned per correct answer and level completion.
 
 **Admin mode**:
-QA and debug access for designated Usernames, invisible to normal Students. Lets the admin reach every Topic and Level without earning them, and never writes progression (XP, Flawless, Frontier) to the profile. To dogfood the mastery loop, use a normal Student account. Admin auto-solve is a visible shortcut through the normal Submission pipeline: the UI selects or types the correct answer, then submits via `/problem/submit` (not a separate client API). A backend `/problem/auto-solve` endpoint exists for dev-tools and tests only. Mechanics: `backend/play_mode.py`.
-_Avoid_: cheat mode, debug mode, preview mode
+A play mode for designated Usernames that makes every Topic and Level Reachable without earned progression and never writes XP, Flawless, or Frontier to the profile. Invisible to normal Students; use a normal Student account to experience the mastery loop.
+_Avoid_: cheat mode, debug mode, preview mode, QA mode

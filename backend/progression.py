@@ -8,7 +8,7 @@ from enum import Enum
 import backend.config as config
 from backend.answer_grading import EvalResult
 from backend.models import SessionState
-from backend.unlock import advance_on_mastery
+from backend.unlock import apply_frontier_on_mastery
 
 
 class PersistenceProfile(Enum):
@@ -143,15 +143,15 @@ def _apply_correct_submission(
         new_streak == config.STARS_FOR_UNLOCK
         and ctx.selected_level == ctx.frontier_level
     ):
-        advance = advance_on_mastery(
+        frontier_update = apply_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )
-        level_unlocked = advance.level_unlocked
-        topic_completed = advance.topic_completed
+        level_unlocked = frontier_update.level_unlocked
+        topic_completed = frontier_update.topic_completed
         level_completed = level_unlocked or topic_completed
-        new_selected_level = advance.new_selected_level
-        new_frontier_level = advance.new_frontier_level
-        unlock_topic_id = advance.unlock_topic_id
+        new_selected_level = frontier_update.new_selected_level
+        new_frontier_level = frontier_update.new_frontier_level
+        unlock_topic_id = frontier_update.unlock_topic_id
         new_streak = 0
 
         if flawless_eligible and (level_unlocked or topic_completed):

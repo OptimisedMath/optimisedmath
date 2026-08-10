@@ -203,7 +203,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(fixtur
     assert isinstance(response, SessionResponse)
     assert not isinstance(state, SessionResponse)
     assert response.can_submit is True
-    assert response.can_advance is False
+    assert response.can_next_problem is False
     assert response.admin_mode is False
     assert not hasattr(response, "problem_start_time")
     assert not hasattr(response, "recent_problem_fingerprints")
@@ -218,7 +218,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(fixtur
     assert state.recent_problem_fingerprints == ["fp1"]
     assert state.current_problem["correct"] == "42"
     assert "can_submit" not in SessionState.model_fields
-    assert "can_advance" not in SessionState.model_fields
+    assert "can_next_problem" not in SessionState.model_fields
     assert "streak_meter" not in SessionState.model_fields
     assert "admin_mode" not in SessionState.model_fields
     assert "navigation" not in SessionState.model_fields
@@ -239,7 +239,7 @@ def test_respond_builds_answered_problem_payload(fixture_curriculum: Curriculum)
 
     assert isinstance(response, SessionResponse)
     assert response.can_submit is False
-    assert response.can_advance is True
+    assert response.can_next_problem is True
     assert response.current_problem is not None
     assert response.current_problem["correct_answer"] == "42"
 
@@ -262,7 +262,7 @@ def test_respond_uses_passed_play_mode_for_admin_reveal(fixture_curriculum: Curr
     assert isinstance(response, SessionResponse)
     assert response.admin_mode is True
     assert response.can_submit is True
-    assert response.can_advance is False
+    assert response.can_next_problem is False
     assert response.navigation is not None
     assert response.current_problem is not None
     assert response.current_problem["correct_answer"] == "42"
@@ -282,7 +282,7 @@ def test_legacy_stored_response_fields_load_and_serve_correct_payload(fixture_cu
     legacy.update(
         {
             "can_submit": False,
-            "can_advance": True,
+            "can_next_problem": True,
             "admin_mode": True,
             "navigation": None,
         }
@@ -303,7 +303,7 @@ def test_legacy_stored_response_fields_load_and_serve_correct_payload(fixture_cu
 
     assert isinstance(response, SessionResponse)
     assert response.can_submit is True
-    assert response.can_advance is False
+    assert response.can_next_problem is False
     assert response.admin_mode is False
     assert response.current_problem is not None
     assert "correct_answer" not in response.current_problem

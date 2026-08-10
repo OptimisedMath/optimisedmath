@@ -32,10 +32,10 @@ export function useSession() {
   const [error, setError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAdvancing, setIsAdvancing] = useState(false);
+  const [isLoadingNextProblem, setIsLoadingNextProblem] = useState(false);
   const [needsLogin, setNeedsLogin] = useState(false);
   const isFetchingRef = useRef(false);
-  const isAdvancingRef = useRef(false);
+  const isLoadingNextProblemRef = useRef(false);
 
   const sessionId = sessionState?.session_id;
   const problem = sessionState?.current_problem ?? null;
@@ -52,7 +52,7 @@ export function useSession() {
     if (clearBeforeFetch) {
       setFeedback(null);
       setSessionState((prev) =>
-        prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
+        prev ? { ...prev, current_problem: null, can_submit: false, can_next_problem: false } : prev
       );
     }
 
@@ -141,7 +141,7 @@ export function useSession() {
       correct: response.is_correct,
       message: response.feedback,
       feedback_type: nextState.feedback_type,
-      is_locked: nextState.can_advance,
+      answer_locked: nextState.can_next_problem,
     });
   }, []);
 
@@ -184,7 +184,7 @@ export function useSession() {
     setIsNavigating(true);
     setFeedback(null);
     setSessionState((prev) =>
-      prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
+      prev ? { ...prev, current_problem: null, can_submit: false, can_next_problem: false } : prev
     );
     setError(null);
 
@@ -206,17 +206,17 @@ export function useSession() {
     }
   }, [sessionId, fetchNextProblem]);
 
-  const handleAdvance = useCallback(async () => {
-    if (!sessionState || !sessionState.can_advance || isAdvancingRef.current) return;
+  const handleNextProblem = useCallback(async () => {
+    if (!sessionState || !sessionState.can_next_problem || isLoadingNextProblemRef.current) return;
 
-    isAdvancingRef.current = true;
-    setIsAdvancing(true);
+    isLoadingNextProblemRef.current = true;
+    setIsLoadingNextProblem(true);
 
     try {
       await fetchNextProblem(sessionState.session_id, { clearBeforeFetch: false });
     } finally {
-      isAdvancingRef.current = false;
-      setIsAdvancing(false);
+      isLoadingNextProblemRef.current = false;
+      setIsLoadingNextProblem(false);
     }
   }, [sessionState, fetchNextProblem]);
 
@@ -232,7 +232,7 @@ export function useSession() {
     setIsNavigating(true);
     setFeedback(null);
     setSessionState((prev) =>
-      prev ? { ...prev, current_problem: null, can_submit: false, can_advance: false } : prev
+      prev ? { ...prev, current_problem: null, can_submit: false, can_next_problem: false } : prev
     );
     setError(null);
 
@@ -272,9 +272,9 @@ export function useSession() {
       error,
       isNavigating,
       isSubmitting,
-      isAdvancing,
+      isLoadingNextProblem,
       canSubmit: Boolean(session?.can_submit && !isSubmitting),
-      canAdvance: Boolean(session?.can_advance && feedback !== null),
+      canNextProblem: Boolean(session?.can_next_problem && feedback !== null),
       session,
       problem,
       feedback,
@@ -288,7 +288,7 @@ export function useSession() {
     error,
     isNavigating,
     isSubmitting,
-    isAdvancing,
+    isLoadingNextProblem,
     needsLogin,
     problem,
   ]);
@@ -296,10 +296,10 @@ export function useSession() {
   const actions = useMemo((): SessionActions => ({
     submit: handleSubmit,
     navigate: handleNavigate,
-    advance: handleAdvance,
+    nextProblem: handleNextProblem,
     reset: handleReset,
     clearErrorAndReload,
-  }), [handleSubmit, handleNavigate, handleAdvance, handleReset, clearErrorAndReload]);
+  }), [handleSubmit, handleNavigate, handleNextProblem, handleReset, clearErrorAndReload]);
 
   return { view, actions };
 }

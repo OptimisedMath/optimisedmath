@@ -33,7 +33,7 @@ function AnswerInput({
   const problem = view.problem;
   const feedback = view.feedback;
   const canSubmit = view.canSubmit;
-  const showFeedback = view.canAdvance;
+  const showFeedback = view.canNextProblem;
   const disabled = !canSubmit;
   const showAutoSolve = view.adminMode;
   const currentInputMode = view.session!.current_input_mode;

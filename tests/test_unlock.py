@@ -5,10 +5,10 @@ import pytest
 from backend.curriculum_loader import TopicDict
 from backend.models import ChapterFrontier
 from backend.unlock import (
-    AdvanceResult,
     Frontier,
+    FrontierUpdate,
     accessible_topics,
-    advance_on_mastery,
+    apply_frontier_on_mastery,
     can_access,
     chapter_max_frontier,
     first_topic_id,
@@ -99,27 +99,27 @@ def test_accessible_topics_filters_to_frontier():
     assert [t["topic_id"] for t in visible] == [10, 20]
 
 
-def test_advance_on_mastery_unlocks_next_level():
-    result = advance_on_mastery(1, 3, (20, 30))
+def test_apply_frontier_on_mastery_unlocks_next_level():
+    result = apply_frontier_on_mastery(1, 3, (20, 30))
 
-    assert result == AdvanceResult(
+    assert result == FrontierUpdate(
         level_unlocked=True,
         new_frontier_level=2,
         new_selected_level=2,
     )
 
 
-def test_advance_on_mastery_completes_topic_and_advances():
-    result = advance_on_mastery(3, 3, (20, 30))
+def test_apply_frontier_on_mastery_completes_topic_and_moves_frontier():
+    result = apply_frontier_on_mastery(3, 3, (20, 30))
 
-    assert result == AdvanceResult(
+    assert result == FrontierUpdate(
         topic_completed=True,
         unlock_topic_id=20,
         new_frontier_level=1,
     )
 
 
-def test_advance_on_mastery_completes_last_topic_without_next():
-    result = advance_on_mastery(3, 3, ())
+def test_apply_frontier_on_mastery_completes_last_topic_without_next():
+    result = apply_frontier_on_mastery(3, 3, ())
 
-    assert result == AdvanceResult(topic_completed=True)
+    assert result == FrontierUpdate(topic_completed=True)

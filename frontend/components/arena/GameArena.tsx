@@ -22,7 +22,7 @@ export default function GameArena() {
     if (!view.feedback) return;
 
     const frameId = requestAnimationFrame(() => {
-      const target = view.feedback!.is_locked ? nextButtonRef.current : feedbackRef.current;
+      const target = view.feedback!.answer_locked ? nextButtonRef.current : feedbackRef.current;
       if (target) {
         scrollElementClearOfMobileChrome(target);
       }
@@ -100,7 +100,7 @@ export default function GameArena() {
           <>
             <AnswerInput key={view.problem.problem_id} view={view} actions={actions} />
 
-            {view.feedback && !view.canAdvance && (
+            {view.feedback && !view.canNextProblem && (
               <div
                 ref={feedbackRef}
                 data-feedback-type={view.feedback.feedback_type ?? ''}
@@ -110,7 +110,7 @@ export default function GameArena() {
               </div>
             )}
 
-            {view.feedback && view.canAdvance && (
+            {view.feedback && view.canNextProblem && (
               <FeedbackCard
                 view={view}
                 actions={actions}

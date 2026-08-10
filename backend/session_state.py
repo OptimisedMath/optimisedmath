@@ -79,7 +79,7 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
 def reset_submission_cycle(
     state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
-    """Clears the current problem state when navigating or advancing."""
+    """Clears the current problem state when navigating or loading the next problem."""
     state.streak = 0
     state.flawless_eligible = True
     state.problem_answered = False
