@@ -6,7 +6,6 @@ import backend.config as config
 from backend.curriculum_loader import TopicDict
 from backend.models import ChapterFrontier
 from backend.play_mode import AdminPlayMode, StudentPlayMode, resolve_play_mode
-from backend.unlock import chapter_max_frontier, get_frontier
 
 
 def _chapter_topics() -> list[TopicDict]:
@@ -110,26 +109,6 @@ def test_implicit_topic_landing(mode_factory, target_topic, expected_level):
     level = mode.implicit_topic_landing(chapter_topics, target_topic, stored)
 
     assert level == expected_level
-
-
-def test_student_effective_frontier_matches_unlock_helper():
-    chapter_topics = _chapter_topics()
-    stored = _stored_frontier()
-    mode = StudentPlayMode()
-
-    assert mode.effective_frontier(chapter_topics, stored) == get_frontier(
-        stored, chapter_topics
-    )
-
-
-def test_admin_effective_frontier_matches_unlock_helper():
-    chapter_topics = _chapter_topics()
-    stored = _stored_frontier()
-    mode = AdminPlayMode()
-
-    assert mode.effective_frontier(chapter_topics, stored) == chapter_max_frontier(
-        chapter_topics
-    )
 
 
 def test_resolve_play_mode_uses_config_admin_usernames():

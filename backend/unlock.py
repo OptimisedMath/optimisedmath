@@ -3,18 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 
 from backend.curriculum_loader import TopicDict
 from backend.models import ChapterFrontier
-
-
-class FrontierZone(Enum):
-    """Play target relative to the Frontier (see CONTEXT.md)."""
-
-    BEYOND = "beyond"
-    AT = "at"
-    BEHIND = "behind"
 
 
 @dataclass(frozen=True)
@@ -68,18 +59,6 @@ def chapter_max_frontier(chapter_topics: list[TopicDict]) -> Frontier:
     )
 
 
-def effective_frontier(
-    chapter_topics: list[TopicDict],
-    frontier_record: ChapterFrontier | None,
-    *,
-    admin_mode: bool,
-) -> Frontier:
-    """Return navigation Frontier — chapter max for admin, stored for students."""
-    if admin_mode:
-        return chapter_max_frontier(chapter_topics)
-    return get_frontier(frontier_record, chapter_topics)
-
-
 def can_access(
     topic_id: int,
     level: int,
@@ -94,23 +73,6 @@ def can_access(
     ):
         return False
     return True
-
-
-def classify_frontier_zone(
-    topic_id: int,
-    level: int,
-    frontier: Frontier,
-) -> FrontierZone:
-    """Classify a topic/level target relative to the Frontier."""
-    if topic_id > frontier.frontier_topic_id:
-        return FrontierZone.BEYOND
-    if topic_id < frontier.frontier_topic_id:
-        return FrontierZone.BEHIND
-    if level > frontier.frontier_level:
-        return FrontierZone.BEYOND
-    if level < frontier.frontier_level:
-        return FrontierZone.BEHIND
-    return FrontierZone.AT
 
 
 def level_limit(
