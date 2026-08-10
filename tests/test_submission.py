@@ -674,6 +674,99 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
     )
 
 
+def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
+    fixture_curriculum: Curriculum,
+):
+    state = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=2,
+        streak=0,
+    )
+
+    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+
+
+def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
+    fixture_curriculum: Curriculum,
+):
+    state = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+        selected_topic_id=TOPIC_RADIO,
+        selected_level=1,
+        streak=2,
+    )
+
+    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+
+    assert state.streak == 3
+    _assert_admin_profile_unchanged(
+        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    )
+
+
+def test_admin_trap_answer_sets_warning_feedback_type(fixture_curriculum: Curriculum):
+    state = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=2,
+        streak=2,
+    )
+
+    _submit(state, _trap_problem(), "1/3", True, fixture_curriculum, _ADMIN)
+
+    assert state.feedback_type == "warning"
+    assert state.streak == 1
+    _assert_admin_profile_unchanged(
+        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    )
+
+
+def test_admin_soft_error_preserves_session_streak(fixture_curriculum: Curriculum):
+    state = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=2,
+        streak=2,
+    )
+
+    _submit(state, _soft_error_problem(), "2/4", True, fixture_curriculum, _ADMIN)
+
+    assert state.feedback_type == "info"
+    assert state.streak == 2
+    _assert_admin_profile_unchanged(
+        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    )
+
+
+def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
+    fixture_curriculum: Curriculum,
+):
+    state = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+        selected_topic_id=TOPIC_RADIO,
+        selected_level=1,
+        streak=2,
+    )
+
+    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+
+    assert state.streak == 3
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
+
+
 def test_admin_resets_streak_at_stored_frontier_boundary(fixture_curriculum: Curriculum):
     state = _admin_state_at(
         fixture_curriculum,

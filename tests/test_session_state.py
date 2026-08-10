@@ -1,17 +1,14 @@
 """Unit tests for the session state layer."""
 
-import sqlite3
 import uuid
 
 import pytest
 
 import backend.config as config
 import backend.session_state as session_state
-import backend.submission as submission
-from backend.core import db
 from backend.curriculum import Curriculum
+from backend.core import db
 from backend.models import ChapterFrontier, SessionState
-from backend.play_mode import AdminPlayMode, StudentPlayMode
 from backend.unlock import first_topic_id
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
@@ -21,9 +18,6 @@ from tests.support.fixture_curriculum import (
     TOPIC_SINGLE,
 )
 
-_STUDENT = StudentPlayMode()
-_ADMIN = AdminPlayMode()
-
 
 def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
     state = SessionState()
@@ -31,11 +25,6 @@ def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
     state.username = "session-state-user"
     state.session_id = str(uuid.uuid4())
     return state
-
-
-def _chapter_id(state: SessionState) -> int:
-    assert state.selected_chapter_id is not None
-    return state.selected_chapter_id
 
 
 def _username(state: SessionState) -> str:
@@ -102,6 +91,18 @@ def test_resolve_input_mode_stays_radio_for_radio_only_topics(
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_RADIO
     state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
+
+
+@pytest.mark.parametrize("streak", [0, 1, config.STREAK_THRESHOLD_FOR_INPUT_MODE, config.MAX_STREAK])
+def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
+    fixture_curriculum: Curriculum, streak
+):
+    state = _fresh_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_RADIO
+    state.streak = streak
 
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
 
@@ -192,394 +193,3 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
     assert state.streak == 0
     assert state.selected_chapter_id == CHAPTER_ALPHA
     assert state.selected_topic_id == TOPIC_MULTI
-
-
-def test_process_submission_grades_and_persists(fixture_curriculum: Curriculum):
-    state = _fresh_state(fixture_curriculum)
-    problem = {
-        "problem_id": "p-correct",
-        "question": "q",
-        "correct": "2",
-        "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
-    }
-    state.current_problem = problem
-    session_state.sync_to_db(state)
-
-    result = submission.process_submission(
-        state, problem, "2", False, fixture_curriculum, _STUDENT
-    )
-
-    assert result.get("is_correct") is True
-    assert state.streak == 1
-    assert state.problem_answered is True
-    assert state.feedback_type == "success"
-
-    loaded = db.load_user(_username(state))
-    assert loaded is not None
-    assert loaded["streak"] == 1
-
-
-def _correct_problem() -> dict:
-    return {
-        "problem_id": "p-correct",
-        "question": "q",
-        "correct": "2",
-        "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
-    }
-
-
-def _telemetry_count(session_id: str) -> int:
-    with sqlite3.connect(db.DB_PATH) as conn:
-        row = conn.execute(
-            "SELECT COUNT(*) FROM telemetry_logs WHERE session_id = ?",
-            (session_id,),
-        ).fetchone()
-    return int(row[0])
-
-
-def _admin_state_at(
-    fixture_curriculum: Curriculum,
-    *,
-    frontier_topic_id: int,
-    frontier_level: int,
-    selected_topic_id: int,
-    selected_level: int,
-    xp: int = 0,
-    streak: int = 0,
-    flawless_eligible: bool = True,
-) -> SessionState:
-    state = _fresh_state(fixture_curriculum)
-    state.username = "Antoni"
-    chapter_id = _chapter_id(state)
-    state.chapter_frontiers[chapter_id] = ChapterFrontier(
-        frontier_topic_id=frontier_topic_id,
-        frontier_level=frontier_level,
-    )
-    state.selected_topic_id = selected_topic_id
-    state.selected_level = selected_level
-    state.xp = xp
-    state.streak = streak
-    state.flawless_eligible = flawless_eligible
-    state.level_completed = False
-    state.topic_completed = False
-    baseline = state.model_copy(deep=True)
-    baseline.streak = 0
-    db.save_user(_username(state), baseline)
-    db.save_session(state.session_id, _username(state), baseline)
-    return state
-
-
-def _wrong_problem() -> dict:
-    return {
-        "problem_id": "p-wrong",
-        "question": "q",
-        "correct": "2",
-        "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
-    }
-
-
-def _assert_admin_profile_unchanged(
-    state: SessionState,
-    *,
-    xp: int,
-    frontier_topic_id: int,
-    frontier_level: int,
-) -> None:
-    chapter_id = _chapter_id(state)
-    assert state.xp == xp
-    assert state.flawless_eligible is True
-    assert state.level_completed is False
-    assert state.topic_completed is False
-    assert state.chapter_frontiers[chapter_id].frontier_topic_id == frontier_topic_id
-    assert state.chapter_frontiers[chapter_id].frontier_level == frontier_level
-
-    loaded = db.load_user(_username(state))
-    assert loaded is not None
-    assert loaded["xp"] == xp
-    assert loaded["streak"] == 0
-    assert loaded["chapter_frontiers"][chapter_id] == ChapterFrontier(
-        frontier_topic_id=frontier_topic_id,
-        frontier_level=frontier_level,
-    )
-
-
-@pytest.mark.parametrize(
-    (
-        "selected_topic_id",
-        "selected_level",
-        "initial_streak",
-        "expect_streak",
-    ),
-    [
-        (TOPIC_MULTI, 2, 0, 1),
-        (TOPIC_RADIO, 1, 0, 1),
-        (TOPIC_MULTI, 1, 1, 2),
-    ],
-)
-def test_admin_correct_increments_session_streak_without_profile_writes(
-    fixture_curriculum: Curriculum,
-    selected_topic_id,
-    selected_level,
-    initial_streak,
-    expect_streak,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=selected_topic_id,
-        selected_level=selected_level,
-        xp=50,
-        streak=initial_streak,
-    )
-    telemetry_before = _telemetry_count(state.session_id)
-
-    result = submission.process_submission(
-        state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
-    )
-
-    assert result.get("is_correct") is True
-    assert state.feedback_type == "success"
-    assert state.problem_answered is True
-    assert "XP" not in state.feedback_msg
-    assert _telemetry_count(state.session_id) == telemetry_before + 1
-    assert state.streak == expect_streak
-    _assert_admin_profile_unchanged(
-        state, xp=50, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
-
-
-def test_admin_wrong_decrements_session_streak_without_profile_writes(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=2,
-        streak=2,
-    )
-
-    submission.process_submission(
-        state, _wrong_problem(), "3", False, fixture_curriculum, _ADMIN
-    )
-
-    assert state.streak == 1
-    assert state.feedback_type == "warning"
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
-
-
-def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=2,
-        streak=0,
-    )
-
-    submission.process_submission(
-        state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
-    )
-
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
-
-
-def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_RADIO,
-        selected_level=1,
-        streak=2,
-    )
-
-    submission.process_submission(
-        state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
-    )
-
-    assert state.streak == 3
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
-
-
-def test_process_submission_wrong_answer_sets_warning_feedback_type_for_student(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.current_problem = _wrong_problem()
-    session_state.sync_to_db(state)
-
-    result = submission.process_submission(
-        state, _wrong_problem(), "3", False, fixture_curriculum, _STUDENT
-    )
-
-    assert result.get("is_correct") is not True
-    assert state.feedback_type == "warning"
-
-
-def _trap_problem() -> dict:
-    return {
-        "problem_id": "p-trap",
-        "question": "q",
-        "correct": "1/2",
-        "options_map": {"1/3": "t1"},
-        "messages": {"t1": "Trap feedback"},
-    }
-
-
-def _soft_error_problem() -> dict:
-    return {
-        "problem_id": "p-soft-error",
-        "question": "q",
-        "correct": "1/2",
-    }
-
-
-def test_process_submission_trap_answer_sets_warning_feedback_type_for_student(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.current_problem = _trap_problem()
-    session_state.sync_to_db(state)
-
-    result = submission.process_submission(
-        state, _trap_problem(), "1/3", True, fixture_curriculum, _STUDENT
-    )
-
-    assert result.get("is_correct") is None
-    assert state.feedback_type == "warning"
-
-
-def test_process_submission_soft_error_preserves_streak_and_flawless_for_student(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.streak = 1
-    state.current_problem = _soft_error_problem()
-    session_state.sync_to_db(state)
-
-    result = submission.process_submission(
-        state, _soft_error_problem(), "2/4", True, fixture_curriculum, _STUDENT
-    )
-
-    assert result.get("is_correct") is None
-    assert state.feedback_type == "info"
-    assert state.streak == 1
-    assert state.flawless_eligible is True
-
-
-def test_admin_trap_answer_sets_warning_feedback_type(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=2,
-        streak=2,
-    )
-
-    submission.process_submission(
-        state, _trap_problem(), "1/3", True, fixture_curriculum, _ADMIN
-    )
-
-    assert state.feedback_type == "warning"
-    assert state.streak == 1
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
-
-
-def test_admin_soft_error_preserves_session_streak(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=2,
-        streak=2,
-    )
-
-    submission.process_submission(
-        state, _soft_error_problem(), "2/4", True, fixture_curriculum, _ADMIN
-    )
-
-    assert state.feedback_type == "info"
-    assert state.streak == 2
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
-
-
-@pytest.mark.parametrize("streak", [0, 1, config.STREAK_THRESHOLD_FOR_INPUT_MODE, config.MAX_STREAK])
-def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
-    fixture_curriculum: Curriculum, streak
-):
-    state = _fresh_state(fixture_curriculum)
-    state.selected_chapter_id = CHAPTER_ALPHA
-    state.selected_topic_id = TOPIC_RADIO
-    state.streak = streak
-
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
-
-
-def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_RADIO,
-        selected_level=1,
-        streak=2,
-    )
-
-    submission.process_submission(
-        state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
-    )
-
-    assert state.streak == 3
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
-
-
-def test_admin_resets_streak_at_stored_frontier_boundary(
-    fixture_curriculum: Curriculum,
-):
-    state = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=1,
-        streak=2,
-    )
-
-    submission.process_submission(
-        state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN
-    )
-
-    assert state.streak == 0
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
