@@ -184,6 +184,66 @@ def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion(
     assert response.streak_meter == 2
 
 
+def test_session_response_from_state_copies_shared_fields():
+    state = SessionState(
+        session_id="sid-1",
+        username="alice",
+        xp=100,
+        streak=2,
+        flawless_eligible=False,
+        max_streak=5,
+        selected_chapter_id=10,
+        selected_topic_id=20,
+        selected_level=3,
+        problem_answered=True,
+        current_input_mode="input",
+        topic_completed=True,
+        feedback_type="success",
+        feedback_msg="Nice!",
+        level_completed=True,
+        chapter_frontiers={10: ChapterFrontier(frontier_topic_id=30, frontier_level=2)},
+        problem_start_time=99.0,
+        recent_problem_fingerprints=["fp1"],
+    )
+    derived_problem = {"problem_id": "p1", "question": "q?"}
+
+    response = SessionResponse.from_state(
+        state,
+        current_problem=derived_problem,
+        can_submit=False,
+        can_next_problem=True,
+        streak_meter=3,
+        admin_mode=True,
+        navigation=None,
+    )
+
+    assert response.session_id == "sid-1"
+    assert response.username == "alice"
+    assert response.xp == 100
+    assert response.streak == 2
+    assert response.flawless_eligible is False
+    assert response.max_streak == 5
+    assert response.selected_chapter_id == 10
+    assert response.selected_topic_id == 20
+    assert response.selected_level == 3
+    assert response.problem_answered is True
+    assert response.current_input_mode == "input"
+    assert response.topic_completed is True
+    assert response.feedback_type == "success"
+    assert response.feedback_msg == "Nice!"
+    assert response.level_completed is True
+    assert response.chapter_frontiers == {10: ChapterFrontier(frontier_topic_id=30, frontier_level=2)}
+    assert response.chapter_frontiers is not state.chapter_frontiers
+    assert response.current_problem == derived_problem
+    assert response.can_submit is False
+    assert response.can_next_problem is True
+    assert response.streak_meter == 3
+    assert response.admin_mode is True
+    assert response.navigation is None
+    assert "problem_start_time" not in SessionResponse.model_fields
+    assert "recent_problem_fingerprints" not in SessionResponse.model_fields
+
+
 def test_respond_builds_unanswered_problem_payload_without_mutating_state(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
     state.current_problem = {

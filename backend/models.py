@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -129,10 +130,10 @@ class SessionState(BaseModel):
 class SessionResponse(BaseModel):
     """Client Session payload — composed from `SessionState` plus derived response view.
 
-    Fields are opt-in (selected explicitly by `session.respond()`), not inherited from
-    the persisted `SessionState` superset, so persisted-only fields (e.g.
-    `problem_start_time`, `recent_problem_fingerprints`) never leak onto the wire by
-    default when a new persisted field is added.
+    Shared persisted fields are copied in `from_state()`; derived view fields are
+    passed explicitly by `session.respond()`. Persisted-only fields (e.g.
+    `problem_start_time`, `recent_problem_fingerprints`) never leak onto the wire when
+    a new persisted field is added unless it is also wired through `from_state()`.
     """
 
     session_id: str
@@ -174,6 +175,44 @@ class SessionResponse(BaseModel):
         default=None,
         description="Computed UI navigation state (API responses only, not persisted)",
     )
+
+    @classmethod
+    def from_state(
+        cls,
+        state: SessionState,
+        *,
+        current_problem: Optional[Dict[str, Any]],
+        can_submit: bool,
+        can_next_problem: bool,
+        streak_meter: int,
+        admin_mode: bool,
+        navigation: Optional[NavigationView],
+    ) -> SessionResponse:
+        """Build a wire payload by copying shared persisted fields plus derived view values."""
+        return cls(
+            session_id=state.session_id,
+            username=state.username,
+            xp=state.xp,
+            streak=state.streak,
+            flawless_eligible=state.flawless_eligible,
+            max_streak=state.max_streak,
+            selected_chapter_id=state.selected_chapter_id,
+            selected_topic_id=state.selected_topic_id,
+            selected_level=state.selected_level,
+            problem_answered=state.problem_answered,
+            current_input_mode=state.current_input_mode,
+            topic_completed=state.topic_completed,
+            feedback_type=state.feedback_type,
+            feedback_msg=state.feedback_msg,
+            level_completed=state.level_completed,
+            chapter_frontiers=deepcopy(state.chapter_frontiers),
+            current_problem=current_problem,
+            can_submit=can_submit,
+            can_next_problem=can_next_problem,
+            streak_meter=streak_meter,
+            admin_mode=admin_mode,
+            navigation=navigation,
+        )
 
 
 # --- Request models ---

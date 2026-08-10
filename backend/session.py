@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from copy import deepcopy
 from typing import Any
 
 import backend.config as config
@@ -141,23 +140,8 @@ def respond(
     can_next_problem = bool(state.problem_answered)
     snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
     navigation_view = navigation.build_navigation_view(snapshot)
-    return SessionResponse(
-        session_id=state.session_id,
-        username=state.username,
-        xp=state.xp,
-        streak=state.streak,
-        flawless_eligible=state.flawless_eligible,
-        max_streak=state.max_streak,
-        selected_chapter_id=state.selected_chapter_id,
-        selected_topic_id=state.selected_topic_id,
-        selected_level=state.selected_level,
-        problem_answered=state.problem_answered,
-        current_input_mode=state.current_input_mode,
-        topic_completed=state.topic_completed,
-        feedback_type=state.feedback_type,
-        feedback_msg=state.feedback_msg,
-        level_completed=state.level_completed,
-        chapter_frontiers=deepcopy(state.chapter_frontiers),
+    return SessionResponse.from_state(
+        state,
         current_problem=current_problem,
         can_submit=can_submit,
         can_next_problem=can_next_problem,
