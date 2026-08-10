@@ -27,7 +27,7 @@ def _clear_curriculum_override():
 
 def test_curriculum_is_immutable(fixture_curriculum: Curriculum):
     with pytest.raises(AttributeError):
-        fixture_curriculum._chapter_ids = (1,)  # type: ignore[misc]
+        fixture_curriculum._store = None  # type: ignore[misc]
 
 
 def test_fixture_curriculum_has_required_shape(fixture_curriculum: Curriculum):

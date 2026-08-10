@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from backend.curriculum_loader import (
     ChapterSummary,
+    CurriculumStore,
     LevelConfig,
     TopicDict,
     TopicMeta,
@@ -17,41 +18,39 @@ _curriculum_override: Curriculum | None = None
 
 @dataclass(frozen=True, slots=True)
 class Curriculum:
-    """Read-only curriculum snapshot — Chapters, Topics and Levels."""
+    """Read-only curriculum snapshot — Chapters, Topics and Levels.
 
-    _chapter_ids: tuple[int, ...]
-    _chapter_names: dict[int, str]
-    _topics: dict[int, tuple[TopicDict, ...]]
-    _topics_by_id: dict[int, dict[int, TopicMeta]]
-    _level_configs: dict[tuple[int, int, int], LevelConfig]
-    _keyboard_types: dict[int, str]
+    Delegates lookups to the wrapped `CurriculumStore` instead of
+    re-deriving its own indexes.
+    """
+
+    _store: CurriculumStore
 
     def chapter_ids(self) -> tuple[int, ...]:
         """Chapter ids in curriculum order."""
-        return self._chapter_ids
+        return tuple(bundle.chapter_id for bundle in self._store.bundles)
 
     def chapters(self) -> tuple[ChapterSummary, ...]:
         """Chapter id plus display name pairs for Navigation dropdowns."""
-        return tuple(
-            ChapterSummary(chapter_id=chapter_id, name=self._chapter_names[chapter_id])
-            for chapter_id in self._chapter_ids
-        )
+        return tuple(self._store.chapters)
 
     def has_chapter(self, chapter_id: int) -> bool:
         """Return whether a Chapter id exists."""
-        return chapter_id in self._chapter_names
+        return chapter_id in self._store.bundles_by_chapter_id
 
     def topics(self, chapter_id: int) -> tuple[TopicDict, ...]:
         """Topics for a Chapter in curriculum order (published Topics only)."""
-        return self._topics.get(chapter_id, ())
+        bundle = self._store.bundles_by_chapter_id.get(chapter_id)
+        return bundle.topics_meta if bundle is not None else ()
 
     def topic(self, chapter_id: int, topic_id: int) -> TopicMeta | None:
         """Topic lookup by id within a Chapter (name, max level, radio-only)."""
-        return self._topics_by_id.get(chapter_id, {}).get(topic_id)
+        bundle = self._store.bundles_by_chapter_id.get(chapter_id)
+        return bundle.topics_by_id.get(topic_id) if bundle is not None else None
 
     def chapter_name(self, chapter_id: int) -> str | None:
         """Chapter display name by id."""
-        return self._chapter_names.get(chapter_id)
+        return self._store.chapter_name_by_id.get(chapter_id)
 
     def topic_name(self, chapter_id: int, topic_id: int) -> str | None:
         """Topic display name by Chapter and id."""
@@ -62,41 +61,18 @@ class Curriculum:
         self, chapter_id: int, topic_id: int, level: int
     ) -> LevelConfig | None:
         """Level config for a Chapter, Topic and Level, including published state."""
-        return self._level_configs.get((chapter_id, topic_id, level))
+        bundle = self._store.bundles_by_chapter_id.get(chapter_id)
+        return bundle.level_configs.get((topic_id, level)) if bundle is not None else None
 
     def keyboard_type(self, chapter_id: int) -> str:
         """Keyboard type for a Chapter."""
-        return self._keyboard_types.get(chapter_id, "default")
+        bundle = self._store.bundles_by_chapter_id.get(chapter_id)
+        return bundle.keyboard_type if bundle is not None else "default"
 
 
 def curriculum_from_yaml() -> Curriculum:
-    """Build a Curriculum from the YAML-backed loader (lru_cache stays in the loader)."""
-    store = load_curriculum_store()
-    chapter_ids = tuple(bundle.chapter_id for bundle in store.bundles)
-    chapter_names = {bundle.chapter_id: bundle.chapter_name for bundle in store.bundles}
-    topics: dict[int, tuple[TopicDict, ...]] = {
-        bundle.chapter_id: bundle.topics_meta for bundle in store.bundles
-    }
-    topics_by_id: dict[int, dict[int, TopicMeta]] = {
-        bundle.chapter_id: dict(bundle.topics_by_id) for bundle in store.bundles
-    }
-    keyboard_types: dict[int, str] = {
-        bundle.chapter_id: bundle.keyboard_type for bundle in store.bundles
-    }
-    level_configs: dict[tuple[int, int, int], LevelConfig] = {
-        (bundle.chapter_id, topic_id, level): config
-        for bundle in store.bundles
-        for (topic_id, level), config in bundle.level_configs.items()
-    }
-
-    return Curriculum(
-        _chapter_ids=chapter_ids,
-        _chapter_names=chapter_names,
-        _topics=topics,
-        _topics_by_id=topics_by_id,
-        _level_configs=level_configs,
-        _keyboard_types=keyboard_types,
-    )
+    """Build a Curriculum wrapping the YAML-backed store (lru_cache stays in the loader)."""
+    return Curriculum(_store=load_curriculum_store())
 
 
 def set_curriculum(curriculum: Curriculum | None) -> None:
