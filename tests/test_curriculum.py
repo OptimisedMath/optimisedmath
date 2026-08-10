@@ -6,9 +6,13 @@ import asyncio
 
 import pytest
 
-from backend.curriculum import Curriculum, resolve_curriculum, set_curriculum
+from backend.curriculum import (
+    Curriculum,
+    get_curriculum_response,
+    resolve_curriculum,
+    set_curriculum,
+)
 from backend.main import curriculum_index
-from backend.problem_generation import get_curriculum_response
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
     CHAPTER_BETA,

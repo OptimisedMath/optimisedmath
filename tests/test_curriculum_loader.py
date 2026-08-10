@@ -3,8 +3,8 @@
 import pytest
 
 import backend.curriculum_loader as loader
-from backend.curriculum import resolve_curriculum
-from backend.problem_generation import FUNCTION_REGISTRY, get_curriculum_response
+from backend.curriculum import get_curriculum_response, resolve_curriculum
+from backend.problem_generation import FUNCTION_REGISTRY
 
 
 def test_loads_real_curriculum_with_topics():

@@ -1,4 +1,4 @@
-"""Problem generation, generator registry, and curriculum API helpers."""
+"""Problem generation and generator registry."""
 
 import hashlib
 import importlib
@@ -12,7 +12,6 @@ import backend.config as config
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.curriculum_loader import set_function_registry
-from backend.models import ChapterSummary, CurriculumResponse, TopicSummary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 CHAPTERS_DIR = BASE_DIR / "backend" / "chapters"
@@ -72,21 +71,6 @@ def _load_generator_registry(chapters_dir: Path) -> dict[str, GeneratorFunc]:
 
 FUNCTION_REGISTRY: dict[str, GeneratorFunc] = _load_generator_registry(CHAPTERS_DIR)
 set_function_registry(FUNCTION_REGISTRY)
-
-
-def get_curriculum_response(curriculum: Curriculum) -> CurriculumResponse:
-    """Return curriculum metadata formatted for the API."""
-    chapters: list[ChapterSummary] = []
-    for chapter in curriculum.chapters():
-        topic_list = curriculum.topics(chapter.chapter_id)
-        chapters.append(
-            ChapterSummary(
-                chapter_id=chapter.chapter_id,
-                name=chapter.name,
-                topics=[TopicSummary(**topic_entry) for topic_entry in topic_list],
-            )
-        )
-    return CurriculumResponse(chapters=chapters)
 
 
 def generate_problem(generator_func: GeneratorFunc) -> ProblemDict:

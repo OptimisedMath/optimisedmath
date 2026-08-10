@@ -12,6 +12,8 @@ from backend.curriculum_loader import (
     TopicMeta,
     load_curriculum_store,
 )
+from backend.models import ChapterSummary as ChapterSummaryResponse
+from backend.models import CurriculumResponse, TopicSummary
 
 _curriculum_override: Curriculum | None = None
 
@@ -86,3 +88,18 @@ def resolve_curriculum() -> Curriculum:
     if _curriculum_override is not None:
         return _curriculum_override
     return curriculum_from_yaml()
+
+
+def get_curriculum_response(curriculum: Curriculum) -> CurriculumResponse:
+    """Return curriculum metadata formatted for the API."""
+    chapters: list[ChapterSummaryResponse] = []
+    for chapter in curriculum.chapters():
+        topic_list = curriculum.topics(chapter.chapter_id)
+        chapters.append(
+            ChapterSummaryResponse(
+                chapter_id=chapter.chapter_id,
+                name=chapter.name,
+                topics=[TopicSummary(**topic_entry) for topic_entry in topic_list],
+            )
+        )
+    return CurriculumResponse(chapters=chapters)

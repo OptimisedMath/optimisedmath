@@ -19,8 +19,7 @@ from backend.models import (
     SessionStartRequest,
     SubmissionResponse,
 )
-from backend.curriculum import resolve_curriculum
-from backend.problem_generation import get_curriculum_response
+from backend.curriculum import get_curriculum_response, resolve_curriculum
 from backend.session import (
     ACTIVE_SESSIONS,
     SessionError,
