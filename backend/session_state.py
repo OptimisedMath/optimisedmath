@@ -5,6 +5,7 @@ import uuid
 import backend.config as config
 from backend.core import db
 from backend.curriculum import Curriculum
+import backend.navigation as navigation
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
@@ -189,4 +190,35 @@ def navigate_to(
         state.selected_level = level
     reset_submission_cycle(state, curriculum)
     sync_to_db(state, play_mode)
+
+
+def navigate_after_topic_completion(
+    state: SessionState,
+    curriculum: Curriculum,
+    play_mode: PlayMode | None = None,
+) -> bool:
+    """Navigate to the next Topic after Topic completion when Next problem unlocks one.
+
+    Returns True when Navigation moved the Session to the Frontier topic at level 1.
+    """
+    chapter_id = state.selected_chapter_id
+    if chapter_id is None:
+        return False
+
+    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
+    snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
+    ctx = snapshot.chapter_context(chapter_id)
+    if not ctx.has_next_unlocked_topic(state.selected_topic_id):
+        return False
+
+    next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
+    navigate_to(
+        state,
+        chapter_id=chapter_id,
+        topic_id=next_topic_id,
+        level=1,
+        curriculum=curriculum,
+        play_mode=play_mode,
+    )
+    return True
 

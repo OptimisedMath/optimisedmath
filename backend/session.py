@@ -339,11 +339,9 @@ def next_problem(session_id: str) -> ProblemResponse:
         )
 
     if state.problem_answered and state.topic_completed:
-        snapshot = navigation.build_navigation_snapshot(
+        if not session_state.navigate_after_topic_completion(
             state, curriculum, play_mode
-        )
-        ctx = snapshot.chapter_context(chapter_id)
-        if not ctx.has_next_unlocked_topic(state.selected_topic_id):
+        ):
             problem = state.current_problem
             if problem is None:
                 raise SessionError("No active problem in this session")
@@ -351,16 +349,6 @@ def next_problem(session_id: str) -> ProblemResponse:
                 problem=public_problem(problem, state, play_mode),
                 state=respond(state, curriculum, play_mode),
             )
-
-        next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-        session_state.navigate_to(
-            state,
-            chapter_id=chapter_id,
-            topic_id=next_topic_id,
-            level=1,
-            curriculum=curriculum,
-            play_mode=play_mode,
-        )
         chapter_id = state.selected_chapter_id
         topic_id = state.selected_topic_id
 

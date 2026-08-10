@@ -9,6 +9,7 @@ import backend.session_state as session_state
 from backend.curriculum import Curriculum
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
+from backend.play_mode import StudentPlayMode
 from backend.unlock import first_topic_id
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
@@ -193,3 +194,54 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
     assert state.streak == 0
     assert state.selected_chapter_id == CHAPTER_ALPHA
     assert state.selected_topic_id == TOPIC_MULTI
+
+
+def test_navigate_after_topic_completion_moves_to_frontier_topic(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_MULTI
+    state.selected_level = 2
+    state.problem_answered = True
+    state.topic_completed = True
+    state.level_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=1,
+    )
+
+    navigated = session_state.navigate_after_topic_completion(
+        state, fixture_curriculum, StudentPlayMode()
+    )
+
+    assert navigated is True
+    assert state.selected_topic_id == TOPIC_RADIO
+    assert state.selected_level == 1
+    assert state.topic_completed is False
+    assert state.problem_answered is False
+
+
+def test_navigate_after_topic_completion_stays_at_chapter_end(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_RADIO
+    state.selected_level = 1
+    state.problem_answered = True
+    state.topic_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=1,
+    )
+
+    navigated = session_state.navigate_after_topic_completion(
+        state, fixture_curriculum, StudentPlayMode()
+    )
+
+    assert navigated is False
+    assert state.selected_topic_id == TOPIC_RADIO
+    assert state.selected_level == 1
+    assert state.topic_completed is True
+    assert state.problem_answered is True
