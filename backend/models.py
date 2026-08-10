@@ -126,8 +126,38 @@ class SessionState(BaseModel):
         return self.model_dump_json(include=set(SessionState.model_fields))
 
 
-class SessionResponse(SessionState):
-    """Client Session payload — persisted fields plus derived response view."""
+class SessionResponse(BaseModel):
+    """Client Session payload — composed from `SessionState` plus derived response view.
+
+    Fields are opt-in (selected explicitly by `session.respond()`), not inherited from
+    the persisted `SessionState` superset, so persisted-only fields (e.g.
+    `problem_start_time`, `recent_problem_fingerprints`) never leak onto the wire by
+    default when a new persisted field is added.
+    """
+
+    session_id: str
+    username: Optional[str] = None
+
+    xp: int = Field(default=0, ge=0)
+    streak: int = Field(default=0, ge=0)
+    flawless_eligible: bool = True
+    max_streak: int = Field(default=3, ge=1)
+
+    selected_chapter_id: Optional[int] = None
+    selected_topic_id: Optional[int] = None
+    selected_level: int = Field(default=1, ge=1)
+
+    problem_answered: bool = False
+    current_input_mode: str = "radio"
+    topic_completed: bool = False
+
+    feedback_type: Optional[str] = None
+    feedback_msg: str = ""
+    level_completed: bool = False
+
+    chapter_frontiers: Dict[int, ChapterFrontier] = Field(default_factory=dict)
+
+    current_problem: Optional[Dict[str, Any]] = None
 
     can_submit: bool = False
     can_advance: bool = False

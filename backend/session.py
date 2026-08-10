@@ -129,33 +129,45 @@ def respond(
     curriculum: Curriculum,
     play_mode: PlayMode | None = None,
 ) -> SessionResponse:
-    """Build the client SessionResponse from persisted state and play mode."""
+    """Build the client SessionResponse by selecting fields from persisted state."""
     mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    response = SessionResponse.model_validate(deepcopy(state).model_dump())
-    if response.current_problem:
-        response.current_problem = public_problem(
-            response.current_problem, response, mode
-        )
-    response.can_submit = bool(
-        response.current_problem and not response.problem_answered
+    current_problem = (
+        public_problem(state.current_problem, state, mode)
+        if state.current_problem
+        else None
     )
-    response.can_advance = bool(response.problem_answered)
-    if (
-        response.problem_answered
-        and response.level_completed
-        and response.streak == 0
-    ):
-        response.streak_meter = response.max_streak
+    can_submit = bool(current_problem and not state.problem_answered)
+    can_advance = bool(state.problem_answered)
+    if state.problem_answered and state.level_completed and state.streak == 0:
+        streak_meter = state.max_streak
     else:
-        response.streak_meter = response.streak
-    response.problem_start_time = None
-    response.recent_problem_fingerprints = []
-    response.admin_mode = mode.is_admin
-    snapshot = navigation.build_navigation_snapshot(
-        response, curriculum, mode
+        streak_meter = state.streak
+    snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
+    navigation_view = navigation.build_navigation_view(snapshot)
+    return SessionResponse(
+        session_id=state.session_id,
+        username=state.username,
+        xp=state.xp,
+        streak=state.streak,
+        flawless_eligible=state.flawless_eligible,
+        max_streak=state.max_streak,
+        selected_chapter_id=state.selected_chapter_id,
+        selected_topic_id=state.selected_topic_id,
+        selected_level=state.selected_level,
+        problem_answered=state.problem_answered,
+        current_input_mode=state.current_input_mode,
+        topic_completed=state.topic_completed,
+        feedback_type=state.feedback_type,
+        feedback_msg=state.feedback_msg,
+        level_completed=state.level_completed,
+        chapter_frontiers=deepcopy(state.chapter_frontiers),
+        current_problem=current_problem,
+        can_submit=can_submit,
+        can_advance=can_advance,
+        streak_meter=streak_meter,
+        admin_mode=mode.is_admin,
+        navigation=navigation_view,
     )
-    response.navigation = navigation.build_navigation_view(snapshot)
-    return response
 
 
 # --- Problem lifecycle ---

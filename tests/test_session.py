@@ -205,8 +205,10 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(fixtur
     assert response.can_submit is True
     assert response.can_advance is False
     assert response.admin_mode is False
-    assert response.problem_start_time is None
-    assert response.recent_problem_fingerprints == []
+    assert not hasattr(response, "problem_start_time")
+    assert not hasattr(response, "recent_problem_fingerprints")
+    assert "problem_start_time" not in SessionResponse.model_fields
+    assert "recent_problem_fingerprints" not in SessionResponse.model_fields
     assert response.current_problem is not None
     assert response.current_problem["answer_options"] == ["41", "42"]
     assert "correct_answer" not in response.current_problem
