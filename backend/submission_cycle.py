@@ -182,10 +182,12 @@ def advance_to_next_problem(
             if problem is None:
                 raise NoActiveProblemError("No active problem in this session")
             return problem
-        chapter_id = state.selected_chapter_id
-        topic_id = state.selected_topic_id
-        if chapter_id is None or topic_id is None:
+        next_chapter_id = state.selected_chapter_id
+        next_topic_id = state.selected_topic_id
+        if next_chapter_id is None or next_topic_id is None:
             raise NoActiveProblemError("Session has no chapter/topic selected")
+        chapter_id = next_chapter_id
+        topic_id = next_topic_id
 
     if curriculum.topic(chapter_id, topic_id) is None:
         raise TopicNotFoundError(f"Topic id {topic_id} not found in curriculum")
