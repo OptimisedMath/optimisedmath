@@ -51,26 +51,6 @@ def test_init_defaults_sets_session_and_chapter_frontiers(
         assert state.chapter_frontiers[chapter_id].frontier_level == 1
 
 
-def test_reset_submission_cycle_clears_problem_and_feedback(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.streak = 2
-    state.problem_answered = True
-    state.feedback_type = "error"
-    state.feedback_msg = "oops"
-    state.current_problem = {"problem_id": "p1"}
-
-    session_state.reset_submission_cycle(state)
-
-    assert state.streak == 0
-    assert state.problem_answered is False
-    assert state.feedback_type is None
-    assert state.feedback_msg == ""
-    assert state.current_problem is None
-    assert state.current_input_mode == "radio"
-
-
 def test_resolve_input_mode_switches_to_input_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
@@ -106,28 +86,6 @@ def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
     state.streak = streak
 
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
-
-
-def test_navigate_to_updates_selection_and_resets_submission_cycle(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.streak = 2
-    state.problem_answered = True
-    state.current_problem = {"problem_id": "p1"}
-
-    session_state.navigate_to(
-        state,
-        topic_id=TOPIC_RADIO,
-        level=1,
-        curriculum=fixture_curriculum,
-    )
-
-    assert state.selected_topic_id == TOPIC_RADIO
-    assert state.selected_level == 1
-    assert state.streak == 0
-    assert state.problem_answered is False
-    assert state.current_problem is None
 
 
 def test_hard_reset_wipes_progress_and_persists(fixture_curriculum: Curriculum):

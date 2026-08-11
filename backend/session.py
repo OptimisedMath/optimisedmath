@@ -9,6 +9,7 @@ import backend.config as config
 import backend.navigation as navigation
 import backend.session_state as session_state
 import backend.submission as submission
+import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum, resolve_curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
@@ -285,7 +286,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
 
     _validate_unlocked_navigation(snapshot, chapter_id, topic_id, selected_level)
 
-    session_state.navigate_to(
+    submission_cycle.navigate_to(
         state,
         chapter_id=chapter_id,
         topic_id=topic_id,

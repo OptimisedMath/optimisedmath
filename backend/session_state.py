@@ -76,10 +76,10 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
         state.selected_topic_id = first_curr_topic_id
 
 
-def reset_submission_cycle(
+def _clear_submission_cycle_fields(
     state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
-    """Clears the current problem state when navigating or loading the next problem."""
+    """Clear problem-cycle fields on ``state`` (internal state-layer helper)."""
     state.streak = 0
     state.flawless_eligible = True
     state.problem_answered = False
@@ -144,7 +144,7 @@ def load_profile(
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
         state.chapter_frontiers = user_data["chapter_frontiers"]
-        reset_submission_cycle(state, curriculum)
+        _clear_submission_cycle_fields(state, curriculum)
     else:
         hard_reset(state, curriculum)
 
@@ -169,26 +169,7 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
-    reset_submission_cycle(state, curriculum)
-    sync_to_db(state, play_mode)
-
-
-def navigate_to(
-    state: SessionState,
-    chapter_id: int | None = None,
-    topic_id: int | None = None,
-    level: int | None = None,
-    curriculum: Curriculum | None = None,
-    play_mode: PlayMode | None = None,
-) -> None:
-    """Navigate to a different chapter/topic/level, resetting submission cycle and syncing."""
-    if chapter_id is not None:
-        state.selected_chapter_id = chapter_id
-    if topic_id is not None:
-        state.selected_topic_id = topic_id
-    if level is not None:
-        state.selected_level = level
-    reset_submission_cycle(state, curriculum)
+    _clear_submission_cycle_fields(state, curriculum)
     sync_to_db(state, play_mode)
 
 
@@ -212,13 +193,10 @@ def navigate_after_topic_completion(
         return False
 
     next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-    navigate_to(
-        state,
-        chapter_id=chapter_id,
-        topic_id=next_topic_id,
-        level=1,
-        curriculum=curriculum,
-        play_mode=play_mode,
-    )
+    state.selected_chapter_id = chapter_id
+    state.selected_topic_id = next_topic_id
+    state.selected_level = 1
+    _clear_submission_cycle_fields(state, curriculum)
+    sync_to_db(state, play_mode)
     return True
 

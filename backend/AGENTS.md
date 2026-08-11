@@ -40,7 +40,14 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 
 **Why a separate module:** `submission.py` already owns one graded Submission (answer → feedback → progression → persist). The cycle spans problem serving and Navigation across multiple state transitions; keeping it in its own module preserves that boundary and gives the parent refactor (#80) a single home for choreography without bloating `submission.py`.
 
-**Public API:** to be added as call sites migrate from `session.py` / `session_state.py` in follow-up tickets. Until then, the module is a documented skeleton only.
+**Public API:**
+
+| Function | Seam |
+|----------|------|
+| `reset_submission_cycle(state, curriculum=None)` | Clear streak, feedback, and problem fields for a fresh cycle |
+| `navigate_to(state, chapter_id=None, topic_id=None, level=None, curriculum=None, play_mode=None)` | Toolbar Navigation: update selection, reset cycle, persist |
+
+Additional entry points (`begin_problem`, post-Topic-completion Navigation, chapter-end fallback) will be added as call sites migrate in follow-up tickets.
 
 ## Submission module
 
