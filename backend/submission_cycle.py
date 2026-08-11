@@ -162,7 +162,7 @@ def serve_next_problem(
     return problem
 
 
-def advance_to_next_problem(
+def resolve_next_problem(
     state: SessionState,
     curriculum: Curriculum,
     chapter_id: int,

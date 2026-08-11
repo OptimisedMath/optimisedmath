@@ -292,7 +292,7 @@ def next_problem(session_id: str) -> ProblemResponse:
         )
 
     try:
-        problem = submission_cycle.advance_to_next_problem(
+        problem = submission_cycle.resolve_next_problem(
             state,
             curriculum,
             chapter_id,

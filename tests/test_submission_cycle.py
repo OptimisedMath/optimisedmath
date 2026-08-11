@@ -111,7 +111,7 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
     assert state.current_input_mode == "input"
 
 
-def test_advance_to_next_problem_navigates_to_frontier_topic(
+def test_resolve_next_problem_navigates_to_frontier_topic(
     fixture_curriculum: Curriculum,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -146,7 +146,7 @@ def test_advance_to_next_problem_navigates_to_frontier_topic(
         submission_cycle, "serve_next_problem", _fake_serve_next_problem
     )
 
-    problem = submission_cycle.advance_to_next_problem(
+    problem = submission_cycle.resolve_next_problem(
         state,
         fixture_curriculum,
         CHAPTER_ALPHA,
@@ -161,7 +161,7 @@ def test_advance_to_next_problem_navigates_to_frontier_topic(
     assert problem is served_problem
 
 
-def test_advance_to_next_problem_chapter_end_returns_current_problem(
+def test_resolve_next_problem_chapter_end_returns_current_problem(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
@@ -182,7 +182,7 @@ def test_advance_to_next_problem_chapter_end_returns_current_problem(
     )
     state.current_problem = completed_problem
 
-    problem = submission_cycle.advance_to_next_problem(
+    problem = submission_cycle.resolve_next_problem(
         state,
         fixture_curriculum,
         CHAPTER_ALPHA,
@@ -197,7 +197,7 @@ def test_advance_to_next_problem_chapter_end_returns_current_problem(
     assert state.problem_answered is True
 
 
-def test_advance_to_next_problem_chapter_end_raises_without_active_problem(
+def test_resolve_next_problem_chapter_end_raises_without_active_problem(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
@@ -213,7 +213,7 @@ def test_advance_to_next_problem_chapter_end_raises_without_active_problem(
     state.current_problem = None
 
     with pytest.raises(submission_cycle.NoActiveProblemError):
-        submission_cycle.advance_to_next_problem(
+        submission_cycle.resolve_next_problem(
             state,
             fixture_curriculum,
             CHAPTER_ALPHA,
