@@ -86,6 +86,22 @@ def apply_submission(eval_result: EvalResult, ctx: SubmissionContext) -> Submiss
     )
 
 
+def _is_at_streak_reset_boundary(
+    *,
+    selected_level: int,
+    frontier_level: int,
+    topic_id: int,
+    frontier_topic_id: int,
+    require_topic_match: bool,
+) -> bool:
+    """Check whether the player is at the streak-reset boundary for their profile."""
+    if selected_level != frontier_level:
+        return False
+    if require_topic_match:
+        return topic_id == frontier_topic_id
+    return True
+
+
 def _apply_streak_only_submission(
     ctx: SubmissionContext, is_correct: bool, is_soft_error: bool
 ) -> SubmissionOutcome:
@@ -95,9 +111,12 @@ def _apply_streak_only_submission(
         if new_streak < config.MAX_STREAK:
             new_streak += 1
 
-        at_boundary = (
-            ctx.topic_id == ctx.frontier_topic_id
-            and ctx.selected_level == ctx.frontier_level
+        at_boundary = _is_at_streak_reset_boundary(
+            selected_level=ctx.selected_level,
+            frontier_level=ctx.frontier_level,
+            topic_id=ctx.topic_id,
+            frontier_topic_id=ctx.frontier_topic_id,
+            require_topic_match=True,
         )
         if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
             new_streak = 0
@@ -139,10 +158,14 @@ def _apply_correct_submission(
     unlock_topic_id: int | None = None
     xp_earned = earned_xp
 
-    if (
-        new_streak == config.STARS_FOR_UNLOCK
-        and ctx.selected_level == ctx.frontier_level
-    ):
+    at_boundary = _is_at_streak_reset_boundary(
+        selected_level=ctx.selected_level,
+        frontier_level=ctx.frontier_level,
+        topic_id=ctx.topic_id,
+        frontier_topic_id=ctx.frontier_topic_id,
+        require_topic_match=False,
+    )
+    if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
         frontier_update = apply_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )
