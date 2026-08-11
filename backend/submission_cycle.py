@@ -27,7 +27,7 @@ import backend.config as config
 import backend.navigation as navigation
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
-from backend.models import SessionState
+from backend.models import SessionNavigateRequest, SessionState
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.problem_generation import (
     generate_level_problem,
@@ -55,6 +55,11 @@ def _navigate_after_topic_completion(
 ) -> bool:
     """Navigate to the next Topic after Topic completion when Next problem unlocks one.
 
+    Routes the target through the consolidated navigation resolver
+    (``navigation.resolve_navigation_target``) — the same validate-and-resolve
+    path toolbar Navigation uses — so Reachable/Locked determination cannot
+    diverge between manual Navigation and post-completion auto-navigation.
+
     Returns True when Navigation moved the Session to the Frontier topic at level 1.
     """
     chapter_id = state.selected_chapter_id
@@ -67,12 +72,28 @@ def _navigate_after_topic_completion(
     if not ctx.has_next_unlocked_topic(state.selected_topic_id):
         return False
 
-    next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-    state.selected_chapter_id = chapter_id
-    state.selected_topic_id = next_topic_id
-    state.selected_level = 1
-    reset_submission_cycle(state, curriculum)
-    session_state.sync_to_db(state, play_mode)
+    next_topic_id = ctx.effective_frontier.frontier_topic_id
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_chapter_id=chapter_id,
+        selected_topic_id=next_topic_id,
+        selected_level=1,
+    )
+    try:
+        target_chapter_id, target_topic_id, target_level = (
+            navigation.resolve_navigation_target(state, curriculum, request, snapshot)
+        )
+    except navigation.NavigationResolutionError:
+        return False
+
+    navigate_to(
+        state,
+        chapter_id=target_chapter_id,
+        topic_id=target_topic_id,
+        level=target_level,
+        curriculum=curriculum,
+        play_mode=mode,
+    )
     return True
 
 
