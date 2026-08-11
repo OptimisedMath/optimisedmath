@@ -70,6 +70,30 @@ def test_snapshot_exposes_chapters_from_handed_curriculum(
     ]
 
 
+def test_chapter_context_is_memoized_per_chapter_id(fixture_curriculum: Curriculum):
+    state = _fresh_state(fixture_curriculum)
+    snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
+
+    first = snapshot.chapter_context(CHAPTER_BETA)
+    second = snapshot.chapter_context(CHAPTER_BETA)
+
+    assert first is second
+
+
+def test_chapter_context_memoization_is_scoped_per_chapter_id(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
+
+    alpha_ctx = snapshot.chapter_context(CHAPTER_ALPHA)
+    beta_ctx = snapshot.chapter_context(CHAPTER_BETA)
+
+    assert alpha_ctx is not beta_ctx
+    assert alpha_ctx.chapter_id == CHAPTER_ALPHA
+    assert beta_ctx.chapter_id == CHAPTER_BETA
+
+
 def test_snapshot_defaults_selected_chapter_from_handed_curriculum(
     fixture_curriculum: Curriculum,
 ):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from backend.curriculum import Curriculum
 from backend.curriculum_loader import ChapterSummary, TopicDict
@@ -138,18 +138,27 @@ class NavigationSnapshot:
     _state: SessionState
     _curriculum: Curriculum
     _play_mode: PlayMode
+    _context_cache: dict[int, ChapterNavigationContext] = field(
+        default_factory=dict, repr=False, compare=False
+    )
 
     def chapters(self) -> tuple[ChapterSummary, ...]:
         """Chapter list captured when this snapshot was built."""
         return self.chapter_summaries
 
     def chapter_context(self, chapter_id: int) -> ChapterNavigationContext:
-        return _build_chapter_context(
+        """Return the chapter context, memoized per chapter_id for this snapshot."""
+        cached = self._context_cache.get(chapter_id)
+        if cached is not None:
+            return cached
+        context = _build_chapter_context(
             self._state,
             self._curriculum,
             self._play_mode,
             chapter_id,
         )
+        self._context_cache[chapter_id] = context
+        return context
 
 
 def _build_chapter_context(
