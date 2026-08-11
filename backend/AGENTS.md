@@ -50,8 +50,6 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)` | Generate at selection, dedupe fingerprints, begin problem |
 | `resolve_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)` | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem |
 
-Additional entry points will be added as call sites migrate in follow-up tickets.
-
 ## Submission module
 
 `submission.py` owns one Submission end-to-end. Call it from `session.py` — do not add pass-through wrappers in session or session_state.
