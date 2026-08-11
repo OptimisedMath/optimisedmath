@@ -148,26 +148,6 @@ def respond(
     )
 
 
-# --- Navigation guards ---
-
-
-def _validate_unlocked_navigation(
-    snapshot: navigation.NavigationSnapshot,
-    chapter_id: int,
-    topic_id: int,
-    selected_level: int,
-) -> None:
-    """Reject navigation to locked topics or levels."""
-    ctx = snapshot.chapter_context(chapter_id)
-    if ctx.can_access(topic_id, selected_level):
-        return
-
-    if topic_id > ctx.effective_frontier.frontier_topic_id:
-        raise ForbiddenError("Topic is locked")
-
-    raise ForbiddenError("Level is locked")
-
-
 # --- Session use-cases ---
 
 
@@ -219,40 +199,15 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     snapshot = navigation.build_navigation_snapshot(
         state, curriculum, play_mode
     )
-    chapter_id, topic_id, selected_level = navigation.resolve_navigate_request(
-        state, curriculum, request, snapshot
-    )
 
-    if not curriculum.has_chapter(chapter_id):
-        raise SessionError(
-            f"Chapter id {chapter_id} not found in curriculum"
+    try:
+        chapter_id, topic_id, selected_level = navigation.resolve_navigation_target(
+            state, curriculum, request, snapshot
         )
-
-    chapter_topics = list(curriculum.topics(chapter_id))
-    if not chapter_topics:
-        raise SessionError(
-            f"Chapter id {chapter_id} has no available topics"
-        )
-
-    available_topic_ids = [int(topic_entry["topic_id"]) for topic_entry in chapter_topics]
-    if topic_id not in available_topic_ids:
-        raise SessionError(
-            f"Topic id {topic_id} not found in curriculum"
-        )
-
-    selected_topic_meta = curriculum.topic(chapter_id, topic_id)
-    if selected_topic_meta is None:
-        raise SessionError(
-            f"Topic id {topic_id} not found in curriculum"
-        )
-    max_level = int(selected_topic_meta["max_level"])
-
-    if selected_level < 1 or selected_level > max_level:
-        raise SessionError(
-            f"Level {selected_level} is not available for topic id {topic_id}"
-        )
-
-    _validate_unlocked_navigation(snapshot, chapter_id, topic_id, selected_level)
+    except navigation.NavigationLockedError as exc:
+        raise ForbiddenError(str(exc)) from exc
+    except navigation.NavigationResolutionError as exc:
+        raise SessionError(str(exc)) from exc
 
     submission_cycle.navigate_to(
         state,

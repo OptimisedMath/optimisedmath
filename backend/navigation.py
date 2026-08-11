@@ -360,3 +360,96 @@ def resolve_navigate_request(
 
     topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
     return chapter_id, int(topic_id), int(state.selected_level)
+
+
+# --- Navigation intent validate-and-resolve ---
+
+
+class NavigationResolutionError(Exception):
+    """Base error for navigation intent validate-and-resolve failures."""
+
+
+class NavigationChapterNotFoundError(NavigationResolutionError):
+    """Resolved chapter id does not exist in the curriculum."""
+
+    def __init__(self, chapter_id: int) -> None:
+        super().__init__(f"Chapter id {chapter_id} not found in curriculum")
+
+
+class NavigationChapterHasNoTopicsError(NavigationResolutionError):
+    """Resolved chapter exists but has no topics defined."""
+
+    def __init__(self, chapter_id: int) -> None:
+        super().__init__(f"Chapter id {chapter_id} has no available topics")
+
+
+class NavigationTopicNotFoundError(NavigationResolutionError):
+    """Resolved topic id is not a member of the resolved chapter."""
+
+    def __init__(self, topic_id: int) -> None:
+        super().__init__(f"Topic id {topic_id} not found in curriculum")
+
+
+class NavigationLevelOutOfRangeError(NavigationResolutionError):
+    """Resolved level falls outside the topic's level bounds."""
+
+    def __init__(self, level: int, topic_id: int) -> None:
+        super().__init__(
+            f"Level {level} is not available for topic id {topic_id}"
+        )
+
+
+class NavigationLockedError(NavigationResolutionError):
+    """Resolved target is Beyond the Frontier — Locked for the current Student."""
+
+
+def resolve_navigation_target(
+    state: SessionState,
+    curriculum: Curriculum,
+    request: SessionNavigateRequest,
+    snapshot: NavigationSnapshot,
+) -> tuple[int, int, int]:
+    """Validate and resolve a navigation intent into a Reachable target.
+
+    Resolves the partial request into a full chapter/topic/level target, then
+    validates curriculum existence, topic membership, level bounds, and
+    Locked status against the Frontier captured on ``snapshot``. Does not
+    mutate session state or call session use-cases.
+
+    Raises:
+        NavigationChapterNotFoundError: resolved chapter does not exist.
+        NavigationChapterHasNoTopicsError: resolved chapter has no topics.
+        NavigationTopicNotFoundError: resolved topic is not in the chapter.
+        NavigationLevelOutOfRangeError: resolved level is out of bounds.
+        NavigationLockedError: resolved target is Locked for this Student.
+    """
+    chapter_id, topic_id, level = resolve_navigate_request(
+        state, curriculum, request, snapshot
+    )
+
+    if not curriculum.has_chapter(chapter_id):
+        raise NavigationChapterNotFoundError(chapter_id)
+
+    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    if not chapter_topics:
+        raise NavigationChapterHasNoTopicsError(chapter_id)
+
+    available_topic_ids = [int(entry["topic_id"]) for entry in chapter_topics]
+    if topic_id not in available_topic_ids:
+        raise NavigationTopicNotFoundError(topic_id)
+
+    topic_meta = curriculum.topic(chapter_id, topic_id)
+    if topic_meta is None:
+        raise NavigationTopicNotFoundError(topic_id)
+    max_level = int(topic_meta["max_level"])
+
+    if level < 1 or level > max_level:
+        raise NavigationLevelOutOfRangeError(level, topic_id)
+
+    ctx = snapshot.chapter_context(chapter_id)
+    if not ctx.can_access(topic_id, level):
+        if topic_id > ctx.effective_frontier.frontier_topic_id:
+            raise NavigationLockedError("Topic is locked")
+        raise NavigationLockedError("Level is locked")
+
+    return chapter_id, topic_id, level

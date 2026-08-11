@@ -4,13 +4,18 @@ import uuid
 
 import pytest
 
-from backend.curriculum import resolve_curriculum
+from backend.curriculum import Curriculum, resolve_curriculum
 from backend.models import ChapterFrontier, SessionState, SessionNavigateRequest
 from backend.navigation import build_navigation_snapshot
 from backend.play_mode import AdminPlayMode, StudentPlayMode
 from backend.navigation import _get_level_options as get_level_options
 import backend.navigation as resolution
 import backend.session_state as session_state
+from tests.support.fixture_curriculum import (
+    CHAPTER_ALPHA,
+    TOPIC_MULTI,
+    TOPIC_RADIO,
+)
 
 _STUDENT = StudentPlayMode()
 _ADMIN = AdminPlayMode()
@@ -214,3 +219,170 @@ def test_admin_explicit_topic_and_level_unchanged():
     )
 
     assert (chapter_id, topic_id, level) == (chapter_id, target_topic_id, explicit_level)
+
+
+# --- resolve_navigation_target (validate-and-resolve) ---
+
+
+def _fixture_state(fixture_curriculum: Curriculum) -> SessionState:
+    state = SessionState()
+    session_state.init_defaults(state, fixture_curriculum)
+    state.username = "nav-target-user"
+    state.session_id = str(uuid.uuid4())
+    return state
+
+
+def test_resolve_navigation_target_returns_reachable_target(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_chapter_id=CHAPTER_ALPHA,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=1,
+    )
+
+    chapter_id, topic_id, level = resolution.resolve_navigation_target(
+        state,
+        fixture_curriculum,
+        request,
+        build_navigation_snapshot(state, fixture_curriculum, _STUDENT),
+    )
+
+    assert (chapter_id, topic_id, level) == (CHAPTER_ALPHA, TOPIC_MULTI, 1)
+
+
+def test_resolve_navigation_target_raises_for_missing_chapter(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    request = SessionNavigateRequest(
+        session_id=state.session_id, selected_chapter_id=999
+    )
+
+    with pytest.raises(resolution.NavigationChapterNotFoundError) as exc_info:
+        resolution.resolve_navigation_target(
+            state,
+            fixture_curriculum,
+            request,
+            build_navigation_snapshot(state, fixture_curriculum, _STUDENT),
+        )
+    assert str(exc_info.value) == "Chapter id 999 not found in curriculum"
+
+
+def test_resolve_navigation_target_raises_for_missing_topic(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    request = SessionNavigateRequest(
+        session_id=state.session_id, selected_topic_id=999
+    )
+
+    with pytest.raises(resolution.NavigationTopicNotFoundError) as exc_info:
+        resolution.resolve_navigation_target(
+            state,
+            fixture_curriculum,
+            request,
+            build_navigation_snapshot(state, fixture_curriculum, _STUDENT),
+        )
+    assert str(exc_info.value) == "Topic id 999 not found in curriculum"
+
+
+def test_resolve_navigation_target_raises_for_out_of_range_level(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI, frontier_level=2
+    )
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=99,
+    )
+
+    with pytest.raises(resolution.NavigationLevelOutOfRangeError) as exc_info:
+        resolution.resolve_navigation_target(
+            state,
+            fixture_curriculum,
+            request,
+            build_navigation_snapshot(state, fixture_curriculum, _STUDENT),
+        )
+    assert str(exc_info.value) == (
+        f"Level 99 is not available for topic id {TOPIC_MULTI}"
+    )
+
+
+def test_resolve_navigation_target_raises_for_locked_topic(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    )
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_chapter_id=CHAPTER_ALPHA,
+        selected_topic_id=TOPIC_RADIO,
+        selected_level=1,
+    )
+
+    with pytest.raises(resolution.NavigationLockedError) as exc_info:
+        resolution.resolve_navigation_target(
+            state,
+            fixture_curriculum,
+            request,
+            build_navigation_snapshot(state, fixture_curriculum, _STUDENT),
+        )
+    assert str(exc_info.value) == "Topic is locked"
+
+
+def test_resolve_navigation_target_raises_for_locked_level(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    )
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_chapter_id=CHAPTER_ALPHA,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=2,
+    )
+
+    with pytest.raises(resolution.NavigationLockedError) as exc_info:
+        resolution.resolve_navigation_target(
+            state,
+            fixture_curriculum,
+            request,
+            build_navigation_snapshot(state, fixture_curriculum, _STUDENT),
+        )
+    assert str(exc_info.value) == "Level is locked"
+
+
+def test_resolve_navigation_target_admin_bypasses_frontier_but_not_bounds(
+    fixture_curriculum: Curriculum,
+):
+    state = _fixture_state(fixture_curriculum)
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    )
+    request = SessionNavigateRequest(
+        session_id=state.session_id,
+        selected_chapter_id=CHAPTER_ALPHA,
+        selected_topic_id=TOPIC_RADIO,
+        selected_level=1,
+    )
+
+    chapter_id, topic_id, level = resolution.resolve_navigation_target(
+        state,
+        fixture_curriculum,
+        request,
+        build_navigation_snapshot(state, fixture_curriculum, _ADMIN),
+    )
+
+    assert (chapter_id, topic_id, level) == (CHAPTER_ALPHA, TOPIC_RADIO, 1)
