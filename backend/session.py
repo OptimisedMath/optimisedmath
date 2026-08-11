@@ -151,6 +151,23 @@ def respond(
 # --- Session use-cases ---
 
 
+def _resolve_navigation_target_or_raise(
+    state: SessionState,
+    curriculum: Curriculum,
+    request: SessionNavigateRequest,
+    snapshot: navigation.NavigationSnapshot,
+) -> tuple[int, int, int]:
+    """Resolve a navigation intent, mapping resolver errors to session-layer errors."""
+    try:
+        return navigation.resolve_navigation_target(
+            state, curriculum, request, snapshot
+        )
+    except navigation.NavigationLockedError as exc:
+        raise ForbiddenError(str(exc)) from exc
+    except navigation.NavigationResolutionError as exc:
+        raise SessionError(str(exc)) from exc
+
+
 def start_session(request: SessionStartRequest) -> SessionResponse:
     """Create a session, load user progress, and return SessionResponse with navigation."""
     play_mode = resolve_play_mode(request.username)
@@ -159,30 +176,33 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     if not curriculum.chapter_ids():
         raise InternalError("No curriculum data available")
 
-    if request.selected_chapter_id is not None and not curriculum.has_chapter(
-        request.selected_chapter_id
-    ):
-        raise SessionError(
-            f"Chapter id {request.selected_chapter_id} not found in curriculum"
-        )
-
     state = SessionState()
     session_state.init_defaults(state, curriculum)
     session_state.load_profile(state, request.username, curriculum)
     navigation.clamp_selected_level(state, curriculum)
 
-    if request.selected_chapter_id is not None:
-        prev_chapter_id = state.selected_chapter_id
-        state.selected_chapter_id = request.selected_chapter_id
-        if request.selected_chapter_id != prev_chapter_id:
-            snapshot = navigation.build_navigation_snapshot(
-                state, curriculum, play_mode
-            )
-            _, topic_id, level = navigation.resolve_chapter_change(
-                curriculum, request.selected_chapter_id, snapshot
-            )
-            state.selected_topic_id = topic_id
-            state.selected_level = level
+    if (
+        request.selected_chapter_id is not None
+        and request.selected_chapter_id != state.selected_chapter_id
+    ):
+        snapshot = navigation.build_navigation_snapshot(
+            state, curriculum, play_mode
+        )
+        override_request = SessionNavigateRequest(
+            session_id=state.session_id,
+            selected_chapter_id=request.selected_chapter_id,
+        )
+        chapter_id, topic_id, level = _resolve_navigation_target_or_raise(
+            state, curriculum, override_request, snapshot
+        )
+        submission_cycle.navigate_to(
+            state,
+            chapter_id=chapter_id,
+            topic_id=topic_id,
+            level=level,
+            curriculum=curriculum,
+            play_mode=play_mode,
+        )
 
     ACTIVE_SESSIONS[state.session_id] = state
     session_state.sync_to_db(state, play_mode)
@@ -200,14 +220,9 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
         state, curriculum, play_mode
     )
 
-    try:
-        chapter_id, topic_id, selected_level = navigation.resolve_navigation_target(
-            state, curriculum, request, snapshot
-        )
-    except navigation.NavigationLockedError as exc:
-        raise ForbiddenError(str(exc)) from exc
-    except navigation.NavigationResolutionError as exc:
-        raise SessionError(str(exc)) from exc
+    chapter_id, topic_id, selected_level = _resolve_navigation_target_or_raise(
+        state, curriculum, request, snapshot
+    )
 
     submission_cycle.navigate_to(
         state,

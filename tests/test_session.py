@@ -631,3 +631,47 @@ def test_start_session_raises_for_unknown_chapter():
         )
     assert exc_info.value.status_code == 400
     assert "not found" in exc_info.value.detail
+
+
+def test_start_session_chapter_override_resolves_and_applies_via_navigate_to(
+    fixture_curriculum: Curriculum,
+):
+    """Override to a different chapter lands on its Frontier via the consolidated resolver."""
+    set_curriculum(fixture_curriculum)
+    try:
+        response = session.start_session(
+            SessionStartRequest(
+                username=f"user-{uuid.uuid4()}", selected_chapter_id=CHAPTER_BETA
+            )
+        )
+    finally:
+        set_curriculum(None)
+
+    assert response.selected_chapter_id == CHAPTER_BETA
+    assert response.selected_topic_id is not None
+    state = session.ACTIVE_SESSIONS[response.session_id]
+    persisted = db.load_user(state.username)
+    assert persisted is not None
+    assert persisted["selected_chapter_id"] == CHAPTER_BETA
+
+
+def test_start_session_chapter_override_matching_profile_is_unaffected(
+    fixture_curriculum: Curriculum,
+):
+    """Override equal to the loaded profile's chapter behaves like a normal start."""
+    username = f"user-{uuid.uuid4()}"
+    set_curriculum(fixture_curriculum)
+    try:
+        baseline = session.start_session(SessionStartRequest(username=username))
+        session.ACTIVE_SESSIONS.clear()
+        overridden = session.start_session(
+            SessionStartRequest(
+                username=username, selected_chapter_id=baseline.selected_chapter_id
+            )
+        )
+    finally:
+        set_curriculum(None)
+
+    assert overridden.selected_chapter_id == baseline.selected_chapter_id
+    assert overridden.selected_topic_id == baseline.selected_topic_id
+    assert overridden.selected_level == baseline.selected_level
