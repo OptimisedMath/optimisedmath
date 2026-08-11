@@ -2,12 +2,19 @@
 
 import uuid
 
+import pytest
+
 import backend.config as config
 import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
-from backend.models import SessionState
+from backend.models import ChapterFrontier, SessionState
+from backend.play_mode import StudentPlayMode
 import backend.session_state as session_state
-from tests.support.fixture_curriculum import TOPIC_RADIO
+from tests.support.fixture_curriculum import (
+    CHAPTER_ALPHA,
+    TOPIC_MULTI,
+    TOPIC_RADIO,
+)
 
 
 def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
@@ -102,3 +109,114 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
     submission_cycle.begin_problem(state, problem, fixture_curriculum)
 
     assert state.current_input_mode == "input"
+
+
+def test_advance_to_next_problem_navigates_to_frontier_topic(
+    fixture_curriculum: Curriculum,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    state = _fresh_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_MULTI
+    state.selected_level = 2
+    state.problem_answered = True
+    state.topic_completed = True
+    state.level_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=1,
+    )
+    state.current_problem = {
+        "problem_id": "completed",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+    }
+    served_problem = {
+        "problem_id": "served",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+    }
+
+    def _fake_serve_next_problem(*_args, **_kwargs):
+        return served_problem
+
+    monkeypatch.setattr(
+        submission_cycle, "serve_next_problem", _fake_serve_next_problem
+    )
+
+    problem = submission_cycle.advance_to_next_problem(
+        state,
+        fixture_curriculum,
+        CHAPTER_ALPHA,
+        TOPIC_MULTI,
+        play_mode=StudentPlayMode(),
+    )
+
+    assert state.selected_topic_id == TOPIC_RADIO
+    assert state.selected_level == 1
+    assert state.topic_completed is False
+    assert state.problem_answered is False
+    assert problem is served_problem
+
+
+def test_advance_to_next_problem_chapter_end_returns_current_problem(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    completed_problem = {
+        "problem_id": "chapter-end",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+    }
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_RADIO
+    state.selected_level = 1
+    state.problem_answered = True
+    state.topic_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=1,
+    )
+    state.current_problem = completed_problem
+
+    problem = submission_cycle.advance_to_next_problem(
+        state,
+        fixture_curriculum,
+        CHAPTER_ALPHA,
+        TOPIC_RADIO,
+        play_mode=StudentPlayMode(),
+    )
+
+    assert problem is completed_problem
+    assert state.selected_topic_id == TOPIC_RADIO
+    assert state.selected_level == 1
+    assert state.topic_completed is True
+    assert state.problem_answered is True
+
+
+def test_advance_to_next_problem_chapter_end_raises_without_active_problem(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_RADIO
+    state.selected_level = 1
+    state.problem_answered = True
+    state.topic_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=1,
+    )
+    state.current_problem = None
+
+    with pytest.raises(submission_cycle.NoActiveProblemError):
+        submission_cycle.advance_to_next_problem(
+            state,
+            fixture_curriculum,
+            CHAPTER_ALPHA,
+            TOPIC_RADIO,
+            play_mode=StudentPlayMode(),
+        )

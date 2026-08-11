@@ -48,8 +48,9 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 | `navigate_to(state, chapter_id=None, topic_id=None, level=None, curriculum=None, play_mode=None)` | Toolbar Navigation: update selection, reset cycle, persist |
 | `begin_problem(state, problem, curriculum, *, recent_fingerprints=None, play_mode=None)` | Apply state mutations for a newly generated problem and persist |
 | `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)` | Generate at selection, dedupe fingerprints, begin problem |
+| `advance_to_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)` | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem |
 
-Additional entry points (post-Topic-completion Navigation, chapter-end fallback) will be added as call sites migrate in follow-up tickets.
+Additional entry points will be added as call sites migrate in follow-up tickets.
 
 ## Submission module
 

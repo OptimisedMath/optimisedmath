@@ -172,31 +172,3 @@ def hard_reset(
     _clear_submission_cycle_fields(state, curriculum)
     sync_to_db(state, play_mode)
 
-
-def navigate_after_topic_completion(
-    state: SessionState,
-    curriculum: Curriculum,
-    play_mode: PlayMode | None = None,
-) -> bool:
-    """Navigate to the next Topic after Topic completion when Next problem unlocks one.
-
-    Returns True when Navigation moved the Session to the Frontier topic at level 1.
-    """
-    chapter_id = state.selected_chapter_id
-    if chapter_id is None:
-        return False
-
-    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
-    ctx = snapshot.chapter_context(chapter_id)
-    if not ctx.has_next_unlocked_topic(state.selected_topic_id):
-        return False
-
-    next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
-    state.selected_chapter_id = chapter_id
-    state.selected_topic_id = next_topic_id
-    state.selected_level = 1
-    _clear_submission_cycle_fields(state, curriculum)
-    sync_to_db(state, play_mode)
-    return True
-

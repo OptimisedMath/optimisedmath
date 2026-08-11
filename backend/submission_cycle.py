@@ -3,8 +3,7 @@
 One Submission cycle is the Problem lifecycle within a Session: served →
 Submission → Feedback → Next problem (see ``CONTEXT.md``). This module
 consolidates orchestration currently spread across ``session.begin_problem``,
-``session_state.navigate_after_topic_completion``, and (formerly)
-``session_state.reset_submission_cycle`` / ``session_state.navigate_to``.
+and (formerly) ``session_state.reset_submission_cycle`` / ``session_state.navigate_to``.
 
 Responsibilities:
 
@@ -13,11 +12,9 @@ Responsibilities:
 - **Begin problem** — apply state mutations for a newly generated problem and
   persist.
 - **Post-Topic-completion Navigation** — after Topic completion, land the
-  Session on the next unlocked Topic at level 1 when Next problem unlocks one
-  (follow-up ticket).
+  Session on the next unlocked Topic at level 1 when Next problem unlocks one.
 - **Chapter-end fallback** — when Topic completion leaves no next unlocked
-  Topic, return the already-completed Problem without regenerating (follow-up
-  ticket).
+  Topic, return the already-completed Problem without regenerating.
 
 Call from ``session.py`` use-case functions; do not import ``session`` from
 here. ``submission.py`` remains the owner of one graded Submission (grade →
@@ -27,10 +24,11 @@ telemetry → progression → persist).
 import time
 
 import backend.config as config
+import backend.navigation as navigation
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import SessionState
-from backend.play_mode import PlayMode
+from backend.play_mode import PlayMode, resolve_play_mode
 from backend.problem_generation import (
     generate_level_problem,
     problem_fingerprint,
@@ -40,6 +38,42 @@ import backend.session_state as session_state
 
 class ProblemServeError(Exception):
     """Problem serving failed when no candidate could be selected."""
+
+
+class NoActiveProblemError(Exception):
+    """Next problem requested at chapter end with no active problem on the Session."""
+
+
+class TopicNotFoundError(Exception):
+    """Selected topic is missing from the curriculum."""
+
+
+def _navigate_after_topic_completion(
+    state: SessionState,
+    curriculum: Curriculum,
+    play_mode: PlayMode | None = None,
+) -> bool:
+    """Navigate to the next Topic after Topic completion when Next problem unlocks one.
+
+    Returns True when Navigation moved the Session to the Frontier topic at level 1.
+    """
+    chapter_id = state.selected_chapter_id
+    if chapter_id is None:
+        return False
+
+    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
+    snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
+    ctx = snapshot.chapter_context(chapter_id)
+    if not ctx.has_next_unlocked_topic(state.selected_topic_id):
+        return False
+
+    next_topic_id = state.chapter_frontiers[chapter_id].frontier_topic_id
+    state.selected_chapter_id = chapter_id
+    state.selected_topic_id = next_topic_id
+    state.selected_level = 1
+    reset_submission_cycle(state, curriculum)
+    session_state.sync_to_db(state, play_mode)
+    return True
 
 
 def reset_submission_cycle(
@@ -126,3 +160,40 @@ def serve_next_problem(
         play_mode=play_mode,
     )
     return problem
+
+
+def advance_to_next_problem(
+    state: SessionState,
+    curriculum: Curriculum,
+    chapter_id: int,
+    topic_id: int,
+    play_mode: PlayMode | None = None,
+) -> ProblemDict:
+    """Serve the next problem, handling post-Topic-completion Navigation and chapter-end fallback.
+
+    Raises:
+        NoActiveProblemError: At chapter end with no active problem, or missing selection
+            after post-Topic Navigation.
+        TopicNotFoundError: Selected topic is missing from the curriculum.
+    """
+    if state.problem_answered and state.topic_completed:
+        if not _navigate_after_topic_completion(state, curriculum, play_mode):
+            problem = state.current_problem
+            if problem is None:
+                raise NoActiveProblemError("No active problem in this session")
+            return problem
+        chapter_id = state.selected_chapter_id
+        topic_id = state.selected_topic_id
+        if chapter_id is None or topic_id is None:
+            raise NoActiveProblemError("Session has no chapter/topic selected")
+
+    if curriculum.topic(chapter_id, topic_id) is None:
+        raise TopicNotFoundError(f"Topic id {topic_id} not found in curriculum")
+
+    return serve_next_problem(
+        state,
+        curriculum,
+        chapter_id,
+        topic_id,
+        play_mode=play_mode,
+    )

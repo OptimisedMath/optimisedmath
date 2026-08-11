@@ -291,35 +291,18 @@ def next_problem(session_id: str) -> ProblemResponse:
             f"Chapter id {chapter_id} not found in curriculum"
         )
 
-    if state.problem_answered and state.topic_completed:
-        if not session_state.navigate_after_topic_completion(
-            state, curriculum, play_mode
-        ):
-            problem = state.current_problem
-            if problem is None:
-                raise SessionError("No active problem in this session")
-            return ProblemResponse(
-                problem=public_problem(problem, state, play_mode),
-                state=respond(state, curriculum, play_mode),
-            )
-        chapter_id = state.selected_chapter_id
-        topic_id = state.selected_topic_id
-        if chapter_id is None or topic_id is None:
-            raise SessionError("Session has no chapter/topic selected")
-
-    if curriculum.topic(chapter_id, topic_id) is None:
-        raise SessionError(
-            f"Topic id {topic_id} not found in curriculum"
-        )
-
     try:
-        problem = submission_cycle.serve_next_problem(
+        problem = submission_cycle.advance_to_next_problem(
             state,
             curriculum,
             chapter_id,
             topic_id,
             play_mode=play_mode,
         )
+    except submission_cycle.NoActiveProblemError as exc:
+        raise SessionError(str(exc)) from exc
+    except submission_cycle.TopicNotFoundError as exc:
+        raise SessionError(str(exc)) from exc
     except (ProblemGenerationError, submission_cycle.ProblemServeError) as exc:
         raise InternalError(str(exc)) from exc
 
