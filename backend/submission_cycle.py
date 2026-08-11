@@ -11,7 +11,7 @@ Responsibilities:
 - **Cycle reset** — clear streak, feedback, and problem fields when Navigation
   or Next problem starts a fresh cycle.
 - **Begin problem** — apply state mutations for a newly generated problem and
-  persist (follow-up ticket).
+  persist.
 - **Post-Topic-completion Navigation** — after Topic completion, land the
   Session on the next unlocked Topic at level 1 when Next problem unlocks one
   (follow-up ticket).
@@ -24,10 +24,22 @@ here. ``submission.py`` remains the owner of one graded Submission (grade →
 telemetry → progression → persist).
 """
 
+import time
+
+import backend.config as config
+from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import SessionState
 from backend.play_mode import PlayMode
+from backend.problem_generation import (
+    generate_level_problem,
+    problem_fingerprint,
+)
 import backend.session_state as session_state
+
+
+class ProblemServeError(Exception):
+    """Problem serving failed when no candidate could be selected."""
 
 
 def reset_submission_cycle(
@@ -54,3 +66,63 @@ def navigate_to(
         state.selected_level = level
     reset_submission_cycle(state, curriculum)
     session_state.sync_to_db(state, play_mode)
+
+
+def begin_problem(
+    state: SessionState,
+    problem: ProblemDict,
+    curriculum: Curriculum,
+    *,
+    recent_fingerprints: list[str] | None = None,
+    play_mode: PlayMode | None = None,
+) -> None:
+    """Apply state mutations for a newly generated problem and persist."""
+    state.current_input_mode = session_state.resolve_input_mode(state, curriculum)
+    if recent_fingerprints is not None:
+        state.recent_problem_fingerprints = recent_fingerprints[
+            -config.MAX_RETRIES_DUPLICATE_CHECK :
+        ]
+    state.problem_answered = False
+    state.feedback_type = None
+    state.feedback_msg = ""
+    state.level_completed = False
+    state.problem_start_time = time.time()
+    state.current_problem = problem
+    session_state.sync_to_db(state, play_mode)
+
+
+def serve_next_problem(
+    state: SessionState,
+    curriculum: Curriculum,
+    chapter_id: int,
+    topic_id: int,
+    play_mode: PlayMode | None = None,
+) -> ProblemDict:
+    """Generate the next problem at the selection, dedupe recent instances, and begin it."""
+    level = state.selected_level
+    recent_fingerprints = list(state.recent_problem_fingerprints)
+    problem: ProblemDict | None = None
+
+    for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
+        candidate = generate_level_problem(curriculum, chapter_id, topic_id, level)
+        fingerprint = problem_fingerprint(candidate)
+        if fingerprint not in recent_fingerprints:
+            problem = candidate
+            recent_fingerprints.append(fingerprint)
+            break
+        problem = candidate
+
+    if problem is None:
+        raise ProblemServeError(
+            f"Could not generate problem for "
+            f"chapter {chapter_id}/topic {topic_id}/level {level}"
+        )
+
+    begin_problem(
+        state,
+        problem,
+        curriculum,
+        recent_fingerprints=recent_fingerprints,
+        play_mode=play_mode,
+    )
+    return problem

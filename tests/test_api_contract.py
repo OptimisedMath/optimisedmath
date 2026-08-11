@@ -488,7 +488,7 @@ def test_radio_only_topic_keeps_radio_input():
 
 def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     import backend.problem_generation as problem_generation
-    import backend.session as session_module
+    import backend.submission_cycle as submission_cycle
 
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
@@ -544,7 +544,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         return unique_problem
 
     monkeypatch.setattr(
-        session_module, "generate_level_problem", fake_generate_with_unique_second
+        submission_cycle, "generate_level_problem", fake_generate_with_unique_second
     )
 
     response = run(main.problem_next(session_id))

@@ -8,6 +8,7 @@ import pytest
 import backend.config as config
 import backend.session as session
 import backend.session_state as session_state
+import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum, resolve_curriculum, set_curriculum
 from backend.play_mode import resolve_play_mode
 from backend.core import db
@@ -95,51 +96,6 @@ def test_session_not_found_default_message():
     exc = session.SessionNotFoundError()
     assert exc.detail == "Session not found"
     assert exc.status_code == 404
-
-
-# --- begin_problem ---
-
-
-def test_begin_problem_resets_submission_state_and_sets_problem(fixture_curriculum: Curriculum):
-    state = _fresh_state(fixture_curriculum)
-    problem = {"problem_id": "p1", "question": "2+2", "correct": "4", "options": ["4", "5"]}
-
-    state.problem_answered = True
-    state.feedback_type = "error"
-    state.feedback_msg = "wrong"
-    state.level_completed = True
-
-    session.begin_problem(state, problem, fixture_curriculum)
-
-    assert state.problem_answered is False
-    assert state.feedback_type is None
-    assert state.feedback_msg == ""
-    assert state.level_completed is False
-    assert state.current_problem is problem
-    assert state.problem_start_time is not None
-
-
-def test_begin_problem_trims_recent_fingerprints(fixture_curriculum: Curriculum):
-    state = _fresh_state(fixture_curriculum)
-    problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
-
-    fingerprints = [f"fp-{index}" for index in range(config.MAX_RETRIES_DUPLICATE_CHECK + 3)]
-    session.begin_problem(
-        state, problem, fixture_curriculum, recent_fingerprints=fingerprints
-    )
-
-    assert len(state.recent_problem_fingerprints) == config.MAX_RETRIES_DUPLICATE_CHECK
-    assert state.recent_problem_fingerprints == fingerprints[-config.MAX_RETRIES_DUPLICATE_CHECK :]
-
-
-def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curriculum):
-    state = _fresh_state(fixture_curriculum)
-    problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
-
-    state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    session.begin_problem(state, problem, fixture_curriculum)
-
-    assert state.current_input_mode == "input"
 
 
 # --- respond ---
@@ -458,7 +414,7 @@ def _submission_snapshot(state: SessionState) -> dict[str, object]:
 def _begin_identical_problem(
     state: SessionState, problem: dict[str, object], curriculum: Curriculum
 ) -> None:
-    session.begin_problem(state, problem, curriculum)
+    submission_cycle.begin_problem(state, problem, curriculum)
     session.ACTIVE_SESSIONS[state.session_id] = state
 
 
@@ -512,7 +468,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(fixture_curriculum: Cu
     manual_state = _fresh_state(fixture_curriculum)
     manual_state.username = next(iter(config.ADMIN_USERNAMES))
     manual_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    session.begin_problem(manual_state, dict(problem), fixture_curriculum)
+    submission_cycle.begin_problem(manual_state, dict(problem), fixture_curriculum)
     session.ACTIVE_SESSIONS[manual_state.session_id] = manual_state
     assert manual_state.current_input_mode == "input"
 
@@ -528,7 +484,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(fixture_curriculum: Cu
     auto_state = _fresh_state(fixture_curriculum)
     auto_state.username = manual_state.username
     auto_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    session.begin_problem(auto_state, dict(problem), fixture_curriculum)
+    submission_cycle.begin_problem(auto_state, dict(problem), fixture_curriculum)
     session.ACTIVE_SESSIONS[auto_state.session_id] = auto_state
 
     auto_response = session.auto_solve_problem(
@@ -558,7 +514,7 @@ def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curricu
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    session.begin_problem(state, problem, fixture_curriculum)
+    submission_cycle.begin_problem(state, problem, fixture_curriculum)
     session.ACTIVE_SESSIONS[state.session_id] = state
     db.save_user(state.username, state.model_copy(update={"streak": 0}))
 

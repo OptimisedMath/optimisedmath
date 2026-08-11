@@ -14,11 +14,7 @@ from backend.curriculum import Curriculum, resolve_curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
-from backend.problem_generation import (
-    ProblemGenerationError,
-    generate_level_problem,
-    problem_fingerprint,
-)
+from backend.problem_generation import ProblemGenerationError
 from backend.progression import streak_meter_for
 from backend.models import (
     AutoSolveRequest,
@@ -150,34 +146,6 @@ def respond(
         admin_mode=mode.is_admin,
         navigation=navigation_view,
     )
-
-
-# --- Problem lifecycle ---
-
-
-def begin_problem(
-    state: SessionState,
-    problem: ProblemDict,
-    curriculum: Curriculum,
-    *,
-    recent_fingerprints: list[str] | None = None,
-    play_mode: PlayMode | None = None,
-) -> None:
-    """Apply state mutations for a newly generated problem and persist."""
-    state.current_input_mode = session_state.resolve_input_mode(
-        state, curriculum
-    )
-    if recent_fingerprints is not None:
-        state.recent_problem_fingerprints = recent_fingerprints[
-            -config.MAX_RETRIES_DUPLICATE_CHECK :
-        ]
-    state.problem_answered = False
-    state.feedback_type = None
-    state.feedback_msg = ""
-    state.level_completed = False
-    state.problem_start_time = time.time()
-    state.current_problem = problem
-    session_state.sync_to_db(state, play_mode)
 
 
 # --- Navigation guards ---
@@ -344,38 +312,16 @@ def next_problem(session_id: str) -> ProblemResponse:
             f"Topic id {topic_id} not found in curriculum"
         )
 
-    level = state.selected_level
-    recent_fingerprints = list(state.recent_problem_fingerprints)
-    problem = None
-
-    for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
-        try:
-            candidate = generate_level_problem(
-                curriculum, chapter_id, topic_id, level
-            )
-        except ProblemGenerationError as exc:
-            raise InternalError(str(exc)) from exc
-
-        fingerprint = problem_fingerprint(candidate)
-        if fingerprint not in recent_fingerprints:
-            problem = candidate
-            recent_fingerprints.append(fingerprint)
-            break
-        problem = candidate
-
-    if problem is None:
-        raise InternalError(
-            f"Could not generate problem for "
-            f"chapter {chapter_id}/topic {topic_id}/level {level}"
+    try:
+        problem = submission_cycle.serve_next_problem(
+            state,
+            curriculum,
+            chapter_id,
+            topic_id,
+            play_mode=play_mode,
         )
-
-    begin_problem(
-        state,
-        problem,
-        curriculum,
-        recent_fingerprints=recent_fingerprints,
-        play_mode=play_mode,
-    )
+    except (ProblemGenerationError, submission_cycle.ProblemServeError) as exc:
+        raise InternalError(str(exc)) from exc
 
     return ProblemResponse(
         problem=public_problem(problem, state, play_mode),
