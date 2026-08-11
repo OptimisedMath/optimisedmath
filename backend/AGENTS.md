@@ -13,8 +13,9 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 |-------|--------|------|
 | HTTP | `main.py` | Routes, CORS, exception → HTTP status |
 | Session use-cases | `session.py` | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` owns the response view (`SessionResponse`) |
-| Session state | `session_state.py` | Load/save/mutate `SessionState`; sync to DB |
+| Submission cycle | `submission_cycle.py` | Cycle reset, begin-problem, post-Topic-completion Navigation, chapter-end fallback |
 | Submission | `submission.py` | Grade → telemetry → progression → persist for one Submission |
+| Session state | `session_state.py` | Load/save/mutate `SessionState`; sync to DB |
 | Progression | `progression.py` | Streak, XP, level/topic progression per Submission (pure) |
 | Access | `unlock.py` | Reachable chapter/topic/level (pure) |
 | Grading | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
@@ -27,11 +28,19 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 
 ## Import rules
 
-1. **Strict layers:** HTTP → session → submission → state → pure rules. Pure modules never import session, state, or HTTP.
+1. **Strict layers:** HTTP → session → submission_cycle → submission → state → pure rules. Pure modules never import session, state, or HTTP.
 2. **`models.py` is shared:** any layer may import Pydantic types from `models.py`.
 3. **`navigation` reads only for snapshot/view:** may read `SessionState` from `models.py`; must not mutate state or call session use-cases when building snapshots or views. View payload is derived from data captured on the snapshot at construction time.
 4. **`session.py` owns the response view:** `respond()` builds `SessionResponse` from persisted `SessionState` plus play mode and navigation; calls state helpers and `navigation.build_*`; does not embed view-building logic beyond assembling the payload.
 5. **`Curriculum` is injected below session:** modules below the session use-case layer receive `Curriculum` as a parameter; only HTTP/session resolve it via `resolve_curriculum()`.
+
+## Submission cycle module
+
+`submission_cycle.py` owns the Submission cycle choreography (see `CONTEXT.md`): cycle reset, begin-problem, post-Topic-completion Navigation, and the chapter-end fallback. It sits between `session.py` and `submission.py` / `session_state.py` — call it from session use-cases; do not import `session` from here.
+
+**Why a separate module:** `submission.py` already owns one graded Submission (answer → feedback → progression → persist). The cycle spans problem serving and Navigation across multiple state transitions; keeping it in its own module preserves that boundary and gives the parent refactor (#80) a single home for choreography without bloating `submission.py`.
+
+**Public API:** to be added as call sites migrate from `session.py` / `session_state.py` in follow-up tickets. Until then, the module is a documented skeleton only.
 
 ## Submission module
 
