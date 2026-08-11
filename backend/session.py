@@ -335,6 +335,8 @@ def next_problem(session_id: str) -> ProblemResponse:
             )
         chapter_id = state.selected_chapter_id
         topic_id = state.selected_topic_id
+        if chapter_id is None or topic_id is None:
+            raise SessionError("Session has no chapter/topic selected")
 
     if curriculum.topic(chapter_id, topic_id) is None:
         raise SessionError(
