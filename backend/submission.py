@@ -50,8 +50,6 @@ def process_submission(
 
     eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
-    state.feedback_type = eval_result.get("feedback_type", None)
-    state.feedback_msg = eval_result.get("feedback_msg", "")
 
     _log_submission_telemetry(
         state, problem, user_input, is_input_mode, eval_result, curriculum
@@ -146,16 +144,31 @@ def _build_submission_context(
     )
 
 
+def _resolve_feedback(
+    eval_result: EvalResult, outcome: SubmissionOutcome
+) -> tuple[str | None, str]:
+    """Merge grading feedback with progression overrides into one final pair."""
+    feedback_type = eval_result.get("feedback_type")
+    feedback_msg = eval_result.get("feedback_msg", "")
+    if outcome.feedback_type is not None:
+        feedback_type = outcome.feedback_type
+    if outcome.feedback_msg is not None:
+        feedback_msg = outcome.feedback_msg
+    return feedback_type, feedback_msg
+
+
 def _apply_submission_outcome(
-    state: SessionState, chapter_id: int, outcome: SubmissionOutcome
+    state: SessionState,
+    chapter_id: int,
+    outcome: SubmissionOutcome,
+    eval_result: EvalResult,
 ) -> None:
+    feedback_type, feedback_msg = _resolve_feedback(eval_result, outcome)
+    state.feedback_type = feedback_type
+    state.feedback_msg = feedback_msg
     state.streak = outcome.new_streak
     state.flawless_eligible = outcome.new_flawless_eligible
     state.xp += outcome.xp_earned
-    if outcome.feedback_type is not None:
-        state.feedback_type = outcome.feedback_type
-    if outcome.feedback_msg is not None:
-        state.feedback_msg = outcome.feedback_msg
     if outcome.level_completed:
         state.level_completed = True
     if outcome.topic_completed:
@@ -186,4 +199,4 @@ def _apply_progression(
         state, curriculum, chapter_id, topic_id, profile=profile
     )
     submission_outcome = apply_submission(eval_result, submission_ctx)
-    _apply_submission_outcome(state, chapter_id, submission_outcome)
+    _apply_submission_outcome(state, chapter_id, submission_outcome, eval_result)

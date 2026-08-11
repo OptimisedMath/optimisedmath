@@ -62,7 +62,9 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 |--------|------|
 | `_log_submission_telemetry` | Telemetry write to `core/db.py` |
 | `_apply_progression` | Pure rules in `progression.py` via `apply_submission` |
-| Grading | Pure `answer_grading.grade` — feedback fields applied inline in `process_submission` |
+| `_resolve_feedback` | Merge grading feedback with progression overrides (once per Submission) |
+| `_apply_submission_outcome` | Apply `SubmissionOutcome` + merged feedback onto `SessionState` |
+| Grading | Pure `answer_grading.grade` |
 
 Submission failures propagate with their original exception and context; do not wrap in generic internal errors or print-and-re-raise.
 

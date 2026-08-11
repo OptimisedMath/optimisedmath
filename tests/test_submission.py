@@ -17,6 +17,7 @@ from backend.core import db
 from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import AdminPlayMode, StudentPlayMode
+from backend.progression import SubmissionOutcome
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
     TOPIC_MULTI,
@@ -282,6 +283,35 @@ def _assert_admin_profile_unchanged(
         frontier_topic_id=frontier_topic_id,
         frontier_level=frontier_level,
     )
+
+
+# --- Feedback merge ---
+
+
+def test_resolve_feedback_uses_grading_when_progression_is_silent():
+    eval_result = {"feedback_type": "warning", "feedback_msg": "Try again"}
+    outcome = SubmissionOutcome(new_streak=1, new_flawless_eligible=False, xp_earned=0)
+
+    feedback_type, feedback_msg = submission._resolve_feedback(eval_result, outcome)
+
+    assert feedback_type == "warning"
+    assert feedback_msg == "Try again"
+
+
+def test_resolve_feedback_prefers_progression_override():
+    eval_result = {"feedback_type": "warning", "feedback_msg": "ignored"}
+    outcome = SubmissionOutcome(
+        new_streak=1,
+        new_flawless_eligible=True,
+        xp_earned=10,
+        feedback_type="success",
+        feedback_msg="Brawo! (+10 XP)",
+    )
+
+    feedback_type, feedback_msg = submission._resolve_feedback(eval_result, outcome)
+
+    assert feedback_type == "success"
+    assert feedback_msg == "Brawo! (+10 XP)"
 
 
 # --- Correct answer ---
