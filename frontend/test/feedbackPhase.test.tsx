@@ -1,7 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useSession } from '@/lib/session';
-import type { FeedbackPhase } from '@/lib/session/types';
+import { useSession, type FeedbackPhase } from '@/lib/session';
 import { resetFakeBackend, mockApi } from './apiMock';
 import { baseProblem, baseSession, wireArenaFlow } from './fakeBackend';
 import { resetStoredSession, seedStoredSession } from './testSession';
