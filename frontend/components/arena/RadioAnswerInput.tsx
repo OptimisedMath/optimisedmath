@@ -6,6 +6,7 @@ import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import { useDocumentKeydown } from '@/hooks/useDocumentKeydown';
 import { useAutoSolve } from '@/hooks/useAutoSolve';
+import { getRevealedCorrectAnswer } from '@/lib/session';
 import type { SessionActions, SessionView } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
@@ -41,6 +42,7 @@ function RadioAnswerInput({
   });
 
   const submitDisabled = value.trim() === '' || !canSubmit || interactionDisabled;
+  const revealedCorrectAnswer = getRevealedCorrectAnswer(problem, feedback);
 
   const handleRadioShortcuts = useCallback(
     (e: KeyboardEvent) => {
@@ -89,7 +91,7 @@ function RadioAnswerInput({
                   ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                   : value === option && !feedback.correct
                   ? 'border-red-500 bg-red-600/85 text-white ring-2 ring-red-300'
-                  : !feedback.correct && problem.correct_answer === option
+                  : revealedCorrectAnswer === option
                   ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                   : 'border-slate-200 bg-slate-100 text-slate-500 opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                 : value === option

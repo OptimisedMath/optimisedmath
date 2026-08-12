@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
 import { InlineMath } from 'react-katex';
+import { getRevealedCorrectAnswer } from '@/lib/session';
 import type { SessionActions, SessionView } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
@@ -38,7 +39,7 @@ function FeedbackCard({
 
   const inputMode = problem?.input_mode ?? currentInputMode;
   const correctAnswer =
-    !feedback.correct && inputMode !== 'radio' ? problem?.correct_answer : undefined;
+    inputMode !== 'radio' ? getRevealedCorrectAnswer(problem, feedback) : undefined;
 
   let buttonLabel = 'Następne zadanie ➡️';
   if (topicCompleted) {

@@ -286,6 +286,54 @@ describe('ADR-0002 leak locks', () => {
     });
   });
 
+  it('styles the revealed correct radio option green and the selected wrong option red', async () => {
+    const session = baseSession({
+      current_input_mode: 'radio',
+      navigation: {
+        ...defaultNavigation()!,
+        radio_only: true,
+      },
+    });
+    const problem = baseProblem({
+      answer_options: ['1', '2', '3', '4'],
+      correct_answer: '2',
+    });
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: false,
+        feedback: 'Trap feedback',
+        state: {
+          ...session,
+          problem_answered: true,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'warning',
+          feedback_msg: 'Trap feedback',
+          current_problem: problem,
+        },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /3/ }));
+    await user.click(screen.getByRole('button', { name: /Sprawdź odpowiedź/ }));
+
+    await screen.findByText('Trap feedback');
+
+    const wrongOption = screen.getByRole('button', { name: /3/ });
+    const revealedCorrectOption = screen.getByRole('button', { name: /2/ });
+    expect(wrongOption.className).toContain('border-red-500');
+    expect(wrongOption.className).toContain('bg-red-600/85');
+    expect(revealedCorrectOption.className).toContain('border-emerald-500');
+    expect(revealedCorrectOption.className).toContain('bg-emerald-600/85');
+  });
+
   it('derives Feedback purely from SessionState.feedback_type/feedback_msg without any separate hook-state trigger', async () => {
     const session = baseSession({
       can_next_problem: true,

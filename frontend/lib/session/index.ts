@@ -6,6 +6,7 @@ export {
   startSession,
   submitAnswer,
 } from './api';
+export { getRevealedCorrectAnswer } from './correctAnswer';
 export {
   clearSessionStorage,
   getStoredSessionId,
