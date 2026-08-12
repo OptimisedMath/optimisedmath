@@ -1,0 +1,8 @@
+{
+  "setup-worktree-unix": [
+    "python3 -m venv .venv",
+    ".venv/bin/pip install -r requirements.txt",
+    "npm ci --prefix frontend",
+    "test -f \"$ROOT_WORKTREE_PATH/.env\" && cp \"$ROOT_WORKTREE_PATH/.env\" .env || true"
+  ]
+}
