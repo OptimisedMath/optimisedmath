@@ -28,7 +28,6 @@ import type {
 export function useSession() {
   const { exitToLogin, prefetchLogin } = useAppNavigation();
   const [sessionState, setSessionState] = useState<SessionState | null>(null);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,9 +49,17 @@ export function useSession() {
     const scrollY = window.scrollY;
 
     if (clearBeforeFetch) {
-      setFeedback(null);
       setSessionState((prev) =>
-        prev ? { ...prev, current_problem: null, can_submit: false, can_next_problem: false } : prev
+        prev
+          ? {
+              ...prev,
+              current_problem: null,
+              can_submit: false,
+              can_next_problem: false,
+              feedback_type: null,
+              feedback_msg: '',
+            }
+          : prev
       );
     }
 
@@ -61,7 +68,6 @@ export function useSession() {
     try {
       const response = await getNextProblem(currentSessionId);
       setSessionState(response.state);
-      setFeedback(null);
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
       return true;
     } catch (err) {
@@ -134,15 +140,8 @@ export function useSession() {
   }, [prefetchLogin]);
 
   const applySubmissionResponse = useCallback((response: SubmissionResponse) => {
-    const nextState = response.state;
-    setSessionState(nextState);
+    setSessionState(response.state);
     setError(null);
-    setFeedback({
-      correct: response.is_correct,
-      message: response.feedback,
-      feedback_type: nextState.feedback_type,
-      answer_locked: nextState.can_next_problem,
-    });
   }, []);
 
   const handleSubmit = useCallback<SubmitAnswerHandler>(async (answer) => {
@@ -182,9 +181,17 @@ export function useSession() {
 
     const scrollY = window.scrollY;
     setIsNavigating(true);
-    setFeedback(null);
     setSessionState((prev) =>
-      prev ? { ...prev, current_problem: null, can_submit: false, can_next_problem: false } : prev
+      prev
+        ? {
+            ...prev,
+            current_problem: null,
+            can_submit: false,
+            can_next_problem: false,
+            feedback_type: null,
+            feedback_msg: '',
+          }
+        : prev
     );
     setError(null);
 
@@ -230,9 +237,17 @@ export function useSession() {
     }
 
     setIsNavigating(true);
-    setFeedback(null);
     setSessionState((prev) =>
-      prev ? { ...prev, current_problem: null, can_submit: false, can_next_problem: false } : prev
+      prev
+        ? {
+            ...prev,
+            current_problem: null,
+            can_submit: false,
+            can_next_problem: false,
+            feedback_type: null,
+            feedback_msg: '',
+          }
+        : prev
     );
     setError(null);
 
@@ -266,6 +281,16 @@ export function useSession() {
         )?.name ?? null
       : null;
 
+    const feedback: Feedback | null =
+      session && session.feedback_type !== null
+        ? {
+            correct: session.feedback_type === 'success',
+            message: session.feedback_msg,
+            feedback_type: session.feedback_type,
+            answer_locked: session.can_next_problem,
+          }
+        : null;
+
     return {
       needsLogin,
       isLoading: session === null && error === null,
@@ -274,7 +299,7 @@ export function useSession() {
       isSubmitting,
       isLoadingNextProblem,
       canSubmit: Boolean(session?.can_submit && !isSubmitting),
-      canNextProblem: Boolean(session?.can_next_problem && feedback !== null),
+      canNextProblem: Boolean(session?.can_next_problem),
       session,
       problem,
       feedback,
@@ -284,7 +309,6 @@ export function useSession() {
     };
   }, [
     sessionState,
-    feedback,
     error,
     isNavigating,
     isSubmitting,

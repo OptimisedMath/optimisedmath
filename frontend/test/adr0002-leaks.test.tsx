@@ -1,7 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { resetFakeBackend, mockApi } from './apiMock';
+import { onGet, onPost, resetFakeBackend, mockApi } from './apiMock';
 import {
   baseProblem,
   baseSession,
@@ -61,6 +61,7 @@ describe('ADR-0002 leak locks', () => {
           can_submit: false,
           can_next_problem: true,
           feedback_type: 'success',
+          feedback_msg: 'Poziom ukończony!',
           current_problem: problem,
         },
       }),
@@ -104,6 +105,7 @@ describe('ADR-0002 leak locks', () => {
           can_submit: false,
           can_next_problem: true,
           feedback_type: 'success',
+          feedback_msg: 'OK',
           current_problem: problem,
         },
       }),
@@ -135,6 +137,7 @@ describe('ADR-0002 leak locks', () => {
           can_submit: false,
           can_next_problem: true,
           feedback_type: 'success',
+          feedback_msg: 'Brawo!',
           current_problem: problem,
         },
       }),
@@ -165,6 +168,7 @@ describe('ADR-0002 leak locks', () => {
           can_submit: false,
           can_next_problem: true,
           feedback_type: 'warning',
+          feedback_msg: 'Trap feedback',
           current_problem: problem,
         },
       }),
@@ -195,6 +199,7 @@ describe('ADR-0002 leak locks', () => {
           can_submit: false,
           can_next_problem: true,
           feedback_type: 'warning',
+          feedback_msg: 'Wrong feedback',
           current_problem: problem,
         },
       }),
@@ -225,6 +230,7 @@ describe('ADR-0002 leak locks', () => {
           can_submit: true,
           can_next_problem: false,
           feedback_type: 'info',
+          feedback_msg: 'Zły format odpowiedzi',
           current_problem: problem,
         },
       }),
@@ -238,5 +244,74 @@ describe('ADR-0002 leak locks', () => {
     expect(softError).toHaveAttribute('data-feedback-type', 'info');
     expect(softError.className).toContain('border-amber-200');
     expect(softError.className).toContain('text-amber-700');
+  });
+
+  it('clears feedback and canNextProblem immediately after navigating, before the new state loads', async () => {
+    const session = baseSession();
+    const problem = baseProblem();
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: true,
+        feedback: 'Brawo!',
+        state: {
+          ...session,
+          problem_answered: true,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'success',
+          feedback_msg: 'Brawo!',
+          current_problem: problem,
+        },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+    await submitTypedAnswer('4');
+
+    await screen.findByText('Brawo!');
+    expect(screen.getByRole('button', { name: /Następne zadanie/ })).toBeInTheDocument();
+
+    const levelSelect = screen.getByLabelText('Poziom');
+    fireEvent.change(levelSelect, { target: { value: '2' } });
+
+    expect(screen.queryByText('Brawo!')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Następne zadanie/ })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockApi.post).toHaveBeenCalledWith('/session/navigate', expect.anything());
+    });
+  });
+
+  it('derives Feedback purely from SessionState.feedback_type/feedback_msg without any separate hook-state trigger', async () => {
+    const session = baseSession({
+      can_next_problem: true,
+      problem_answered: true,
+      feedback_type: 'success',
+      feedback_msg: 'Zaliczone od razu!',
+    });
+    const problem = baseProblem();
+
+    onPost('/session/start', () => session);
+    onGet('/problem/next', () => ({
+      problem,
+      state: {
+        ...session,
+        current_problem: problem,
+        can_submit: false,
+        can_next_problem: true,
+      },
+    }));
+
+    renderArena();
+    await waitForArenaReady();
+
+    const badge = await screen.findByText('Zaliczone od razu!');
+    expect(badge).toHaveAttribute('data-feedback-type', 'success');
+    expect(badge.className).toContain('bg-emerald-100');
+    expect(screen.getByRole('button', { name: /Następne zadanie/ })).toBeInTheDocument();
   });
 });
