@@ -328,7 +328,7 @@ def test_snapshot_implicit_chapter_landing_admin(fixture_curriculum: Curriculum)
     assert ctx.implicit_chapter_landing == (TOPIC_MULTI, 1)
 
 
-def test_snapshot_implicit_topic_landing(fixture_curriculum: Curriculum):
+def test_snapshot_implicit_topic_landing_student(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
     state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
         frontier_topic_id=TOPIC_MULTI,
@@ -344,6 +344,20 @@ def test_snapshot_implicit_topic_landing(fixture_curriculum: Curriculum):
         frontier_level=1,
     )
     snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
+    ctx = snapshot.chapter_context(CHAPTER_ALPHA)
+
+    assert ctx.implicit_topic_landing(TOPIC_MULTI) == 1
+    assert ctx.implicit_topic_landing(TOPIC_RADIO) == 1
+
+
+def test_snapshot_implicit_topic_landing_admin(fixture_curriculum: Curriculum):
+    state = _fresh_state(fixture_curriculum, username="Antoni")
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=2,
+    )
+
+    snapshot, _ = _build(state, fixture_curriculum, _ADMIN)
     ctx = snapshot.chapter_context(CHAPTER_ALPHA)
 
     assert ctx.implicit_topic_landing(TOPIC_MULTI) == 1
