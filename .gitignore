@@ -17,3 +17,4 @@ frontend/dist/
 backend/storage/users.db*
 .pip_packages/
 .worktrees/
+.cursor/worktrees.json
