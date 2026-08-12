@@ -18,6 +18,7 @@ export { useSession } from './useSession';
 export type {
   ChapterFrontier,
   Feedback,
+  FeedbackPhase,
   NavigateIntent,
   NavigationChapterOption,
   NavigationProgress,
