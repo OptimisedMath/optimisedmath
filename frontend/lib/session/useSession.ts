@@ -2,6 +2,10 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { MISSING_TOPIC_NAME } from './constants';
+import {
+  emptySessionDisplayProjection,
+  projectSessionState,
+} from './projectSessionState';
 import { useSessionBootstrap } from './useSessionBootstrap';
 import { useProblemLifecycle } from './useProblemLifecycle';
 import type {
@@ -58,6 +62,10 @@ export function useSession() {
           }
         : null;
 
+    const display = session
+      ? projectSessionState(session)
+      : emptySessionDisplayProjection();
+
     return {
       needsLogin,
       isLoading: session === null && error === null,
@@ -73,6 +81,7 @@ export function useSession() {
       selectedChapterName,
       topicName: navigation?.current_topic_name || MISSING_TOPIC_NAME,
       adminMode: session?.admin_mode ?? false,
+      ...display,
     };
   }, [
     sessionState,
