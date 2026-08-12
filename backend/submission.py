@@ -10,9 +10,8 @@ from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import SessionState
-from backend.play_mode import PlayMode
+from backend.play_mode import DbWritePlan, PlayMode
 from backend.progression import (
-    PersistenceProfile,
     SubmissionContext,
     SubmissionOutcome,
     apply_submission,
@@ -51,14 +50,14 @@ def process_submission(
     eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
 
-    _log_submission_telemetry(
-        state, problem, user_input, is_input_mode, eval_result, curriculum
-    )
-    _apply_progression(state, eval_result, curriculum, play_mode)
-
     from backend.session_state import build_db_write_plan, sync_to_db
 
     write_plan = build_db_write_plan(state, play_mode)
+
+    _log_submission_telemetry(
+        state, problem, user_input, is_input_mode, eval_result, curriculum
+    )
+    _apply_progression(state, eval_result, curriculum, write_plan)
     sync_to_db(state, write_plan)
     return eval_result
 
@@ -105,20 +104,13 @@ def _log_submission_telemetry(
     )
 
 
-def _persistence_profile_for(play_mode: PlayMode) -> PersistenceProfile:
-    """Map play-mode policy to the progression persistence profile."""
-    if play_mode.persists_profile:
-        return PersistenceProfile.FULL
-    return PersistenceProfile.STREAK_ONLY
-
-
 def _build_submission_context(
     state: SessionState,
     curriculum: Curriculum,
     chapter_id: int,
     topic_id: int,
     *,
-    profile: PersistenceProfile,
+    full_progression: bool,
 ) -> SubmissionContext:
     prog = state.chapter_frontiers[chapter_id]
     topic_meta = curriculum.topic(chapter_id, topic_id)
@@ -141,7 +133,7 @@ def _build_submission_context(
         frontier_topic_id=prog.frontier_topic_id,
         topic_max_level=int(topic_meta["max_level"]),
         next_topic_ids=next_topic_ids,
-        persistence_profile=profile,
+        full_progression=full_progression,
     )
 
 
@@ -188,16 +180,19 @@ def _apply_progression(
     state: SessionState,
     eval_result: EvalResult,
     curriculum: Curriculum,
-    play_mode: PlayMode,
+    write_plan: DbWritePlan,
 ) -> None:
-    """Apply progression rules for one graded submission using play-mode policy."""
+    """Apply progression rules for one graded submission using the write plan."""
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
     assert chapter_id is not None and topic_id is not None
 
-    profile = _persistence_profile_for(play_mode)
     submission_ctx = _build_submission_context(
-        state, curriculum, chapter_id, topic_id, profile=profile
+        state,
+        curriculum,
+        chapter_id,
+        topic_id,
+        full_progression=write_plan.full_progression,
     )
     submission_outcome = apply_submission(eval_result, submission_ctx)
     _apply_submission_outcome(state, chapter_id, submission_outcome, eval_result)
