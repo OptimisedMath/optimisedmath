@@ -205,7 +205,9 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
         )
 
     ACTIVE_SESSIONS[state.session_id] = state
-    session_state.sync_to_db(state, play_mode)
+    session_state.sync_to_db(
+        state, session_state.build_db_write_plan(state, play_mode)
+    )
     state.problem_start_time = time.time()
 
     return respond(state, curriculum, play_mode)

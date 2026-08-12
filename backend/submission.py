@@ -56,9 +56,10 @@ def process_submission(
     )
     _apply_progression(state, eval_result, curriculum, play_mode)
 
-    from backend.session_state import sync_to_db
+    from backend.session_state import build_db_write_plan, sync_to_db
 
-    sync_to_db(state, play_mode)
+    write_plan = build_db_write_plan(state, play_mode)
+    sync_to_db(state, write_plan)
     return eval_result
 
 
