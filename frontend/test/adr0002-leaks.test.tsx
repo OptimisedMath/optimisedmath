@@ -1,6 +1,6 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { onGet, onPost, resetFakeBackend, mockApi } from './apiMock';
 import {
   baseProblem,
@@ -35,6 +35,10 @@ describe('ADR-0002 leak locks', () => {
     resetFakeBackend();
     resetStoredSession();
     seedStoredSession();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders full streak meter from payload during level-completion feedback', async () => {
@@ -361,5 +365,205 @@ describe('ADR-0002 leak locks', () => {
     expect(badge).toHaveAttribute('data-feedback-type', 'success');
     expect(badge.className).toContain('bg-emerald-100');
     expect(screen.getByRole('button', { name: /Następne zadanie/ })).toBeInTheDocument();
+  });
+
+  it('selects a radio option via number-key shortcut and submits it on Enter', async () => {
+    const session = baseSession({
+      current_input_mode: 'radio',
+      navigation: {
+        ...defaultNavigation()!,
+        radio_only: true,
+      },
+    });
+    const problem = baseProblem({
+      answer_options: ['1', '2', '3', '4'],
+      correct_answer: '2',
+    });
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: false,
+        feedback: 'Trap feedback',
+        state: {
+          ...session,
+          problem_answered: true,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'warning',
+          feedback_msg: 'Trap feedback',
+          current_problem: problem,
+        },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+
+    fireEvent.keyDown(window, { key: '1' });
+
+    const selectedOption = screen.getByRole('button', { name: /1/ });
+    expect(selectedOption.className).toContain('border-sky-500');
+    expect(selectedOption.className).toContain('bg-sky-50');
+
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mockApi.post).toHaveBeenCalledWith('/problem/submit', {
+        session_id: session.session_id,
+        problem_id: problem.problem_id,
+        user_input: '1',
+        is_input_mode: false,
+      });
+    });
+  });
+
+  it('inserts the / and spacja mobile keyboard buttons at the current cursor position', async () => {
+    const session = baseSession();
+    const problem = baseProblem();
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: true,
+        feedback: 'Brawo!',
+        state: {
+          ...session,
+          problem_answered: true,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'success',
+          feedback_msg: 'Brawo!',
+          current_problem: problem,
+        },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+
+    const user = userEvent.setup();
+    const input = (await screen.findByPlaceholderText('Wpisz wynik...')) as HTMLInputElement;
+    await user.type(input, '12');
+    input.setSelectionRange(1, 1);
+
+    await user.click(screen.getByRole('button', { name: '/' }));
+    await waitFor(() => expect(input).toHaveValue('1/2'));
+    await waitFor(() => expect(input.selectionStart).toBe(2));
+
+    await user.click(screen.getByRole('button', { name: 'spacja' }));
+    await waitFor(() => expect(input).toHaveValue('1/ 2'));
+    await waitFor(() => expect(input.selectionStart).toBe(3));
+  });
+
+  it('admin auto-solve selects and submits the correct answer in radio mode', async () => {
+    const session = baseSession({
+      admin_mode: true,
+      current_input_mode: 'radio',
+      navigation: {
+        ...defaultNavigation()!,
+        radio_only: true,
+      },
+    });
+    const problem = baseProblem({
+      answer_options: ['1', '2', '3', '4'],
+      correct_answer: '2',
+    });
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: true,
+        feedback: 'Brawo!',
+        state: {
+          ...session,
+          problem_answered: true,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'success',
+          feedback_msg: 'Brawo!',
+          current_problem: problem,
+        },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+
+    const autoSolveButton = screen.getByRole('button', { name: /Auto-Solve/ });
+
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(autoSolveButton);
+    });
+
+    const selectedOption = screen.getByRole('button', { name: /2/ });
+    expect(selectedOption.className).toContain('border-sky-500');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+
+    expect(mockApi.post).toHaveBeenCalledWith('/problem/submit', {
+      session_id: session.session_id,
+      problem_id: problem.problem_id,
+      user_input: '2',
+      is_input_mode: false,
+    });
+  });
+
+  it('admin auto-solve types the correct answer character-by-character before submitting it', async () => {
+    const session = baseSession({ admin_mode: true, current_input_mode: 'input' });
+    const problem = baseProblem({ correct_answer: '12' });
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: true,
+        feedback: 'Brawo!',
+        state: {
+          ...session,
+          problem_answered: true,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'success',
+          feedback_msg: 'Brawo!',
+          current_problem: problem,
+        },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+
+    const input = await screen.findByPlaceholderText('Wpisz wynik...');
+    const autoSolveButton = screen.getByRole('button', { name: /Auto-Solve/ });
+
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(autoSolveButton);
+    });
+    expect(input).toHaveValue('1');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(45);
+    });
+    expect(input).toHaveValue('12');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(45);
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(mockApi.post).toHaveBeenCalledWith('/problem/submit', {
+      session_id: session.session_id,
+      problem_id: problem.problem_id,
+      user_input: '12',
+      is_input_mode: true,
+    });
   });
 });
