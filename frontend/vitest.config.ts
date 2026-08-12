@@ -8,6 +8,10 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./test/setup.ts'],
     globals: true,
+    // Node 25+ ships a native Web Storage stub that breaks jsdom's localStorage.
+    // Disable it so Vitest/jsdom install a working in-memory Storage instead.
+    // https://github.com/vitest-dev/vitest/issues/8757
+    execArgv: ['--no-webstorage'],
   },
   resolve: {
     alias: {
