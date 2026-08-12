@@ -108,7 +108,6 @@ def public_problem(
     if image_html and not _is_safe_svg_fragment(str(image_html)):
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
-    public["input_mode"] = state.current_input_mode
     if state.problem_answered:
         public["correct_answer"] = problem.get("correct")
     elif play_mode.reveals_correct_answer:
