@@ -5,7 +5,6 @@ import uuid
 import backend.config as config
 from backend.core import db
 from backend.curriculum import Curriculum
-import backend.navigation as navigation
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
@@ -76,10 +75,10 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
         state.selected_topic_id = first_curr_topic_id
 
 
-def _clear_submission_cycle_fields(
+def clear_submission_cycle_fields(
     state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
-    """Clear problem-cycle fields on ``state`` (internal state-layer helper)."""
+    """Clear Submission-cycle fields on ``state`` and re-resolve input mode when possible."""
     state.streak = 0
     state.flawless_eligible = True
     state.problem_answered = False
@@ -144,7 +143,7 @@ def load_profile(
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
         state.chapter_frontiers = user_data["chapter_frontiers"]
-        _clear_submission_cycle_fields(state, curriculum)
+        clear_submission_cycle_fields(state, curriculum)
     else:
         hard_reset(state, curriculum)
 
@@ -169,6 +168,6 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
-    _clear_submission_cycle_fields(state, curriculum)
+    clear_submission_cycle_fields(state, curriculum)
     sync_to_db(state, play_mode)
 

@@ -100,8 +100,12 @@ def _navigate_after_topic_completion(
 def reset_submission_cycle(
     state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
-    """Clear the current problem state when navigating or loading the next problem."""
-    session_state._clear_submission_cycle_fields(state, curriculum)
+    """Clear the current problem state when navigating or loading the next problem.
+
+    Forwards to ``session_state.clear_submission_cycle_fields``, the public owner
+    of Submission-cycle field clearing.
+    """
+    session_state.clear_submission_cycle_fields(state, curriculum)
 
 
 def navigate_to(
