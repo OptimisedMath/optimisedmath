@@ -327,16 +327,18 @@ def _submit_active_problem(
 
 def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     """Grade an answer, update streak and XP, and persist session state."""
+    state = get_session(request.session_id)
+    is_input_mode = state.current_input_mode == "input"
     user_input = (
         clean_mobile_input(request.user_input)
-        if request.is_input_mode
+        if is_input_mode
         else request.user_input
     )
     return _submit_active_problem(
         request.session_id,
         problem_id=request.problem_id,
         user_input=user_input,
-        is_input_mode=request.is_input_mode,
+        is_input_mode=is_input_mode,
     )
 
 

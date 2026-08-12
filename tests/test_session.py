@@ -437,7 +437,6 @@ def test_manual_submit_and_auto_solve_produce_identical_state_deltas(fixture_cur
             session_id=manual_state.session_id,
             problem_id="p-parity",
             user_input="2",
-            is_input_mode=False,
         )
     )
 
@@ -477,7 +476,6 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(fixture_curriculum: Cu
             session_id=manual_state.session_id,
             problem_id="p-parity-input",
             user_input=derived_input,
-            is_input_mode=True,
         )
     )
 
@@ -556,6 +554,34 @@ def test_admin_navigates_to_locked_topic_without_bypass(fixture_curriculum: Curr
 # --- start_session ---
 
 
+def test_submit_grades_by_session_input_mode_not_client_signal(
+    fixture_curriculum: Curriculum,
+):
+    """Radio-mode sessions use multiple-choice grading from session state alone."""
+    state = _fresh_state(fixture_curriculum)
+    state.current_input_mode = "radio"
+    problem = {
+        "problem_id": "p-radio-authority",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "MC trap feedback"},
+    }
+    _begin_identical_problem(state, problem, fixture_curriculum)
+
+    response = session.submit_problem(
+        ProblemSubmissionRequest(
+            session_id=state.session_id,
+            problem_id="p-radio-authority",
+            user_input="3",
+        )
+    )
+
+    assert response.is_correct is False
+    assert response.feedback == "MC trap feedback"
+
+
 def test_start_session_returns_state_with_navigation():
     response = session.start_session(
         SessionStartRequest(username=f"user-{uuid.uuid4()}")
@@ -612,7 +638,6 @@ def test_start_next_submit_cycle_with_fixture_curriculum(
                 session_id=started.session_id,
                 problem_id=problem_response.problem["problem_id"],
                 user_input="1",
-                is_input_mode=False,
             )
         )
     finally:
