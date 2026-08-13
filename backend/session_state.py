@@ -6,7 +6,7 @@ import backend.config as config
 from backend.core import db
 from backend.curriculum import Curriculum
 import backend.navigation as navigation
-from backend.play_mode import PlayMode, resolve_play_mode
+from backend.play_mode import DbWritePlan, PlayMode, resolve_play_mode
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
 
@@ -94,10 +94,60 @@ def _clear_submission_cycle_fields(
         state.current_input_mode = "radio"
 
 
-def sync_to_db(state: SessionState, play_mode: PlayMode | None = None) -> None:
+def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan:
+    """Produce DB write eligibility once from play mode and persisted profile."""
+    full_progression = play_mode.persists_profile
+
+    if not state.username or full_progression:
+        return DbWritePlan.write_all(full_progression=full_progression)
+
+    persisted = db.load_user(state.username)
+    if persisted is None:
+        return DbWritePlan.write_all(full_progression=full_progression)
+
+    return DbWritePlan(
+        write_xp=False,
+        write_streak=False,
+        write_flawless_eligible=True,
+        write_chapter_frontiers=False,
+        full_progression=False,
+        profile_xp=persisted["xp"],
+        profile_streak=persisted["streak"],
+        profile_chapter_frontiers=persisted["chapter_frontiers"],
+    )
+
+
+def apply_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> SessionState:
+    """Return session snapshot for DB writes according to ``write_plan``."""
+    if (
+        write_plan.write_xp
+        and write_plan.write_streak
+        and write_plan.write_flawless_eligible
+        and write_plan.write_chapter_frontiers
+    ):
+        return state
+
+    persist_state = state.model_copy(deep=True)
+    if not write_plan.write_xp and write_plan.profile_xp is not None:
+        persist_state.xp = write_plan.profile_xp
+    if not write_plan.write_streak and write_plan.profile_streak is not None:
+        persist_state.streak = write_plan.profile_streak
+    if (
+        not write_plan.write_chapter_frontiers
+        and write_plan.profile_chapter_frontiers is not None
+    ):
+        persist_state.chapter_frontiers = write_plan.profile_chapter_frontiers
+    if (
+        not write_plan.write_flawless_eligible
+        and write_plan.profile_flawless_eligible is not None
+    ):
+        persist_state.flawless_eligible = write_plan.profile_flawless_eligible
+    return persist_state
+
+
+def sync_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
     """Pushes current session state to the database."""
-    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    persist_state = _state_for_db_persist(state, mode)
+    persist_state = apply_db_write_plan(state, write_plan)
     if persist_state.username:
         try:
             db.save_user(persist_state.username, persist_state)
@@ -110,22 +160,6 @@ def sync_to_db(state: SessionState, play_mode: PlayMode | None = None) -> None:
             )
         except Exception as e:
             print(f"Error saving session {persist_state.session_id}: {e}")
-
-
-def _state_for_db_persist(state: SessionState, play_mode: PlayMode) -> SessionState:
-    """Return session snapshot for DB writes, preserving admin progression fields."""
-    if not state.username or play_mode.persists_profile:
-        return state
-
-    persisted = db.load_user(state.username)
-    if persisted is None:
-        return state
-
-    persist_state = state.model_copy(deep=True)
-    persist_state.xp = persisted["xp"]
-    persist_state.streak = persisted["streak"]
-    persist_state.chapter_frontiers = persisted["chapter_frontiers"]
-    return persist_state
 
 
 def load_profile(
@@ -170,5 +204,5 @@ def hard_reset(
     )
     state.selected_level = 1
     _clear_submission_cycle_fields(state, curriculum)
-    sync_to_db(state, play_mode)
+    sync_to_db(state, build_db_write_plan(state, play_mode or resolve_play_mode(state.username)))
 

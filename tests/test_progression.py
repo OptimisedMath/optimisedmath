@@ -4,7 +4,7 @@ import pytest
 
 import backend.config as config
 from backend.models import SessionState
-from backend.progression import PersistenceProfile, SubmissionContext, apply_submission, streak_meter_for
+from backend.progression import SubmissionContext, apply_submission, streak_meter_for
 
 
 def _ctx(
@@ -17,7 +17,7 @@ def _ctx(
     topic_id: int = 10,
     topic_max_level: int = 3,
     next_topic_ids: tuple[int, ...] = (20, 30),
-    persistence_profile: PersistenceProfile = PersistenceProfile.FULL,
+    full_progression: bool = True,
 ) -> SubmissionContext:
     return SubmissionContext(
         chapter_id=10,
@@ -29,7 +29,7 @@ def _ctx(
         frontier_topic_id=frontier_topic_id,
         topic_max_level=topic_max_level,
         next_topic_ids=next_topic_ids,
-        persistence_profile=persistence_profile,
+        full_progression=full_progression,
     )
 
 
@@ -238,7 +238,7 @@ def test_unlock_requires_playing_at_frontier(streak, selected_level, frontier_le
 def test_streak_only_increments_without_xp():
     outcome = apply_submission(
         {"is_correct": True, "lock_answer": True},
-        _ctx(streak=1, persistence_profile=PersistenceProfile.STREAK_ONLY),
+        _ctx(streak=1, full_progression=False),
     )
 
     assert outcome.new_streak == 2
@@ -258,7 +258,7 @@ def test_streak_only_resets_at_stored_frontier_boundary():
             frontier_level=1,
             frontier_topic_id=10,
             topic_id=10,
-            persistence_profile=PersistenceProfile.STREAK_ONLY,
+            full_progression=False,
         ),
     )
 
@@ -275,7 +275,7 @@ def test_streak_only_no_reset_when_ahead_by_topic():
             streak=2,
             topic_id=20,
             frontier_topic_id=10,
-            persistence_profile=PersistenceProfile.STREAK_ONLY,
+            full_progression=False,
         ),
     )
 
@@ -290,7 +290,7 @@ def test_streak_only_no_reset_when_ahead_by_level():
             streak=2,
             selected_level=2,
             frontier_level=1,
-            persistence_profile=PersistenceProfile.STREAK_ONLY,
+            full_progression=False,
         ),
     )
 
@@ -301,7 +301,7 @@ def test_streak_only_no_reset_when_ahead_by_level():
 def test_streak_only_wrong_decrements_without_flawless_forfeit():
     outcome = apply_submission(
         {"lock_answer": True, "feedback_type": "warning", "feedback_msg": "wrong"},
-        _ctx(streak=2, flawless_eligible=True, persistence_profile=PersistenceProfile.STREAK_ONLY),
+        _ctx(streak=2, flawless_eligible=True, full_progression=False),
     )
 
     assert outcome.new_streak == 1
@@ -317,7 +317,7 @@ def test_streak_only_soft_error_preserves_streak():
             "feedback_msg": "syntax",
             "trap_id": "syntax_error",
         },
-        _ctx(streak=2, flawless_eligible=True, persistence_profile=PersistenceProfile.STREAK_ONLY),
+        _ctx(streak=2, flawless_eligible=True, full_progression=False),
     )
 
     assert outcome.new_streak == 2
