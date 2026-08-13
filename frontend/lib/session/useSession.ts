@@ -70,6 +70,10 @@ export function useSession() {
           : 'soft_error'
         : 'none';
 
+    const display = session
+      ? projectSessionState(session)
+      : emptySessionDisplayProjection();
+
     return {
       needsLogin,
       isLoading: session === null && error === null,
