@@ -76,10 +76,10 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
         state.selected_topic_id = first_curr_topic_id
 
 
-def _clear_submission_cycle_fields(
+def clear_submission_cycle_fields(
     state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
-    """Clear problem-cycle fields on ``state`` (internal state-layer helper)."""
+    """Clear Submission-cycle fields on ``state`` and re-resolve input mode when possible."""
     state.streak = 0
     state.flawless_eligible = True
     state.problem_answered = False
@@ -178,7 +178,7 @@ def load_profile(
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
         state.chapter_frontiers = user_data["chapter_frontiers"]
-        _clear_submission_cycle_fields(state, curriculum)
+        clear_submission_cycle_fields(state, curriculum)
     else:
         hard_reset(state, curriculum)
 

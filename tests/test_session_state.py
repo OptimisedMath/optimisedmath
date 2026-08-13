@@ -6,6 +6,7 @@ import pytest
 
 import backend.config as config
 import backend.session_state as session_state
+import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
@@ -154,6 +155,49 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
     assert state.selected_topic_id == TOPIC_MULTI
 
 
+@pytest.mark.parametrize(
+    "entry_point",
+    ["reset_submission_cycle", "load_profile", "hard_reset"],
+)
+def test_submission_cycle_clear_re_resolves_input_mode(
+    fixture_curriculum: Curriculum,
+    entry_point: str,
+):
+    """All three entry points re-resolve current_input_mode via the same helper."""
+    username = "input-mode-re-resolve-user"
+
+    if entry_point == "load_profile":
+        saved = SessionState(
+            username=username,
+            xp=10,
+            streak=config.STREAK_THRESHOLD_FOR_INPUT_MODE,
+            selected_chapter_id=CHAPTER_ALPHA,
+            selected_topic_id=TOPIC_MULTI,
+            selected_level=1,
+            chapter_frontiers={
+                CHAPTER_ALPHA: ChapterFrontier(
+                    frontier_topic_id=TOPIC_MULTI, frontier_level=1
+                ),
+            },
+        )
+        db.save_user(username, saved)
+        state = SessionState()
+        session_state.load_profile(state, username, fixture_curriculum)
+    else:
+        state = _fresh_state(fixture_curriculum)
+        state.selected_chapter_id = CHAPTER_ALPHA
+        state.selected_topic_id = TOPIC_MULTI
+        state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+        state.current_input_mode = "input"
+        if entry_point == "reset_submission_cycle":
+            submission_cycle.reset_submission_cycle(state, fixture_curriculum)
+        else:
+            session_state.hard_reset(state, fixture_curriculum)
+
+    assert state.current_input_mode == session_state.resolve_input_mode(
+        state, fixture_curriculum
+    )
+    assert state.current_input_mode == "radio"
 def test_build_db_write_plan_student_writes_all_fields(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
     state.xp = 99
