@@ -12,6 +12,7 @@ import 'katex/dist/katex.min.css';
 interface TextAnswerInputProps {
   view: SessionView;
   actions: SessionActions;
+  answerLocked: boolean;
 }
 
 function formatInputAsLatex(s: string): string {
@@ -33,6 +34,7 @@ function formatInputAsLatex(s: string): string {
 function TextAnswerInput({
   view,
   actions,
+  answerLocked,
 }: TextAnswerInputProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +47,6 @@ function TextAnswerInput({
     handleAutoSolve,
     autoSolveDisabled,
     interactionDisabled,
-    showFeedback,
     canSubmit,
   } = useAutoSolve({
     view,
@@ -81,7 +82,7 @@ function TextAnswerInput({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
-      {showFeedback ? (
+      {answerLocked ? (
         <div className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-slate-950 dark:text-white rounded-xl w-full max-w-xs sm:w-64 text-center bg-slate-50 dark:bg-slate-950/70 border-2 border-slate-200 dark:border-slate-700 shadow-inner">
           {value.includes('/') || value.includes(' ') ? (
             <InlineMath math={formatInputAsLatex(value)} />
@@ -102,7 +103,7 @@ function TextAnswerInput({
         />
       )}
 
-      {!showFeedback && keyboardType !== 'decimal' && (
+      {!answerLocked && keyboardType !== 'decimal' && (
         <div className="sm:hidden flex gap-3">
           <Button
             type="button"
@@ -123,7 +124,7 @@ function TextAnswerInput({
         </div>
       )}
 
-      {!showFeedback ? (
+      {!answerLocked ? (
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
             type="submit"
