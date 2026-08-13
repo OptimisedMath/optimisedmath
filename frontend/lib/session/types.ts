@@ -135,6 +135,7 @@ export interface SessionView {
   selectedChapterName: string | null;
   topicName: string;
   adminMode: boolean;
+  hasNavigation: boolean;
   xp: number;
   flawlessEligible: boolean;
   streakMeter: number;

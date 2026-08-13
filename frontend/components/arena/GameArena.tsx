@@ -62,8 +62,6 @@ export default function GameArena() {
     );
   }
 
-  const session = view.session!;
-
   return (
     <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
@@ -72,13 +70,13 @@ export default function GameArena() {
       <XPBar view={view} />
       </div>
 
-      {session.navigation && (
+      {view.hasNavigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '80ms' }}>
           <TopicToolbar view={view} actions={actions} />
         </div>
       )}
 
-      {session.navigation && (
+      {view.hasNavigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
           <ProgressBar type="chapter" view={view} />
           <ProgressBar type="topic" view={view} />
