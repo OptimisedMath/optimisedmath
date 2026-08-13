@@ -414,7 +414,6 @@ describe('ADR-0002 leak locks', () => {
         session_id: session.session_id,
         problem_id: problem.problem_id,
         user_input: '1',
-        is_input_mode: false,
       });
     });
   });
@@ -511,7 +510,6 @@ describe('ADR-0002 leak locks', () => {
       session_id: session.session_id,
       problem_id: problem.problem_id,
       user_input: '2',
-      is_input_mode: false,
     });
   });
 
@@ -563,7 +561,6 @@ describe('ADR-0002 leak locks', () => {
       session_id: session.session_id,
       problem_id: problem.problem_id,
       user_input: '12',
-      is_input_mode: true,
     });
   });
 });

@@ -89,7 +89,6 @@ export interface SessionResetRequest {
 export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;
-  is_input_mode: boolean;
   problem_id?: string;
 }
 

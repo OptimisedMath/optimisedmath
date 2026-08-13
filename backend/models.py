@@ -248,7 +248,6 @@ class ProblemSubmissionRequest(BaseModel):
 
     session_id: str
     user_input: str
-    is_input_mode: bool = False
     problem_id: Optional[str] = None
 
 
