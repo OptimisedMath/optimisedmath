@@ -84,7 +84,7 @@ export function useSession() {
       canSubmit: Boolean(session?.can_submit && !isSubmitting),
       canNextProblem: Boolean(session?.can_next_problem),
       feedbackPhase,
-      session,
+      isLoadingProblem: session !== null && problem === null,
       problem,
       feedback,
       selectedChapterName,

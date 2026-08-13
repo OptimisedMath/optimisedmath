@@ -8,9 +8,8 @@ interface MasteryScoreboardProps {
 }
 
 function MasteryScoreboard({ view }: MasteryScoreboardProps) {
-  const session = view.session!;
-  const streakMeter = session.streak_meter;
-  const maxStreak = session.max_streak;
+  const streakMeter = view.streakMeter;
+  const maxStreak = view.maxStreak;
   const prevStreakMeter = useRef(streakMeter);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 

@@ -7,10 +7,8 @@ interface ProgressBarProps {
 }
 
 function ProgressBar({ type, view }: ProgressBarProps) {
-  const navigation = view.session?.navigation;
-
-  if (type === 'chapter' && view.selectedChapterName && navigation?.chapter_completion) {
-    const { completed, total, percentage } = navigation.chapter_completion;
+  if (type === 'chapter' && view.selectedChapterName && view.chapterCompletion) {
+    const { completed, total, percentage } = view.chapterCompletion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
@@ -28,15 +26,14 @@ function ProgressBar({ type, view }: ProgressBarProps) {
     );
   }
 
-  if (type === 'topic' && navigation?.topic_completion) {
-    const session = view.session!;
-    const { total, percentage } = navigation.topic_completion;
+  if (type === 'topic' && view.topicCompletion) {
+    const { total, percentage } = view.topicCompletion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
           <span className="truncate font-medium">📚 {view.topicName}</span>
-          <span className="shrink-0 tabular-nums">Poziom {session.selected_level}/{total}</span>
+          <span className="shrink-0 tabular-nums">Poziom {view.selectedLevel}/{total}</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div
