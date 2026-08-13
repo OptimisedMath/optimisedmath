@@ -113,14 +113,12 @@ export function useProblemLifecycle({
     }
 
     setIsSubmitting(true);
-    const isInputMode = sessionState.current_input_mode === 'input';
 
     try {
       const response = await submitAnswer({
         session_id: sessionState.session_id,
         problem_id: problem.problem_id,
         user_input: trimmed,
-        is_input_mode: isInputMode,
       });
       applySubmissionResponse(response);
     } catch (err) {

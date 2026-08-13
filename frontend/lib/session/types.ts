@@ -66,7 +66,6 @@ export interface Problem {
   problem_id: string;
   level_display: string;
   keyboard_type?: string;
-  input_mode?: string;
   image_html?: string;
 }
 
@@ -89,7 +88,6 @@ export interface SessionResetRequest {
 export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;
-  is_input_mode: boolean;
   problem_id?: string;
 }
 
@@ -103,6 +101,8 @@ export interface SubmissionResponse {
   is_correct: boolean;
   feedback: string;
 }
+
+export type FeedbackPhase = 'none' | 'soft_error' | 'answer_locked';
 
 export interface Feedback {
   correct: boolean;
@@ -128,12 +128,14 @@ export interface SessionView {
   isLoadingNextProblem: boolean;
   canSubmit: boolean;
   canNextProblem: boolean;
+  feedbackPhase: FeedbackPhase;
   session: SessionState | null;
   problem: Problem | null;
   feedback: Feedback | null;
   selectedChapterName: string | null;
   topicName: string;
   adminMode: boolean;
+  hasNavigation: boolean;
   xp: number;
   flawlessEligible: boolean;
   streakMeter: number;

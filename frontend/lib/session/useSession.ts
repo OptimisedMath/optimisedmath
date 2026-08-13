@@ -10,6 +10,7 @@ import { useSessionBootstrap } from './useSessionBootstrap';
 import { useProblemLifecycle } from './useProblemLifecycle';
 import type {
   Feedback,
+  FeedbackPhase,
   SessionActions,
   SessionState,
   SessionView,
@@ -62,6 +63,13 @@ export function useSession() {
           }
         : null;
 
+    const feedbackPhase: FeedbackPhase =
+      session && session.feedback_type !== null
+        ? session.can_next_problem
+          ? 'answer_locked'
+          : 'soft_error'
+        : 'none';
+
     const display = session
       ? projectSessionState(session)
       : emptySessionDisplayProjection();
@@ -75,6 +83,7 @@ export function useSession() {
       isLoadingNextProblem,
       canSubmit: Boolean(session?.can_submit && !isSubmitting),
       canNextProblem: Boolean(session?.can_next_problem),
+      feedbackPhase,
       session,
       problem,
       feedback,

@@ -24,7 +24,6 @@ function FeedbackCard({
   const topicCompleted = session.topic_completed;
   const levelCompleted = session.level_completed;
   const hasNextTopic = session.navigation?.has_next_unlocked_topic ?? false;
-  const currentInputMode = session.current_input_mode;
   const disabled = view.isLoadingNextProblem;
   const showNextButton = !(topicCompleted && !hasNextTopic);
 
@@ -37,9 +36,10 @@ function FeedbackCard({
     nextButtonRef?.current?.focus();
   }, [feedback, showNextButton, disabled, nextButtonRef]);
 
-  const inputMode = problem?.input_mode ?? currentInputMode;
   const correctAnswer =
-    inputMode !== 'radio' ? getRevealedCorrectAnswer(problem, feedback) : undefined;
+    session.current_input_mode !== 'radio'
+      ? getRevealedCorrectAnswer(problem, feedback)
+      : undefined;
 
   let buttonLabel = 'Następne zadanie ➡️';
   if (topicCompleted) {

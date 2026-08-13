@@ -15,8 +15,7 @@ function AnswerInput({
   actions,
 }: AnswerInputProps) {
   const problem = view.problem;
-  const currentInputMode = view.session!.current_input_mode;
-  const inputMode = problem?.input_mode ?? currentInputMode;
+  const inputMode = view.session!.current_input_mode;
 
   if (inputMode === 'radio' && problem?.answer_options) {
     return <RadioAnswerInput view={view} actions={actions} />;

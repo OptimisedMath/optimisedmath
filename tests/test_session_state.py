@@ -245,7 +245,6 @@ def test_build_db_write_plan_student_writes_all_fields(fixture_curriculum: Curri
     plan = session_state.build_db_write_plan(state, StudentPlayMode())
 
     assert plan == DbWritePlan.write_all()
-    assert plan.full_progression is True
     persisted = session_state.apply_db_write_plan(state, plan)
     assert persisted is state
     assert persisted.xp == 99
@@ -285,7 +284,6 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
     assert plan.write_streak is False
     assert plan.write_chapter_frontiers is False
     assert plan.write_flawless_eligible is True
-    assert plan.full_progression is False
     assert plan.profile_xp == 50
     assert plan.profile_streak == 0
     assert plan.profile_chapter_frontiers[CHAPTER_ALPHA] == ChapterFrontier(

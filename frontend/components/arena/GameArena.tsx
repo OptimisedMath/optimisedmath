@@ -8,7 +8,7 @@ import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
 import ProblemDisplay from './ProblemDisplay';
 import AnswerInput from './AnswerInput';
-import FeedbackCard from './FeedbackCard';
+import FeedbackPresenter from './FeedbackPresenter';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 
@@ -19,17 +19,20 @@ export default function GameArena() {
   const nextButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!view.feedback) return;
+    if (view.feedbackPhase === 'none') return;
 
     const frameId = requestAnimationFrame(() => {
-      const target = view.feedback!.answer_locked ? nextButtonRef.current : feedbackRef.current;
+      const target =
+        view.feedbackPhase === 'answer_locked'
+          ? nextButtonRef.current
+          : feedbackRef.current;
       if (target) {
         scrollElementClearOfMobileChrome(target);
       }
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [view.feedback]);
+  }, [view.feedbackPhase]);
 
   if (view.error) {
     return (
@@ -62,8 +65,6 @@ export default function GameArena() {
     );
   }
 
-  const session = view.session!;
-
   return (
     <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
@@ -72,13 +73,13 @@ export default function GameArena() {
       <XPBar view={view} />
       </div>
 
-      {session.navigation && (
+      {view.hasNavigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '80ms' }}>
           <TopicToolbar view={view} actions={actions} />
         </div>
       )}
 
-      {session.navigation && (
+      {view.hasNavigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
           <ProgressBar type="chapter" view={view} />
           <ProgressBar type="topic" view={view} />
@@ -100,23 +101,12 @@ export default function GameArena() {
           <>
             <AnswerInput key={view.problem.problem_id} view={view} actions={actions} />
 
-            {view.feedback && !view.canNextProblem && (
-              <div
-                ref={feedbackRef}
-                data-feedback-type={view.feedback.feedback_type ?? ''}
-                className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"
-              >
-                {view.feedback.message}
-              </div>
-            )}
-
-            {view.feedback && view.canNextProblem && (
-              <FeedbackCard
-                view={view}
-                actions={actions}
-                nextButtonRef={nextButtonRef}
-              />
-            )}
+            <FeedbackPresenter
+              view={view}
+              actions={actions}
+              feedbackRef={feedbackRef}
+              nextButtonRef={nextButtonRef}
+            />
           </>
         )}
       </div>

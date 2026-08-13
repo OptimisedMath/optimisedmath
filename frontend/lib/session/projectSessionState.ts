@@ -7,6 +7,7 @@ import type {
 
 /** Display fields projected from SessionState for arena rendering. */
 export interface SessionDisplayProjection {
+  hasNavigation: boolean;
   xp: number;
   flawlessEligible: boolean;
   streakMeter: number;
@@ -27,6 +28,7 @@ export interface SessionDisplayProjection {
 
 export function emptySessionDisplayProjection(): SessionDisplayProjection {
   return {
+    hasNavigation: false,
     xp: 0,
     flawlessEligible: false,
     streakMeter: 0,
@@ -50,6 +52,7 @@ export function projectSessionState(state: SessionState): SessionDisplayProjecti
   const navigation = state.navigation;
 
   return {
+    hasNavigation: Boolean(navigation),
     xp: state.xp,
     flawlessEligible: state.flawless_eligible,
     streakMeter: state.streak_meter,
