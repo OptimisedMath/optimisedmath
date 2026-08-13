@@ -200,6 +200,6 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
-    _clear_submission_cycle_fields(state, curriculum)
+    clear_submission_cycle_fields(state, curriculum)
     sync_to_db(state, build_db_write_plan(state, play_mode or resolve_play_mode(state.username)))
 

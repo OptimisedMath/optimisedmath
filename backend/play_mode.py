@@ -35,7 +35,6 @@ from backend.models import ChapterFrontier
 from backend.unlock import (
     Frontier,
     chapter_max_frontier,
-    first_topic_id,
     get_frontier,
 )
 
@@ -58,38 +57,6 @@ class PlayMode(Protocol):
         frontier_record: ChapterFrontier | None,
     ) -> Frontier: ...
 
-    def implicit_chapter_landing(
-        self,
-        chapter_topics: list[TopicDict],
-        frontier_record: ChapterFrontier | None,
-    ) -> tuple[int, int]: ...
-
-    def implicit_topic_landing(
-        self,
-        chapter_topics: list[TopicDict],
-        topic_id: int,
-        frontier_record: ChapterFrontier | None,
-    ) -> int: ...
-
-    def chapter_progress_counts(
-        self,
-        chapter_topics: list[TopicDict],
-        effective_frontier: Frontier,
-    ) -> tuple[int, int]: ...
-
-    def topic_progress_counts(
-        self,
-        topic_max_level: int,
-        selected_level: int,
-    ) -> tuple[int, int]: ...
-
-    def has_next_unlocked_topic(
-        self,
-        effective_frontier: Frontier,
-        has_frontier_record: bool,
-        selected_topic_id: int | None,
-    ) -> bool: ...
-
 
 @dataclass(frozen=True, slots=True)
 class StudentPlayMode:
@@ -106,55 +73,6 @@ class StudentPlayMode:
     ) -> Frontier:
         return get_frontier(frontier_record, chapter_topics)
 
-    def implicit_chapter_landing(
-        self,
-        chapter_topics: list[TopicDict],
-        frontier_record: ChapterFrontier | None,
-    ) -> tuple[int, int]:
-        frontier = get_frontier(frontier_record, chapter_topics)
-        return frontier.frontier_topic_id, frontier.frontier_level
-
-    def implicit_topic_landing(
-        self,
-        chapter_topics: list[TopicDict],
-        topic_id: int,
-        frontier_record: ChapterFrontier | None,
-    ) -> int:
-        frontier = get_frontier(frontier_record, chapter_topics)
-        if topic_id < frontier.frontier_topic_id:
-            return 1
-        return frontier.frontier_level
-
-    def chapter_progress_counts(
-        self,
-        chapter_topics: list[TopicDict],
-        effective_frontier: Frontier,
-    ) -> tuple[int, int]:
-        total = len(chapter_topics)
-        completed = sum(
-            1
-            for topic_entry in chapter_topics
-            if int(topic_entry["topic_id"]) < effective_frontier.frontier_topic_id
-        )
-        return completed, total
-
-    def topic_progress_counts(
-        self,
-        topic_max_level: int,
-        selected_level: int,
-    ) -> tuple[int, int]:
-        return selected_level - 1, topic_max_level
-
-    def has_next_unlocked_topic(
-        self,
-        effective_frontier: Frontier,
-        has_frontier_record: bool,
-        selected_topic_id: int | None,
-    ) -> bool:
-        if not has_frontier_record or selected_topic_id is None:
-            return False
-        return effective_frontier.frontier_topic_id > selected_topic_id
-
 
 @dataclass(frozen=True, slots=True)
 class AdminPlayMode:
@@ -170,44 +88,6 @@ class AdminPlayMode:
         frontier_record: ChapterFrontier | None,
     ) -> Frontier:
         return chapter_max_frontier(chapter_topics)
-
-    def implicit_chapter_landing(
-        self,
-        chapter_topics: list[TopicDict],
-        frontier_record: ChapterFrontier | None,
-    ) -> tuple[int, int]:
-        return first_topic_id(chapter_topics), 1
-
-    def implicit_topic_landing(
-        self,
-        chapter_topics: list[TopicDict],
-        topic_id: int,
-        frontier_record: ChapterFrontier | None,
-    ) -> int:
-        return 1
-
-    def chapter_progress_counts(
-        self,
-        chapter_topics: list[TopicDict],
-        effective_frontier: Frontier,
-    ) -> tuple[int, int]:
-        total = len(chapter_topics)
-        return total, total
-
-    def topic_progress_counts(
-        self,
-        topic_max_level: int,
-        selected_level: int,
-    ) -> tuple[int, int]:
-        return topic_max_level, topic_max_level
-
-    def has_next_unlocked_topic(
-        self,
-        effective_frontier: Frontier,
-        has_frontier_record: bool,
-        selected_topic_id: int | None,
-    ) -> bool:
-        return False
 
 
 @dataclass(frozen=True, slots=True)
