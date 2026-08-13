@@ -66,7 +66,6 @@ export interface Problem {
   problem_id: string;
   level_display: string;
   keyboard_type?: string;
-  input_mode?: string;
   image_html?: string;
 }
 
@@ -89,7 +88,6 @@ export interface SessionResetRequest {
 export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;
-  is_input_mode: boolean;
   problem_id?: string;
 }
 
@@ -137,6 +135,7 @@ export interface SessionView {
   selectedChapterName: string | null;
   topicName: string;
   adminMode: boolean;
+  hasNavigation: boolean;
   xp: number;
   flawlessEligible: boolean;
   streakMeter: number;

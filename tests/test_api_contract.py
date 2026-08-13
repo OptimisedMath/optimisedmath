@@ -67,7 +67,6 @@ def test_wrong_radio_submit_reveals_correct_answer():
                 session_id=state.session_id,
                 problem_id="p-radio-wrong",
                 user_input="3",
-                is_input_mode=False,
             )
         )
     )
@@ -97,7 +96,6 @@ def test_wrong_text_submit_reveals_correct_answer():
                 session_id=state.session_id,
                 problem_id="p-text-wrong",
                 user_input="99",
-                is_input_mode=True,
             )
         )
     )
@@ -144,7 +142,6 @@ def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
                 session_id=state.session_id,
                 problem_id="p-mobile",
                 user_input="1-1/2",
-                is_input_mode=True,
             )
         )
     )
@@ -171,7 +168,6 @@ def test_level_completing_submit_serves_full_streak_meter():
                 session_id=state.session_id,
                 problem_id="p-level-complete",
                 user_input="2",
-                is_input_mode=True,
             )
         )
     )
@@ -200,7 +196,6 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
                 session_id=state.session_id,
                 problem_id="p-streak-meter",
                 user_input="2",
-                is_input_mode=True,
             )
         )
     )
@@ -228,7 +223,6 @@ def test_input_mode_defers_radio_to_input_until_next_problem():
                 session_id=state.session_id,
                 problem_id="p-radio-defer",
                 user_input="2",
-                is_input_mode=False,
             )
         )
     )
@@ -239,7 +233,7 @@ def test_input_mode_defers_radio_to_input_until_next_problem():
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "input"
-    assert next_response.problem["input_mode"] == "input"
+    assert "input_mode" not in next_response.problem
 
 
 def test_input_mode_defers_input_to_radio_until_next_problem():
@@ -259,7 +253,6 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
                 session_id=state.session_id,
                 problem_id="p-text-defer",
                 user_input="3",
-                is_input_mode=True,
             )
         )
     )
@@ -270,7 +263,7 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "radio"
-    assert next_response.problem["input_mode"] == "radio"
+    assert "input_mode" not in next_response.problem
 
 
 def test_soft_syntax_error_does_not_lock_problem():
@@ -290,7 +283,6 @@ def test_soft_syntax_error_does_not_lock_problem():
                 session_id=state.session_id,
                 problem_id="p-soft",
                 user_input="abc",
-                is_input_mode=True,
             )
         )
     )
@@ -317,7 +309,6 @@ def test_soft_syntax_error_preserves_flawless_eligible():
                 session_id=state.session_id,
                 problem_id="p-soft-flawless",
                 user_input="abc",
-                is_input_mode=True,
             )
         )
     )
@@ -343,7 +334,6 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
                 session_id=state.session_id,
                 problem_id="p-unsimplified",
                 user_input="2/4",
-                is_input_mode=True,
             )
         )
     )
