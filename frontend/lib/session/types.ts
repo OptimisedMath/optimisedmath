@@ -129,7 +129,7 @@ export interface SessionView {
   canSubmit: boolean;
   canNextProblem: boolean;
   feedbackPhase: FeedbackPhase;
-  session: SessionState | null;
+  isLoadingProblem: boolean;
   problem: Problem | null;
   feedback: Feedback | null;
   selectedChapterName: string | null;

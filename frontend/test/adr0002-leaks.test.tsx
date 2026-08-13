@@ -362,7 +362,7 @@ describe('ADR-0002 leak locks', () => {
     expect(revealedCorrectOption.className).toContain('bg-emerald-600/85');
   });
 
-  it('derives Feedback purely from SessionState.feedback_type/feedback_msg without any separate hook-state trigger', async () => {
+  it('derives Feedback purely from projected feedback fields without any separate hook-state trigger', async () => {
     const session = baseSession({
       can_next_problem: true,
       problem_answered: true,

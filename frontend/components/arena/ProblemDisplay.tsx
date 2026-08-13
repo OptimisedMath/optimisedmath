@@ -9,7 +9,7 @@ interface ProblemDisplayProps {
 }
 
 function ProblemDisplay({ view }: ProblemDisplayProps) {
-  const isLoading = view.session !== null && view.problem === null;
+  const isLoading = view.isLoadingProblem;
 
   if (isLoading) {
     return (
@@ -25,7 +25,7 @@ function ProblemDisplay({ view }: ProblemDisplayProps) {
     return null;
   }
 
-  const selectedLevel = view.session!.selected_level;
+  const selectedLevel = view.selectedLevel;
 
   return (
     <div className="mb-6 text-slate-700 dark:text-slate-300">

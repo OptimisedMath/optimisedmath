@@ -12,7 +12,7 @@ interface XPBarProps {
 }
 
 function XPBar({ view }: XPBarProps) {
-  const animatedXP = useAnimatedNumber(view.session!.xp);
+  const animatedXP = useAnimatedNumber(view.xp);
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -33,10 +33,10 @@ function XPBar({ view }: XPBarProps) {
         <div className="text-sm sm:text-base text-slate-700 dark:text-slate-200">
           Bonus:{' '}
           <Badge
-            variant={view.session!.flawless_eligible ? 'default' : 'destructive'}
+            variant={view.flawlessEligible ? 'default' : 'destructive'}
             className="ml-1 sm:ml-2 shadow-sm"
           >
-            {view.session!.flawless_eligible ? 'Aktywny 💎' : 'Stracony ❌'}
+            {view.flawlessEligible ? 'Aktywny 💎' : 'Stracony ❌'}
           </Badge>
         </div>
         <button

@@ -18,12 +18,11 @@ function FeedbackCard({
   nextButtonRef,
 }: FeedbackCardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const session = view.session!;
   const feedback = view.feedback!;
   const problem = view.problem;
-  const topicCompleted = session.topic_completed;
-  const levelCompleted = session.level_completed;
-  const hasNextTopic = session.navigation?.has_next_unlocked_topic ?? false;
+  const topicCompleted = view.topicCompleted;
+  const levelCompleted = view.levelCompleted;
+  const hasNextTopic = view.hasNextUnlockedTopic;
   const disabled = view.isLoadingNextProblem;
   const showNextButton = !(topicCompleted && !hasNextTopic);
 
@@ -37,7 +36,7 @@ function FeedbackCard({
   }, [feedback, showNextButton, disabled, nextButtonRef]);
 
   const correctAnswer =
-    session.current_input_mode !== 'radio'
+    view.currentInputMode !== 'radio'
       ? getRevealedCorrectAnswer(problem, feedback)
       : undefined;
 
