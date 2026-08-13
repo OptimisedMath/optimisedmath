@@ -23,6 +23,7 @@ export type { SessionDisplayProjection } from './projectSessionState';
 export type {
   ChapterFrontier,
   Feedback,
+  FeedbackPhase,
   NavigateIntent,
   NavigationChapterOption,
   NavigationProgress,

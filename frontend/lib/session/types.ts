@@ -104,6 +104,8 @@ export interface SubmissionResponse {
   feedback: string;
 }
 
+export type FeedbackPhase = 'none' | 'soft_error' | 'answer_locked';
+
 export interface Feedback {
   correct: boolean;
   message: string;
@@ -128,6 +130,7 @@ export interface SessionView {
   isLoadingNextProblem: boolean;
   canSubmit: boolean;
   canNextProblem: boolean;
+  feedbackPhase: FeedbackPhase;
   session: SessionState | null;
   problem: Problem | null;
   feedback: Feedback | null;
