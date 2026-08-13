@@ -5,7 +5,6 @@ import uuid
 import backend.config as config
 from backend.core import db
 from backend.curriculum import Curriculum
-import backend.navigation as navigation
 from backend.play_mode import DbWritePlan, PlayMode, resolve_play_mode
 from backend.models import ChapterFrontier, SessionState
 from backend.unlock import first_topic_id
