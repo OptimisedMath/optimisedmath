@@ -134,6 +134,22 @@ export interface SessionView {
   selectedChapterName: string | null;
   topicName: string;
   adminMode: boolean;
+  xp: number;
+  flawlessEligible: boolean;
+  streakMeter: number;
+  maxStreak: number;
+  currentInputMode: string;
+  selectedChapterId: number;
+  selectedTopicId: number;
+  selectedLevel: number;
+  levelCompleted: boolean;
+  topicCompleted: boolean;
+  hasNextUnlockedTopic: boolean;
+  chapterCompletion: NavigationProgress | null;
+  topicCompletion: NavigationProgress | null;
+  availableChapters: NavigationChapterOption[];
+  availableTopics: NavigationTopicOption[];
+  availableLevels: number[];
 }
 
 /** Handlers returned by useSession — arena children call these for interactions. */
