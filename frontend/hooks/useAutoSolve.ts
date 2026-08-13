@@ -31,7 +31,7 @@ export function useAutoSolve({
 
   const problem = view.problem;
   const canSubmit = view.canSubmit;
-  const showFeedback = view.canNextProblem;
+  const answerLocked = view.feedbackPhase === 'answer_locked';
   const disabled = !canSubmit;
   const showAutoSolve = view.adminMode;
 
@@ -45,7 +45,7 @@ export function useAutoSolve({
       !showAutoSolve ||
       !correctAnswer ||
       isAutoSolving ||
-      showFeedback ||
+      answerLocked ||
       !canSubmit ||
       disabled
     ) {
@@ -86,7 +86,7 @@ export function useAutoSolve({
     problem?.correct_answer,
     showAutoSolve,
     isAutoSolving,
-    showFeedback,
+    answerLocked,
     canSubmit,
     disabled,
     inputMode,
@@ -100,7 +100,7 @@ export function useAutoSolve({
     handleAutoSolve,
     autoSolveDisabled,
     interactionDisabled,
-    showFeedback,
+    answerLocked,
     canSubmit,
     disabled,
   };

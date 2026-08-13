@@ -155,6 +155,88 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
     assert state.selected_topic_id == TOPIC_MULTI
 
 
+def _polluted_submission_cycle_state(
+    state: SessionState, fixture_curriculum: Curriculum
+) -> None:
+    """Fill cycle fields so a clear is observable."""
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_MULTI
+    state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    state.flawless_eligible = False
+    state.problem_answered = True
+    state.topic_completed = True
+    state.level_completed = True
+    state.feedback_type = "error"
+    state.feedback_msg = "wrong"
+    state.current_problem = {"problem_id": "p1"}
+    state.current_input_mode = "input"
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+
+
+def _submission_cycle_field_snapshot(state: SessionState) -> dict[str, object]:
+    """Capture the Submission-cycle fields owned by clear_submission_cycle_fields."""
+    return {
+        "streak": state.streak,
+        "flawless_eligible": state.flawless_eligible,
+        "problem_answered": state.problem_answered,
+        "topic_completed": state.topic_completed,
+        "level_completed": state.level_completed,
+        "feedback_type": state.feedback_type,
+        "feedback_msg": state.feedback_msg,
+        "current_problem": state.current_problem,
+        "current_input_mode": state.current_input_mode,
+    }
+
+
+def _reference_cleared_cycle_snapshot(
+    fixture_curriculum: Curriculum,
+) -> dict[str, object]:
+    reference = _fresh_state(fixture_curriculum)
+    _polluted_submission_cycle_state(reference, fixture_curriculum)
+    session_state.clear_submission_cycle_fields(reference, fixture_curriculum)
+    return _submission_cycle_field_snapshot(reference)
+
+
+@pytest.mark.parametrize(
+    "entry_point",
+    ["reset_submission_cycle", "load_profile", "hard_reset"],
+)
+def test_submission_cycle_clear_entry_points_match_public_helper(
+    fixture_curriculum: Curriculum,
+    entry_point: str,
+):
+    """All three entry points clear the same cycle fields, including input mode."""
+    username = f"cycle-clear-{entry_point}-user"
+    expected = _reference_cleared_cycle_snapshot(fixture_curriculum)
+
+    if entry_point == "load_profile":
+        saved = SessionState(
+            username=username,
+            xp=10,
+            streak=config.STREAK_THRESHOLD_FOR_INPUT_MODE,
+            selected_chapter_id=CHAPTER_ALPHA,
+            selected_topic_id=TOPIC_MULTI,
+            selected_level=1,
+            chapter_frontiers={
+                CHAPTER_ALPHA: ChapterFrontier(
+                    frontier_topic_id=TOPIC_MULTI, frontier_level=1
+                ),
+            },
+        )
+        db.save_user(username, saved)
+        state = SessionState()
+        session_state.load_profile(state, username, fixture_curriculum)
+    else:
+        state = _fresh_state(fixture_curriculum)
+        _polluted_submission_cycle_state(state, fixture_curriculum)
+        if entry_point == "reset_submission_cycle":
+            submission_cycle.reset_submission_cycle(state, fixture_curriculum)
+        else:
+            session_state.hard_reset(state, fixture_curriculum)
+
+    assert _submission_cycle_field_snapshot(state) == expected
+
+
 def test_build_db_write_plan_student_writes_all_fields(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
     state.xp = 99

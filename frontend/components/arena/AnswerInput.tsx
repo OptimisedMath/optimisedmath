@@ -18,10 +18,14 @@ function AnswerInput({
   const inputMode = view.currentInputMode;
 
   if (inputMode === 'radio' && problem?.answer_options) {
-    return <RadioAnswerInput view={view} actions={actions} />;
+    return (
+      <RadioAnswerInput view={view} actions={actions} answerLocked={answerLocked} />
+    );
   }
 
-  return <TextAnswerInput view={view} actions={actions} />;
+  return (
+    <TextAnswerInput view={view} actions={actions} answerLocked={answerLocked} />
+  );
 }
 
 export default memo(AnswerInput);

@@ -13,11 +13,13 @@ import 'katex/dist/katex.min.css';
 interface RadioAnswerInputProps {
   view: SessionView;
   actions: SessionActions;
+  answerLocked: boolean;
 }
 
 function RadioAnswerInput({
   view,
   actions,
+  answerLocked,
 }: RadioAnswerInputProps) {
   const [value, setValue] = useState('');
 
@@ -30,7 +32,6 @@ function RadioAnswerInput({
     handleAutoSolve,
     autoSolveDisabled,
     interactionDisabled,
-    showFeedback,
     canSubmit,
     disabled,
   } = useAutoSolve({
@@ -48,7 +49,7 @@ function RadioAnswerInput({
     (e: KeyboardEvent) => {
       if (
         !problem.answer_options ||
-        showFeedback ||
+        answerLocked ||
         !canSubmit ||
         disabled
       ) {
@@ -72,7 +73,7 @@ function RadioAnswerInput({
         setValue(problem.answer_options[num - 1]);
       }
     },
-    [problem, showFeedback, canSubmit, disabled, value, actions]
+    [problem, answerLocked, canSubmit, disabled, value, actions]
   );
 
   useDocumentKeydown(handleRadioShortcuts, [handleRadioShortcuts]);
@@ -84,9 +85,9 @@ function RadioAnswerInput({
           <button
             key={index}
             onClick={() => setValue(option)}
-            disabled={showFeedback || isAutoSolving}
+            disabled={answerLocked || isAutoSolving}
             className={`p-3 sm:p-4 text-base sm:text-xl rounded-xl border-2 transition-all shadow-sm active:scale-[0.98] ${
-              showFeedback && feedback
+              answerLocked && feedback
                 ? value === option && feedback.correct
                   ? 'border-emerald-500 bg-emerald-600/85 text-white ring-2 ring-emerald-300'
                   : value === option && !feedback.correct
@@ -97,7 +98,7 @@ function RadioAnswerInput({
                 : value === option
                   ? 'border-sky-500 bg-sky-50 text-sky-700 ring-4 ring-sky-100 hover:-translate-y-0.5 dark:bg-sky-500/20 dark:text-sky-200 dark:ring-sky-500/20'
                   : 'border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-50 hover:shadow-md dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:bg-slate-800'
-            } ${showFeedback ? '' : 'cursor-pointer'}`}
+            } ${answerLocked ? '' : 'cursor-pointer'}`}
           >
             <span className="inline-flex items-center gap-2">
               <kbd className="hidden sm:inline-block text-xs px-1.5 py-0.5 rounded bg-slate-600/50 text-slate-400 font-mono border border-slate-500/50">
@@ -109,7 +110,7 @@ function RadioAnswerInput({
         ))}
       </div>
 
-      {!showFeedback && (
+      {!answerLocked && (
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
             onClick={() => actions.submit(value)}
