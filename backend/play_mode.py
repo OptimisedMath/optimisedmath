@@ -210,6 +210,32 @@ class AdminPlayMode:
         return False
 
 
+@dataclass(frozen=True, slots=True)
+class DbWritePlan:
+    """Per-field DB write eligibility and progression mode for one Submission."""
+
+    write_xp: bool
+    write_streak: bool
+    write_flawless_eligible: bool
+    write_chapter_frontiers: bool
+    full_progression: bool
+    profile_xp: int | None = None
+    profile_streak: int | None = None
+    profile_flawless_eligible: bool | None = None
+    profile_chapter_frontiers: dict[int, ChapterFrontier] | None = None
+
+    @classmethod
+    def write_all(cls, *, full_progression: bool = True) -> DbWritePlan:
+        """All profile fields may be written from the current session state."""
+        return cls(
+            write_xp=True,
+            write_streak=True,
+            write_flawless_eligible=True,
+            write_chapter_frontiers=True,
+            full_progression=full_progression,
+        )
+
+
 def resolve_play_mode(username: str | None) -> PlayMode:
     """Resolve play mode from username once per session request."""
     if config.is_admin_user(username):
