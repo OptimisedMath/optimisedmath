@@ -16,12 +16,17 @@ function AnswerInput({
 }: AnswerInputProps) {
   const problem = view.problem;
   const inputMode = view.session!.current_input_mode;
+  const answerLocked = view.feedbackPhase === 'answer_locked';
 
   if (inputMode === 'radio' && problem?.answer_options) {
-    return <RadioAnswerInput view={view} actions={actions} />;
+    return (
+      <RadioAnswerInput view={view} actions={actions} answerLocked={answerLocked} />
+    );
   }
 
-  return <TextAnswerInput view={view} actions={actions} />;
+  return (
+    <TextAnswerInput view={view} actions={actions} answerLocked={answerLocked} />
+  );
 }
 
 export default memo(AnswerInput);
