@@ -15,7 +15,8 @@ function AnswerInput({
   actions,
 }: AnswerInputProps) {
   const problem = view.problem;
-  const inputMode = view.currentInputMode;
+  const inputMode = view.session!.current_input_mode;
+  const answerLocked = view.feedbackPhase === 'answer_locked';
 
   if (inputMode === 'radio' && problem?.answer_options) {
     return (
