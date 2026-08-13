@@ -81,7 +81,7 @@ def _navigate_after_topic_completion(
     )
     try:
         target_chapter_id, target_topic_id, target_level = (
-            navigation.resolve_navigation_target(state, curriculum, request, snapshot)
+            navigation.resolve_navigation_target(state, request, snapshot)
         )
     except navigation.NavigationResolutionError:
         return False
