@@ -342,7 +342,7 @@ def test_public_problem_strips_unsafe_svg(fixture_curriculum: Curriculum):
 
     assert public["image_html"] is None
     assert public["answer_options"] == ["1"]
-    assert public["input_mode"] == state.current_input_mode
+    assert "input_mode" not in public
 
 
 def test_public_problem_includes_correct_answer_when_answered(fixture_curriculum: Curriculum):

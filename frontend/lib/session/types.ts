@@ -66,7 +66,6 @@ export interface Problem {
   problem_id: string;
   level_display: string;
   keyboard_type?: string;
-  input_mode?: string;
   image_html?: string;
 }
 

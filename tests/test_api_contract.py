@@ -233,7 +233,7 @@ def test_input_mode_defers_radio_to_input_until_next_problem():
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "input"
-    assert next_response.problem["input_mode"] == "input"
+    assert "input_mode" not in next_response.problem
 
 
 def test_input_mode_defers_input_to_radio_until_next_problem():
@@ -263,7 +263,7 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "radio"
-    assert next_response.problem["input_mode"] == "radio"
+    assert "input_mode" not in next_response.problem
 
 
 def test_soft_syntax_error_does_not_lock_problem():

@@ -84,6 +84,30 @@ describe('ADR-0002 leak locks', () => {
     expect(screen.getByText('3/3 gwiazdek')).toBeInTheDocument();
   });
 
+  it('renders input mode from session.current_input_mode alone even when problem has answer options', async () => {
+    const session = baseSession({ current_input_mode: 'input' });
+    const problem = baseProblem({
+      answer_options: ['1', '2', '3', '4'],
+      correct_answer: '2',
+    });
+
+    wireArenaFlow({
+      session,
+      problem,
+      onSubmit: () => ({
+        is_correct: true,
+        feedback: 'OK',
+        state: { ...session, problem_answered: true, feedback_msg: 'OK' },
+      }),
+    });
+
+    renderArena();
+    await waitForArenaReady();
+
+    expect(screen.getByPlaceholderText('Wpisz wynik...')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^1$/ })).not.toBeInTheDocument();
+  });
+
   it('renders radio mode from session payload alone for radio-only topics', async () => {
     const session = baseSession({
       current_input_mode: 'radio',
