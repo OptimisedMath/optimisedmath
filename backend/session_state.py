@@ -96,21 +96,18 @@ def clear_submission_cycle_fields(
 
 def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan:
     """Produce DB write eligibility once from play mode and persisted profile."""
-    full_progression = play_mode.persists_profile
-
-    if not state.username or full_progression:
-        return DbWritePlan.write_all(full_progression=full_progression)
+    if not state.username or play_mode.persists_profile:
+        return DbWritePlan.write_all()
 
     persisted = db.load_user(state.username)
     if persisted is None:
-        return DbWritePlan.write_all(full_progression=full_progression)
+        return DbWritePlan.write_all()
 
     return DbWritePlan(
         write_xp=False,
         write_streak=False,
         write_flawless_eligible=True,
         write_chapter_frontiers=False,
-        full_progression=False,
         profile_xp=persisted["xp"],
         profile_streak=persisted["streak"],
         profile_chapter_frontiers=persisted["chapter_frontiers"],
@@ -203,6 +200,6 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
-    clear_submission_cycle_fields(state, curriculum)
+    _clear_submission_cycle_fields(state, curriculum)
     sync_to_db(state, build_db_write_plan(state, play_mode or resolve_play_mode(state.username)))
 
