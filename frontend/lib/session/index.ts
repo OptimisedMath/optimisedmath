@@ -15,6 +15,11 @@ export {
   setStoredSessionId,
 } from './storage';
 export { useSession } from './useSession';
+export {
+  emptySessionDisplayProjection,
+  projectSessionState,
+} from './projectSessionState';
+export type { SessionDisplayProjection } from './projectSessionState';
 export type {
   ChapterFrontier,
   Feedback,

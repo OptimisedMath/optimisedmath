@@ -146,6 +146,10 @@ class NavigationSnapshot:
         """Chapter list captured when this snapshot was built."""
         return self.chapter_summaries
 
+    def curriculum(self) -> Curriculum:
+        """Curriculum this snapshot was built from."""
+        return self._curriculum
+
     def chapter_context(self, chapter_id: int) -> ChapterNavigationContext:
         """Return the chapter context, memoized per chapter_id for this snapshot."""
         cached = self._context_cache.get(chapter_id)
@@ -288,11 +292,11 @@ def clamp_selected_level(state: SessionState, curriculum: Curriculum) -> None:
 
 
 def resolve_chapter_change(
-    curriculum: Curriculum,
     next_chapter_id: int,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
     """Pick default topic and level when switching chapter."""
+    curriculum = snapshot.curriculum()
     ctx = snapshot.chapter_context(next_chapter_id)
     next_topic_id, next_level = ctx.implicit_chapter_landing
     next_chapter_topics = _topics_for_chapter(curriculum, next_chapter_id)
@@ -311,12 +315,12 @@ def resolve_chapter_change(
 
 
 def resolve_topic_change(
-    curriculum: Curriculum,
     chapter_id: int,
     next_topic_id: int,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int]:
     """Pick default level when switching topic within a chapter."""
+    curriculum = snapshot.curriculum()
     ctx = snapshot.chapter_context(chapter_id)
     next_level = ctx.implicit_topic_landing(next_topic_id)
     return next_topic_id, _clamp_level(
@@ -326,7 +330,6 @@ def resolve_topic_change(
 
 def resolve_navigate_request(
     state: SessionState,
-    curriculum: Curriculum,
     request: SessionNavigateRequest,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
@@ -335,20 +338,19 @@ def resolve_navigate_request(
         request.selected_chapter_id is not None
         and request.selected_chapter_id != state.selected_chapter_id
     ):
-        return resolve_chapter_change(
-            curriculum, request.selected_chapter_id, snapshot
-        )
+        return resolve_chapter_change(request.selected_chapter_id, snapshot)
 
     chapter_id = request.selected_chapter_id or state.selected_chapter_id
     if chapter_id is None:
-        chapter_ids = curriculum.chapter_ids()
-        chapter_id = chapter_ids[0] if chapter_ids else 0
+        chapters = snapshot.chapters()
+        chapter_id = chapters[0].chapter_id if chapters else 0
 
+    curriculum = snapshot.curriculum()
     chapter_topics = _topics_for_chapter(curriculum, chapter_id)
 
     if request.selected_topic_id is not None:
         topic_id, level = resolve_topic_change(
-            curriculum, chapter_id, int(request.selected_topic_id), snapshot
+            chapter_id, int(request.selected_topic_id), snapshot
         )
         if request.selected_level is not None:
             level = int(request.selected_level)
@@ -405,7 +407,6 @@ class NavigationLockedError(NavigationResolutionError):
 
 def resolve_navigation_target(
     state: SessionState,
-    curriculum: Curriculum,
     request: SessionNavigateRequest,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
@@ -423,8 +424,9 @@ def resolve_navigation_target(
         NavigationLevelOutOfRangeError: resolved level is out of bounds.
         NavigationLockedError: resolved target is Locked for this Student.
     """
+    curriculum = snapshot.curriculum()
     chapter_id, topic_id, level = resolve_navigate_request(
-        state, curriculum, request, snapshot
+        state, request, snapshot
     )
 
     if not curriculum.has_chapter(chapter_id):

@@ -13,9 +13,9 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 |-------|--------|------|
 | HTTP | `main.py` | Routes, CORS, exception → HTTP status |
 | Session use-cases | `session.py` | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` owns the response view (`SessionResponse`) |
-| Submission cycle | `submission_cycle.py` | Cycle reset, begin-problem, post-Topic-completion Navigation, chapter-end fallback |
+| Submission cycle | `submission_cycle.py` | Begin-problem, post-Topic-completion Navigation, chapter-end fallback; forwards cycle reset to `session_state` |
 | Submission | `submission.py` | Grade → telemetry → progression → persist for one Submission |
-| Session state | `session_state.py` | Load/save/mutate `SessionState`; sync to DB |
+| Session state | `session_state.py` | Load/save/mutate `SessionState`; sync to DB; owns Submission-cycle field clearing |
 | Progression | `progression.py` | Streak, XP, level/topic progression per Submission (pure) |
 | Access | `unlock.py` | Reachable chapter/topic/level (pure) |
 | Grading | `answer_grading.py` | Correct / Trap / Wrong / soft error (pure) |
@@ -36,7 +36,9 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 
 ## Submission cycle module
 
-`submission_cycle.py` owns the Submission cycle choreography (see `CONTEXT.md`): cycle reset, begin-problem, post-Topic-completion Navigation, and the chapter-end fallback. It sits between `session.py` and `submission.py` / `session_state.py` — call it from session use-cases; do not import `session` from here.
+`submission_cycle.py` owns the Submission cycle choreography (see `CONTEXT.md`): begin-problem, post-Topic-completion Navigation, and the chapter-end fallback. It sits between `session.py` and `submission.py` / `session_state.py` — call it from session use-cases; do not import `session` from here.
+
+**Cycle reset ownership:** `session_state.clear_submission_cycle_fields` is the real owner of clearing Submission-cycle fields (streak, feedback, problem, input mode). `submission_cycle.reset_submission_cycle` is a documented forwarding seam that session use-cases call; `session_state.load_profile` and `session_state.hard_reset` call the same public helper directly.
 
 **Why a separate module:** `submission.py` already owns one graded Submission (answer → feedback → progression → persist). The cycle spans problem serving and Navigation across multiple state transitions; keeping it in its own module preserves that boundary and gives the parent refactor (#80) a single home for choreography without bloating `submission.py`.
 
@@ -44,7 +46,7 @@ Layers stack top-to-bottom. Each layer may import from layers below and from `mo
 
 | Function | Seam |
 |----------|------|
-| `reset_submission_cycle(state, curriculum=None)` | Clear streak, feedback, and problem fields for a fresh cycle |
+| `reset_submission_cycle(state, curriculum=None)` | Forward to `session_state.clear_submission_cycle_fields` for a fresh cycle |
 | `navigate_to(state, chapter_id=None, topic_id=None, level=None, curriculum=None, play_mode=None)` | Toolbar Navigation: update selection, reset cycle, persist |
 | `begin_problem(state, problem, curriculum, *, recent_fingerprints=None, play_mode=None)` | Apply state mutations for a newly generated problem and persist |
 | `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)` | Generate at selection, dedupe fingerprints, begin problem |

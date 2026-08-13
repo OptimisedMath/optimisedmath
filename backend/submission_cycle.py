@@ -81,7 +81,7 @@ def _navigate_after_topic_completion(
     )
     try:
         target_chapter_id, target_topic_id, target_level = (
-            navigation.resolve_navigation_target(state, curriculum, request, snapshot)
+            navigation.resolve_navigation_target(state, request, snapshot)
         )
     except navigation.NavigationResolutionError:
         return False
@@ -100,8 +100,12 @@ def _navigate_after_topic_completion(
 def reset_submission_cycle(
     state: SessionState, curriculum: Curriculum | None = None
 ) -> None:
-    """Clear the current problem state when navigating or loading the next problem."""
-    session_state._clear_submission_cycle_fields(state, curriculum)
+    """Clear the current problem state when navigating or loading the next problem.
+
+    Forwards to ``session_state.clear_submission_cycle_fields``, the public owner
+    of Submission-cycle field clearing.
+    """
+    session_state.clear_submission_cycle_fields(state, curriculum)
 
 
 def navigate_to(

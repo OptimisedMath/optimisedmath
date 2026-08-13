@@ -114,6 +114,15 @@ def _student_state_at(
     return state
 
 
+@dataclass(frozen=True)
+class AdminProfileBaseline:
+    """Persisted profile snapshot before admin submissions mutate session state."""
+
+    xp: int
+    streak: int
+    chapter_frontiers: dict[int, ChapterFrontier]
+
+
 def _admin_state_at(
     fixture_curriculum: Curriculum,
     *,
@@ -124,7 +133,7 @@ def _admin_state_at(
     xp: int = 0,
     streak: int = 0,
     flawless_eligible: bool = True,
-) -> SessionState:
+) -> tuple[SessionState, AdminProfileBaseline]:
     state = _fresh_state(fixture_curriculum, username="Antoni")
     chapter_id = _chapter_id(state)
     state.chapter_frontiers[chapter_id] = ChapterFrontier(
@@ -138,11 +147,16 @@ def _admin_state_at(
     state.flawless_eligible = flawless_eligible
     state.level_completed = False
     state.topic_completed = False
-    baseline = state.model_copy(deep=True)
-    baseline.streak = 0
-    db.save_user(_username(state), baseline)
-    db.save_session(state.session_id, _username(state), baseline)
-    return state
+    baseline_state = state.model_copy(deep=True)
+    baseline_state.streak = 0
+    db.save_user(_username(state), baseline_state)
+    db.save_session(state.session_id, _username(state), baseline_state)
+    baseline = AdminProfileBaseline(
+        xp=baseline_state.xp,
+        streak=baseline_state.streak,
+        chapter_frontiers=dict(baseline_state.chapter_frontiers),
+    )
+    return state, baseline
 
 
 def _correct_problem() -> dict[str, Any]:
@@ -271,20 +285,14 @@ def _assert_telemetry(
 
 def _assert_admin_profile_unchanged(
     state: SessionState,
-    *,
-    xp: int,
-    frontier_topic_id: int,
-    frontier_level: int,
+    baseline: AdminProfileBaseline,
 ) -> None:
-    chapter_id = _chapter_id(state)
+    """Single assertion point: stored profile matches pre-submission baseline."""
     loaded = db.load_user(_username(state))
     assert loaded is not None
-    assert loaded["xp"] == xp
-    assert loaded["streak"] == 0
-    assert loaded["chapter_frontiers"][chapter_id] == ChapterFrontier(
-        frontier_topic_id=frontier_topic_id,
-        frontier_level=frontier_level,
-    )
+    assert loaded["xp"] == baseline.xp
+    assert loaded["streak"] == baseline.streak
+    assert loaded["chapter_frontiers"] == baseline.chapter_frontiers
 
 
 # --- Feedback merge ---
@@ -607,7 +615,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     initial_streak: int,
     expect_streak: int,
 ):
-    state = _admin_state_at(
+    state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -652,15 +660,13 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
             is_input_mode=False,
         ),
     )
-    _assert_admin_profile_unchanged(
-        state, xp=50, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
+    _assert_admin_profile_unchanged(state, baseline)
 
 
 def test_admin_wrong_decrements_session_streak_without_profile_writes(
     fixture_curriculum: Curriculum,
 ):
-    state = _admin_state_at(
+    state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -701,15 +707,13 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
             trap_id="w1",
         ),
     )
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
+    _assert_admin_profile_unchanged(state, baseline)
 
 
 def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
-    state = _admin_state_at(
+    state, _baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -726,7 +730,7 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
 def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
     fixture_curriculum: Curriculum,
 ):
-    state = _admin_state_at(
+    state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -738,13 +742,11 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
     _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
 
     assert state.streak == 3
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
+    _assert_admin_profile_unchanged(state, baseline)
 
 
 def test_admin_trap_answer_sets_warning_feedback_type(fixture_curriculum: Curriculum):
-    state = _admin_state_at(
+    state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -757,13 +759,11 @@ def test_admin_trap_answer_sets_warning_feedback_type(fixture_curriculum: Curric
 
     assert state.feedback_type == "warning"
     assert state.streak == 1
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
+    _assert_admin_profile_unchanged(state, baseline)
 
 
 def test_admin_soft_error_preserves_session_streak(fixture_curriculum: Curriculum):
-    state = _admin_state_at(
+    state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -776,15 +776,13 @@ def test_admin_soft_error_preserves_session_streak(fixture_curriculum: Curriculu
 
     assert state.feedback_type == "info"
     assert state.streak == 2
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
-    )
+    _assert_admin_profile_unchanged(state, baseline)
 
 
 def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
     fixture_curriculum: Curriculum,
 ):
-    state = _admin_state_at(
+    state, _baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -800,7 +798,7 @@ def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
 
 
 def test_admin_resets_streak_at_stored_frontier_boundary(fixture_curriculum: Curriculum):
-    state = _admin_state_at(
+    state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -840,6 +838,37 @@ def test_admin_resets_streak_at_stored_frontier_boundary(fixture_curriculum: Cur
             is_input_mode=False,
         ),
     )
-    _assert_admin_profile_unchanged(
-        state, xp=0, frontier_topic_id=TOPIC_MULTI, frontier_level=1
+    _assert_admin_profile_unchanged(state, baseline)
+
+
+def test_admin_level_completion_sequence_leaves_stored_frontier_unchanged(
+    fixture_curriculum: Curriculum,
+):
+    state, baseline = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=1,
+        streak=0,
     )
+    problem = _correct_problem()
+
+    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    assert state.streak == 1
+    _assert_admin_profile_unchanged(state, baseline)
+
+    state.problem_answered = False
+    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    assert state.streak == 2
+    _assert_admin_profile_unchanged(state, baseline)
+
+    state.problem_answered = False
+    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    assert state.streak == 0
+    assert state.level_completed is False
+    assert state.selected_level == 1
+    chapter_id = _chapter_id(state)
+    assert state.chapter_frontiers[chapter_id].frontier_level == 1
+    assert state.chapter_frontiers[chapter_id].frontier_topic_id == TOPIC_MULTI
+    _assert_admin_profile_unchanged(state, baseline)

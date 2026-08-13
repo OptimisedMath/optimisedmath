@@ -6,6 +6,7 @@ import pytest
 
 import backend.config as config
 import backend.session_state as session_state
+import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
