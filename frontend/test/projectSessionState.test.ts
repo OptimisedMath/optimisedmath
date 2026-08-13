@@ -28,6 +28,7 @@ describe('projectSessionState', () => {
     });
 
     expect(projectSessionState(state)).toEqual({
+      hasNavigation: true,
       xp: 120,
       flawlessEligible: false,
       streakMeter: 2,
@@ -67,6 +68,7 @@ describe('projectSessionState', () => {
     });
 
     expect(projectSessionState(state)).toMatchObject({
+      hasNavigation: false,
       hasNextUnlockedTopic: false,
       chapterCompletion: null,
       topicCompletion: null,
@@ -80,6 +82,7 @@ describe('projectSessionState', () => {
 
   it('emptySessionDisplayProjection provides zeroed defaults for a null session', () => {
     expect(emptySessionDisplayProjection()).toEqual({
+      hasNavigation: false,
       xp: 0,
       flawlessEligible: false,
       streakMeter: 0,
