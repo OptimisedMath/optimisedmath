@@ -9,15 +9,13 @@ interface TopicToolbarProps {
 }
 
 function TopicToolbar({ view, actions }: TopicToolbarProps) {
-  const session = view.session!;
-  const navigation = session.navigation;
-  if (!navigation) {
+  if (!view.hasNavigation) {
     return null;
   }
 
-  const selectedChapterId = session.selected_chapter_id ?? navigation.available_chapters[0]?.chapter_id ?? 0;
-  const selectedTopicId = session.selected_topic_id ?? navigation.available_topics[0]?.topic_id ?? 1;
-  const selectedLevel = session.selected_level;
+  const selectedChapterId = view.selectedChapterId;
+  const selectedTopicId = view.selectedTopicId;
+  const selectedLevel = view.selectedLevel;
 
   const handleChapterChange = (event: ChangeEvent<HTMLSelectElement>) => {
     actions.navigate({ selected_chapter_id: Number(event.target.value) });
@@ -60,7 +58,7 @@ function TopicToolbar({ view, actions }: TopicToolbarProps) {
               disabled={view.isNavigating}
               className={selectClasses}
             >
-              {navigation.available_chapters.map((chapter) => (
+              {view.availableChapters.map((chapter) => (
                 <option key={chapter.chapter_id} value={chapter.chapter_id}>
                   {chapter.name}
                 </option>
@@ -73,10 +71,10 @@ function TopicToolbar({ view, actions }: TopicToolbarProps) {
             <select
               value={selectedTopicId}
               onChange={handleTopicChange}
-              disabled={view.isNavigating || navigation.available_topics.length === 0}
+              disabled={view.isNavigating || view.availableTopics.length === 0}
               className={selectClasses}
             >
-              {navigation.available_topics.map((topic, index) => (
+              {view.availableTopics.map((topic, index) => (
                 <option key={topic.topic_id} value={topic.topic_id}>
                   {index + 1}. {topic.name}
                 </option>
@@ -92,7 +90,7 @@ function TopicToolbar({ view, actions }: TopicToolbarProps) {
               disabled={view.isNavigating}
               className={selectClasses}
             >
-              {navigation.available_levels.map((level) => (
+              {view.availableLevels.map((level) => (
                 <option key={level} value={level}>
                   {level}
                 </option>

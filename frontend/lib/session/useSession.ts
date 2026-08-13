@@ -70,6 +70,10 @@ export function useSession() {
           : 'soft_error'
         : 'none';
 
+    const display = session
+      ? projectSessionState(session)
+      : emptySessionDisplayProjection();
+
     return {
       needsLogin,
       isLoading: session === null && error === null,
@@ -80,7 +84,7 @@ export function useSession() {
       canSubmit: Boolean(session?.can_submit && !isSubmitting),
       canNextProblem: Boolean(session?.can_next_problem),
       feedbackPhase,
-      session,
+      isLoadingProblem: session !== null && problem === null,
       problem,
       feedback,
       selectedChapterName,
