@@ -153,15 +153,12 @@ def respond(
 
 def _resolve_navigation_target_or_raise(
     state: SessionState,
-    curriculum: Curriculum,
     request: SessionNavigateRequest,
     snapshot: navigation.NavigationSnapshot,
 ) -> tuple[int, int, int]:
     """Resolve a navigation intent, mapping resolver errors to session-layer errors."""
     try:
-        return navigation.resolve_navigation_target(
-            state, curriculum, request, snapshot
-        )
+        return navigation.resolve_navigation_target(state, request, snapshot)
     except navigation.NavigationLockedError as exc:
         raise ForbiddenError(str(exc)) from exc
     except navigation.NavigationResolutionError as exc:
@@ -193,7 +190,7 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
             selected_chapter_id=request.selected_chapter_id,
         )
         chapter_id, topic_id, level = _resolve_navigation_target_or_raise(
-            state, curriculum, override_request, snapshot
+            state, override_request, snapshot
         )
         submission_cycle.navigate_to(
             state,
@@ -205,7 +202,9 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
         )
 
     ACTIVE_SESSIONS[state.session_id] = state
-    session_state.sync_to_db(state, play_mode)
+    session_state.sync_to_db(
+        state, session_state.build_db_write_plan(state, play_mode)
+    )
     state.problem_start_time = time.time()
 
     return respond(state, curriculum, play_mode)
@@ -221,7 +220,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     )
 
     chapter_id, topic_id, selected_level = _resolve_navigation_target_or_raise(
-        state, curriculum, request, snapshot
+        state, request, snapshot
     )
 
     submission_cycle.navigate_to(

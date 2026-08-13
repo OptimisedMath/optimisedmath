@@ -3,19 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
 
 import backend.config as config
 from backend.answer_grading import EvalResult
 from backend.models import SessionState
 from backend.unlock import apply_frontier_on_mastery
-
-
-class PersistenceProfile(Enum):
-    """Which progression deltas may be applied to the session/profile."""
-
-    FULL = "full"
-    STREAK_ONLY = "streak_only"
 
 
 @dataclass(frozen=True)
@@ -31,7 +23,7 @@ class SubmissionContext:
     frontier_topic_id: int
     topic_max_level: int
     next_topic_ids: tuple[int, ...]
-    persistence_profile: PersistenceProfile = PersistenceProfile.FULL
+    full_progression: bool = True
 
 
 @dataclass(frozen=True)
@@ -64,7 +56,7 @@ def apply_submission(eval_result: EvalResult, ctx: SubmissionContext) -> Submiss
     feedback_type = eval_result.get("feedback_type")
     is_soft_error = feedback_type == "info"
 
-    if ctx.persistence_profile == PersistenceProfile.STREAK_ONLY:
+    if not ctx.full_progression:
         return _apply_streak_only_submission(ctx, is_correct, is_soft_error)
 
     if not is_correct and not is_soft_error:

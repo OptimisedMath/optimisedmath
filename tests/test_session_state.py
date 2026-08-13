@@ -6,9 +6,11 @@ import pytest
 
 import backend.config as config
 import backend.session_state as session_state
+import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
+from backend.play_mode import AdminPlayMode, DbWritePlan, StudentPlayMode
 from backend.unlock import first_topic_id
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
@@ -151,4 +153,68 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
     assert state.streak == 0
     assert state.selected_chapter_id == CHAPTER_ALPHA
     assert state.selected_topic_id == TOPIC_MULTI
+
+
+def test_build_db_write_plan_student_writes_all_fields(fixture_curriculum: Curriculum):
+    state = _fresh_state(fixture_curriculum)
+    state.xp = 99
+    state.streak = 3
+
+    plan = session_state.build_db_write_plan(state, StudentPlayMode())
+
+    assert plan == DbWritePlan.write_all()
+    persisted = session_state.apply_db_write_plan(state, plan)
+    assert persisted is state
+    assert persisted.xp == 99
+    assert persisted.streak == 3
+
+
+def test_build_db_write_plan_admin_preserves_profile_progression_fields(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    state.username = "Antoni"
+    state.xp = 200
+    state.streak = 4
+    state.flawless_eligible = False
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=2,
+    )
+    db.save_user(
+        state.username,
+        SessionState(
+            username=state.username,
+            xp=50,
+            streak=0,
+            chapter_frontiers={
+                CHAPTER_ALPHA: ChapterFrontier(
+                    frontier_topic_id=TOPIC_MULTI,
+                    frontier_level=1,
+                )
+            },
+        ),
+    )
+
+    plan = session_state.build_db_write_plan(state, AdminPlayMode())
+
+    assert plan.write_xp is False
+    assert plan.write_streak is False
+    assert plan.write_chapter_frontiers is False
+    assert plan.write_flawless_eligible is True
+    assert plan.profile_xp == 50
+    assert plan.profile_streak == 0
+    assert plan.profile_chapter_frontiers[CHAPTER_ALPHA] == ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+    )
+
+    persisted = session_state.apply_db_write_plan(state, plan)
+    assert persisted.xp == 50
+    assert persisted.streak == 0
+    assert persisted.flawless_eligible is False
+    assert persisted.chapter_frontiers[CHAPTER_ALPHA] == ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+    )
 

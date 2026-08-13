@@ -44,7 +44,9 @@ def make_state(problem, *, streak=0, input_mode="radio"):
     state.current_problem = problem
     state.problem_start_time = 0
     main.ACTIVE_SESSIONS[session_id] = state
-    main.session_state.sync_to_db(state)
+    main.session_state.sync_to_db(
+        state, main.session_state.build_db_write_plan(state, StudentPlayMode())
+    )
     return state
 
 
@@ -592,7 +594,9 @@ def _make_topic_completed_state(
     }
     state.problem_start_time = 0
     main.ACTIVE_SESSIONS[session_id] = state
-    main.session_state.sync_to_db(state)
+    main.session_state.sync_to_db(
+        state, main.session_state.build_db_write_plan(state, StudentPlayMode())
+    )
     return state
 
 
