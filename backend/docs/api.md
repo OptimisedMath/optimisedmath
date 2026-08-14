@@ -4,8 +4,13 @@ When changing request/response shapes, update the backend Pydantic models and th
 
 Current locations:
 
-| Side | Path |
-|------|------|
-| Backend models | `backend/models.py` |
-| Session wire types | `frontend/lib/session/types.ts` |
-| Curriculum catalog types | `frontend/lib/types.ts` |
+
+| Side                     | Path                            |
+| ------------------------ | ------------------------------- |
+| Backend models           | `backend/models.py`             |
+| Session wire types       | `frontend/lib/session/types.ts` |
+| Curriculum catalog types | `frontend/lib/types.ts`         |
+
+
+**API calls** — relative `/api/`* paths; Next.js rewrites to FastAPI on `:8000`.
+

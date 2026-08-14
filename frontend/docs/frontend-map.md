@@ -1,11 +1,16 @@
 # Frontend file map
 
-| Path | Purpose |
-|------|---------|
-| `app/` | App Router pages: `/`, `/login`, `/arena` |
-| `components/arena/` | Arena UI |
-| `components/ui/` | Shared shadcn primitives |
-| `lib/session/` | Session client — [session.md](session.md) |
-| `lib/types.ts` | Curriculum catalog types (mirror backend) |
-| `lib/api.ts` | Non-session API helpers |
-| `test/` | Vitest + Testing Library; fake backend via `test/apiMock.ts` |
+Every file has it's own
+
+
+| Path                | Purpose                                                      |
+| ------------------- | ------------------------------------------------------------ |
+| `app/`              | App Router pages: `/`, `/login`, `/arena`                    |
+| `components/arena/` | Arena UI                                                     |
+| `components/ui/`    | Shared shadcn primitives                                     |
+| `lib/session/`      | Session client - 'frontend/docs/session.md'                  |
+| `lib/types.ts`      | Curriculum catalog types (mirror backend)                    |
+| `lib/api.ts`        | API helpers                                                  |
+| `test/`             | Vitest + Testing Library; fake backend via `test/apiMock.ts` |
+
+
