@@ -1,4 +1,4 @@
-"""Own one Submission end-to-end: grade → telemetry → progression → persist."""
+"""Own one Submission end-to-end: grade → telemetry → progression → persist. For conventions see 'backend/docs/submission.md'"""
 
 from __future__ import annotations
 

@@ -1,55 +1,20 @@
-# Domain Docs
+# Domain docs
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+How to consume this repo's glossary and ADRs.
 
 ## Language split
 
-Code and glossary terms are **English**. User-facing UI and student feedback are **Polish**. See `docs/adr/0001-english-code-polish-ui.md`. When a term has Polish UI copy, `CONTEXT.md` marks it with `_UI (PL)_:`.
+English in code and glossary; Polish in student-facing UI. See [ADR-0001](../adr/0001-english-code-polish-ui.md).
 
-## Before exploring, read these
+## Before exploring
 
-- **`CONTEXT.md`** at the repo root, or
-- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
-- **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+- [CONTEXT.md](../../CONTEXT.md) — glossary. Use these terms in names and issue titles; check each entry's `_Avoid_` line.
+- [docs/adr/](../adr/) — ADRs that touch the area you're about to work in.
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
+If a concept isn't in the glossary yet, either the project doesn't use that language (reconsider) or there's a gap for `/domain-modeling`.
 
-## File structure
+## ADR conflicts
 
-Single-context repo (most repos):
+If your output contradicts an existing ADR, surface it rather than silently overriding:
 
-```
-/
-├── CONTEXT.md
-├── docs/adr/
-│   ├── 0001-event-sourced-orders.md
-│   └── 0002-postgres-for-write-model.md
-└── src/
-```
-
-Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
-
-```
-/
-├── CONTEXT-MAP.md
-├── docs/adr/                          ← system-wide decisions
-└── src/
-    ├── ordering/
-    │   ├── CONTEXT.md
-    │   └── docs/adr/                  ← context-specific decisions
-    └── billing/
-        ├── CONTEXT.md
-        └── docs/adr/
-```
-
-## Use the glossary's vocabulary
-
-When your output names a domain concept — in an issue title, a refactor proposal, a hypothesis, a test name, or **a function, module, or class identifier** — use the term as defined in `CONTEXT.md`. Check the entry's `_Avoid_` line before choosing a name; don't drift to synonyms it lists.
-
-If the concept you need isn't in the glossary yet, that's a signal — either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
-
-## Flag ADR conflicts
-
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
-
-> _Contradicts ADR-0007 (event-sourced orders) — but worth reopening because…_
+> *Contradicts ADR-0002 (backend owns game rules) — but worth reopening because…*

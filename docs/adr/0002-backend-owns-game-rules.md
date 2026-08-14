@@ -6,4 +6,4 @@ FastAPI runs grading, streaks, XP, unlock logic, input mode, and progression. Ne
 
 **Considered options:** Duplicate rule logic in both stacks (rejected — drift and split bugs); compute lightweight rules on the client for responsiveness (rejected — breaks single source of truth for the mastery loop).
 
-**Consequences:** UI that needs a rule outcome must read it from the session payload or add a backend field. Progression changes touch backend modules only; update `frontend/lib/types.ts` when wire shapes change, never reimplement the rule.
+**Consequences:** UI that needs a rule outcome must read it from the session payload or add a backend field. Progression changes touch backend modules only. When wire shapes change, update the backend request/response models and the frontend types that mirror them — never reimplement the rule. Current file locations live in `backend/docs/api.md`.
