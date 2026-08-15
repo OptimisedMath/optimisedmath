@@ -1,9 +1,9 @@
 # Backend owns game rules
 
-FastAPI runs grading, streaks, XP, unlock logic, input mode, and progression. Next.js renders session state from API payloads and forwards user input.
+FastAPI owns authoritative game state and rule outcomes: grading, streak, XP, Flawless, input mode, and what is Locked vs Reachable. Next.js owns presentation, interaction, and mapping those payload fields into UI — not a second rules engine, and not a dumb visual client.
 
-**Decision:** All game rules live in the Python backend. The frontend is a dumb visual client — it must not compute streaks, XP, level unlocks, input mode switches, or Flawless eligibility in React/TypeScript.
+**Decision:** Re-deriving a rule outcome in React/TypeScript is a leak. Drawing or combining fields the server already computed is not.
 
-**Considered options:** Duplicate rule logic in both stacks (rejected — drift and split bugs); compute lightweight rules on the client for responsiveness (rejected — breaks single source of truth for the mastery loop).
+**Considered options:** Duplicate the mastery loop in both stacks (rejected — drift); compute lightweight rules on the client for snappier UI (rejected — splits the source of truth); treat the frontend as a dumb layer that must not derive any view at all (rejected on revisit — interaction and payload→UI mapping belong in the session client; forcing display exceptions onto `respond()` bloats the wire contract).
 
-**Consequences:** UI that needs a rule outcome must read it from the session payload or add a backend field. Progression changes touch backend modules only. When wire shapes change, update the backend request/response models and the frontend types that mirror them — never reimplement the rule. Current file locations live in `backend/docs/api.md`.
+**Consequences:** UI that needs a new *outcome* (streak, unlock, input mode, Flawless, correctness) reads it from the session payload or adds a backend field. Progression changes touch backend modules only. A formula that would have to exist in Python *and* TypeScript is the leak test; mapping `feedback_type` + `can_next_problem` into a feedback phase, or `streak_meter` into stars, is not. When wire shapes change, update the Pydantic models and the frontend types that mirror them — never reimplement the rule. Current file locations live in `backend/docs/api.md`.
