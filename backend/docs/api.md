@@ -12,5 +12,6 @@ Current locations:
 | Curriculum catalog types | `frontend/lib/types.ts`         |
 
 
-**API calls** — relative `/api/`* paths; Next.js rewrites to FastAPI on `:8000`.
+## API calls
 
+Relative `/api/`* paths; Next.js rewrites to FastAPI on `:8000`.
