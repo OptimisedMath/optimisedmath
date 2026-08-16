@@ -10,7 +10,7 @@ from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import SessionState
-from backend.play_mode import DbWritePlan, PlayMode
+from backend.play_mode import PlayMode
 from backend.progression import (
     SubmissionContext,
     SubmissionOutcome,
@@ -49,10 +49,6 @@ def process_submission(
 
     eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
-
-    from backend.session_state import build_db_write_plan, sync_to_db
-
-    write_plan = build_db_write_plan(state, play_mode)
 
     _log_submission_telemetry(
         state, problem, user_input, is_input_mode, eval_result, curriculum
@@ -184,9 +180,9 @@ def _apply_progression(
     state: SessionState,
     eval_result: EvalResult,
     curriculum: Curriculum,
-    write_plan: DbWritePlan,
+    play_mode: PlayMode,
 ) -> None:
-    """Apply progression rules for one graded submission using the write plan."""
+    """Apply progression rules for one graded submission using the play mode."""
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
     assert chapter_id is not None and topic_id is not None
@@ -196,7 +192,7 @@ def _apply_progression(
         curriculum,
         chapter_id,
         topic_id,
-        full_progression=write_plan.full_progression,
+        full_progression=play_mode.persists_profile,
     )
     submission_outcome = apply_submission(eval_result, submission_ctx)
     _apply_submission_outcome(state, chapter_id, submission_outcome, eval_result)
