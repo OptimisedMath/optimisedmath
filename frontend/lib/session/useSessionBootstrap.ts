@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useAppNavigation } from '@/lib/navigation';
 import { PREFERRED_CHAPTER_ID } from './constants';
 import { startSession } from './api';
+import { reportError } from './errors';
 import { getStoredSessionId, getStoredUsername, setStoredSessionId } from './storage';
 import type { SessionState } from './types';
 
@@ -67,9 +68,7 @@ export function useSessionBootstrap({
           // Fall through to the original error message.
         }
 
-        const errorMsg = err instanceof Error ? err.message : 'Failed to start session';
-        setError(errorMsg);
-        console.error('Error starting session:', err);
+        reportError(setError, err, 'Failed to start session', 'Error starting session:');
       }
     };
 
