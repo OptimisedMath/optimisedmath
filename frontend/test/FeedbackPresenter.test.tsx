@@ -7,10 +7,9 @@ import {
   type SessionActions,
   type SessionView,
 } from '@/lib/session';
-import { baseProblem, baseSession } from './fakeBackend';
+import { baseProblem } from './fakeBackend';
 
 function baseView(overrides: Partial<SessionView> = {}): SessionView {
-  const session = baseSession();
   const problem = baseProblem();
   return {
     needsLogin: false,
@@ -22,7 +21,7 @@ function baseView(overrides: Partial<SessionView> = {}): SessionView {
     canSubmit: true,
     canNextProblem: false,
     feedbackPhase: 'none',
-    session,
+    isLoadingProblem: false,
     problem,
     feedback: null,
     selectedChapterName: 'Ułamki',
