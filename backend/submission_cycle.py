@@ -3,7 +3,8 @@
 import time
 
 import backend.config as config
-import backend.navigation as navigation
+import backend.navigation_resolve as navigation_resolve
+import backend.navigation_snapshot as navigation_snapshot
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import SessionNavigateRequest, SessionState
@@ -35,7 +36,7 @@ def _navigate_after_topic_completion(
     """Navigate to the next Topic after Topic completion when Next problem unlocks one.
 
     Routes the target through the consolidated navigation resolver
-    (``navigation.resolve_navigation_target``) — the same validate-and-resolve
+    (``navigation_resolve.resolve_navigation_target``) — the same validate-and-resolve
     path toolbar Navigation uses — so Reachable/Locked determination cannot
     diverge between manual Navigation and post-completion auto-navigation.
 
@@ -46,7 +47,7 @@ def _navigate_after_topic_completion(
         return False
 
     mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
+    snapshot = navigation_snapshot.build_navigation_snapshot(state, curriculum, mode)
     ctx = snapshot.chapter_context(chapter_id)
     if not ctx.has_next_unlocked_topic(state.selected_topic_id):
         return False
@@ -60,9 +61,9 @@ def _navigate_after_topic_completion(
     )
     try:
         target_chapter_id, target_topic_id, target_level = (
-            navigation.resolve_navigation_target(state, request, snapshot)
+            navigation_resolve.resolve_navigation_target(state, request, snapshot)
         )
-    except navigation.NavigationResolutionError:
+    except navigation_resolve.NavigationResolutionError:
         return False
 
     navigate_to(

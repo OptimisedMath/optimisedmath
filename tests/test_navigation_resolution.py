@@ -6,10 +6,9 @@ import pytest
 
 from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, SessionState, SessionNavigateRequest
-from backend.navigation import build_navigation_snapshot
+from backend.navigation_snapshot import build_navigation_snapshot
 from backend.play_mode import AdminPlayMode, StudentPlayMode
-from backend.navigation import _get_level_options as get_level_options
-import backend.navigation as resolution
+import backend.navigation_resolve as resolution
 import backend.session_state as session_state
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
@@ -38,12 +37,6 @@ def _fresh_state(
 
 def _snapshot(state: SessionState, fixture_curriculum: Curriculum, play_mode=_STUDENT):
     return build_navigation_snapshot(state, fixture_curriculum, play_mode)
-
-
-def test_get_level_options_returns_one_through_limit():
-    assert get_level_options(3) == [1, 2, 3]
-    assert get_level_options(0) == [1]
-    assert get_level_options(1) == [1]
 
 
 def test_resolve_chapter_change_uses_unlocked_topic_and_level(
