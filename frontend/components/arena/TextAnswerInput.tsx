@@ -3,10 +3,10 @@
 import { memo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import { useAutoSolve } from '@/hooks/useAutoSolve';
 import type { SessionActions, SessionView } from '@/lib/session';
+import SubmitRow from './SubmitRow';
 import 'katex/dist/katex.min.css';
 
 interface TextAnswerInputProps {
@@ -125,27 +125,13 @@ function TextAnswerInput({
       )}
 
       {!answerLocked ? (
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            type="submit"
-            disabled={submitDisabled}
-            className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed disabled:hover:translate-y-0 text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg hover:-translate-y-0.5 hover:shadow-sky-500/30 active:translate-y-0 active:scale-[0.98]"
-          >
-            <Check className="mr-2 h-5 w-5" aria-hidden="true" />
-            Sprawdź odpowiedź
-          </Button>
-          {showAutoSolve && (
-            <Button
-              type="button"
-              onClick={handleAutoSolve}
-              disabled={autoSolveDisabled}
-              variant="outline"
-              className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:-translate-y-0.5 active:scale-[0.98] dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              🪄 Auto-Solve
-            </Button>
-          )}
-        </div>
+        <SubmitRow
+          submitType="submit"
+          submitDisabled={submitDisabled}
+          showAutoSolve={showAutoSolve}
+          autoSolveDisabled={autoSolveDisabled}
+          onAutoSolve={handleAutoSolve}
+        />
       ) : null}
     </form>
   );
