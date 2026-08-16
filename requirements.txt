@@ -1,6 +1,0 @@
-pyyaml
-pytest
-black
-fastapi
-pydantic
-uvicorn

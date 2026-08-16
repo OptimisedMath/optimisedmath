@@ -26,7 +26,6 @@ from backend.session import (
     auto_solve_problem,
     navigate_session,
     next_problem,
-    public_problem as _public_problem,
     reset_session,
     start_session,
     submit_problem,

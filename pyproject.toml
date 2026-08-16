@@ -1,0 +1,22 @@
+[project]
+name = "optimised-math-learning"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi",
+    "pydantic",
+    "pyyaml",
+    "uvicorn",
+]
+
+[dependency-groups]
+dev = [
+    "black",
+    "pytest",
+]
+
+[tool.uv]
+package = false
+
+[tool.black]
+target-version = ["py314"]
