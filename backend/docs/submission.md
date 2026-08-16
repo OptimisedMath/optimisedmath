@@ -2,7 +2,7 @@
 
 `submission.py` owns one Submission end-to-end. Call it from `session.py` — do not add pass-through wrappers in session or session_state.
 
-**Public API:** `process_submission(state, problem, user_input, is_input_mode, curriculum, play_mode) -> EvalResult` — grades the answer, logs telemetry, applies progression, and persists via `session_state.sync_to_db`.
+**Public API:** `process_submission(state, problem, user_input, is_input_mode, curriculum, play_mode) -> EvalResult` — grades the answer, logs telemetry, applies progression, and persists via `session_state.persist`.
 
 **Internal seams** (private helpers; keep testable but do not re-export):
 

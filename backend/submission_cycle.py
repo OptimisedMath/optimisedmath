@@ -93,12 +93,7 @@ def navigate_to(
     if level is not None:
         state.selected_level = level
     session_state.clear_submission_cycle_fields(state, curriculum)
-    session_state.sync_to_db(
-        state,
-        session_state.build_db_write_plan(
-            state, play_mode or resolve_play_mode(state.username)
-        ),
-    )
+    session_state.persist(state, play_mode)
 
 
 def begin_problem(
@@ -121,12 +116,7 @@ def begin_problem(
     state.level_completed = False
     state.problem_start_time = time.time()
     state.current_problem = problem
-    session_state.sync_to_db(
-        state,
-        session_state.build_db_write_plan(
-            state, play_mode or resolve_play_mode(state.username)
-        ),
-    )
+    session_state.persist(state, play_mode)
 
 
 def serve_next_problem(

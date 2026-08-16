@@ -157,6 +157,12 @@ def sync_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
             print(f"Error saving session {persist_state.session_id}: {e}")
 
 
+def persist(state: SessionState, play_mode: PlayMode | None = None) -> None:
+    """Resolve play mode, build the write plan, and sync state to the DB."""
+    mode = play_mode or resolve_play_mode(state.username)
+    sync_to_db(state, build_db_write_plan(state, mode))
+
+
 def load_profile(
     state: SessionState,
     username: str,
@@ -199,7 +205,4 @@ def hard_reset(
     )
     state.selected_level = 1
     clear_submission_cycle_fields(state, curriculum)
-    sync_to_db(
-        state,
-        build_db_write_plan(state, play_mode or resolve_play_mode(state.username)),
-    )
+    persist(state, play_mode)
