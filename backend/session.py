@@ -6,7 +6,8 @@ import time
 from typing import Any
 
 import backend.config as config
-import backend.navigation as navigation
+import backend.navigation_resolve as navigation_resolve
+import backend.navigation_snapshot as navigation_snapshot
 import backend.session_state as session_state
 import backend.submission as submission
 import backend.submission_cycle as submission_cycle
@@ -134,8 +135,8 @@ def respond(
     )
     can_submit = bool(current_problem and not state.problem_answered)
     can_next_problem = bool(state.problem_answered)
-    snapshot = navigation.build_navigation_snapshot(state, curriculum, mode)
-    navigation_view = navigation.build_navigation_view(snapshot)
+    snapshot = navigation_snapshot.build_navigation_snapshot(state, curriculum, mode)
+    navigation_view = navigation_snapshot.build_navigation_view(snapshot)
     return SessionResponse.from_state(
         state,
         current_problem=current_problem,
@@ -153,14 +154,14 @@ def respond(
 def _resolve_navigation_target_or_raise(
     state: SessionState,
     request: SessionNavigateRequest,
-    snapshot: navigation.NavigationSnapshot,
+    snapshot: navigation_snapshot.NavigationSnapshot,
 ) -> tuple[int, int, int]:
     """Resolve a navigation intent, mapping resolver errors to session-layer errors."""
     try:
-        return navigation.resolve_navigation_target(state, request, snapshot)
-    except navigation.NavigationLockedError as exc:
+        return navigation_resolve.resolve_navigation_target(state, request, snapshot)
+    except navigation_resolve.NavigationLockedError as exc:
         raise ForbiddenError(str(exc)) from exc
-    except navigation.NavigationResolutionError as exc:
+    except navigation_resolve.NavigationResolutionError as exc:
         raise SessionError(str(exc)) from exc
 
 
@@ -175,13 +176,15 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     state = SessionState()
     session_state.init_defaults(state, curriculum)
     session_state.load_profile(state, request.username, curriculum)
-    navigation.clamp_selected_level(state, curriculum)
+    navigation_resolve.clamp_selected_level(state, curriculum)
 
     if (
         request.selected_chapter_id is not None
         and request.selected_chapter_id != state.selected_chapter_id
     ):
-        snapshot = navigation.build_navigation_snapshot(state, curriculum, play_mode)
+        snapshot = navigation_snapshot.build_navigation_snapshot(
+            state, curriculum, play_mode
+        )
         override_request = SessionNavigateRequest(
             session_id=state.session_id,
             selected_chapter_id=request.selected_chapter_id,
@@ -210,7 +213,9 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    snapshot = navigation.build_navigation_snapshot(state, curriculum, play_mode)
+    snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
 
     chapter_id, topic_id, selected_level = _resolve_navigation_target_or_raise(
         state, request, snapshot

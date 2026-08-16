@@ -14,7 +14,8 @@ Layers stack top-to-bottom. Each layer may import from layers below, from `model
 | Access            | `unlock.py`                             | Reachable chapter/topic/level (pure)                                                                                  |
 | Grading           | `answer_grading.py`                     | Correct / Trap / Wrong / soft error (pure)                                                                            |
 | Problems          | `problem_generation.py`                 | Generator registry, level assembly (pure)                                                                             |
-| Navigation        | `navigation.py`                         | Snapshot, view payload, and intent resolution                                                                         |
+| Navigation        | `navigation_snapshot.py`                | Snapshot and view payload                                                                                             |
+| Navigation        | `navigation_resolve.py`                 | Intent clamping and validate-and-resolve                                                                              |
 | Curriculum        | `curriculum.py`, `curriculum_loader.py` | Read model + provider; YAML load, validate, cache                                                                     |
 | Persistence       | `core/db.py`                            | SQLite read/write                                                                                                     |
 | Play mode         | `play_mode.py`                          | Admin vs student policy; effective Frontier; profile persistence (shared)                                             |
