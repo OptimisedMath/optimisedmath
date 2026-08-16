@@ -301,3 +301,83 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
     )
+
+
+def test_persist_resolves_default_play_mode_when_not_provided(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    state.username = "Antoni"  # admin username per config.ADMIN_USERNAMES
+    state.xp = 200
+    state.streak = 4
+    db.save_user(
+        state.username,
+        SessionState(
+            username=state.username,
+            xp=50,
+            streak=0,
+            chapter_frontiers={
+                CHAPTER_ALPHA: ChapterFrontier(
+                    frontier_topic_id=TOPIC_MULTI,
+                    frontier_level=1,
+                )
+            },
+        ),
+    )
+
+    session_state.persist(state)
+
+    loaded = db.load_user(state.username)
+    assert loaded is not None
+    assert loaded["xp"] == 50
+    assert loaded["streak"] == 0
+
+
+def test_persist_matches_manual_build_and_sync_sequence_for_student_and_admin(
+    fixture_curriculum: Curriculum,
+):
+    cases: list[tuple[StudentPlayMode | AdminPlayMode, str, SessionState | None]] = [
+        (StudentPlayMode(), "persist-student", None),
+        (
+            AdminPlayMode(),
+            "Antonio",
+            SessionState(
+                username="Antonio",
+                xp=50,
+                streak=0,
+                chapter_frontiers={
+                    CHAPTER_ALPHA: ChapterFrontier(
+                        frontier_topic_id=TOPIC_MULTI,
+                        frontier_level=1,
+                    )
+                },
+            ),
+        ),
+    ]
+    for mode, username, existing_profile in cases:
+        if existing_profile is not None:
+            db.save_user(username, existing_profile)
+
+        state_via_persist = _fresh_state(fixture_curriculum)
+        state_via_persist.username = username
+        state_via_persist.xp = 42
+        state_via_persist.streak = 2
+
+        state_via_manual = state_via_persist.model_copy(deep=True)
+        state_via_manual.session_id = str(uuid.uuid4())
+
+        session_state.persist(state_via_persist, mode)
+        session_state.sync_to_db(
+            state_via_manual,
+            session_state.build_db_write_plan(state_via_manual, mode),
+        )
+
+        loaded_via_persist = db.load_session(state_via_persist.session_id)
+        loaded_via_manual = db.load_session(state_via_manual.session_id)
+        assert loaded_via_persist is not None
+        assert loaded_via_manual is not None
+        assert loaded_via_persist.xp == loaded_via_manual.xp
+        assert loaded_via_persist.streak == loaded_via_manual.streak
+        assert (
+            loaded_via_persist.chapter_frontiers == loaded_via_manual.chapter_frontiers
+        )

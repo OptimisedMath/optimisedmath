@@ -16,6 +16,7 @@ from backend.progression import (
     SubmissionOutcome,
     apply_submission,
 )
+import backend.session_state as session_state
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
@@ -54,11 +55,7 @@ def process_submission(
         state, problem, user_input, is_input_mode, eval_result, curriculum
     )
     _apply_progression(state, eval_result, curriculum, play_mode)
-
-    from backend.session_state import build_db_write_plan, sync_to_db
-
-    write_plan = build_db_write_plan(state, play_mode)
-    sync_to_db(state, write_plan)
+    session_state.persist(state, play_mode)
     return eval_result
 
 

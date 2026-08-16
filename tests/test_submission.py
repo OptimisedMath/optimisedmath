@@ -215,7 +215,7 @@ def _submit(
 ) -> dict[str, Any]:
     state.current_problem = problem
     state.problem_start_time = 0
-    session_state.sync_to_db(state, session_state.build_db_write_plan(state, play_mode))
+    session_state.persist(state, play_mode)
     return submission.process_submission(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
