@@ -201,7 +201,7 @@ def _reference_cleared_cycle_snapshot(
 
 @pytest.mark.parametrize(
     "entry_point",
-    ["reset_submission_cycle", "load_profile", "hard_reset"],
+    ["navigate_to", "load_profile", "hard_reset"],
 )
 def test_submission_cycle_clear_entry_points_match_public_helper(
     fixture_curriculum: Curriculum,
@@ -231,8 +231,8 @@ def test_submission_cycle_clear_entry_points_match_public_helper(
     else:
         state = _fresh_state(fixture_curriculum)
         _polluted_submission_cycle_state(state, fixture_curriculum)
-        if entry_point == "reset_submission_cycle":
-            submission_cycle.reset_submission_cycle(state, fixture_curriculum)
+        if entry_point == "navigate_to":
+            submission_cycle.navigate_to(state, curriculum=fixture_curriculum)
         else:
             session_state.hard_reset(state, fixture_curriculum)
 

@@ -25,7 +25,7 @@ def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
     return state
 
 
-def test_reset_submission_cycle_clears_problem_and_feedback(
+def test_clear_submission_cycle_fields_clears_problem_and_feedback(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
@@ -35,7 +35,7 @@ def test_reset_submission_cycle_clears_problem_and_feedback(
     state.feedback_msg = "oops"
     state.current_problem = {"problem_id": "p1"}
 
-    submission_cycle.reset_submission_cycle(state)
+    session_state.clear_submission_cycle_fields(state)
 
     assert state.streak == 0
     assert state.problem_answered is False
