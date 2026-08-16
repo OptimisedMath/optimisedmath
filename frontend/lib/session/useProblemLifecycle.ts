@@ -8,6 +8,7 @@ import {
   resetSession,
   submitAnswer,
 } from './api';
+import { reportError } from './errors';
 import type {
   NavigateIntent,
   Problem,
@@ -88,9 +89,7 @@ export function useProblemLifecycle({
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
       return true;
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch problem';
-      setError(errorMsg);
-      console.error('Error fetching problem:', err);
+      reportError(setError, err, 'Failed to fetch problem', 'Error fetching problem:');
       return false;
     } finally {
       isFetchingRef.current = false;
@@ -122,9 +121,7 @@ export function useProblemLifecycle({
       });
       applySubmissionResponse(response);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to submit answer';
-      setError(errorMsg);
-      console.error('Error submitting answer:', err);
+      reportError(setError, err, 'Failed to submit answer', 'Error submitting answer:');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,9 +146,7 @@ export function useProblemLifecycle({
       await fetchNextProblem(nextState.session_id);
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to navigate topic';
-      setError(errorMsg);
-      console.error('Error navigating topic:', err);
+      reportError(setError, err, 'Failed to navigate topic', 'Error navigating topic:');
     } finally {
       setIsNavigating(false);
     }
@@ -191,9 +186,7 @@ export function useProblemLifecycle({
       setSessionState(nextState);
       await fetchNextProblem(nextState.session_id);
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to reset progress';
-      setError(errorMsg);
-      console.error('Error resetting progress:', err);
+      reportError(setError, err, 'Failed to reset progress', 'Error resetting progress:');
     } finally {
       setIsNavigating(false);
     }
