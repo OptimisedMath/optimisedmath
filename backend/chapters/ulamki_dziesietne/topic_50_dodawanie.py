@@ -15,7 +15,9 @@ def dec_add_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} + {fmt_dec(v2)}"
     c_str = fmt_dec(v1 + v2)
 
-    t1 = fmt_dec((w1 + d2) + ((w2 + d1) / 10))  # Trap (t1): Źle podstawiłeś przecinek w pamięci
+    t1 = fmt_dec(
+        (w1 + d2) + ((w2 + d1) / 10)
+    )  # Trap (t1): Źle podstawiłeś przecinek w pamięci
     w1_ans = fmt_dec(v1 + v2 + 0.1)
     w2_ans = fmt_dec(v1 + v2 + 1)
 
@@ -33,10 +35,10 @@ def dec_add_1() -> dict | None:
 def dec_add_2() -> dict | None:
     """Z przekroczeniem rzędu (poziom 2)."""
     d = random.choice([1, 2])
-    
+
     int_a = random.randint(0, 20)
     int_b = random.randint(0, 20)
-    
+
     if d == 1:
         dec_a = random.randint(1, 9)
         dec_b = random.randint(10 - dec_a, 9)
@@ -49,21 +51,25 @@ def dec_add_2() -> dict | None:
         a = round(int_a + dec_a / 100, 2)
         b = round(int_b + dec_b / 100, 2)
         correct_answer = round(a + b, 2)
-    
+
     q_str = rf"\text{{Oblicz: }} {fmt_dec(a)} + {fmt_dec(b)}"
     c_str = fmt_dec(correct_answer)
-    
+
     # T1: Zgubione przeniesienie (Forgot carry)
-    t1 = fmt_dec(round(correct_answer - 1.0, d))  # Trap (t1): Zapomniałeś przenieść '1' do wyższego rzędu
-    
+    t1 = fmt_dec(
+        round(correct_answer - 1.0, d)
+    )  # Trap (t1): Zapomniałeś przenieść '1' do wyższego rzędu
+
     # T2: Dopisanie sumy (Concatenation of integer sum and decimal sum)
     int_sum = int_a + int_b
     dec_sum = dec_a + dec_b
-    t2 = f"{int_sum},{dec_sum}"   # Trap (t2): Zamiast przenieść '1', dopisałeś cały wynik po przecinku. Pamiętaj o p...
-    
+    t2 = f"{int_sum},{dec_sum}"  # Trap (t2): Zamiast przenieść '1', dopisałeś cały wynik po przecinku. Pamiętaj o p...
+
     # T3: Błędny przecinek (Multiplication rule confusion)
-    t3 = fmt_dec(round(correct_answer * (10 ** -d), d * 2))  # Trap (t3): Zastosowałeś zasadę z mnożenia
-    
+    t3 = fmt_dec(
+        round(correct_answer * (10**-d), d * 2)
+    )  # Trap (t3): Zastosowałeś zasadę z mnożenia
+
     result = build_problem_dict(
         q_str,
         c_str,
@@ -100,7 +106,9 @@ def dec_add_3() -> dict | None:
             w1_whole + w2_whole + (d1_tenth + d2_hundredth) / 100 + (d2_tenth) / 10, 2
         )
     )
-    t2 = fmt_dec(round((w1_whole + w2_whole) / 10 + (d1_tenth + d2_tenth) / 100, 2))  # Trap (t2): Przecinek jest ułożony źle
+    t2 = fmt_dec(
+        round((w1_whole + w2_whole) / 10 + (d1_tenth + d2_tenth) / 100, 2)
+    )  # Trap (t2): Przecinek jest ułożony źle
     t3 = fmt_dec(round(v1 + int(v2 * 10) / 10, 2))  # Trap (t3): Błąd sumowania
 
     result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)

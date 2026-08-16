@@ -65,7 +65,9 @@ def test_fixture_curriculum_has_required_shape(fixture_curriculum: Curriculum):
     assert unpublished.published is False
 
     assert fixture_curriculum.chapter_name(CHAPTER_ALPHA) == "Chapter Alpha"
-    assert fixture_curriculum.topic_name(CHAPTER_ALPHA, TOPIC_MULTI) == "Multi Level Topic"
+    assert (
+        fixture_curriculum.topic_name(CHAPTER_ALPHA, TOPIC_MULTI) == "Multi Level Topic"
+    )
     assert fixture_curriculum.keyboard_type(CHAPTER_ALPHA) == "fraction"
     assert fixture_curriculum.keyboard_type(999) == "default"
 

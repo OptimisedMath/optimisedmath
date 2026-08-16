@@ -1,5 +1,9 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec, generate_universal_number_line
+from backend.core.utils import (
+    build_problem_dict,
+    fmt_dec,
+    generate_universal_number_line,
+)
 
 
 def dec_number_line_1() -> dict | None:
@@ -47,7 +51,9 @@ def dec_number_line_2() -> dict | None:
 
     c_str = fmt_dec(round(c_val, 4))
     t1 = fmt_dec(round(base + target * (step / 10), 5))  # Trap: Wrong magnitude
-    t2 = fmt_dec(round(c_val + step, 4))  # Trap (t2): Pomyłka w wielkości skoku — to nie dziesiąte, tylko setne
+    t2 = fmt_dec(
+        round(c_val + step, 4)
+    )  # Trap (t2): Pomyłka w wielkości skoku — to nie dziesiąte, tylko setne
     w1_target = 10 - target if target != 5 else 6
     w1 = fmt_dec(round(base + w1_target * step, 4))
 
@@ -75,7 +81,9 @@ def dec_number_line_3() -> dict | None:
 
     c_str = fmt_dec(round(c_val, 1))
     t1 = fmt_dec(round(base + target * 0.1, 1))  # Trap: Assumed default 0.1 step
-    t2 = fmt_dec(round(c_val + step, 1))  # Trap (t2): Założyłeś skok 0,1 — najpierw oblicz szerokość przedziału i liczbę pod...
+    t2 = fmt_dec(
+        round(c_val + step, 1)
+    )  # Trap (t2): Założyłeś skok 0,1 — najpierw oblicz szerokość przedziału i liczbę pod...
     w1_target = ticks - target if ticks - target != target else target + 1
     w1 = fmt_dec(round(base + w1_target * step, 1))
 
@@ -106,7 +114,9 @@ def dec_number_line_4() -> dict | None:
 
     c_str = fmt_dec(round(c_val, 3))
     t1 = fmt_dec(round(base + target * 0.01, 3))  # Trap: Assumed default 0.01 step
-    t2 = fmt_dec(round(c_val + step, 3))  # Trap (t2): Błąd w liczeniu skoków — o jeden przedział za mało lub za dużo
+    t2 = fmt_dec(
+        round(c_val + step, 3)
+    )  # Trap (t2): Błąd w liczeniu skoków — o jeden przedział za mało lub za dużo
     w1_target = ticks - target if ticks - target != target else target + 1
     w1 = fmt_dec(round(base + w1_target * step, 3))
 
@@ -141,7 +151,9 @@ def dec_number_line_5() -> dict | None:
     t1 = fmt_dec(  # Trap (t1): Najpierw policz odstępy, później odejmij skrajne wartości, na końcu po...
         round(base + idx2 * step + (target - idx2) * step * 2, 3)
     )  # Miscalculated gap size
-    t2 = fmt_dec(round(c_val + step, 3))  # Trap (t2): Zła kolejność — najpierw policz liczbę przerw, potem szerokość przedzi...
+    t2 = fmt_dec(
+        round(c_val + step, 3)
+    )  # Trap (t2): Zła kolejność — najpierw policz liczbę przerw, potem szerokość przedzi...
     w1 = fmt_dec(
         round(base + target * step * 2, 3)
     )  # Added distance from 0 instead of idx1

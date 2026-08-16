@@ -35,7 +35,9 @@ def dec_mult_2() -> dict | None:
 
     t1 = fmt_dec(round(v1 * v2 * 10, 2))  # Trap (t1): Pomyłka z przecinkiem
     t2 = fmt_dec(round(v1 * 10 * v2 * 10, 2))  # Trap (t2): Błąd w obliczeniach
-    t3 = fmt_dec(round(v1 * v2 / 10, 3))  # Trap (t3): Za mało miejsc po przecinku w wyniku
+    t3 = fmt_dec(
+        round(v1 * v2 / 10, 3)
+    )  # Trap (t3): Za mało miejsc po przecinku w wyniku
 
     result = build_problem_dict(
         q_str,
@@ -58,7 +60,9 @@ def dec_mult_3() -> dict | None:
     c_str = fmt_dec(val)
 
     t1 = fmt_dec(round(val * 10, 2))  # Trap (t1): Brak przecinka lub w złym miejscu
-    t2 = fmt_dec(round(val / 10, 2))  # Trap (t2): Zgubiłeś zera po przecinku przed samą liczbą
+    t2 = fmt_dec(
+        round(val / 10, 2)
+    )  # Trap (t2): Zgubiłeś zera po przecinku przed samą liczbą
     w1 = fmt_dec(round((v1 * 10 * v2 * 10) + 1, 2))
 
     result = build_problem_dict(

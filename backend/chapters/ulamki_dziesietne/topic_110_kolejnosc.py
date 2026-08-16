@@ -40,14 +40,16 @@ def dec_order_1() -> dict | None:
         problem = build_problem_dict(
             q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)
         )
-        
+
         # If the dictionary built successfully (no collisions), return it.
         # Otherwise, the loop restarts and rolls new numbers.
         if problem is not None:
             return problem
-            
+
     # Fallback in case of absolute mathematical gridlock
-    raise RuntimeError("dec_order_1 failed to generate a valid problem without collisions after 20 attempts.")
+    raise RuntimeError(
+        "dec_order_1 failed to generate a valid problem without collisions after 20 attempts."
+    )
 
 
 def dec_order_2() -> dict | None:
@@ -70,7 +72,7 @@ def dec_order_2() -> dict | None:
             t1, t2, t3 = (a * b) - c, a * (b + c), a + (b - c)
         elif template == "brack_div":
             c = round(random.randint(2, 5) * 0.1, 1)
-            ans_div = random.randint(2, 6) 
+            ans_div = random.randint(2, 6)
             ab_sum = round(ans_div * c, 1)
             upper_bound = max(1, int(round(ab_sum * 10)) - 1)
             a = round(random.randint(1, upper_bound) * 0.1, 1)
@@ -91,11 +93,13 @@ def dec_order_2() -> dict | None:
         problem = build_problem_dict(
             q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)
         )
-        
+
         if problem is not None:
             return problem
-            
-    raise RuntimeError("dec_order_2 failed to generate a valid problem without collisions after 20 attempts.")
+
+    raise RuntimeError(
+        "dec_order_2 failed to generate a valid problem without collisions after 20 attempts."
+    )
 
 
 def dec_order_3() -> dict | None:
@@ -192,7 +196,9 @@ def dec_order_6() -> dict | None:
     ans = a * ((b + c) ** 2) - d
     t1 = (a * (b + c)) ** 2 - d  # Trap (t1): Zrobiłeś mnożenie przed potęgą nawiasu
     t2 = a * ((b + c) * 2) - d  # Trap (t2): Pomnożyłeś nawias przez 2 zamiast potęgować
-    t3 = a * (b**2 + c**2) - d  # Trap (t3): Podniosłeś do kwadratu liczby z nawiasu osobno
+    t3 = (
+        a * (b**2 + c**2) - d
+    )  # Trap (t3): Podniosłeś do kwadratu liczby z nawiasu osobno
 
     result = build_problem_dict(
         q, fmt_dec(ans), t1=fmt_dec(t1), t2=fmt_dec(t2), t3=fmt_dec(t3)

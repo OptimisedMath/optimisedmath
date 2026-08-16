@@ -1,6 +1,10 @@
 import random
 import math
-from backend.core.utils import format_fraction_answer, format_fraction_question, build_problem_dict
+from backend.core.utils import (
+    format_fraction_answer,
+    format_fraction_question,
+    build_problem_dict,
+)
 
 
 def frac_exp_1() -> dict | None:

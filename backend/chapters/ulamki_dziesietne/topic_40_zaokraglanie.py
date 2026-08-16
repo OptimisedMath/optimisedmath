@@ -10,7 +10,9 @@ def dec_round_1() -> dict | None:
     q_str = rf"\text{{Zaokrąglij do całości: }} {fmt_dec(v)}"
     c_str = str(round(v))
 
-    t1 = str(int(v)) if round(v) > v else str(int(v) + 1)  # Trap (t1): Zapomniałeś o regule '5 i więcej'
+    t1 = (
+        str(int(v)) if round(v) > v else str(int(v) + 1)
+    )  # Trap (t1): Zapomniałeś o regule '5 i więcej'
     t2 = fmt_dec(v)  # Trap (t2): Pomyłka
     w1 = str(int(v) + 2) if round(v) > v else str(max(0, int(v) - 1))
 
@@ -35,7 +37,9 @@ def dec_round_2() -> dict | None:
     rounded = round(v, 1)
     c_str = fmt_dec(rounded)
 
-    t1 = fmt_dec(int(v * 10) / 10) if rounded > v else fmt_dec((int(v * 10) + 1) / 10)  # Trap (t1): Masz zaokrąglić do części dziesiątych (jedno miejsce po przecinku)
+    t1 = (
+        fmt_dec(int(v * 10) / 10) if rounded > v else fmt_dec((int(v * 10) + 1) / 10)
+    )  # Trap (t1): Masz zaokrąglić do części dziesiątych (jedno miejsce po przecinku)
     t2 = str(round(v))  # Trap (t2): Skreśliłeś źle
     w1 = fmt_dec(round(v + 0.1, 1))
 

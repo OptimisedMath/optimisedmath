@@ -71,7 +71,12 @@ def test_begin_problem_resets_submission_state_and_sets_problem(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
-    problem = {"problem_id": "p1", "question": "2+2", "correct": "4", "options": ["4", "5"]}
+    problem = {
+        "problem_id": "p1",
+        "question": "2+2",
+        "correct": "4",
+        "options": ["4", "5"],
+    }
 
     state.problem_answered = True
     state.feedback_type = "error"
@@ -92,13 +97,18 @@ def test_begin_problem_trims_recent_fingerprints(fixture_curriculum: Curriculum)
     state = _fresh_state(fixture_curriculum)
     problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
 
-    fingerprints = [f"fp-{index}" for index in range(config.MAX_RETRIES_DUPLICATE_CHECK + 3)]
+    fingerprints = [
+        f"fp-{index}" for index in range(config.MAX_RETRIES_DUPLICATE_CHECK + 3)
+    ]
     submission_cycle.begin_problem(
         state, problem, fixture_curriculum, recent_fingerprints=fingerprints
     )
 
     assert len(state.recent_problem_fingerprints) == config.MAX_RETRIES_DUPLICATE_CHECK
-    assert state.recent_problem_fingerprints == fingerprints[-config.MAX_RETRIES_DUPLICATE_CHECK :]
+    assert (
+        state.recent_problem_fingerprints
+        == fingerprints[-config.MAX_RETRIES_DUPLICATE_CHECK :]
+    )
 
 
 def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curriculum):

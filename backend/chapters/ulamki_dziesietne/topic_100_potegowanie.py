@@ -9,7 +9,9 @@ def dec_pow_1() -> dict | None:
 
     c_str = fmt_dec(round(v**2, 2))
 
-    t1 = fmt_dec(round(v * 2, 1))  # Trap (t1): Mnożysz to przez 2, a to jest kwadrat (do potęgi drugiej)
+    t1 = fmt_dec(
+        round(v * 2, 1)
+    )  # Trap (t1): Mnożysz to przez 2, a to jest kwadrat (do potęgi drugiej)
 
     t2 = fmt_dec(round(v * 10) ** 2)  # Trap (t2): Błąd w stawianiu przecinka
     t3 = fmt_dec(round(v**2 + 0.01, 2))  # Trap (t3): Zapomniałeś zera z przodu

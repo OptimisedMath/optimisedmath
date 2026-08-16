@@ -30,9 +30,9 @@ def test_universal_math_structure(func_name, math_func):
         assert isinstance(problem, dict), f"'{func_name}' did not return a dictionary!"
         assert "question" in problem, f"'{func_name}' is missing a question!"
         assert "correct" in problem, f"'{func_name}' is missing a correct answer!"
-        assert len(problem["options"]) == len(set(problem["options"])), (
-            f"'{func_name}' generated duplicate answer options."
-        )
+        assert len(problem["options"]) == len(
+            set(problem["options"])
+        ), f"'{func_name}' generated duplicate answer options."
 
         successful_runs += 1
 

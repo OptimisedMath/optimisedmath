@@ -132,7 +132,11 @@ def build_fixture_curriculum() -> Curriculum:
             for bundle in bundles
         ],
         bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundles},
-        chapter_id_by_name={bundle.chapter_name: bundle.chapter_id for bundle in bundles},
-        chapter_name_by_id={bundle.chapter_id: bundle.chapter_name for bundle in bundles},
+        chapter_id_by_name={
+            bundle.chapter_name: bundle.chapter_id for bundle in bundles
+        },
+        chapter_name_by_id={
+            bundle.chapter_id: bundle.chapter_name for bundle in bundles
+        },
     )
     return Curriculum(_store=store)

@@ -12,7 +12,9 @@ def frac_comp_1() -> dict | None:
 
     q_str = rf"\text{{Wybierz znak: }} {format_fraction_question(n1, d)} \text{{ \_\_\_ }} {format_fraction_question(n2, d)}"
 
-    c_str, t1 = ("<", ">") if n1 < n2 else (">", "<")  # Trap (t1): zły znak przy tym samym mianowniku
+    c_str, t1 = (
+        ("<", ">") if n1 < n2 else (">", "<")
+    )  # Trap (t1): zły znak przy tym samym mianowniku
 
     result = build_problem_dict(
         q_str,
@@ -35,7 +37,9 @@ def frac_comp_2() -> dict | None:
 
     v1, v2 = n / d1, n / d2
 
-    c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")  # Trap (t1): zły znak przy tym samym liczniku
+    c_str, t1 = (
+        ("<", ">") if v1 < v2 else (">", "<")
+    )  # Trap (t1): zły znak przy tym samym liczniku
 
     result = build_problem_dict(
         q_str,

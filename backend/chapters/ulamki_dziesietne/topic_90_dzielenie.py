@@ -12,7 +12,9 @@ def dec_div_1() -> dict | None:
     c_str = fmt_dec(round(v1 / d, 2))
 
     t1 = fmt_dec(round((v1 * 10) / d, 2))  # Trap (t1): Zgubiłeś przecinek
-    t2 = fmt_dec(round(v1 / (d * 10), 3))  # Trap (t2): Błędnie przesunąłeś przecinek w wyniku — policz miejsca po przecinku w...
+    t2 = fmt_dec(
+        round(v1 / (d * 10), 3)
+    )  # Trap (t2): Błędnie przesunąłeś przecinek w wyniku — policz miejsca po przecinku w...
     w1 = fmt_dec(round((v1 / d) + 0.1, 2))
 
     result = build_problem_dict(
@@ -37,7 +39,9 @@ def dec_div_2() -> dict | None:
     c_str = fmt_dec(round(v1 / v2, 2))
 
     t1 = fmt_dec(round(v1 / (v2 * 10), 3))  # Trap (t1): Wynik wyszedł z resztą
-    t2 = fmt_dec(round((v1 / v2) * 10, 2))  # Trap (t2): Brakuje zera w wyniku przed cyframi
+    t2 = fmt_dec(
+        round((v1 / v2) * 10, 2)
+    )  # Trap (t2): Brakuje zera w wyniku przed cyframi
     # FIX: Simulate student improperly summing the decimal places (3 total places instead of 1)
     t3 = fmt_dec(round((v1 / v2) / 100, 3))  # Trap (t3): Przecinek w złym miejscu
 
@@ -63,7 +67,9 @@ def dec_div_3() -> dict | None:
     c_str = fmt_dec(round(v1 / v2, 2))
 
     t1 = fmt_dec(round((v1 / 10) / v2, 2))  # Trap (t1): Nie wolno dzielić przez ułamek
-    t2 = fmt_dec(round((v1 / 100) / v2, 3))  # Trap (t2): Błąd mnożenia licznika i dzielnika po przesunięciu przecinka
+    t2 = fmt_dec(
+        round((v1 / 100) / v2, 3)
+    )  # Trap (t2): Błąd mnożenia licznika i dzielnika po przesunięciu przecinka
     w1 = fmt_dec(round((v1 / v2) + 1, 2))
 
     result = build_problem_dict(
@@ -89,7 +95,9 @@ def dec_div_4() -> dict | None:
     c_str = fmt_dec(round(v1 / d, 3))
 
     t1 = fmt_dec(round((v1 * 10) / d, 3))  # Forgot the decimal shift
-    t2 = fmt_dec(round(v1 / (d * 10), 4))  # Trap (t2): Nie masz już gdzie przesunąć? Zamiast kroku dodawaj na końcu zera (np
+    t2 = fmt_dec(
+        round(v1 / (d * 10), 4)
+    )  # Trap (t2): Nie masz już gdzie przesunąć? Zamiast kroku dodawaj na końcu zera (np
     w1 = fmt_dec(round((v1 / d) + 0.1, 3))
 
     result = build_problem_dict(

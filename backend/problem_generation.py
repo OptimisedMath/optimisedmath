@@ -57,9 +57,7 @@ def _load_generator_registry(chapters_dir: Path) -> dict[str, GeneratorFunc]:
     sources: dict[str, str] = {}
 
     for file_path in chapters_dir.rglob("topic_*.py"):
-        module_path = ".".join(
-            file_path.relative_to(BASE_DIR).with_suffix("").parts
-        )
+        module_path = ".".join(file_path.relative_to(BASE_DIR).with_suffix("").parts)
         module = importlib.import_module(module_path)
 
         for name, value in module.__dict__.items():

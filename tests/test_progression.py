@@ -73,7 +73,9 @@ def test_streak_meter_exception_requires_all_three_conditions(
 
 
 def test_correct_increments_streak_without_unlock():
-    outcome = apply_submission({"is_correct": True, "lock_answer": True}, _ctx(streak=1))
+    outcome = apply_submission(
+        {"is_correct": True, "lock_answer": True}, _ctx(streak=1)
+    )
 
     assert outcome.new_streak == 2
     assert outcome.xp_earned == config.XP_REWARDS[1]

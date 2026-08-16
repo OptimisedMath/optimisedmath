@@ -119,7 +119,7 @@ class SessionState(BaseModel):
                     },
                 },
             }
-        }
+        },
     )
 
     def to_storage(self) -> str:

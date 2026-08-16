@@ -17,7 +17,9 @@ def dec_sub_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
 
-    t1 = fmt_dec(round(int(v1) - int(v2) + abs(d1 - d2) / 10, 2))  # Trap (t1): Przecinek uciekł w złe miejsce
+    t1 = fmt_dec(
+        round(int(v1) - int(v2) + abs(d1 - d2) / 10, 2)
+    )  # Trap (t1): Przecinek uciekł w złe miejsce
     w1 = fmt_dec(round(v1 - v2 + 0.1, 2))
     w2 = fmt_dec(round(v1 - v2 - 0.1, 2))
 
@@ -40,7 +42,9 @@ def dec_sub_2() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
 
-    t1 = fmt_dec(round(v1 - (v2 / 10), 2))  # Trap (t1): Zapomniałeś o pożyczaniu z sąsiedniego rzędu
+    t1 = fmt_dec(
+        round(v1 - (v2 / 10), 2)
+    )  # Trap (t1): Zapomniałeś o pożyczaniu z sąsiedniego rzędu
     t2 = fmt_dec(round(v1 - v2 + 0.09, 2))  # Trap (t2): Błędnie przepisałeś przecinek
     w1 = fmt_dec(round(v1 - v2 + 1, 2))
 
@@ -65,8 +69,12 @@ def dec_sub_3() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
 
-    t1 = fmt_dec(round(v1 - round(v2, 1) + (int(str(v2)[-1]) / 100), 2))  # Trap (t1): Nie masz od czego odjąć liczby
-    t2 = fmt_dec(round(v1 - v2 - 0.4, 2))  # Trap (t2): Błąd w rzędzie dziesiątek - gdy pożyczasz nad zerem, to zero staje się...
+    t1 = fmt_dec(
+        round(v1 - round(v2, 1) + (int(str(v2)[-1]) / 100), 2)
+    )  # Trap (t1): Nie masz od czego odjąć liczby
+    t2 = fmt_dec(
+        round(v1 - v2 - 0.4, 2)
+    )  # Trap (t2): Błąd w rzędzie dziesiątek - gdy pożyczasz nad zerem, to zero staje się...
     t3 = fmt_dec(round(v1 - v2 + 0.1, 2))  # Trap (t3): Błąd pożyczania
 
     result = build_problem_dict(

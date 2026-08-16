@@ -544,7 +544,10 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     assert call_count["value"] == 2
     assert response.problem["question"] == "different question"
     assert duplicate_fingerprint in state.recent_problem_fingerprints
-    assert problem_generation.problem_fingerprint(unique_problem) in state.recent_problem_fingerprints
+    assert (
+        problem_generation.problem_fingerprint(unique_problem)
+        in state.recent_problem_fingerprints
+    )
 
 
 def _make_topic_completed_state(
@@ -688,13 +691,13 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         result["messages"] = {"t1": branch_message}
         return result
 
-    monkeypatch.setitem(problem_generation.FUNCTION_REGISTRY, "dec_compare_1", fake_compare)
+    monkeypatch.setitem(
+        problem_generation.FUNCTION_REGISTRY, "dec_compare_1", fake_compare
+    )
 
     from backend.curriculum import resolve_curriculum
 
-    problem = problem_generation.generate_level_problem(
-        resolve_curriculum(), 20, 20, 1
-    )
+    problem = problem_generation.generate_level_problem(resolve_curriculum(), 20, 20, 1)
     assert problem is not None
     assert problem["messages"]["t1"] == branch_message
     assert (
@@ -705,4 +708,3 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     eval_result = grade(">", problem, is_input_mode=False)
     assert eval_result.get("trap_id") == "t1"
     assert eval_result.get("feedback_msg") == branch_message
-

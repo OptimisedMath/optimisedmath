@@ -1,5 +1,9 @@
 import random
-from backend.core.utils import format_answers, format_fraction_question, build_problem_dict
+from backend.core.utils import (
+    format_answers,
+    format_fraction_question,
+    build_problem_dict,
+)
 
 
 def frac_frac_of_int_1() -> dict | None:

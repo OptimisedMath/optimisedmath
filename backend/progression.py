@@ -50,7 +50,9 @@ def streak_meter_for(state: SessionState) -> int:
     return state.streak
 
 
-def apply_submission(eval_result: EvalResult, ctx: SubmissionContext) -> SubmissionOutcome:
+def apply_submission(
+    eval_result: EvalResult, ctx: SubmissionContext
+) -> SubmissionOutcome:
     """Apply progression rules given a grading result and session context."""
     is_correct = eval_result.get("is_correct", False)
     feedback_type = eval_result.get("feedback_type")

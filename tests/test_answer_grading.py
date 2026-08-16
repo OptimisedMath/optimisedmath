@@ -62,9 +62,7 @@ class TestMultipleChoiceGrading:
         assert result["lock_answer"] is True
 
     def test_trap_answer(self):
-        result = grade(
-            r"\frac{2}{4}", _sample_problem(), is_input_mode=False
-        )
+        result = grade(r"\frac{2}{4}", _sample_problem(), is_input_mode=False)
         assert "is_correct" not in result
         assert result["trap_id"] == "t1"
         assert result["feedback_msg"] == "Trap one"
@@ -153,7 +151,9 @@ class TestFormatMismatch:
             ("0,5", r"\frac{1}{2}", "ułamka zwykłego"),
         ],
     )
-    def test_format_mismatch_messages(self, user_text, correct_latex, expected_substring):
+    def test_format_mismatch_messages(
+        self, user_text, correct_latex, expected_substring
+    ):
         problem = _sample_problem(
             correct=correct_latex,
             grading_policy="equivalent_accepted",
@@ -173,9 +173,7 @@ class TestFormatMismatch:
 
 
 class TestGenerateLevelProblem:
-    def test_generates_problem_from_fixture(
-        self, fixture_curriculum, monkeypatch
-    ):
+    def test_generates_problem_from_fixture(self, fixture_curriculum, monkeypatch):
         import backend.problem_generation as problem_generation
         from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
 
@@ -212,6 +210,4 @@ class TestGenerateLevelProblem:
         from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
 
         with pytest.raises(ProblemGenerationError, match="Level 999"):
-            generate_level_problem(
-                fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 999
-            )
+            generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 999)

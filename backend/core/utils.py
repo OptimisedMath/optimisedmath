@@ -50,7 +50,9 @@ def format_fraction_question(n: int, d: int, w: int | None = None) -> str:
     return rf"\frac{{{n}}}{{{d}}}"
 
 
-def format_fraction_answer(num: int, den: int, whole: int = 0, *, simplify: bool = True) -> str:
+def format_fraction_answer(
+    num: int, den: int, whole: int = 0, *, simplify: bool = True
+) -> str:
     if simplify:
         c_str, _ = format_answers(num, den, whole)
         return c_str
@@ -135,7 +137,7 @@ def generate_universal_number_line(
     svg += (
         f'<defs><filter id="{filter_id}">'
         f'<feGaussianBlur stdDeviation="10" result="coloredBlur"/>'
-        f"<feMerge><feMergeNode in=\"coloredBlur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge>"
+        f'<feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>'
         f"</filter></defs>"
     )
     svg += (

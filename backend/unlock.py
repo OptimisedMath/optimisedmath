@@ -67,10 +67,7 @@ def can_access(
     """Return whether a chapter/topic/level target is within the Frontier."""
     if topic_id > frontier.frontier_topic_id:
         return False
-    if (
-        topic_id == frontier.frontier_topic_id
-        and level > frontier.frontier_level
-    ):
+    if topic_id == frontier.frontier_topic_id and level > frontier.frontier_level:
         return False
     return True
 

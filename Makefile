@@ -35,5 +35,5 @@ test:
 	npm test --prefix frontend
 
 lint:
-	uv run black --check .
+	uv run black --check backend tests
 	npm run lint --prefix frontend

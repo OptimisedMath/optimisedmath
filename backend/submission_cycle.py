@@ -104,7 +104,10 @@ def navigate_to(
         state.selected_level = level
     reset_submission_cycle(state, curriculum)
     session_state.sync_to_db(
-        state, session_state.build_db_write_plan(state, play_mode or resolve_play_mode(state.username))
+        state,
+        session_state.build_db_write_plan(
+            state, play_mode or resolve_play_mode(state.username)
+        ),
     )
 
 
@@ -129,7 +132,10 @@ def begin_problem(
     state.problem_start_time = time.time()
     state.current_problem = problem
     session_state.sync_to_db(
-        state, session_state.build_db_write_plan(state, play_mode or resolve_play_mode(state.username))
+        state,
+        session_state.build_db_write_plan(
+            state, play_mode or resolve_play_mode(state.username)
+        ),
     )
 
 

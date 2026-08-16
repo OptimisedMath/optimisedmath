@@ -181,9 +181,7 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
         request.selected_chapter_id is not None
         and request.selected_chapter_id != state.selected_chapter_id
     ):
-        snapshot = navigation.build_navigation_snapshot(
-            state, curriculum, play_mode
-        )
+        snapshot = navigation.build_navigation_snapshot(state, curriculum, play_mode)
         override_request = SessionNavigateRequest(
             session_id=state.session_id,
             selected_chapter_id=request.selected_chapter_id,
@@ -201,9 +199,7 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
         )
 
     ACTIVE_SESSIONS[state.session_id] = state
-    session_state.sync_to_db(
-        state, session_state.build_db_write_plan(state, play_mode)
-    )
+    session_state.sync_to_db(state, session_state.build_db_write_plan(state, play_mode))
     state.problem_start_time = time.time()
 
     return respond(state, curriculum, play_mode)
@@ -214,9 +210,7 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    snapshot = navigation.build_navigation_snapshot(
-        state, curriculum, play_mode
-    )
+    snapshot = navigation.build_navigation_snapshot(state, curriculum, play_mode)
 
     chapter_id, topic_id, selected_level = _resolve_navigation_target_or_raise(
         state, request, snapshot
@@ -255,9 +249,7 @@ def next_problem(session_id: str) -> ProblemResponse:
         raise SessionError("Session has no chapter/topic selected")
 
     if not curriculum.has_chapter(chapter_id):
-        raise SessionError(
-            f"Chapter id {chapter_id} not found in curriculum"
-        )
+        raise SessionError(f"Chapter id {chapter_id} not found in curriculum")
 
     try:
         problem = submission_cycle.resolve_next_problem(
@@ -328,9 +320,7 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     state = get_session(request.session_id)
     is_input_mode = state.current_input_mode == "input"
     user_input = (
-        clean_mobile_input(request.user_input)
-        if is_input_mode
-        else request.user_input
+        clean_mobile_input(request.user_input) if is_input_mode else request.user_input
     )
     return _submit_active_problem(
         request.session_id,

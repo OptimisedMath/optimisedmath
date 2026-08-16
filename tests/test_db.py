@@ -9,7 +9,9 @@ import pytest
 from backend.core import db
 from backend.models import ChapterFrontier, SessionState
 
-RESPONSE_ONLY_FIELDS = frozenset({"can_submit", "can_next_problem", "admin_mode", "navigation"})
+RESPONSE_ONLY_FIELDS = frozenset(
+    {"can_submit", "can_next_problem", "admin_mode", "navigation"}
+)
 
 
 def _sample_state(**overrides) -> SessionState:

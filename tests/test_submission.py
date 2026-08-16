@@ -71,7 +71,9 @@ class ExpectedTelemetry:
     trap_id: str | None = None
 
 
-def _fresh_state(fixture_curriculum: Curriculum, *, username: str = "submission-user") -> SessionState:
+def _fresh_state(
+    fixture_curriculum: Curriculum, *, username: str = "submission-user"
+) -> SessionState:
     state = SessionState()
     session_state.init_defaults(state, fixture_curriculum)
     state.username = username
@@ -213,9 +215,7 @@ def _submit(
 ) -> dict[str, Any]:
     state.current_problem = problem
     state.problem_start_time = 0
-    session_state.sync_to_db(
-        state, session_state.build_db_write_plan(state, play_mode)
-    )
+    session_state.sync_to_db(state, session_state.build_db_write_plan(state, play_mode))
     return submission.process_submission(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
@@ -327,7 +327,9 @@ def test_resolve_feedback_prefers_progression_override():
 # --- Correct answer ---
 
 
-def test_correct_answer_updates_session_and_logs_telemetry(fixture_curriculum: Curriculum):
+def test_correct_answer_updates_session_and_logs_telemetry(
+    fixture_curriculum: Curriculum,
+):
     state = _student_state_at(fixture_curriculum, streak=0, xp=10)
     problem = _correct_problem()
     telemetry_before = _telemetry_count(state.session_id)
@@ -461,7 +463,9 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
 # --- Trap ---
 
 
-def test_trap_answer_sets_warning_feedback_and_logs_trap_id(fixture_curriculum: Curriculum):
+def test_trap_answer_sets_warning_feedback_and_logs_trap_id(
+    fixture_curriculum: Curriculum,
+):
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
     problem = _trap_problem()
     telemetry_before = _telemetry_count(state.session_id)
@@ -797,7 +801,9 @@ def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
 
 
-def test_admin_resets_streak_at_stored_frontier_boundary(fixture_curriculum: Curriculum):
+def test_admin_resets_streak_at_stored_frontier_boundary(
+    fixture_curriculum: Curriculum,
+):
     state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,

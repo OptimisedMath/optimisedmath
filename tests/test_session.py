@@ -188,7 +188,9 @@ def test_session_response_from_state_copies_shared_fields():
     assert response.feedback_type == "success"
     assert response.feedback_msg == "Nice!"
     assert response.level_completed is True
-    assert response.chapter_frontiers == {10: ChapterFrontier(frontier_topic_id=30, frontier_level=2)}
+    assert response.chapter_frontiers == {
+        10: ChapterFrontier(frontier_topic_id=30, frontier_level=2)
+    }
     assert response.chapter_frontiers is not state.chapter_frontiers
     assert response.current_problem == derived_problem
     assert response.can_submit is False
@@ -200,7 +202,9 @@ def test_session_response_from_state_copies_shared_fields():
     assert "recent_problem_fingerprints" not in SessionResponse.model_fields
 
 
-def test_respond_builds_unanswered_problem_payload_without_mutating_state(fixture_curriculum: Curriculum):
+def test_respond_builds_unanswered_problem_payload_without_mutating_state(
+    fixture_curriculum: Curriculum,
+):
     state = _fresh_state(fixture_curriculum)
     state.current_problem = {
         "problem_id": "p1",
@@ -284,7 +288,9 @@ def test_respond_uses_passed_play_mode_for_admin_reveal(fixture_curriculum: Curr
     assert response.current_problem["correct_answer"] == "42"
 
 
-def test_legacy_stored_response_fields_load_and_serve_correct_payload(fixture_curriculum: Curriculum):
+def test_legacy_stored_response_fields_load_and_serve_correct_payload(
+    fixture_curriculum: Curriculum,
+):
     """Old session rows with response-only fields still load and respond correctly."""
     state = _fresh_state(fixture_curriculum)
     state.current_problem = {
@@ -335,7 +341,7 @@ def test_public_problem_strips_unsafe_svg(fixture_curriculum: Curriculum):
         "question": "q",
         "correct": "1",
         "options": ["1"],
-        "image_html": '<svg><script>alert(1)</script></svg>',
+        "image_html": "<svg><script>alert(1)</script></svg>",
     }
 
     public = session.public_problem(problem, state, resolve_play_mode(state.username))
@@ -345,7 +351,9 @@ def test_public_problem_strips_unsafe_svg(fixture_curriculum: Curriculum):
     assert "input_mode" not in public
 
 
-def test_public_problem_includes_correct_answer_when_answered(fixture_curriculum: Curriculum):
+def test_public_problem_includes_correct_answer_when_answered(
+    fixture_curriculum: Curriculum,
+):
     state = _fresh_state(fixture_curriculum)
     state.problem_answered = True
     problem = {"problem_id": "p1", "question": "q", "correct": "42", "options": ["42"]}
@@ -355,18 +363,27 @@ def test_public_problem_includes_correct_answer_when_answered(fixture_curriculum
     assert public["correct_answer"] == "42"
 
 
-def test_public_problem_includes_correct_answer_for_admin_before_answered(fixture_curriculum: Curriculum):
+def test_public_problem_includes_correct_answer_for_admin_before_answered(
+    fixture_curriculum: Curriculum,
+):
     state = _fresh_state(fixture_curriculum)
     state.username = next(iter(config.ADMIN_USERNAMES))
     state.current_input_mode = "radio"
-    problem = {"problem_id": "p1", "question": "q", "correct": "42", "options": ["41", "42"]}
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "42",
+        "options": ["41", "42"],
+    }
 
     public = session.public_problem(problem, state, resolve_play_mode(state.username))
 
     assert public["correct_answer"] == "42"
 
 
-def test_public_problem_hides_correct_answer_for_non_admin_before_answered(fixture_curriculum: Curriculum):
+def test_public_problem_hides_correct_answer_for_non_admin_before_answered(
+    fixture_curriculum: Curriculum,
+):
     state = _fresh_state(fixture_curriculum)
     state.problem_answered = False
     problem = {"problem_id": "p1", "question": "q", "correct": "42", "options": ["42"]}
@@ -376,7 +393,9 @@ def test_public_problem_hides_correct_answer_for_non_admin_before_answered(fixtu
     assert "correct_answer" not in public
 
 
-def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode(fixture_curriculum: Curriculum):
+def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode(
+    fixture_curriculum: Curriculum,
+):
     state = _fresh_state(fixture_curriculum)
     state.username = next(iter(config.ADMIN_USERNAMES))
     state.current_input_mode = "input"
@@ -418,7 +437,9 @@ def _begin_identical_problem(
     session.ACTIVE_SESSIONS[state.session_id] = state
 
 
-def test_manual_submit_and_auto_solve_produce_identical_state_deltas(fixture_curriculum: Curriculum):
+def test_manual_submit_and_auto_solve_produce_identical_state_deltas(
+    fixture_curriculum: Curriculum,
+):
     problem = {
         "problem_id": "p-parity",
         "question": "q",
@@ -453,7 +474,9 @@ def test_manual_submit_and_auto_solve_produce_identical_state_deltas(fixture_cur
     assert manual_response.feedback == auto_response.feedback
 
 
-def test_manual_submit_and_auto_solve_match_in_input_mode(fixture_curriculum: Curriculum):
+def test_manual_submit_and_auto_solve_match_in_input_mode(
+    fixture_curriculum: Curriculum,
+):
     problem = {
         "problem_id": "p-parity-input",
         "question": "q",
@@ -486,9 +509,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(fixture_curriculum: Cu
     session.ACTIVE_SESSIONS[auto_state.session_id] = auto_state
 
     auto_response = session.auto_solve_problem(
-        AutoSolveRequest(
-            session_id=auto_state.session_id, problem_id="p-parity-input"
-        )
+        AutoSolveRequest(session_id=auto_state.session_id, problem_id="p-parity-input")
     )
 
     assert _submission_snapshot(manual_state) == _submission_snapshot(auto_state)
@@ -606,8 +627,9 @@ def test_start_session_with_fixture_curriculum_lists_fixture_chapters(
 
     chapter_ids = [c.chapter_id for c in response.navigation.available_chapters]
     assert chapter_ids == [CHAPTER_ALPHA, CHAPTER_BETA]
-    assert all(c.name != "Ułamki Zwykłe" for c in response.navigation.available_chapters)
-
+    assert all(
+        c.name != "Ułamki Zwykłe" for c in response.navigation.available_chapters
+    )
 
 
 def test_start_next_submit_cycle_with_fixture_curriculum(

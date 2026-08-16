@@ -28,9 +28,7 @@ def test_generate_level_problem_uses_fixture_curriculum_and_fake_generator(
         problem_generation.FUNCTION_REGISTRY, "fixture_multi_1", _fake_multi_1
     )
 
-    problem = generate_level_problem(
-        fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 1
-    )
+    problem = generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 1)
 
     assert problem["question"] == r"\text{fixture q}"
     assert problem["correct"] == "1"
@@ -52,9 +50,7 @@ def test_unpublished_level_raises_same_error(fixture_curriculum):
         generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 3)
 
 
-def test_always_failing_generator_surfaces_same_error(
-    fixture_curriculum, monkeypatch
-):
+def test_always_failing_generator_surfaces_same_error(fixture_curriculum, monkeypatch):
     """A generator that never returns a problem keeps the prior error message."""
 
     def always_fail():
@@ -67,9 +63,6 @@ def test_always_failing_generator_surfaces_same_error(
 
     with pytest.raises(
         ProblemGenerationError,
-        match=(
-            "Failed to generate valid problem for always_fail "
-            "after 3 attempts"
-        ),
+        match=("Failed to generate valid problem for always_fail " "after 3 attempts"),
     ):
         generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 1)

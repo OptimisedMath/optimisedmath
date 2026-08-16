@@ -1,6 +1,11 @@
 import random
 import math
-from backend.core.utils import format_answers, format_fraction_answer, format_fraction_question, build_problem_dict
+from backend.core.utils import (
+    format_answers,
+    format_fraction_answer,
+    format_fraction_question,
+    build_problem_dict,
+)
 
 
 def frac_mult_1() -> dict | None:

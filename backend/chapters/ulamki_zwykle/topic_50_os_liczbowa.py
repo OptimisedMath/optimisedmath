@@ -1,5 +1,9 @@
 import random
-from backend.core.utils import build_problem_dict, generate_universal_number_line, format_answers
+from backend.core.utils import (
+    build_problem_dict,
+    generate_universal_number_line,
+    format_answers,
+)
 
 
 def frac_number_line_1() -> dict | None:

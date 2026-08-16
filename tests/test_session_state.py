@@ -77,7 +77,9 @@ def test_resolve_input_mode_stays_radio_for_radio_only_topics(
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
 
 
-@pytest.mark.parametrize("streak", [0, 1, config.STREAK_THRESHOLD_FOR_INPUT_MODE, config.MAX_STREAK])
+@pytest.mark.parametrize(
+    "streak", [0, 1, config.STREAK_THRESHOLD_FOR_INPUT_MODE, config.MAX_STREAK]
+)
 def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
     fixture_curriculum: Curriculum, streak
 ):
@@ -299,4 +301,3 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
     )
-

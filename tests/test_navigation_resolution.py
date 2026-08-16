@@ -36,9 +36,7 @@ def _fresh_state(
     return state
 
 
-def _snapshot(
-    state: SessionState, fixture_curriculum: Curriculum, play_mode=_STUDENT
-):
+def _snapshot(state: SessionState, fixture_curriculum: Curriculum, play_mode=_STUDENT):
     return build_navigation_snapshot(state, fixture_curriculum, play_mode)
 
 
@@ -272,9 +270,7 @@ def test_resolve_navigation_target_raises_for_missing_topic(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
-    request = SessionNavigateRequest(
-        session_id=state.session_id, selected_topic_id=999
-    )
+    request = SessionNavigateRequest(session_id=state.session_id, selected_topic_id=999)
 
     with pytest.raises(resolution.NavigationTopicNotFoundError) as exc_info:
         resolution.resolve_navigation_target(

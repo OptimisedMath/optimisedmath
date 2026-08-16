@@ -1,0 +1,9 @@
+#!/bin/sh
+# Blocks the commit if Python code isn't black-formatted.
+# Installed via `make install` (git config core.hooksPath .githooks).
+
+uv run black --check backend tests || {
+    echo ""
+    echo "Formatting check failed. Run 'uv run black .' to fix, then commit again."
+    exit 1
+}

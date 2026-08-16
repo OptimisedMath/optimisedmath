@@ -164,15 +164,15 @@ def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[int, int], LevelCo
 
 
 def _derive_topic_name_by_id(topics_meta: list[TopicDict]) -> dict[int, str]:
-    return {int(topic_entry["topic_id"]): topic_entry["name"] for topic_entry in topics_meta}
+    return {
+        int(topic_entry["topic_id"]): topic_entry["name"] for topic_entry in topics_meta
+    }
 
 
 # --- Validation ---
 
 
-def _validate_topics(
-    file_name: str, chapter_name: str, data: dict[str, Any]
-) -> None:
+def _validate_topics(file_name: str, chapter_name: str, data: dict[str, Any]) -> None:
     chapter_topics = data.get("topics")
     if not isinstance(chapter_topics, list):
         raise CurriculumLoadError(
@@ -221,7 +221,10 @@ def _validate_topics(
             if level_entry.get("published", True):
                 has_published = True
                 func_name = level_entry["function"]
-                if _function_registry is not None and func_name not in _function_registry:
+                if (
+                    _function_registry is not None
+                    and func_name not in _function_registry
+                ):
                     raise CurriculumLoadError(
                         f"{file_name}: function '{func_name}' not found in "
                         f"FUNCTION_REGISTRY ({chapter_name} / {topic_entry['name']})"
@@ -291,8 +294,12 @@ def _validate_file(file_path: Path, data: Any) -> ChapterBundle:
 def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
     bundles.sort(key=lambda bundle: (bundle.chapter_id, bundle.chapter_name))
     bundle_tuple = tuple(bundles)
-    chapter_id_by_name = {bundle.chapter_name: bundle.chapter_id for bundle in bundle_tuple}
-    chapter_name_by_id = {bundle.chapter_id: bundle.chapter_name for bundle in bundle_tuple}
+    chapter_id_by_name = {
+        bundle.chapter_name: bundle.chapter_id for bundle in bundle_tuple
+    }
+    chapter_name_by_id = {
+        bundle.chapter_id: bundle.chapter_name for bundle in bundle_tuple
+    }
     return CurriculumStore(
         bundles=bundle_tuple,
         curriculum={

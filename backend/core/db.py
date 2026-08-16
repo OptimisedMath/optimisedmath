@@ -20,6 +20,7 @@ class UserData(TypedDict):
     selected_level: int
     chapter_frontiers: dict[int, ChapterFrontier]
 
+
 # --- Connection ---
 
 DB_TIMEOUT_SECONDS = 30.0
@@ -106,13 +107,12 @@ def init_db() -> None:
 
 def _migrate_telemetry_input_mode_column(cursor: sqlite3.Cursor) -> None:
     """Rename legacy is_text_mode telemetry column to is_input_mode."""
-    columns = {
-        row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")
-    }
+    columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
     if "is_text_mode" in columns and "is_input_mode" not in columns:
         cursor.execute(
             "ALTER TABLE telemetry_logs RENAME COLUMN is_text_mode TO is_input_mode"
         )
+
 
 # --- Sessions ---
 
@@ -155,10 +155,13 @@ def delete_session(session_id: str) -> None:
         cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
         conn.commit()
 
+
 # --- Users ---
 
 
-def _parse_chapter_frontiers(raw_frontiers: dict[str, Any]) -> dict[int, ChapterFrontier]:
+def _parse_chapter_frontiers(
+    raw_frontiers: dict[str, Any],
+) -> dict[int, ChapterFrontier]:
     return {
         int(chapter_id): ChapterFrontier.model_validate(frontier)
         for chapter_id, frontier in raw_frontiers.items()
@@ -229,6 +232,7 @@ def save_user(username: str, state: SessionState) -> None:
             ),
         )
         conn.commit()
+
 
 # --- Telemetry ---
 

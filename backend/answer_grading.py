@@ -138,4 +138,3 @@ def grade(
         "feedback_msg": msg_text,
         "trap_id": "w1",
     }
-

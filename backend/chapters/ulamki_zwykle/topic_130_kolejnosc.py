@@ -79,6 +79,7 @@ def frac_ord_2() -> dict | None:
     if result:
         return result
 
+
 def frac_ord_3() -> dict | None:
     """Dwa Zestawy (poziom 3)."""
     # Poziom 3: Dwa zestawy działań
@@ -137,6 +138,7 @@ def frac_ord_4() -> dict | None:
     if result:
         return result
 
+
 def frac_ord_5() -> dict | None:
     """Potęgowanie Nawiasu (poziom 5)."""
     # Poziom 5: Potęga Nawiasu
@@ -168,6 +170,7 @@ def frac_ord_5() -> dict | None:
     if result:
         return result
 
+
 def frac_ord_6() -> dict | None:
     """Boss Level (poziom 6)."""
     # Poziom 6: Ultimate Boss
@@ -182,7 +185,9 @@ def frac_ord_6() -> dict | None:
 
     t1 = (a * (b + c)) ** 2 - d  # Trap (t1): Wymnożyłeś najpierw ułamek przed nawiasem
     t2 = a * ((b + c) * 2) - d  # Trap (t2): Pomnożyłeś nawias przez 2 zamiast potęgować
-    t3 = a * (b**2 + c**2) - d  # Trap (t3): Podniosłeś do kwadratu ułamki w nawiasie osobno zamiast zsumować
+    t3 = (
+        a * (b**2 + c**2) - d
+    )  # Trap (t3): Podniosłeś do kwadratu ułamki w nawiasie osobno zamiast zsumować
 
     result = build_problem_dict(
         q,

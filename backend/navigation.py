@@ -157,10 +157,7 @@ class ChapterNavigationContext:
         return _navigation_progress(completed, total)
 
     def has_next_unlocked_topic(self, selected_topic_id: int | None) -> bool:
-        if (
-            self._next_unlocked_frontier_topic_id is None
-            or selected_topic_id is None
-        ):
+        if self._next_unlocked_frontier_topic_id is None or selected_topic_id is None:
             return False
         return self._next_unlocked_frontier_topic_id > selected_topic_id
 
@@ -226,9 +223,7 @@ def _build_chapter_context(
         for topic_entry in chapter_topics
     }
     next_unlocked_frontier_topic_id = (
-        None
-        if is_admin or not has_frontier_record
-        else effective.frontier_topic_id
+        None if is_admin or not has_frontier_record else effective.frontier_topic_id
     )
     return ChapterNavigationContext(
         chapter_id=chapter_id,
@@ -259,19 +254,16 @@ def build_navigation_snapshot(
     chapter_topics = _topics_for_chapter(curriculum, selected_chapter_id)
     default_topic_id = first_topic_id(chapter_topics)
     selected_topic_id = state.selected_topic_id or default_topic_id
-    active_topic = (
-        _find_topic_by_id(curriculum, selected_chapter_id, selected_topic_id)
-        or (chapter_topics[0] if chapter_topics else None)
-    )
+    active_topic = _find_topic_by_id(
+        curriculum, selected_chapter_id, selected_topic_id
+    ) or (chapter_topics[0] if chapter_topics else None)
     active_topic_id = (
         int(active_topic["topic_id"]) if active_topic is not None else None
     )
     selected_level = _clamp_level(
         state.selected_level, curriculum, selected_chapter_id, active_topic_id
     )
-    current = _build_chapter_context(
-        state, curriculum, play_mode, selected_chapter_id
-    )
+    current = _build_chapter_context(state, curriculum, play_mode, selected_chapter_id)
     return NavigationSnapshot(
         selected_chapter_id=selected_chapter_id,
         selected_topic_id=selected_topic_id,
@@ -310,9 +302,7 @@ def build_navigation_view(snapshot: NavigationSnapshot) -> NavigationView:
         else [1]
     )
 
-    radio_only = bool(
-        snapshot.active_topic and snapshot.active_topic.get("radio_only")
-    )
+    radio_only = bool(snapshot.active_topic and snapshot.active_topic.get("radio_only"))
 
     return NavigationView(
         available_chapters=available_chapters,
@@ -340,7 +330,9 @@ def clamp_selected_level(state: SessionState, curriculum: Curriculum) -> None:
         return
     first_topic_entry = chapter_topics[0]
     topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
-    topic_entry = _find_topic_by_id(curriculum, chapter_id, topic_id) or first_topic_entry
+    topic_entry = (
+        _find_topic_by_id(curriculum, chapter_id, topic_id) or first_topic_entry
+    )
     state.selected_level = _clamp_level(
         state.selected_level,
         curriculum,
@@ -358,10 +350,9 @@ def resolve_chapter_change(
     ctx = snapshot.chapter_context(next_chapter_id)
     next_topic_id, next_level = ctx.implicit_chapter_landing
     next_chapter_topics = _topics_for_chapter(curriculum, next_chapter_id)
-    next_topic_entry = (
-        _find_topic_by_id(curriculum, next_chapter_id, next_topic_id)
-        or (next_chapter_topics[0] if next_chapter_topics else None)
-    )
+    next_topic_entry = _find_topic_by_id(
+        curriculum, next_chapter_id, next_topic_id
+    ) or (next_chapter_topics[0] if next_chapter_topics else None)
     next_topic_for_clamp = (
         int(next_topic_entry["topic_id"]) if next_topic_entry is not None else None
     )
@@ -454,9 +445,7 @@ class NavigationLevelOutOfRangeError(NavigationResolutionError):
     """Resolved level falls outside the topic's level bounds."""
 
     def __init__(self, level: int, topic_id: int) -> None:
-        super().__init__(
-            f"Level {level} is not available for topic id {topic_id}"
-        )
+        super().__init__(f"Level {level} is not available for topic id {topic_id}")
 
 
 class NavigationLockedError(NavigationResolutionError):
@@ -483,9 +472,7 @@ def resolve_navigation_target(
         NavigationLockedError: resolved target is Locked for this Student.
     """
     curriculum = snapshot.curriculum()
-    chapter_id, topic_id, level = resolve_navigate_request(
-        state, request, snapshot
-    )
+    chapter_id, topic_id, level = resolve_navigate_request(state, request, snapshot)
 
     if not curriculum.has_chapter(chapter_id):
         raise NavigationChapterNotFoundError(chapter_id)

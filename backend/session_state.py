@@ -27,10 +27,7 @@ def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
         return "radio"
     topic_cfg = curriculum.topic(int(chapter_id), int(topic_id)) or {}
     radio_only = topic_cfg.get("radio_only", False)
-    if (
-        not radio_only
-        and state.streak >= config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    ):
+    if not radio_only and state.streak >= config.STREAK_THRESHOLD_FOR_INPUT_MODE:
         return "input"
     return "radio"
 
@@ -62,16 +59,18 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
                 frontier_topic_id=chapter_first_topic_id,
                 frontier_level=1,
             )
-        elif state.chapter_frontiers[chapter_id].frontier_topic_id < chapter_first_topic_id:
-            state.chapter_frontiers[chapter_id].frontier_topic_id = chapter_first_topic_id
+        elif (
+            state.chapter_frontiers[chapter_id].frontier_topic_id
+            < chapter_first_topic_id
+        ):
+            state.chapter_frontiers[chapter_id].frontier_topic_id = (
+                chapter_first_topic_id
+            )
             state.chapter_frontiers[chapter_id].frontier_level = 1
 
     curr_chapter_id = state.selected_chapter_id
     first_curr_topic_id = _get_first_topic_id(curriculum, curr_chapter_id)
-    if (
-        state.selected_topic_id is None
-        or state.selected_topic_id < first_curr_topic_id
-    ):
+    if state.selected_topic_id is None or state.selected_topic_id < first_curr_topic_id:
         state.selected_topic_id = first_curr_topic_id
 
 
@@ -200,5 +199,7 @@ def hard_reset(
     )
     state.selected_level = 1
     clear_submission_cycle_fields(state, curriculum)
-    sync_to_db(state, build_db_write_plan(state, play_mode or resolve_play_mode(state.username)))
-
+    sync_to_db(
+        state,
+        build_db_write_plan(state, play_mode or resolve_play_mode(state.username)),
+    )

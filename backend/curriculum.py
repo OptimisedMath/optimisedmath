@@ -64,7 +64,9 @@ class Curriculum:
     ) -> LevelConfig | None:
         """Level config for a Chapter, Topic and Level, including published state."""
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
-        return bundle.level_configs.get((topic_id, level)) if bundle is not None else None
+        return (
+            bundle.level_configs.get((topic_id, level)) if bundle is not None else None
+        )
 
     def keyboard_type(self, chapter_id: int) -> str:
         """Keyboard type for a Chapter."""

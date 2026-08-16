@@ -49,7 +49,9 @@ def dec_mix_2() -> dict | None:
     c_str, _ = format_answers(c_num, c_den)
 
     t1, _ = format_answers(n1 + n2, d1 + 10)
-    t2 = fmt_dec(round(n1 / d1 + dec_val, 2))  # Trap (t2): Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zw...
+    t2 = fmt_dec(
+        round(n1 / d1 + dec_val, 2)
+    )  # Trap (t2): Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zw...
     w1, _ = format_answers(c_num + 1, c_den)
 
     result = build_problem_dict(

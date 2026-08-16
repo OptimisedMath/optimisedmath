@@ -13,12 +13,8 @@ def _with_messages(result: dict, **msgs: str) -> dict:
     return result
 
 
-_MSG_EQUAL_TRAILING = (
-    "Liczby są równe — zera na końcu nie zmieniają wartości!"
-)
-_MSG_EQUAL_WRONG_SIGN = (
-    "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
-)
+_MSG_EQUAL_TRAILING = "Liczby są równe — zera na końcu nie zmieniają wartości!"
+_MSG_EQUAL_WRONG_SIGN = "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
 _MSG_NOT_EQUAL = "Liczby nie są równe — nie wybieraj znaku równości!"
 
 
