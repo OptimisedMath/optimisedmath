@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Optimised Math Learning — Module Map</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #12182b;
+    --panel-2: #161d33;
+    --border: #232b45;
+    --text: #e6e9f5;
+    --muted: #97a1c2;
+    --accent: #7aa2ff;
+    --accent-2: #7ee0c3;
+    --accent-3: #f2b880;
+    --accent-4: #e097e0;
+    --accent-5: #f28b8b;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background: radial-gradient(1200px 800px at 10% -10%, #16204a 0%, var(--bg) 55%);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono { font-family: var(--mono); }
+
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+  nav.toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    padding: 28px 18px; border-right: 1px solid var(--border); background: rgba(10,14,28,0.55);
+    backdrop-filter: blur(6px);
+  }
+  nav.toc h2 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+  nav.toc h2:first-child { margin-top: 0; }
+  nav.toc ul { list-style: none; margin: 0 0 4px; padding: 0; }
+  nav.toc li { margin: 2px 0; }
+  nav.toc a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--muted); font-size: 13.5px; }
+  nav.toc a:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
+  .brand { font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 2px; }
+  .brand-sub { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+  main { padding: 48px 56px 100px; max-width: 1180px; }
+  header.hero { margin-bottom: 56px; }
+  header.hero .eyebrow { color: var(--accent-2); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+  header.hero h1 { font-size: 40px; margin: 10px 0 12px; letter-spacing: -0.02em; }
+  header.hero p.lede { color: var(--muted); font-size: 17px; max-width: 760px; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .badge {
+    font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+    color: var(--muted); background: var(--panel);
+  }
+
+  section { margin-bottom: 64px; scroll-margin-top: 24px; }
+  section h2 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  section .section-sub { color: var(--muted); margin: 0 0 24px; max-width: 760px; font-size: 14.5px; }
+  section h3.sub { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 32px 0 14px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px 24px; }
+
+  /* System diagram */
+  .flow {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-items: stretch;
+    margin: 6px 0 8px;
+  }
+  .flow .node {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 14px; text-align: center; font-size: 13.5px; display: flex; flex-direction: column;
+    justify-content: center; gap: 4px;
+  }
+  .flow .node b { font-size: 14.5px; }
+  .flow .node span { color: var(--muted); font-size: 12px; }
+  .flow .arrow { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px; }
+  @media (max-width: 900px) {
+    .flow { grid-template-columns: 1fr; }
+    .flow .arrow { transform: rotate(90deg); }
+  }
+
+  /* Layer stack */
+  .stack { display: flex; flex-direction: column; gap: 6px; }
+  .layer {
+    display: grid; grid-template-columns: 160px 170px 1fr; gap: 16px; align-items: center;
+    padding: 14px 18px; border-radius: 10px; border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  }
+  .layer .name { font-weight: 600; font-size: 14px; }
+  .layer .mod { font-family: var(--mono); font-size: 12.5px; color: var(--accent-2); }
+  .layer .owns { color: var(--muted); font-size: 13px; }
+  .layer .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+  .stack .down-arrow { text-align: center; color: var(--muted); font-size: 13px; padding: 2px 0; }
+  .layer-note { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+  /* Module cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card .file { font-family: var(--mono); font-size: 12.5px; color: var(--accent-2); margin-bottom: 6px; word-break: break-all; }
+  .card .desc { font-size: 13.5px; color: var(--text); }
+  .card .tag { display: inline-block; margin-top: 10px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: none; }
+  td code, th code { font-family: var(--mono); color: var(--accent-2); font-size: 12.5px; }
+  .method { font-family: var(--mono); font-size: 11.5px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+  .method.get { color: #7ee0c3; background: rgba(126,224,195,0.12); }
+  .method.post { color: #f2b880; background: rgba(242,184,128,0.12); }
+
+  /* Callouts */
+  .callouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .callout { border-radius: 12px; border: 1px solid var(--border); background: var(--panel); padding: 18px 20px; border-left: 3px solid var(--accent); }
+  .callout h4 { margin: 0 0 8px; font-size: 14.5px; }
+  .callout p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .callout.rule { border-left-color: var(--accent-5); }
+  .callout.decision { border-left-color: var(--accent-3); }
+  .callout.seam { border-left-color: var(--accent-4); }
+
+  /* Glossary */
+  .gloss { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .term { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+  .term dt { font-weight: 700; font-size: 13.5px; color: var(--accent); }
+  .term dd { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+  footer { color: var(--muted); font-size: 12.5px; padding-top: 24px; border-top: 1px solid var(--border); }
+  footer a { color: var(--muted); text-decoration: underline; }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0 20px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc">
+    <div class="brand">Optimised Math Learning</div>
+    <div class="brand-sub">Module map &amp; seams</div>
+
+    <h2>Overview</h2>
+    <ul>
+      <li><a href="#system">System diagram</a></li>
+      <li><a href="#repo-layout">Repo layout</a></li>
+    </ul>
+
+    <h2>Backend</h2>
+    <ul>
+      <li><a href="#backend-layers">Layered architecture</a></li>
+      <li><a href="#backend-modules">Module reference</a></li>
+      <li><a href="#backend-content">Chapters &amp; generators</a></li>
+    </ul>
+
+    <h2>Frontend</h2>
+    <ul>
+      <li><a href="#frontend-map">Module map</a></li>
+      <li><a href="#frontend-modules">Module reference</a></li>
+    </ul>
+
+    <h2>Contract &amp; rules</h2>
+    <ul>
+      <li><a href="#api">API contract</a></li>
+      <li><a href="#seams">Seams &amp; import rules</a></li>
+      <li><a href="#adrs">Architectural decisions</a></li>
+    </ul>
+
+    <h2>Domain</h2>
+    <ul>
+      <li><a href="#glossary">Glossary snapshot</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Architecture reference</div>
+      <h1>Where things live, and why</h1>
+      <p class="lede">
+        A map of the Optimised Math Learning monorepo — a Polish maths practice app for klasy 4–8.
+        FastAPI owns game rules and state; Next.js owns presentation. This doc traces the seams
+        between them, the layers inside the backend, and the modules on both sides.
+      </p>
+      <div class="badges">
+        <span class="badge">FastAPI · Python</span>
+        <span class="badge">Next.js App Router · TypeScript</span>
+        <span class="badge">SQLite persistence</span>
+        <span class="badge">YAML curriculum</span>
+        <span class="badge">pytest · Vitest</span>
+      </div>
+    </header>
+
+    <!-- ============ SYSTEM DIAGRAM ============ -->
+    <section id="system">
+      <h2>System diagram</h2>
+      <p class="section-sub">One student action — answering a problem — round-trips through every seam in the stack.</p>
+      <div class="panel">
+        <div class="flow">
+          <div class="node"><b>Browser</b><span>React UI, Arena</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>Next.js</b><span><code>/api/*</code> rewrite</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>FastAPI</b><span><code>main.py</code> routes</span></div>
+        </div>
+        <div class="flow" style="margin-top:4px;">
+          <div class="node"><b>Session use-cases</b><span><code>session.py</code></span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>Pure rules</b><span>grading · progression · unlock</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>SQLite</b><span><code>core/db.py</code></span></div>
+          <div class="arrow">←</div>
+          <div class="node"><b>Curriculum YAML</b><span><code>data/*.yaml</code></span></div>
+        </div>
+        <p class="layer-note">
+          Every rule outcome (grading, streak, XP, Flawless, Locked/Reachable, input mode) is computed once,
+          in the backend, and travels to the frontend as a payload field — see
+          <a href="#adrs">ADR-0002</a>. The frontend never re-derives a rule; it maps payload fields to pixels.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ REPO LAYOUT ============ -->
+    <section id="repo-layout">
+      <h2>Repo layout</h2>
+      <p class="section-sub">Open the repo root as the workspace — both stacks and the shared docs live under it.</p>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Path</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>backend/</code></td><td>FastAPI API, game engine, session state, curriculum YAML, problem generators</td></tr>
+            <tr><td><code>frontend/</code></td><td>Next.js App Router UI; calls backend via <code>/api</code> proxy</td></tr>
+            <tr><td><code>tests/</code></td><td>pytest suite — run from repo root</td></tr>
+            <tr><td><code>docs/agents/</code></td><td>Agent pointers and skill config</td></tr>
+            <tr><td><code>docs/adr/</code></td><td>Architectural decisions</td></tr>
+            <tr><td><code>CONTEXT.md</code></td><td>Domain glossary — canonical English terms, Polish UI copy notes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ BACKEND LAYERS ============ -->
+    <section id="backend-layers">
+      <h2>Backend: layered architecture</h2>
+      <p class="section-sub">
+        Layers stack top-to-bottom. Each layer may import from layers below, plus <code>models.py</code> and
+        <code>play_mode.py</code>. Pure rule modules never import session, state, or HTTP layers.
+      </p>
+      <div class="panel">
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i> HTTP / use-case</span>
+          <span><i style="background:var(--accent-2)"></i> Pure rules</span>
+          <span><i style="background:var(--accent-3)"></i> Data &amp; persistence</span>
+          <span><i style="background:var(--accent-4)"></i> Contract / config</span>
+        </div>
+        <div class="stack">
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent)"></span>HTTP</div><div class="mod">main.py</div><div class="owns">Routes, CORS, exception → HTTP status</div></div>
+          <div class="down-arrow">↓ imports</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent)"></span>Session use-cases</div><div class="mod">session.py</div><div class="owns">Start, navigate, reset, submit, next problem; in-memory cache; <code>respond()</code> owns the response view</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent)"></span>Submission cycle</div><div class="mod">submission_cycle.py</div><div class="owns">Begin-problem, post-Topic-completion Navigation, chapter-end fallback</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent)"></span>Submission</div><div class="mod">submission.py</div><div class="owns">Grade → telemetry → progression → persist for one Submission</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent)"></span>Session state</div><div class="mod">session_state.py</div><div class="owns">Load/save/mutate <code>SessionState</code>; sync to DB; owns cycle-field clearing</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-2)"></span>Progression</div><div class="mod">progression.py</div><div class="owns">Streak, XP, level/topic progression per Submission (pure)</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-2)"></span>Access</div><div class="mod">unlock.py</div><div class="owns">Reachable chapter/topic/level (pure)</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-2)"></span>Grading</div><div class="mod">answer_grading.py</div><div class="owns">Correct / Trap / Wrong / soft error (pure)</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-2)"></span>Problems</div><div class="mod">problem_generation.py</div><div class="owns">Generator registry, level assembly (pure)</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-2)"></span>Navigation</div><div class="mod">navigation_snapshot.py</div><div class="owns">Snapshot and view payload</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-2)"></span>Navigation</div><div class="mod">navigation_resolve.py</div><div class="owns">Intent clamping and validate-and-resolve</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-3)"></span>Curriculum</div><div class="mod">curriculum.py, curriculum_loader.py</div><div class="owns">Read model + provider; YAML load, validate, cache</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-3)"></span>Persistence</div><div class="mod">core/db.py</div><div class="owns">SQLite read/write</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-4)"></span>Play mode</div><div class="mod">play_mode.py</div><div class="owns">Admin vs student policy; effective Frontier; profile persistence (shared across layers)</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-4)"></span>API contract</div><div class="mod">models.py</div><div class="owns">Pydantic request/response models</div></div>
+          <div class="down-arrow">↓</div>
+          <div class="layer"><div class="name"><span class="swatch" style="background:var(--accent-4)"></span>Config</div><div class="mod">config.py</div><div class="owns">Settings; <code>PROJECT_ROOT</code> is <code>backend/</code>, not repo root</div></div>
+        </div>
+        <p class="layer-note">
+          <code>play_mode.py</code> and <code>models.py</code> are shared — any layer may reach into them directly,
+          which is why they sit visually "beside" the stack rather than strictly under every layer that uses them.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ BACKEND MODULES ============ -->
+    <section id="backend-modules">
+      <h2>Backend: module reference</h2>
+      <p class="section-sub">One card per top-level backend module, ordered as in <code>backend/docs/backend-map.md</code> and <code>layered-modules.md</code>.</p>
+      <div class="grid">
+        <div class="card"><div class="file">main.py</div><div class="desc">FastAPI app: routes for health, curriculum, session start/navigate/reset, and problem next/submit/auto-solve. Maps <code>SessionError</code> to HTTP status.</div><span class="tag">HTTP</span></div>
+        <div class="card"><div class="file">session.py</div><div class="desc">Session use-cases (start, navigate, reset, submit, next problem), the in-memory <code>ACTIVE_SESSIONS</code> cache, and <code>respond()</code> which builds every <code>SessionResponse</code>.</div><span class="tag">Use-case</span></div>
+        <div class="card"><div class="file">submission_cycle.py</div><div class="desc">Choreographs begin-problem, post-Topic-completion Navigation, and the chapter-end fallback. Sits between <code>session.py</code> and <code>submission.py</code>/<code>session_state.py</code>.</div><span class="tag">Use-case</span></div>
+        <div class="card"><div class="file">submission.py</div><div class="desc">Owns one graded Submission end-to-end via <code>process_submission()</code>: grade → telemetry → progression → persist.</div><span class="tag">Use-case</span></div>
+        <div class="card"><div class="file">session_state.py</div><div class="desc">Loads, saves, and mutates <code>SessionState</code>; syncs to the DB; the real owner of clearing Submission-cycle fields (streak, feedback, problem, input mode).</div><span class="tag">State</span></div>
+        <div class="card"><div class="file">progression.py</div><div class="desc">Pure rules for streak, XP, and level/topic progression per Submission.</div><span class="tag">Pure rules</span></div>
+        <div class="card"><div class="file">unlock.py</div><div class="desc">Pure rules for what's Reachable — Locked vs Reachable chapter/topic/level.</div><span class="tag">Pure rules</span></div>
+        <div class="card"><div class="file">answer_grading.py</div><div class="desc">Pure grading: Correct / Trap / Wrong / Soft Error classification for a submitted answer.</div><span class="tag">Pure rules</span></div>
+        <div class="card"><div class="file">problem_generation.py</div><div class="desc">Generator registry and level assembly — pulls the right <code>chapters/</code> generator for the selected Topic and Level.</div><span class="tag">Pure rules</span></div>
+        <div class="card"><div class="file">navigation_snapshot.py</div><div class="desc">Builds a read-only snapshot of navigation state and the view payload. Never mutates state or calls session use-cases.</div><span class="tag">Navigation</span></div>
+        <div class="card"><div class="file">navigation_resolve.py</div><div class="desc">Validates and resolves a navigation intent (clamping) against a <code>NavigationSnapshot</code>. One-directional: depends on the snapshot, never the reverse.</div><span class="tag">Navigation</span></div>
+        <div class="card"><div class="file">curriculum.py</div><div class="desc">Curriculum read model and provider — resolved once per request and passed explicitly down the stack.</div><span class="tag">Curriculum</span></div>
+        <div class="card"><div class="file">curriculum_loader.py</div><div class="desc">Loads, validates, and caches the Chapter/Topic/Level YAML from <code>data/</code>.</div><span class="tag">Curriculum</span></div>
+        <div class="card"><div class="file">play_mode.py</div><div class="desc">Admin vs Student policy. Admin mode substitutes effective full unlock everywhere a Frontier would be read/written, without touching the stored Frontier. Shared across every layer.</div><span class="tag">Shared</span></div>
+        <div class="card"><div class="file">models.py</div><div class="desc">Pydantic request/response models — the API contract. <code>SessionState</code> (persisted) vs <code>SessionResponse</code> (wire payload) are deliberately separate shapes.</div><span class="tag">Contract</span></div>
+        <div class="card"><div class="file">config.py</div><div class="desc">App settings. Note: <code>PROJECT_ROOT</code> resolves to <code>backend/</code>, not the repo root.</div><span class="tag">Config</span></div>
+        <div class="card"><div class="file">core/db.py</div><div class="desc">SQLite read/write — the only module that touches <code>storage/users.db</code>.</div><span class="tag">Persistence</span></div>
+        <div class="card"><div class="file">core/utils.py</div><div class="desc">Shared helpers used across backend modules.</div><span class="tag">Shared</span></div>
+      </div>
+    </section>
+
+    <!-- ============ BACKEND CONTENT ============ -->
+    <section id="backend-content">
+      <h3 class="sub">Chapters &amp; generators</h3>
+      <div class="panel">
+        <p style="margin-top:0;color:var(--muted);font-size:13.5px;">
+          Two Chapters ship today, each with its own YAML definition and one generator module per Topic.
+          Generators auto-register from <code>chapters/&lt;slug&gt;/</code> by filename convention
+          <code>topic_{id}_{slug}.py</code>; a leading underscore marks a private helper. Copy an existing
+          chapter file when adding content — see <code>backend/docs/curriculum.md</code>.
+        </p>
+        <table>
+          <thead><tr><th>Chapter (slug)</th><th>YAML source</th><th>Topics</th></tr></thead>
+          <tbody>
+            <tr><td>Ułamki Zwykłe <span class="mono" style="color:var(--muted)">(ulamki_zwykle)</span></td><td><code>data/Ułamki_Zwykłe.yaml</code></td><td>13 generators — zapisywanie, rozszerzanie, liczby mieszane, porównywanie, oś liczbowa, dodawanie, odejmowanie, mnożenie/dzielenie (× liczba, × ułamek), potęgowanie, kolejność działań, ułamek liczby</td></tr>
+            <tr><td>Ułamki Dziesiętne <span class="mono" style="color:var(--muted)">(ulamki_dziesietne)</span></td><td><code>data/Ułamki_Dziesiętne.yaml</code></td><td>13 generators — zamiana, porównywanie, oś liczbowa, zaokrąglanie, dodawanie, odejmowanie, przesuwanie przecinka, mnożenie, dzielenie, potęgowanie, kolejność działań, jednostki, działania mieszane</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ FRONTEND MAP ============ -->
+    <section id="frontend-map">
+      <h2>Frontend: module map</h2>
+      <p class="section-sub">Next.js App Router UI. Presentation and interaction only — rule outcomes stay on the backend.</p>
+      <div class="panel">
+        <div class="flow">
+          <div class="node"><b>app/</b><span>/, /login, /arena pages</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>components/arena</b><span>Arena UI</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>lib/session</b><span>Session client</span></div>
+        </div>
+        <div class="flow" style="margin-top:4px;">
+          <div class="node"><b>components/ui</b><span>shadcn primitives</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>hooks/</b><span>useAutoSolve, keydown</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>lib/api.ts</b><span>/api/* calls</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>test/apiMock.ts</b><span>Fake backend seam</span></div>
+        </div>
+        <p class="layer-note">
+          Every arena/login session concern — types, API calls, localStorage, constants, <code>useSession()</code> —
+          lives in <code>lib/session/</code>. Import from <code>@/lib/session</code>; nothing else touches
+          session localStorage directly. See <code>frontend/docs/session.md</code>.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ FRONTEND MODULES ============ -->
+    <section id="frontend-modules">
+      <h2>Frontend: module reference</h2>
+      <div class="grid">
+        <div class="card"><div class="file">app/page.tsx / app/login / app/arena</div><div class="desc">App Router pages: landing, login, and the arena (practice) view.</div><span class="tag">Pages</span></div>
+        <div class="card"><div class="file">components/arena/GameArena.tsx</div><div class="desc">Top-level arena component composing toolbar, problem display, answer input, and feedback.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/TopicToolbar.tsx</div><div class="desc">Chapter/Topic/Level Navigation controls, backed by <code>navigation</code> in the session payload.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/ProblemDisplay.tsx</div><div class="desc">Renders the current Problem statement (KaTeX for maths notation).</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/AnswerInput.tsx</div><div class="desc">Switches between Radio and Input mode based on <code>current_input_mode</code>.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/RadioAnswerInput.tsx</div><div class="desc">Four-option (ABCD) answer selector for Radio mode.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/TextAnswerInput.tsx</div><div class="desc">Free-text answer entry for Input mode.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/SubmitRow.tsx</div><div class="desc">Shared submit/next-problem action row, extracted from Radio and Text answer inputs.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/FeedbackCard.tsx / FeedbackPresenter.tsx</div><div class="desc">Renders graded Feedback (correct/trap/wrong messaging) under Answer lock.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/MasteryScoreboard.tsx</div><div class="desc">Streak meter (stars) and Flawless indicator.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/arena/ProgressBar.tsx / XPBar.tsx</div><div class="desc">Chapter/Topic completion meters and XP display, driven by <code>navigation</code> and <code>xp</code> payload fields.</div><span class="tag">Arena</span></div>
+        <div class="card"><div class="file">components/ui/*</div><div class="desc">Shared shadcn primitives — button, card, input, badge, spinner.</div><span class="tag">UI</span></div>
+        <div class="card"><div class="file">components/navigation/LogoutLink.tsx</div><div class="desc">Logout affordance, clears session and redirects to login.</div><span class="tag">UI</span></div>
+        <div class="card"><div class="file">lib/session/useSession.ts</div><div class="desc">Central hook: returns <code>{ view, actions }</code>. Arena children read view slices and call action handlers.</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/session/useSessionBootstrap.ts</div><div class="desc">Restores or starts a session on mount (localStorage + <code>/session/start</code>).</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/session/useProblemLifecycle.ts</div><div class="desc">Drives next-problem / submit flow and Submission cycle transitions on the client.</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/session/api.ts</div><div class="desc">Typed calls to the session/problem HTTP endpoints.</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/session/types.ts</div><div class="desc">Wire types mirroring <code>backend/models.py</code> — the frontend half of the API contract.</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/session/storage.ts / constants.ts / errors.ts</div><div class="desc">localStorage persistence, shared constants, and typed session errors.</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/session/correctAnswer.ts / projectSessionState.ts</div><div class="desc">Small pure helpers for mapping session/problem payloads into view-ready shapes — display mapping, not rule computation.</div><span class="tag">Session</span></div>
+        <div class="card"><div class="file">lib/api.ts</div><div class="desc">Lower-level API helpers (curriculum fetch, base request plumbing).</div><span class="tag">Lib</span></div>
+        <div class="card"><div class="file">lib/types.ts</div><div class="desc">Curriculum catalog types, mirroring backend curriculum response shapes.</div><span class="tag">Lib</span></div>
+        <div class="card"><div class="file">lib/navigation.ts / routes.ts / scroll.ts / utils.ts</div><div class="desc">Navigation helpers, route constants, scroll-into-view utility, and generic utilities (e.g. <code>cn()</code>).</div><span class="tag">Lib</span></div>
+        <div class="card"><div class="file">hooks/useAutoSolve.ts</div><div class="desc">Admin-mode dev shortcut hook driving the auto-solve submission pipeline.</div><span class="tag">Hooks</span></div>
+        <div class="card"><div class="file">hooks/useDocumentKeydown.ts</div><div class="desc">Generic keyboard shortcut binding hook (e.g. Enter to submit/next).</div><span class="tag">Hooks</span></div>
+        <div class="card"><div class="file">test/apiMock.ts</div><div class="desc">Fake backend at the HTTP adapter seam — Vitest + Testing Library tests substitute this instead of mocking components.</div><span class="tag">Test</span></div>
+      </div>
+    </section>
+
+    <!-- ============ API CONTRACT ============ -->
+    <section id="api">
+      <h2>API contract</h2>
+      <p class="section-sub">
+        Relative <code>/api/*</code> paths; Next.js rewrites to FastAPI on <code>:8000</code>. JSON field names are
+        stable wire format — see <code>CONTEXT.md</code> for domain terms behind each field.
+      </p>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Tags</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method get">GET</span></td><td><code>/health</code></td><td>System</td><td>Service health status</td></tr>
+            <tr><td><span class="method get">GET</span></td><td><code>/</code></td><td>System</td><td>API metadata and docs link</td></tr>
+            <tr><td><span class="method get">GET</span></td><td><code>/curriculum</code></td><td>Curriculum</td><td>Available chapters and topic metadata</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/session/start</code></td><td>Session</td><td>Create a session, load user progress, return <code>SessionResponse</code> with navigation</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/session/navigate</code></td><td>Session</td><td>Change chapter, topic, or level with unlock validation</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/session/reset</code></td><td>Session</td><td>Hard-reset session progress, return a fresh <code>SessionResponse</code></td></tr>
+            <tr><td><span class="method get">GET</span></td><td><code>/problem/next</code></td><td>Problem</td><td>Generate the next problem, dedupe recent instances, update input mode</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/problem/submit</code></td><td>Problem</td><td>Grade an answer, update streak and XP, persist session state</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/problem/auto-solve</code></td><td>Problem · Dev tools</td><td>Dev-only shortcut: submit the correct answer without UI fill-then-submit</td></tr>
+          </tbody>
+        </table>
+        <p class="layer-note">Backend models: <code>backend/models.py</code>. Frontend mirror: <code>frontend/lib/session/types.ts</code> (session/problem wire types) and <code>frontend/lib/types.ts</code> (curriculum catalog).</p>
+      </div>
+
+      <h3 class="sub">Core response shapes</h3>
+      <div class="grid">
+        <div class="card"><div class="file">SessionState</div><div class="desc">Persisted Session: identity, progression (xp, streak, flawless), selection, submission-cycle flags, Frontier map, problem plumbing. Lives server-side only.</div></div>
+        <div class="card"><div class="file">SessionResponse</div><div class="desc">Wire payload built by <code>SessionResponse.from_state()</code>: persisted fields plus derived view fields (<code>can_submit</code>, <code>can_next_problem</code>, <code>streak_meter</code>, <code>admin_mode</code>, <code>navigation</code>).</div></div>
+        <div class="card"><div class="file">NavigationView</div><div class="desc">Computed navigation state attached to every <code>SessionResponse</code>: available chapters/topics/levels, completion meters, <code>radio_only</code>, <code>has_next_unlocked_topic</code>.</div></div>
+        <div class="card"><div class="file">ProblemResponse / SubmissionResponse</div><div class="desc">Next-problem payload (problem + state) and grading outcome (state + <code>is_correct</code> + feedback) respectively.</div></div>
+      </div>
+    </section>
+
+    <!-- ============ SEAMS ============ -->
+    <section id="seams">
+      <h2>Seams &amp; import rules</h2>
+      <p class="section-sub">The rules that keep the layered architecture from collapsing into a ball of imports.</p>
+      <div class="callouts">
+        <div class="callout rule">
+          <h4>Strict layers</h4>
+          <p>HTTP → session → submission_cycle → submission → state → pure rules. Pure modules never import session, state, or HTTP.</p>
+        </div>
+        <div class="callout seam">
+          <h4>Shared exceptions</h4>
+          <p>Any layer may import Pydantic types from <code>models.py</code> and play-mode policy from <code>play_mode.py</code>.</p>
+        </div>
+        <div class="callout seam">
+          <h4>Navigation reads only</h4>
+          <p><code>navigation_snapshot</code> reads <code>SessionState</code> for snapshot/view only — never mutates state or calls session use-cases. <code>navigation_resolve</code> validates against the snapshot one-directionally.</p>
+        </div>
+        <div class="callout rule">
+          <h4>session.py owns the response view</h4>
+          <p><code>respond()</code> builds <code>SessionResponse</code> from persisted state plus play mode and navigation. It calls state helpers and <code>navigation.build_*</code> — it doesn't embed view logic beyond assembling the payload.</p>
+        </div>
+        <div class="callout rule">
+          <h4>Curriculum is injected below session</h4>
+          <p>Only HTTP/session resolve <code>Curriculum</code> via <code>resolve_curriculum()</code>; everything below receives it as a parameter.</p>
+        </div>
+        <div class="callout seam">
+          <h4>Cycle-field clearing has one owner</h4>
+          <p><code>session_state.clear_submission_cycle_fields</code> is the sole owner of resetting streak/feedback/problem/input-mode. Called directly by <code>navigate_to</code>, <code>load_profile</code>, and <code>hard_reset</code> — no forwarding wrapper in between.</p>
+        </div>
+        <div class="callout seam">
+          <h4>Frontend session boundary</h4>
+          <p>All arena/login session state lives in <code>lib/session/</code>. Import via <code>@/lib/session</code>; nothing else calls session APIs or touches session localStorage.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ADRS ============ -->
+    <section id="adrs">
+      <h2>Architectural decisions</h2>
+      <div class="callouts">
+        <div class="callout decision">
+          <h4>ADR-0002 — Backend owns game rules</h4>
+          <p>
+            FastAPI owns authoritative game state and rule outcomes: grading, streak, XP, Flawless, input mode,
+            Locked/Reachable. Next.js owns presentation and payload→UI mapping — not a second rules engine.
+            The leak test: a formula that would have to exist in both Python <em>and</em> TypeScript.
+            Mapping <code>feedback_type</code> into a phase, or <code>streak_meter</code> into stars, is fine.
+          </p>
+        </div>
+        <div class="callout decision">
+          <h4>ADR-0001 — English codebase, Polish UI</h4>
+          <p>
+            Engineering vocabulary stays English throughout code, types, and internal docs. Polish appears only
+            in user-facing copy — UI labels, feedback messages, curriculum names, and one-line pedagogical
+            docstrings on <code>topic_*.py</code> generators. No Polish synonyms as alternate code names
+            (e.g. no <code>passa</code> alongside <code>streak</code>).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GLOSSARY ============ -->
+    <section id="glossary">
+      <h2>Glossary snapshot</h2>
+      <p class="section-sub">A handful of terms that recur across every module above. Full glossary: <code>CONTEXT.md</code>.</p>
+      <div class="gloss">
+        <div class="term"><dt>Frontier</dt><dd>The furthest Topic/Level a Student has earned in a Chapter — persisted per chapter. Defines Locked vs Reachable.</dd></div>
+        <div class="term"><dt>Streak</dt><dd>Consecutive correct answers at the current Level. Resets on a penalized mistake, level completion, or navigating away.</dd></div>
+        <div class="term"><dt>Mastery</dt><dd>Streak reaching the Mastery threshold (3) while playing At the Frontier — triggers Level completion.</dd></div>
+        <div class="term"><dt>Flawless</dt><dd>Reaching the current Level without a penalized mistake since the last streak reset. Earns bonus XP on Level completion.</dd></div>
+        <div class="term"><dt>Trap / Wrong / Soft Error</dt><dd>Trap: misconception-targeted wrong answer. Wrong: generic calculation slip. Soft Error: format issue that doesn't penalize streak.</dd></div>
+        <div class="term"><dt>Submission cycle</dt><dd>One Problem lifecycle: served → answered (Submission) → Feedback → Next problem. Navigation or Next problem starts a fresh cycle.</dd></div>
+        <div class="term"><dt>Admin mode</dt><dd>QA/debug play mode for designated Usernames: full effective unlock, never writes XP/Flawless/Frontier. Invisible to Students.</dd></div>
+        <div class="term"><dt>Radio / Input mode</dt><dd>Radio: four-option ABCD, active at streak 0 or on radio-only Topics. Input: free-text entry once streak ≥ 1.</dd></div>
+      </div>
+    </section>
+
+    <footer>
+      Generated from the in-repo docs as of 2026-08-17 —
+      <code>AGENTS.md</code>, <code>CONTEXT.md</code>, <code>docs/agents/project-map.md</code>,
+      <code>backend/docs/*.md</code>, <code>frontend/docs/*.md</code>, and <code>docs/adr/*.md</code>.
+      Those files are the source of truth; regenerate this page if they drift.
+    </footer>
+  </main>
+</div>
+</body>
+</html>
