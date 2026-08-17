@@ -4,5 +4,8 @@
   },
   "dependencies": {
     "@ai-hero/sandcastle": "^0.12.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12"
   }
 }

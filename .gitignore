@@ -12,6 +12,7 @@ data/*.db
 storage/*.db
 .pytest_cache/
 .venv/
+node_modules/
 frontend/node_modules/
 frontend/dist/
 backend/storage/users.db*
