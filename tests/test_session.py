@@ -10,7 +10,7 @@ import backend.session as session
 import backend.session_state as session_state
 import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum, resolve_curriculum, set_curriculum
-from backend.play_mode import resolve_play_mode
+from backend.play_mode import StudentPlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import clean_latex
 from backend.models import (
@@ -103,7 +103,7 @@ def test_session_not_found_default_message():
 
 def test_respond_attaches_navigation(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
-    response = session.respond(state, fixture_curriculum)
+    response = session.respond(state, fixture_curriculum, StudentPlayMode())
 
     assert response.navigation is not None
     assert len(response.navigation.available_chapters) > 0
@@ -120,7 +120,7 @@ def test_respond_serves_full_streak_meter_at_level_completion_feedback(
     state.streak = 0
     state.max_streak = 3
 
-    response = session.respond(state, fixture_curriculum)
+    response = session.respond(state, fixture_curriculum, StudentPlayMode())
 
     assert response.streak_meter == 3
     assert "streak_meter" not in SessionState.model_fields
@@ -135,7 +135,7 @@ def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion(
     state.streak = 2
     state.max_streak = 3
 
-    response = session.respond(state, fixture_curriculum)
+    response = session.respond(state, fixture_curriculum, StudentPlayMode())
 
     assert response.streak_meter == 2
 
@@ -218,7 +218,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(
     state.problem_start_time = 123.0
     state.recent_problem_fingerprints = ["fp1"]
 
-    response = session.respond(state, fixture_curriculum)
+    response = session.respond(state, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
     assert not isinstance(state, SessionResponse)
@@ -255,7 +255,7 @@ def test_respond_builds_answered_problem_payload(fixture_curriculum: Curriculum)
     }
     state.problem_answered = True
 
-    response = session.respond(state, fixture_curriculum)
+    response = session.respond(state, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
     assert response.can_submit is False
@@ -321,7 +321,7 @@ def test_legacy_stored_response_fields_load_and_serve_correct_payload(
 
     loaded = db.load_session(state.session_id)
     assert loaded is not None
-    response = session.respond(loaded, fixture_curriculum)
+    response = session.respond(loaded, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
     assert response.can_submit is True
@@ -433,7 +433,9 @@ def _submission_snapshot(state: SessionState) -> dict[str, object]:
 def _begin_identical_problem(
     state: SessionState, problem: dict[str, object], curriculum: Curriculum
 ) -> None:
-    submission_cycle.begin_problem(state, problem, curriculum)
+    submission_cycle.begin_problem(
+        state, problem, curriculum, resolve_play_mode(state.username)
+    )
     session.ACTIVE_SESSIONS[state.session_id] = state
 
 
@@ -490,7 +492,12 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(
     manual_state = _fresh_state(fixture_curriculum)
     manual_state.username = next(iter(config.ADMIN_USERNAMES))
     manual_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    submission_cycle.begin_problem(manual_state, dict(problem), fixture_curriculum)
+    submission_cycle.begin_problem(
+        manual_state,
+        dict(problem),
+        fixture_curriculum,
+        resolve_play_mode(manual_state.username),
+    )
     session.ACTIVE_SESSIONS[manual_state.session_id] = manual_state
     assert manual_state.current_input_mode == "input"
 
@@ -505,7 +512,12 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(
     auto_state = _fresh_state(fixture_curriculum)
     auto_state.username = manual_state.username
     auto_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    submission_cycle.begin_problem(auto_state, dict(problem), fixture_curriculum)
+    submission_cycle.begin_problem(
+        auto_state,
+        dict(problem),
+        fixture_curriculum,
+        resolve_play_mode(auto_state.username),
+    )
     session.ACTIVE_SESSIONS[auto_state.session_id] = auto_state
 
     auto_response = session.auto_solve_problem(
@@ -533,7 +545,9 @@ def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curricu
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    submission_cycle.begin_problem(state, problem, fixture_curriculum)
+    submission_cycle.begin_problem(
+        state, problem, fixture_curriculum, resolve_play_mode(state.username)
+    )
     session.ACTIVE_SESSIONS[state.session_id] = state
     db.save_user(state.username, state.model_copy(update={"streak": 0}))
 

@@ -100,7 +100,7 @@ def test_hard_reset_wipes_progress_and_persists(fixture_curriculum: Curriculum):
         frontier_level=3,
     )
 
-    session_state.hard_reset(state, fixture_curriculum)
+    session_state.hard_reset(state, fixture_curriculum, StudentPlayMode())
 
     assert state.xp == 0
     assert state.streak == 0
@@ -232,9 +232,11 @@ def test_submission_cycle_clear_entry_points_match_public_helper(
         state = _fresh_state(fixture_curriculum)
         _polluted_submission_cycle_state(state, fixture_curriculum)
         if entry_point == "navigate_to":
-            submission_cycle.navigate_to(state, curriculum=fixture_curriculum)
+            submission_cycle.navigate_to(
+                state, StudentPlayMode(), curriculum=fixture_curriculum
+            )
         else:
-            session_state.hard_reset(state, fixture_curriculum)
+            session_state.hard_reset(state, fixture_curriculum, StudentPlayMode())
 
     assert _submission_cycle_field_snapshot(state) == expected
 
@@ -301,36 +303,6 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
     )
-
-
-def test_persist_resolves_default_play_mode_when_not_provided(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.username = "Antoni"  # admin username per config.ADMIN_USERNAMES
-    state.xp = 200
-    state.streak = 4
-    db.save_user(
-        state.username,
-        SessionState(
-            username=state.username,
-            xp=50,
-            streak=0,
-            chapter_frontiers={
-                CHAPTER_ALPHA: ChapterFrontier(
-                    frontier_topic_id=TOPIC_MULTI,
-                    frontier_level=1,
-                )
-            },
-        ),
-    )
-
-    session_state.persist(state)
-
-    loaded = db.load_user(state.username)
-    assert loaded is not None
-    assert loaded["xp"] == 50
-    assert loaded["streak"] == 0
 
 
 def test_persist_matches_manual_build_and_sync_sequence_for_student_and_admin(

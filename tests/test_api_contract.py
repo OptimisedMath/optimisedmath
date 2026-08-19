@@ -439,6 +439,45 @@ def test_locked_navigation_is_rejected():
     assert exc.value.status_code == 403
 
 
+def test_start_session_admin_and_student_diverge_on_effective_frontier(
+    fixture_curriculum,
+):
+    """An admin's effective full unlock must apply from the first served state,
+    never a Student-mode default carried over from an unresolved play mode."""
+    import backend.config as config
+    from backend.curriculum import set_curriculum
+    from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI, TOPIC_RADIO
+
+    set_curriculum(fixture_curriculum)
+    try:
+        admin_username = next(iter(config.ADMIN_USERNAMES))
+        admin_response = run(
+            main.session_start(main.SessionStartRequest(username=admin_username))
+        )
+        student_response = run(
+            main.session_start(
+                main.SessionStartRequest(username=f"student-{uuid.uuid4()}")
+            )
+        )
+    finally:
+        set_curriculum(None)
+
+    assert admin_response.selected_chapter_id == CHAPTER_ALPHA
+    assert student_response.selected_chapter_id == CHAPTER_ALPHA
+
+    assert admin_response.admin_mode is True
+    admin_topic_ids = {
+        topic.topic_id for topic in admin_response.navigation.available_topics
+    }
+    assert admin_topic_ids == {TOPIC_MULTI, TOPIC_RADIO}
+
+    assert student_response.admin_mode is False
+    student_topic_ids = {
+        topic.topic_id for topic in student_response.navigation.available_topics
+    }
+    assert student_topic_ids == {TOPIC_MULTI}
+
+
 def test_radio_only_topic_keeps_radio_input():
     curriculum = resolve_curriculum()
     disabled_topic = None

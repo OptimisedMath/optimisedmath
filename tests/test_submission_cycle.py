@@ -55,6 +55,7 @@ def test_navigate_to_updates_selection_and_resets_submission_cycle(
 
     submission_cycle.navigate_to(
         state,
+        StudentPlayMode(),
         topic_id=TOPIC_RADIO,
         level=1,
         curriculum=fixture_curriculum,
@@ -83,7 +84,9 @@ def test_begin_problem_resets_submission_state_and_sets_problem(
     state.feedback_msg = "wrong"
     state.level_completed = True
 
-    submission_cycle.begin_problem(state, problem, fixture_curriculum)
+    submission_cycle.begin_problem(
+        state, problem, fixture_curriculum, StudentPlayMode()
+    )
 
     assert state.problem_answered is False
     assert state.feedback_type is None
@@ -101,7 +104,11 @@ def test_begin_problem_trims_recent_fingerprints(fixture_curriculum: Curriculum)
         f"fp-{index}" for index in range(config.MAX_RETRIES_DUPLICATE_CHECK + 3)
     ]
     submission_cycle.begin_problem(
-        state, problem, fixture_curriculum, recent_fingerprints=fingerprints
+        state,
+        problem,
+        fixture_curriculum,
+        StudentPlayMode(),
+        recent_fingerprints=fingerprints,
     )
 
     assert len(state.recent_problem_fingerprints) == config.MAX_RETRIES_DUPLICATE_CHECK
@@ -116,7 +123,9 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
     problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
 
     state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    submission_cycle.begin_problem(state, problem, fixture_curriculum)
+    submission_cycle.begin_problem(
+        state, problem, fixture_curriculum, StudentPlayMode()
+    )
 
     assert state.current_input_mode == "input"
 

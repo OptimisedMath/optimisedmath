@@ -124,26 +124,27 @@ def public_problem(
 def respond(
     state: SessionState,
     curriculum: Curriculum,
-    play_mode: PlayMode | None = None,
+    play_mode: PlayMode,
 ) -> SessionResponse:
     """Build the client SessionResponse by selecting fields from persisted state."""
-    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
     current_problem = (
-        public_problem(state.current_problem, state, mode)
+        public_problem(state.current_problem, state, play_mode)
         if state.current_problem
         else None
     )
     can_submit = bool(current_problem and not state.problem_answered)
     can_next_problem = bool(state.problem_answered)
-    snapshot = navigation_snapshot.build_navigation_snapshot(state, curriculum, mode)
-    navigation_view = navigation_snapshot.build_navigation_view(snapshot)
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    navigation_view = navigation_snapshot.build_navigation_view(nav_snapshot)
     return SessionResponse.from_state(
         state,
         current_problem=current_problem,
         can_submit=can_submit,
         can_next_problem=can_next_problem,
         streak_meter=streak_meter_for(state),
-        admin_mode=mode.is_admin,
+        admin_mode=play_mode.is_admin,
         navigation=navigation_view,
     )
 
@@ -167,7 +168,6 @@ def _resolve_navigation_target_or_raise(
 
 def start_session(request: SessionStartRequest) -> SessionResponse:
     """Create a session, load user progress, and return SessionResponse with navigation."""
-    play_mode = resolve_play_mode(request.username)
     curriculum = resolve_curriculum()
 
     if not curriculum.chapter_ids():
@@ -176,6 +176,7 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     state = SessionState()
     session_state.init_defaults(state, curriculum)
     session_state.load_profile(state, request.username, curriculum)
+    play_mode = resolve_play_mode(state.username)
     navigation_resolve.clamp_selected_level(state, curriculum)
 
     if (
