@@ -198,7 +198,11 @@ def hard_reset(
     *,
     should_persist: bool = True,
 ) -> None:
-    """Wipes all progress and resets to initial state."""
+    """Wipes all progress and resets to initial state.
+
+    ``should_persist=False`` lets a caller that persists once for a larger unit
+    of work (e.g. ``load_profile`` during Session start) skip the write here.
+    """
     chapter_ids = list(curriculum.chapter_ids())
     state.xp = 0
     state.chapter_frontiers = {
