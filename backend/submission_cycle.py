@@ -84,8 +84,15 @@ def navigate_to(
     level: int | None = None,
     curriculum: Curriculum | None = None,
     play_mode: PlayMode | None = None,
+    *,
+    persist: bool = True,
 ) -> None:
-    """Navigate to a different chapter/topic/level, resetting submission cycle and syncing."""
+    """Navigate to a different chapter/topic/level, resetting submission cycle and syncing.
+
+    ``persist=False`` lets a caller that persists once for a larger unit of work
+    (e.g. Session start) update Selected chapter/topic/level without an
+    intermediate DB write.
+    """
     if chapter_id is not None:
         state.selected_chapter_id = chapter_id
     if topic_id is not None:
@@ -93,7 +100,8 @@ def navigate_to(
     if level is not None:
         state.selected_level = level
     session_state.clear_submission_cycle_fields(state, curriculum)
-    session_state.persist(state, play_mode)
+    if persist:
+        session_state.persist(state, play_mode)
 
 
 def begin_problem(

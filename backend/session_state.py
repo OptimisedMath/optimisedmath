@@ -167,8 +167,15 @@ def load_profile(
     state: SessionState,
     username: str,
     curriculum: Curriculum,
+    *,
+    should_persist: bool = True,
 ) -> None:
-    """Loads user data from DB or initializes a fresh profile."""
+    """Loads user data from DB or initializes a fresh profile.
+
+    ``should_persist=False`` lets a caller that persists once for a larger unit
+    of work (e.g. Session start) skip the write ``hard_reset`` would otherwise
+    make for a brand-new user.
+    """
     state.username = username
     user_data = db.load_user(username)
 
@@ -181,13 +188,15 @@ def load_profile(
         state.chapter_frontiers = user_data["chapter_frontiers"]
         clear_submission_cycle_fields(state, curriculum)
     else:
-        hard_reset(state, curriculum)
+        hard_reset(state, curriculum, should_persist=should_persist)
 
 
 def hard_reset(
     state: SessionState,
     curriculum: Curriculum,
     play_mode: PlayMode | None = None,
+    *,
+    should_persist: bool = True,
 ) -> None:
     """Wipes all progress and resets to initial state."""
     chapter_ids = list(curriculum.chapter_ids())
@@ -205,4 +214,5 @@ def hard_reset(
     )
     state.selected_level = 1
     clear_submission_cycle_fields(state, curriculum)
-    persist(state, play_mode)
+    if should_persist:
+        persist(state, play_mode)

@@ -1,12 +1,14 @@
 """FastAPI integration tests for session flow, grading, and API contract."""
 
 import asyncio
+import sqlite3
 import uuid
 
 import pytest
 from fastapi import HTTPException
 
 import backend.main as main
+import backend.session as session
 import backend.submission as submission
 from backend.curriculum import resolve_curriculum
 from backend.models import ChapterFrontier, SessionState
@@ -704,3 +706,68 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     eval_result = grade(">", problem, is_input_mode=False)
     assert eval_result.get("trap_id") == "t1"
     assert eval_result.get("feedback_msg") == branch_message
+
+
+def test_start_session_persists_problem_start_time():
+    """The start clock must reach SQLite from the start path, not just memory."""
+    response = run(
+        main.session_start(
+            main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
+        )
+    )
+
+    persisted = main.db.load_session(response.session_id)
+
+    assert persisted is not None
+    assert persisted.problem_start_time is not None
+
+
+def test_start_session_survives_recovery_from_db():
+    """A Session recovered from SQLite after the in-memory cache drops keeps its start clock."""
+    response = run(
+        main.session_start(
+            main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
+        )
+    )
+    original_start_time = main.ACTIVE_SESSIONS[response.session_id].problem_start_time
+    assert original_start_time is not None
+
+    main.ACTIVE_SESSIONS.clear()
+    recovered = session.get_session(response.session_id)
+
+    assert recovered.problem_start_time == original_start_time
+
+
+def test_start_next_submit_logs_time_spent_telemetry():
+    """Submitting right after start and Next problem must log a populated time_spent field."""
+    response = run(
+        main.session_start(
+            main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
+        )
+    )
+    problem_response = run(main.problem_next(response.session_id))
+    answer = problem_response.problem["answer_options"][0]
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=response.session_id,
+                problem_id=problem_response.problem["problem_id"],
+                user_input=answer,
+            )
+        )
+    )
+
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT time_spent_seconds FROM telemetry_logs
+            WHERE session_id = ?
+            ORDER BY log_id DESC
+            LIMIT 1
+            """,
+            (response.session_id,),
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] is not None
