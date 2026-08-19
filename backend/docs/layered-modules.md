@@ -7,9 +7,9 @@ Layers stack top-to-bottom. Each layer may import from layers below, from `model
 | ----------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | HTTP              | `main.py`                               | Routes, CORS, exception → HTTP status                                                                                 |
 | Session use-cases | `session.py`                            | Start, navigate, reset, submit, next problem; in-memory cache; `respond()` owns the response view (`SessionResponse`) |
-| Submission cycle  | `submission_cycle.py`                   | Begin-problem, post-Topic-completion Navigation, chapter-end fallback; forwards cycle reset to `session_state`        |
+| Submission cycle  | `submission_cycle.py`                   | Begin-problem, post-Topic-completion Navigation, chapter-end fallback; forwards cycle flag writes to `session_state`  |
 | Submission        | `submission.py`                         | Grade → telemetry → progression → persist for one Submission                                                          |
-| Session state     | `session_state.py`                      | Load/save/mutate `SessionState`; sync to DB; owns Submission-cycle field clearing                                     |
+| Session state     | `session_state.py`                      | Load/save/mutate `SessionState`; sync to DB; sole owner of the Submission-cycle completion flags (set and clear)      |
 | Progression       | `progression.py`                        | Streak, XP, level/topic progression per Submission (pure)                                                             |
 | Access            | `unlock.py`                             | Reachable chapter/topic/level (pure)                                                                                  |
 | Grading           | `answer_grading.py`                     | Correct / Trap / Wrong / soft error (pure)                                                                            |

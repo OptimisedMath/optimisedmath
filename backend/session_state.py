@@ -75,11 +75,20 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
 
 
 def clear_submission_cycle_fields(
-    state: SessionState, curriculum: Curriculum | None = None
+    state: SessionState,
+    curriculum: Curriculum | None = None,
+    *,
+    reset_streak: bool = True,
 ) -> None:
-    """Clear Submission-cycle fields on ``state`` and re-resolve input mode when possible."""
-    state.streak = 0
-    state.flawless_eligible = True
+    """Clear Submission-cycle fields on ``state`` and re-resolve input mode when possible.
+
+    Sole owner of clearing these fields — ``reset_streak=False`` is the begin-problem
+    variant that keeps the running streak, used when serving the next Problem within
+    the same cycle rather than navigating away from it.
+    """
+    if reset_streak:
+        state.streak = 0
+        state.flawless_eligible = True
     state.problem_answered = False
     state.topic_completed = False
     state.level_completed = False
@@ -90,6 +99,16 @@ def clear_submission_cycle_fields(
         state.current_input_mode = resolve_input_mode(state, curriculum)
     else:
         state.current_input_mode = "radio"
+
+
+def record_completion(
+    state: SessionState, *, level_completed: bool, topic_completed: bool
+) -> None:
+    """Set Level/Topic completion flags from one graded Submission's outcome."""
+    if level_completed:
+        state.level_completed = True
+    if topic_completed:
+        state.topic_completed = True
 
 
 def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan:
