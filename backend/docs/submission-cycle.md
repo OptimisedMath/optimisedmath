@@ -9,12 +9,12 @@
 **Public API:**
 
 
-| Function                                                                                       | Seam                                                                          |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `navigate_to(state, play_mode, chapter_id=None, topic_id=None, level=None, curriculum=None)`     | Toolbar Navigation: update selection, reset cycle, persist                    |
-| `begin_problem(state, problem, curriculum, play_mode, *, recent_fingerprints=None)`              | Apply state mutations for a newly generated problem and persist               |
-| `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode)`                         | Generate at selection, dedupe fingerprints, begin problem                     |
-| `resolve_next_problem(state, curriculum, chapter_id, topic_id, play_mode)`                       | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem |
+| Function                                                                                      | Seam                                                                          |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `navigate_to(state, play_mode, chapter_id=None, topic_id=None, level=None, curriculum=None)` | Toolbar Navigation: update selection, reset cycle, persist                    |
+| `begin_problem(state, problem, curriculum, play_mode, *, recent_fingerprints=None)`          | Apply state mutations for a newly generated problem and persist               |
+| `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode)`                     | Generate at selection, dedupe fingerprints, begin problem                     |
+| `resolve_next_problem(state, curriculum, chapter_id, topic_id, play_mode)`                   | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem |
 
 `play_mode` is required everywhere above — resolved once per request at the session use-case edge (`session.py`) and passed down; no callee re-derives it from `state.username` as a fallback.
 

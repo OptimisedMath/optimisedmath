@@ -195,11 +195,11 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
         )
         submission_cycle.navigate_to(
             state,
+            play_mode,
             chapter_id=chapter_id,
             topic_id=topic_id,
             level=level,
             curriculum=curriculum,
-            play_mode=play_mode,
         )
 
     ACTIVE_SESSIONS[state.session_id] = state
@@ -224,11 +224,11 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
 
     submission_cycle.navigate_to(
         state,
+        play_mode,
         chapter_id=chapter_id,
         topic_id=topic_id,
         level=selected_level,
         curriculum=curriculum,
-        play_mode=play_mode,
     )
 
     return respond(state, curriculum, play_mode)
