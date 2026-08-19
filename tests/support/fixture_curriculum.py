@@ -51,18 +51,7 @@ def build_fixture_curriculum() -> Curriculum:
         keyboard_type="fraction",
         raw={},
         topics_meta=topics_alpha,
-        topics_by_id={
-            TOPIC_MULTI: {
-                "name": "Multi Level Topic",
-                "max_level": 2,
-                "radio_only": False,
-            },
-            TOPIC_RADIO: {
-                "name": "Radio Only Topic",
-                "max_level": 1,
-                "radio_only": True,
-            },
-        },
+        topics_by_id={topic["topic_id"]: topic for topic in topics_alpha},
         level_configs={
             (TOPIC_MULTI, 1): LevelConfig(
                 level=1,
@@ -104,13 +93,7 @@ def build_fixture_curriculum() -> Curriculum:
         keyboard_type="default",
         raw={},
         topics_meta=topics_beta,
-        topics_by_id={
-            TOPIC_SINGLE: {
-                "name": "Single Level Topic",
-                "max_level": 1,
-                "radio_only": False,
-            },
-        },
+        topics_by_id={topic["topic_id"]: topic for topic in topics_beta},
         level_configs={
             (TOPIC_SINGLE, 1): LevelConfig(
                 level=1,

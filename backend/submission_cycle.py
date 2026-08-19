@@ -183,7 +183,7 @@ def resolve_next_problem(
         chapter_id = next_chapter_id
         topic_id = next_topic_id
 
-    if curriculum.topic(chapter_id, topic_id) is None:
+    if curriculum.topic_by_id(chapter_id, topic_id) is None:
         raise TopicNotFoundError(f"Topic id {topic_id} not found in curriculum")
 
     return serve_next_problem(

@@ -31,14 +31,6 @@ class TopicDict(TypedDict):
     radio_only: bool
 
 
-class TopicMeta(TypedDict):
-    """Navigation metadata for one topic within a chapter."""
-
-    name: str
-    max_level: int
-    radio_only: bool
-
-
 @dataclass(frozen=True)
 class LevelConfig:
     """Precomputed level metadata for problem generation."""
@@ -59,7 +51,7 @@ class ChapterBundle:
     keyboard_type: str
     raw: dict[str, Any]
     topics_meta: tuple[TopicDict, ...]
-    topics_by_id: dict[int, TopicMeta]
+    topics_by_id: dict[int, TopicDict]
     level_configs: dict[tuple[int, int], LevelConfig]
     topic_name_by_id: dict[int, str]
 
@@ -134,15 +126,8 @@ def _derive_topics_meta(data: dict[str, Any]) -> list[TopicDict]:
     return chapter_topics
 
 
-def _derive_topics_by_id(topics_meta: list[TopicDict]) -> dict[int, TopicMeta]:
-    return {
-        int(topic_entry["topic_id"]): {
-            "name": topic_entry["name"],
-            "max_level": int(topic_entry["max_level"]),
-            "radio_only": bool(topic_entry.get("radio_only", False)),
-        }
-        for topic_entry in topics_meta
-    }
+def _derive_topics_by_id(topics_meta: list[TopicDict]) -> dict[int, TopicDict]:
+    return {int(topic_entry["topic_id"]): topic_entry for topic_entry in topics_meta}
 
 
 def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[int, int], LevelConfig]:

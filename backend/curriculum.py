@@ -9,7 +9,6 @@ from backend.curriculum_loader import (
     CurriculumStore,
     LevelConfig,
     TopicDict,
-    TopicMeta,
     load_curriculum_store,
 )
 from backend.models import ChapterSummary as ChapterSummaryResponse
@@ -45,10 +44,21 @@ class Curriculum:
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
         return bundle.topics_meta if bundle is not None else ()
 
-    def topic(self, chapter_id: int, topic_id: int) -> TopicMeta | None:
+    def topic_by_id(self, chapter_id: int, topic_id: int) -> TopicDict | None:
         """Topic lookup by id within a Chapter (name, max level, radio-only)."""
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
         return bundle.topics_by_id.get(topic_id) if bundle is not None else None
+
+    def clamp_level(
+        self, level: int | None, chapter_id: int, topic_id: int | None
+    ) -> int:
+        """Return level capped to the topic's max_level (defensive for stale saves)."""
+        effective = level if level is not None else 1
+        if topic_id is None:
+            return min(effective, 1)
+        meta = self.topic_by_id(chapter_id, topic_id)
+        max_level = int(meta["max_level"]) if meta else 1
+        return min(effective, max_level)
 
     def chapter_name(self, chapter_id: int) -> str | None:
         """Chapter display name by id."""
@@ -56,7 +66,7 @@ class Curriculum:
 
     def topic_name(self, chapter_id: int, topic_id: int) -> str | None:
         """Topic display name by Chapter and id."""
-        meta = self.topic(chapter_id, topic_id)
+        meta = self.topic_by_id(chapter_id, topic_id)
         return meta["name"] if meta else None
 
     def level_config(

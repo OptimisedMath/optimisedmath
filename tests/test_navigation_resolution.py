@@ -76,7 +76,9 @@ def test_resolve_topic_change_resets_level_for_completed_topic(
 
 def test_clamp_selected_level_caps_stale_level(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
-    max_level = int(fixture_curriculum.topic(CHAPTER_ALPHA, TOPIC_MULTI)["max_level"])
+    max_level = int(
+        fixture_curriculum.topic_by_id(CHAPTER_ALPHA, TOPIC_MULTI)["max_level"]
+    )
 
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_MULTI

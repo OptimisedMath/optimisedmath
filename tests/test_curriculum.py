@@ -47,16 +47,17 @@ def test_fixture_curriculum_has_required_shape(fixture_curriculum: Curriculum):
 
     alpha_topics = fixture_curriculum.topics(CHAPTER_ALPHA)
     assert [t["topic_id"] for t in alpha_topics] == [TOPIC_MULTI, TOPIC_RADIO]
-    radio = fixture_curriculum.topic(CHAPTER_ALPHA, TOPIC_RADIO)
+    radio = fixture_curriculum.topic_by_id(CHAPTER_ALPHA, TOPIC_RADIO)
     assert radio is not None
     assert radio["radio_only"] is True
     assert radio["max_level"] == 1
+    assert radio["topic_id"] == TOPIC_RADIO
 
-    multi = fixture_curriculum.topic(CHAPTER_ALPHA, TOPIC_MULTI)
+    multi = fixture_curriculum.topic_by_id(CHAPTER_ALPHA, TOPIC_MULTI)
     assert multi is not None
     assert multi["max_level"] == 2
 
-    single = fixture_curriculum.topic(CHAPTER_BETA, TOPIC_SINGLE)
+    single = fixture_curriculum.topic_by_id(CHAPTER_BETA, TOPIC_SINGLE)
     assert single is not None
     assert single["max_level"] == 1
 
@@ -103,3 +104,20 @@ def test_get_curriculum_response_takes_curriculum(fixture_curriculum: Curriculum
     response = get_curriculum_response(fixture_curriculum)
     assert len(response.chapters) == 2
     assert response.chapters[0].topics[0].name == "Multi Level Topic"
+
+
+def test_topic_by_id_missing_topic_returns_none(fixture_curriculum: Curriculum):
+    assert fixture_curriculum.topic_by_id(CHAPTER_ALPHA, 999) is None
+    assert fixture_curriculum.topic_by_id(999, TOPIC_MULTI) is None
+
+
+def test_clamp_level_caps_to_topic_max(fixture_curriculum: Curriculum):
+    assert fixture_curriculum.clamp_level(99, CHAPTER_ALPHA, TOPIC_MULTI) == 2
+
+
+def test_clamp_level_null_topic_caps_to_one(fixture_curriculum: Curriculum):
+    assert fixture_curriculum.clamp_level(99, CHAPTER_ALPHA, None) == 1
+
+
+def test_clamp_level_null_level_defaults_to_one(fixture_curriculum: Curriculum):
+    assert fixture_curriculum.clamp_level(None, CHAPTER_ALPHA, TOPIC_MULTI) == 1

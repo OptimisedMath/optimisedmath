@@ -23,34 +23,6 @@ from backend.unlock import (
 )
 
 
-def _topics_for_chapter(curriculum: Curriculum, chapter_id: int) -> list[TopicDict]:
-    return list(curriculum.topics(chapter_id))
-
-
-def _find_topic_by_id(
-    curriculum: Curriculum, chapter_id: int, topic_id: int
-) -> TopicDict | None:
-    for topic_entry in curriculum.topics(chapter_id):
-        if int(topic_entry["topic_id"]) == topic_id:
-            return topic_entry
-    return None
-
-
-def _clamp_level(
-    level: int | None,
-    curriculum: Curriculum,
-    chapter_id: int,
-    topic_id: int | None,
-) -> int:
-    """Return level capped to the topic's max_level (defensive for stale saves)."""
-    effective = level if level is not None else 1
-    if topic_id is None:
-        return min(effective, 1)
-    meta = curriculum.topic(chapter_id, topic_id)
-    max_level = int(meta["max_level"]) if meta else 1
-    return min(effective, max_level)
-
-
 def _get_level_options(level_limit_value: int) -> list[int]:
     return list(range(1, max(level_limit_value, 1) + 1))
 
@@ -168,7 +140,7 @@ class NavigationSnapshot:
     selected_chapter_id: int
     selected_topic_id: int
     selected_level: int
-    active_topic: TopicDict | None
+    selected_topic: TopicDict | None
     current: ChapterNavigationContext
     chapter_summaries: tuple[ChapterSummary, ...]
     _state: SessionState
@@ -207,7 +179,7 @@ def _build_chapter_context(
     play_mode: PlayMode,
     chapter_id: int,
 ) -> ChapterNavigationContext:
-    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = list(curriculum.topics(chapter_id))
     frontier_record = state.chapter_frontiers.get(chapter_id)
     is_admin = play_mode.is_admin
     effective = play_mode.effective_frontier(chapter_topics, frontier_record)
@@ -250,24 +222,24 @@ def build_navigation_snapshot(
     selected_chapter_id = state.selected_chapter_id or (
         chapter_ids[0] if chapter_ids else 0
     )
-    chapter_topics = _topics_for_chapter(curriculum, selected_chapter_id)
+    chapter_topics = list(curriculum.topics(selected_chapter_id))
     default_topic_id = first_topic_id(chapter_topics)
     selected_topic_id = state.selected_topic_id or default_topic_id
-    active_topic = _find_topic_by_id(
-        curriculum, selected_chapter_id, selected_topic_id
-    ) or (chapter_topics[0] if chapter_topics else None)
-    active_topic_id = (
-        int(active_topic["topic_id"]) if active_topic is not None else None
+    selected_topic = curriculum.topic_by_id(selected_chapter_id, selected_topic_id) or (
+        chapter_topics[0] if chapter_topics else None
     )
-    selected_level = _clamp_level(
-        state.selected_level, curriculum, selected_chapter_id, active_topic_id
+    resolved_topic_id = (
+        int(selected_topic["topic_id"]) if selected_topic is not None else None
+    )
+    selected_level = curriculum.clamp_level(
+        state.selected_level, selected_chapter_id, resolved_topic_id
     )
     current = _build_chapter_context(state, curriculum, play_mode, selected_chapter_id)
     return NavigationSnapshot(
         selected_chapter_id=selected_chapter_id,
         selected_topic_id=selected_topic_id,
         selected_level=selected_level,
-        active_topic=active_topic,
+        selected_topic=selected_topic,
         current=current,
         chapter_summaries=curriculum.chapters(),
         _state=state,
@@ -276,12 +248,12 @@ def build_navigation_snapshot(
     )
 
 
-def build_navigation_view(snapshot: NavigationSnapshot) -> NavigationView:
+def build_navigation_view(nav: NavigationSnapshot) -> NavigationView:
     """Map a navigation snapshot to the API NavigationView DTO."""
-    ctx = snapshot.current
+    ctx = nav.current
     available_chapters = [
         NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
-        for chapter in snapshot.chapter_summaries
+        for chapter in nav.chapter_summaries
     ]
 
     available_topics_view = [
@@ -294,26 +266,24 @@ def build_navigation_view(snapshot: NavigationSnapshot) -> NavigationView:
 
     available_levels = (
         ctx.level_options_for(
-            snapshot.selected_topic_id,
-            int(snapshot.active_topic["max_level"]),
+            nav.selected_topic_id,
+            int(nav.selected_topic["max_level"]),
         )
-        if snapshot.active_topic
+        if nav.selected_topic
         else [1]
     )
 
-    radio_only = bool(snapshot.active_topic and snapshot.active_topic.get("radio_only"))
+    radio_only = bool(nav.selected_topic and nav.selected_topic.get("radio_only"))
 
     return NavigationView(
         available_chapters=available_chapters,
         current_topic_name=(
-            str(snapshot.active_topic["name"]) if snapshot.active_topic else None
+            str(nav.selected_topic["name"]) if nav.selected_topic else None
         ),
         available_topics=available_topics_view,
         available_levels=available_levels,
-        has_next_unlocked_topic=ctx.has_next_unlocked_topic(snapshot.selected_topic_id),
+        has_next_unlocked_topic=ctx.has_next_unlocked_topic(nav.selected_topic_id),
         radio_only=radio_only,
         chapter_completion=ctx.chapter_progress(),
-        topic_completion=ctx.topic_progress(
-            snapshot.selected_topic_id, snapshot.selected_level
-        ),
+        topic_completion=ctx.topic_progress(nav.selected_topic_id, nav.selected_level),
     )

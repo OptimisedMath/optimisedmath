@@ -110,7 +110,7 @@ def _build_submission_context(
     full_progression: bool,
 ) -> SubmissionContext:
     prog = state.chapter_frontiers[chapter_id]
-    topic_meta = curriculum.topic(chapter_id, topic_id)
+    topic_meta = curriculum.topic_by_id(chapter_id, topic_id)
     if topic_meta is None:
         raise RuntimeError(f"Topic id {topic_id} not found in chapter {chapter_id}")
     next_topic_ids = tuple(

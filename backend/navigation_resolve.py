@@ -4,12 +4,7 @@ from __future__ import annotations
 
 from backend.curriculum import Curriculum
 from backend.models import SessionNavigateRequest, SessionState
-from backend.navigation_snapshot import (
-    NavigationSnapshot,
-    _clamp_level,
-    _find_topic_by_id,
-    _topics_for_chapter,
-)
+from backend.navigation_snapshot import NavigationSnapshot
 from backend.unlock import first_topic_id
 
 
@@ -18,17 +13,14 @@ def clamp_selected_level(state: SessionState, curriculum: Curriculum) -> None:
     chapter_id = state.selected_chapter_id
     if chapter_id is None:
         return
-    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = list(curriculum.topics(chapter_id))
     if not chapter_topics:
         return
     first_topic_entry = chapter_topics[0]
     topic_id = state.selected_topic_id or first_topic_id(chapter_topics)
-    topic_entry = (
-        _find_topic_by_id(curriculum, chapter_id, topic_id) or first_topic_entry
-    )
-    state.selected_level = _clamp_level(
+    topic_entry = curriculum.topic_by_id(chapter_id, topic_id) or first_topic_entry
+    state.selected_level = curriculum.clamp_level(
         state.selected_level,
-        curriculum,
         chapter_id,
         int(topic_entry["topic_id"]),
     )
@@ -42,17 +34,17 @@ def resolve_chapter_change(
     curriculum = snapshot.curriculum()
     ctx = snapshot.chapter_context(next_chapter_id)
     next_topic_id, next_level = ctx.implicit_chapter_landing
-    next_chapter_topics = _topics_for_chapter(curriculum, next_chapter_id)
-    next_topic_entry = _find_topic_by_id(
-        curriculum, next_chapter_id, next_topic_id
-    ) or (next_chapter_topics[0] if next_chapter_topics else None)
+    next_chapter_topics = list(curriculum.topics(next_chapter_id))
+    next_topic_entry = curriculum.topic_by_id(next_chapter_id, next_topic_id) or (
+        next_chapter_topics[0] if next_chapter_topics else None
+    )
     next_topic_for_clamp = (
         int(next_topic_entry["topic_id"]) if next_topic_entry is not None else None
     )
     return (
         next_chapter_id,
         next_topic_id,
-        _clamp_level(next_level, curriculum, next_chapter_id, next_topic_for_clamp),
+        curriculum.clamp_level(next_level, next_chapter_id, next_topic_for_clamp),
     )
 
 
@@ -65,9 +57,7 @@ def resolve_topic_change(
     curriculum = snapshot.curriculum()
     ctx = snapshot.chapter_context(chapter_id)
     next_level = ctx.implicit_topic_landing(next_topic_id)
-    return next_topic_id, _clamp_level(
-        next_level, curriculum, chapter_id, next_topic_id
-    )
+    return next_topic_id, curriculum.clamp_level(next_level, chapter_id, next_topic_id)
 
 
 def resolve_navigate_request(
@@ -88,7 +78,7 @@ def resolve_navigate_request(
         chapter_id = chapters[0].chapter_id if chapters else 0
 
     curriculum = snapshot.curriculum()
-    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = list(curriculum.topics(chapter_id))
 
     if request.selected_topic_id is not None:
         topic_id, level = resolve_topic_change(
@@ -170,7 +160,7 @@ def resolve_navigation_target(
     if not curriculum.has_chapter(chapter_id):
         raise NavigationChapterNotFoundError(chapter_id)
 
-    chapter_topics = _topics_for_chapter(curriculum, chapter_id)
+    chapter_topics = list(curriculum.topics(chapter_id))
     if not chapter_topics:
         raise NavigationChapterHasNoTopicsError(chapter_id)
 
@@ -178,7 +168,7 @@ def resolve_navigation_target(
     if topic_id not in available_topic_ids:
         raise NavigationTopicNotFoundError(topic_id)
 
-    topic_meta = curriculum.topic(chapter_id, topic_id)
+    topic_meta = curriculum.topic_by_id(chapter_id, topic_id)
     if topic_meta is None:
         raise NavigationTopicNotFoundError(topic_id)
     max_level = int(topic_meta["max_level"])
