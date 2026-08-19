@@ -146,6 +146,10 @@ _Avoid_: Advance, continue, proceed
 Changing the Selected chapter, topic, or level — via the toolbar or as part of Next problem after topic completion.
 _Avoid_: Advance
 
+**Navigation snapshot**:
+The read model of what a Student can navigate to, built once from the Session and the Curriculum and used to render the toolbar and to validate a Navigation intent. Answers "which Chapters, Topics, and Levels are Reachable, and which is Selected" — it does not change the Session.
+_Avoid_: nav state, navigation model, snapshot (unqualified)
+
 **Submission cycle**:
 One Problem lifecycle within a Session: served → answered (Submission) → Feedback → Next problem. Navigation or Next problem starts a fresh cycle (streak resets).
 

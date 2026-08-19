@@ -16,7 +16,7 @@ Layers stack top-to-bottom. Each layer may import from layers below, from `model
 | Problems          | `problem_generation.py`                 | Generator registry, level assembly (pure)                                                                             |
 | Navigation        | `navigation_snapshot.py`                | Snapshot and view payload                                                                                             |
 | Navigation        | `navigation_resolve.py`                 | Intent clamping and validate-and-resolve                                                                              |
-| Curriculum        | `curriculum.py`, `curriculum_loader.py` | Read model + provider; YAML load, validate, cache                                                                     |
+| Curriculum        | `curriculum.py`, `curriculum_loader.py` | Read model + provider; YAML load, validate, cache; topic lookup and level clamping (ADR-0003)                                                                     |
 | Persistence       | `core/db.py`                            | SQLite read/write                                                                                                     |
 | Play mode         | `play_mode.py`                          | Admin vs student policy; effective Frontier; profile persistence (shared)                                             |
 | API contract      | `models.py`                             | Pydantic request/response models                                                                                      |
