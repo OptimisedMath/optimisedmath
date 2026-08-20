@@ -441,6 +441,39 @@ def test_locked_navigation_is_rejected():
     assert exc.value.status_code == 403
 
 
+def test_accepted_navigation_toolbar_agrees_with_target():
+    """The value that validates a Navigation intent and the value that renders the
+    toolbar in the same response must agree: an accepted target must show up as
+    Selected and Reachable in that response, not just accepted."""
+    import backend.config as config
+
+    admin_username = next(iter(config.ADMIN_USERNAMES))
+    state = run(main.session_start(main.SessionStartRequest(username=admin_username)))
+    chapter_id = state.selected_chapter_id
+    assert chapter_id is not None
+    chapter_topics = resolve_curriculum().topics(chapter_id)
+    if len(chapter_topics) < 2:
+        pytest.skip("Need at least two topics for navigation agreement test")
+
+    target_topic_id = int(chapter_topics[1]["topic_id"])
+
+    response = run(
+        main.session_navigate(
+            main.SessionNavigateRequest(
+                session_id=state.session_id,
+                selected_chapter_id=chapter_id,
+                selected_topic_id=target_topic_id,
+                selected_level=1,
+            )
+        )
+    )
+
+    assert response.selected_topic_id == target_topic_id
+    assert response.navigation is not None
+    available_topic_ids = [t.topic_id for t in response.navigation.available_topics]
+    assert target_topic_id in available_topic_ids
+
+
 def test_start_session_admin_and_student_diverge_on_effective_frontier(
     fixture_curriculum,
 ):
@@ -648,6 +681,26 @@ def test_next_problem_moves_to_frontier_topic_after_topic_completion():
     assert response.state.can_submit is True
     assert response.problem["problem_id"]
     assert response.state.navigation is not None
+
+
+def test_next_problem_reachable_set_includes_topic_unlocked_by_completion():
+    """The Navigation snapshot behind Next problem's response must be built after
+    auto-navigation moves the Session, not before — otherwise the just-unlocked
+    Topic would be missing from the toolbar it renders in the same response."""
+    state = _make_topic_completed_state(
+        chapter_id=10,
+        completed_topic_id=10,
+        completed_level=1,
+        frontier_topic_id=20,
+    )
+
+    response = run(main.problem_next(state.session_id))
+
+    assert response.state.navigation is not None
+    available_topic_ids = [
+        t.topic_id for t in response.state.navigation.available_topics
+    ]
+    assert available_topic_ids.count(20) == 1
 
 
 def test_next_problem_serves_unlocked_level_within_topic():

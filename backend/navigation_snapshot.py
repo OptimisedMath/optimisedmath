@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from copy import deepcopy
+from dataclasses import dataclass
+from types import MappingProxyType
+from typing import Mapping
 
 from backend.curriculum import Curriculum
 from backend.curriculum_loader import ChapterSummary, TopicDict
 from backend.models import (
+    ChapterFrontier,
     NavigationChapterOption,
     NavigationProgress,
     NavigationTopicOption,
@@ -135,58 +139,68 @@ class ChapterNavigationContext:
 
 @dataclass(frozen=True, slots=True)
 class NavigationSnapshot:
-    """One immutable navigation snapshot per request."""
+    """One immutable NavigationSnapshot per request.
+
+    Holds no live reference to a ``SessionState`` — every field a
+    ``ChapterNavigationContext`` needs is copied at construction, and every
+    Chapter's context is computed then, not on first access. Answers never
+    move regardless of what the Session this value was built from does
+    afterward, or which Chapter is asked about first.
+    """
 
     selected_chapter_id: int
     selected_topic_id: int
     selected_level: int
     selected_topic: TopicDict | None
-    current: ChapterNavigationContext
+    selected_chapter_context: ChapterNavigationContext
     chapter_summaries: tuple[ChapterSummary, ...]
-    _state: SessionState
     _curriculum: Curriculum
     _play_mode: PlayMode
-    _context_cache: dict[int, ChapterNavigationContext] = field(
-        default_factory=dict, repr=False, compare=False
-    )
+    _chapter_frontiers: Mapping[int, ChapterFrontier]
+    _chapter_contexts: Mapping[int, ChapterNavigationContext]
 
     def chapters(self) -> tuple[ChapterSummary, ...]:
-        """Chapter list captured when this snapshot was built."""
+        """Chapter list captured when this value was built."""
         return self.chapter_summaries
 
     def curriculum(self) -> Curriculum:
-        """Curriculum this snapshot was built from."""
+        """Curriculum this value was built from."""
         return self._curriculum
 
     def chapter_context(self, chapter_id: int) -> ChapterNavigationContext:
-        """Return the chapter context, memoized per chapter_id for this snapshot."""
-        cached = self._context_cache.get(chapter_id)
+        """Return the chapter context computed for this value.
+
+        Every Chapter in the Curriculum this value was built from has its
+        context precomputed; a ``chapter_id`` outside the Curriculum (e.g. an
+        unvalidated client request) falls back to a fresh empty-topics
+        context derived from the same frozen inputs, still with no read of
+        live Session state.
+        """
+        cached = self._chapter_contexts.get(chapter_id)
         if cached is not None:
             return cached
-        context = _build_chapter_context(
-            self._state,
+        return _build_chapter_context(
+            self._chapter_frontiers,
             self._curriculum,
             self._play_mode,
             chapter_id,
         )
-        self._context_cache[chapter_id] = context
-        return context
 
 
 def _build_chapter_context(
-    state: SessionState,
+    chapter_frontiers: Mapping[int, ChapterFrontier],
     curriculum: Curriculum,
     play_mode: PlayMode,
     chapter_id: int,
 ) -> ChapterNavigationContext:
     chapter_topics = list(curriculum.topics(chapter_id))
-    frontier_record = state.chapter_frontiers.get(chapter_id)
+    frontier_record = chapter_frontiers.get(chapter_id)
     is_admin = play_mode.is_admin
     effective = play_mode.effective_frontier(chapter_topics, frontier_record)
     accessible = tuple(accessible_topics(chapter_topics, effective))
     implicit_landing = _implicit_chapter_landing(is_admin, chapter_topics, effective)
     completed, total = _chapter_progress_counts(is_admin, chapter_topics, effective)
-    has_frontier_record = chapter_id in state.chapter_frontiers
+    has_frontier_record = chapter_id in chapter_frontiers
     implicit_topic_landings = {
         int(topic_entry["topic_id"]): _implicit_topic_landing(
             is_admin, int(topic_entry["topic_id"]), effective
@@ -212,12 +226,32 @@ def _build_chapter_context(
     )
 
 
+def _build_all_chapter_contexts(
+    chapter_frontiers: Mapping[int, ChapterFrontier],
+    curriculum: Curriculum,
+    play_mode: PlayMode,
+    chapter_ids: tuple[int, ...],
+) -> dict[int, ChapterNavigationContext]:
+    return {
+        chapter_id: _build_chapter_context(
+            chapter_frontiers, curriculum, play_mode, chapter_id
+        )
+        for chapter_id in chapter_ids
+    }
+
+
 def build_navigation_snapshot(
     state: SessionState,
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> NavigationSnapshot:
-    """Build one immutable navigation snapshot from session state and Curriculum."""
+    """Build one immutable NavigationSnapshot from session state and Curriculum.
+
+    Copies ``state.chapter_frontiers`` and computes every Chapter's context
+    now, so the returned value holds no live reference into ``state`` and
+    cannot see any mutation the caller makes to it afterward.
+    """
+    chapter_frontiers = deepcopy(state.chapter_frontiers)
     chapter_ids = curriculum.chapter_ids()
     selected_chapter_id = state.selected_chapter_id or (
         chapter_ids[0] if chapter_ids else 0
@@ -234,23 +268,31 @@ def build_navigation_snapshot(
     selected_level = curriculum.clamp_level(
         state.selected_level, selected_chapter_id, resolved_topic_id
     )
-    current = _build_chapter_context(state, curriculum, play_mode, selected_chapter_id)
+    chapter_contexts = _build_all_chapter_contexts(
+        chapter_frontiers, curriculum, play_mode, chapter_ids
+    )
+    selected_ctx = chapter_contexts.get(selected_chapter_id)
+    if selected_ctx is None:
+        selected_ctx = _build_chapter_context(
+            chapter_frontiers, curriculum, play_mode, selected_chapter_id
+        )
     return NavigationSnapshot(
         selected_chapter_id=selected_chapter_id,
         selected_topic_id=selected_topic_id,
         selected_level=selected_level,
         selected_topic=selected_topic,
-        current=current,
+        selected_chapter_context=selected_ctx,
         chapter_summaries=curriculum.chapters(),
-        _state=state,
         _curriculum=curriculum,
         _play_mode=play_mode,
+        _chapter_frontiers=MappingProxyType(chapter_frontiers),
+        _chapter_contexts=MappingProxyType(chapter_contexts),
     )
 
 
 def build_navigation_view(nav: NavigationSnapshot) -> NavigationView:
     """Map a navigation snapshot to the API NavigationView DTO."""
-    ctx = nav.current
+    ctx = nav.selected_chapter_context
     available_chapters = [
         NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)
         for chapter in nav.chapter_summaries

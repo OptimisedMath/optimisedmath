@@ -14,8 +14,8 @@
 | `navigate_to(state, play_mode, chapter_id=None, topic_id=None, level=None, curriculum=None, *, persist=True)` | Toolbar Navigation: update Selected chapter/topic/level, reset cycle, persist (`persist=False` for a caller doing one persist itself) |
 | `begin_problem(state, problem, curriculum, play_mode, *, recent_fingerprints=None)`                           | Apply state mutations for a newly generated problem and persist                                                                         |
 | `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode)`                                      | Generate at selection, dedupe fingerprints, begin problem                                                                               |
-| `resolve_next_problem(state, curriculum, chapter_id, topic_id, play_mode)`                                    | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem                                                           |
+| `resolve_next_problem(state, curriculum, chapter_id, topic_id, play_mode, nav_snapshot)`                      | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem                                                           |
 
-`play_mode` is required everywhere above — resolved once per request at the session use-case edge (`session.py`) and passed down; no callee re-derives it from `state.username` as a fallback.
+`play_mode` is required everywhere above — resolved once per request at the session use-case edge (`session.py`) and passed down; no callee re-derives it from `state.username` as a fallback. `resolve_next_problem`'s `nav_snapshot` follows the same rule: built once at the edge and threaded down into `_navigate_after_topic_completion`, which reads it and never builds its own.
 
 **Chapter-end fallback:** when Topic completion leaves no next unlocked Topic, return the already-completed Problem without regenerating. 

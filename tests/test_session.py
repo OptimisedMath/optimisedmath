@@ -6,11 +6,12 @@ import uuid
 import pytest
 
 import backend.config as config
+import backend.navigation_snapshot as navigation_snapshot
 import backend.session as session
 import backend.session_state as session_state
 import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum, resolve_curriculum, set_curriculum
-from backend.play_mode import StudentPlayMode, resolve_play_mode
+from backend.play_mode import PlayMode, StudentPlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import clean_latex
 from backend.models import (
@@ -55,6 +56,15 @@ def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
 def _chapter_id(state: SessionState) -> int:
     assert state.selected_chapter_id is not None
     return state.selected_chapter_id
+
+
+def _respond(
+    state: SessionState, curriculum: Curriculum, play_mode: PlayMode
+) -> SessionResponse:
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    return session.respond(state, play_mode, nav_snapshot)
 
 
 # --- Session lookup ---
@@ -103,7 +113,7 @@ def test_session_not_found_default_message():
 
 def test_respond_attaches_navigation(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum)
-    response = session.respond(state, fixture_curriculum, StudentPlayMode())
+    response = _respond(state, fixture_curriculum, StudentPlayMode())
 
     assert response.navigation is not None
     assert len(response.navigation.available_chapters) > 0
@@ -120,7 +130,7 @@ def test_respond_serves_full_streak_meter_at_level_completion_feedback(
     state.streak = 0
     state.max_streak = 3
 
-    response = session.respond(state, fixture_curriculum, StudentPlayMode())
+    response = _respond(state, fixture_curriculum, StudentPlayMode())
 
     assert response.streak_meter == 3
     assert "streak_meter" not in SessionState.model_fields
@@ -135,7 +145,7 @@ def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion(
     state.streak = 2
     state.max_streak = 3
 
-    response = session.respond(state, fixture_curriculum, StudentPlayMode())
+    response = _respond(state, fixture_curriculum, StudentPlayMode())
 
     assert response.streak_meter == 2
 
@@ -218,7 +228,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(
     state.problem_start_time = 123.0
     state.recent_problem_fingerprints = ["fp1"]
 
-    response = session.respond(state, fixture_curriculum, StudentPlayMode())
+    response = _respond(state, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
     assert not isinstance(state, SessionResponse)
@@ -255,7 +265,7 @@ def test_respond_builds_answered_problem_payload(fixture_curriculum: Curriculum)
     }
     state.problem_answered = True
 
-    response = session.respond(state, fixture_curriculum, StudentPlayMode())
+    response = _respond(state, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
     assert response.can_submit is False
@@ -277,7 +287,7 @@ def test_respond_uses_passed_play_mode_for_admin_reveal(fixture_curriculum: Curr
     }
     admin_mode = resolve_play_mode(next(iter(config.ADMIN_USERNAMES)))
 
-    response = session.respond(state, fixture_curriculum, play_mode=admin_mode)
+    response = _respond(state, fixture_curriculum, admin_mode)
 
     assert isinstance(response, SessionResponse)
     assert response.admin_mode is True
@@ -321,7 +331,7 @@ def test_legacy_stored_response_fields_load_and_serve_correct_payload(
 
     loaded = db.load_session(state.session_id)
     assert loaded is not None
-    response = session.respond(loaded, fixture_curriculum, StudentPlayMode())
+    response = _respond(loaded, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
     assert response.can_submit is True

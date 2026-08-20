@@ -123,10 +123,13 @@ def public_problem(
 
 def respond(
     state: SessionState,
-    curriculum: Curriculum,
     play_mode: PlayMode,
+    nav_snapshot: navigation_snapshot.NavigationSnapshot,
 ) -> SessionResponse:
-    """Build the client SessionResponse by selecting fields from persisted state."""
+    """Build the client SessionResponse from persisted state and an already-built
+    NavigationSnapshot — callers build the value once and pass it in, rather than
+    handing down the state/curriculum needed to build another one here.
+    """
     current_problem = (
         public_problem(state.current_problem, state, play_mode)
         if state.current_problem
@@ -134,9 +137,6 @@ def respond(
     )
     can_submit = bool(current_problem and not state.problem_answered)
     can_next_problem = bool(state.problem_answered)
-    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
-        state, curriculum, play_mode
-    )
     navigation_view = navigation_snapshot.build_navigation_view(nav_snapshot)
     return SessionResponse.from_state(
         state,
@@ -223,7 +223,10 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     """Create a session, load user progress, and return SessionResponse with navigation."""
     state, curriculum, play_mode = _build_started_state(request)
     ACTIVE_SESSIONS[state.session_id] = state
-    return respond(state, curriculum, play_mode)
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    return respond(state, play_mode, nav_snapshot)
 
 
 def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
@@ -231,12 +234,12 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
-    snapshot = navigation_snapshot.build_navigation_snapshot(
+    pre_navigation_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
     )
 
     chapter_id, topic_id, selected_level = _resolve_navigation_target_or_raise(
-        state, request, snapshot
+        state, request, pre_navigation_snapshot
     )
 
     submission_cycle.navigate_to(
@@ -248,7 +251,12 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
         curriculum=curriculum,
     )
 
-    return respond(state, curriculum, play_mode)
+    # What's Selected just moved — an explicit, named rebuild against the
+    # mutated state, not an incidental one buried inside respond().
+    post_navigation_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    return respond(state, play_mode, post_navigation_snapshot)
 
 
 def reset_session(request: SessionResetRequest) -> SessionResponse:
@@ -257,7 +265,10 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
     session_state.hard_reset(state, curriculum, play_mode)
-    return respond(state, curriculum, play_mode)
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    return respond(state, play_mode, nav_snapshot)
 
 
 def next_problem(session_id: str) -> ProblemResponse:
@@ -274,6 +285,9 @@ def next_problem(session_id: str) -> ProblemResponse:
     if not curriculum.has_chapter(chapter_id):
         raise SessionError(f"Chapter id {chapter_id} not found in curriculum")
 
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
     try:
         problem = submission_cycle.resolve_next_problem(
             state,
@@ -281,6 +295,7 @@ def next_problem(session_id: str) -> ProblemResponse:
             chapter_id,
             topic_id,
             play_mode=play_mode,
+            nav_snapshot=nav_snapshot,
         )
     except submission_cycle.NoActiveProblemError as exc:
         raise SessionError(str(exc)) from exc
@@ -289,9 +304,14 @@ def next_problem(session_id: str) -> ProblemResponse:
     except (ProblemGenerationError, submission_cycle.ProblemServeError) as exc:
         raise InternalError(str(exc)) from exc
 
+    # Post-Topic-completion auto-navigation may have moved what's Selected —
+    # an explicit, named rebuild against the mutated state for the response.
+    post_navigation_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
     return ProblemResponse(
         problem=public_problem(problem, state, play_mode),
-        state=respond(state, curriculum, play_mode),
+        state=respond(state, play_mode, post_navigation_snapshot),
     )
 
 
@@ -331,8 +351,11 @@ def _submit_active_problem(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
 
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
     return SubmissionResponse(
-        state=respond(state, curriculum, play_mode),
+        state=respond(state, play_mode, nav_snapshot),
         is_correct=eval_result.get("is_correct", False),
         feedback=state.feedback_msg,
     )
