@@ -151,11 +151,6 @@ def apply_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> Session
         and write_plan.profile_chapter_frontiers is not None
     ):
         persist_state.chapter_frontiers = write_plan.profile_chapter_frontiers
-    if (
-        not write_plan.write_flawless_eligible
-        and write_plan.profile_flawless_eligible is not None
-    ):
-        persist_state.flawless_eligible = write_plan.profile_flawless_eligible
     return persist_state
 
 

@@ -76,7 +76,6 @@ class DbWritePlan:
     write_chapter_frontiers: bool
     profile_xp: int | None = None
     profile_streak: int | None = None
-    profile_flawless_eligible: bool | None = None
     profile_chapter_frontiers: dict[int, ChapterFrontier] | None = None
 
     @classmethod
