@@ -8,7 +8,7 @@ import backend.navigation_snapshot as navigation_snapshot
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import SessionNavigateRequest, SessionState
-from backend.play_mode import PlayMode, resolve_play_mode
+from backend.play_mode import PlayMode
 from backend.problem_generation import (
     generate_level_problem,
     problem_fingerprint,
@@ -31,7 +31,7 @@ class TopicNotFoundError(Exception):
 def _navigate_after_topic_completion(
     state: SessionState,
     curriculum: Curriculum,
-    play_mode: PlayMode | None = None,
+    play_mode: PlayMode,
 ) -> bool:
     """Navigate to the next Topic after Topic completion when Next problem unlocks one.
 
@@ -46,9 +46,10 @@ def _navigate_after_topic_completion(
     if chapter_id is None:
         return False
 
-    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
-    snapshot = navigation_snapshot.build_navigation_snapshot(state, curriculum, mode)
-    ctx = snapshot.chapter_context(chapter_id)
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    ctx = nav_snapshot.chapter_context(chapter_id)
     if not ctx.has_next_unlocked_topic(state.selected_topic_id):
         return False
 
@@ -61,29 +62,29 @@ def _navigate_after_topic_completion(
     )
     try:
         target_chapter_id, target_topic_id, target_level = (
-            navigation_resolve.resolve_navigation_target(state, request, snapshot)
+            navigation_resolve.resolve_navigation_target(state, request, nav_snapshot)
         )
     except navigation_resolve.NavigationResolutionError:
         return False
 
     navigate_to(
         state,
+        play_mode,
         chapter_id=target_chapter_id,
         topic_id=target_topic_id,
         level=target_level,
         curriculum=curriculum,
-        play_mode=mode,
     )
     return True
 
 
 def navigate_to(
     state: SessionState,
+    play_mode: PlayMode,
     chapter_id: int | None = None,
     topic_id: int | None = None,
     level: int | None = None,
     curriculum: Curriculum | None = None,
-    play_mode: PlayMode | None = None,
     *,
     persist: bool = True,
 ) -> None:
@@ -108,9 +109,9 @@ def begin_problem(
     state: SessionState,
     problem: ProblemDict,
     curriculum: Curriculum,
+    play_mode: PlayMode,
     *,
     recent_fingerprints: list[str] | None = None,
-    play_mode: PlayMode | None = None,
 ) -> None:
     """Apply state mutations for a newly generated problem and persist."""
     session_state.clear_submission_cycle_fields(state, curriculum, reset_streak=False)
@@ -128,7 +129,7 @@ def serve_next_problem(
     curriculum: Curriculum,
     chapter_id: int,
     topic_id: int,
-    play_mode: PlayMode | None = None,
+    play_mode: PlayMode,
 ) -> ProblemDict:
     """Generate the next problem at the selection, dedupe recent instances, and begin it."""
     level = state.selected_level
@@ -154,8 +155,8 @@ def serve_next_problem(
         state,
         problem,
         curriculum,
+        play_mode,
         recent_fingerprints=recent_fingerprints,
-        play_mode=play_mode,
     )
     return problem
 
@@ -165,7 +166,7 @@ def resolve_next_problem(
     curriculum: Curriculum,
     chapter_id: int,
     topic_id: int,
-    play_mode: PlayMode | None = None,
+    play_mode: PlayMode,
 ) -> ProblemDict:
     """Serve the next problem, handling post-Topic-completion Navigation and chapter-end fallback.
 

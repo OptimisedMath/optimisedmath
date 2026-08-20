@@ -176,10 +176,9 @@ def sync_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
             print(f"Error saving session {persist_state.session_id}: {e}")
 
 
-def persist(state: SessionState, play_mode: PlayMode | None = None) -> None:
-    """Resolve play mode, build the write plan, and sync state to the DB."""
-    mode = play_mode or resolve_play_mode(state.username)
-    sync_to_db(state, build_db_write_plan(state, mode))
+def persist(state: SessionState, play_mode: PlayMode) -> None:
+    """Build the write plan for the resolved play mode and sync state to the DB."""
+    sync_to_db(state, build_db_write_plan(state, play_mode))
 
 
 def load_profile(
@@ -193,7 +192,9 @@ def load_profile(
 
     ``should_persist=False`` lets a caller that persists once for a larger unit
     of work (e.g. Session start) skip the write ``hard_reset`` would otherwise
-    make for a brand-new user.
+    make for a brand-new user. Sets ``state.username`` before resolving play
+    mode, so a brand-new profile's hard reset always reflects the requesting
+    username's play mode.
     """
     state.username = username
     user_data = db.load_user(username)
@@ -207,13 +208,18 @@ def load_profile(
         state.chapter_frontiers = user_data["chapter_frontiers"]
         clear_submission_cycle_fields(state, curriculum)
     else:
-        hard_reset(state, curriculum, should_persist=should_persist)
+        hard_reset(
+            state,
+            curriculum,
+            resolve_play_mode(state.username),
+            should_persist=should_persist,
+        )
 
 
 def hard_reset(
     state: SessionState,
     curriculum: Curriculum,
-    play_mode: PlayMode | None = None,
+    play_mode: PlayMode,
     *,
     should_persist: bool = True,
 ) -> None:

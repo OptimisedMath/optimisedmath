@@ -124,26 +124,27 @@ def public_problem(
 def respond(
     state: SessionState,
     curriculum: Curriculum,
-    play_mode: PlayMode | None = None,
+    play_mode: PlayMode,
 ) -> SessionResponse:
     """Build the client SessionResponse by selecting fields from persisted state."""
-    mode = play_mode if play_mode is not None else resolve_play_mode(state.username)
     current_problem = (
-        public_problem(state.current_problem, state, mode)
+        public_problem(state.current_problem, state, play_mode)
         if state.current_problem
         else None
     )
     can_submit = bool(current_problem and not state.problem_answered)
     can_next_problem = bool(state.problem_answered)
-    snapshot = navigation_snapshot.build_navigation_snapshot(state, curriculum, mode)
-    navigation_view = navigation_snapshot.build_navigation_view(snapshot)
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    navigation_view = navigation_snapshot.build_navigation_view(nav_snapshot)
     return SessionResponse.from_state(
         state,
         current_problem=current_problem,
         can_submit=can_submit,
         can_next_problem=can_next_problem,
         streak_meter=streak_meter_for(state),
-        admin_mode=mode.is_admin,
+        admin_mode=play_mode.is_admin,
         navigation=navigation_view,
     )
 
@@ -172,9 +173,10 @@ def _build_started_state(
     resolved, the Problem start clock set, and the state persisted exactly once.
 
     The start clock is set before the single persist call so a Session recovered
-    from SQLite always has it.
+    from SQLite always has it. Play mode is resolved from ``state.username`` after
+    ``load_profile`` sets it, so a brand-new profile's play mode is never resolved
+    from the raw request username ahead of that write.
     """
-    play_mode = resolve_play_mode(request.username)
     curriculum = resolve_curriculum()
 
     if not curriculum.chapter_ids():
@@ -185,6 +187,7 @@ def _build_started_state(
     session_state.load_profile(
         state, request.username, curriculum, should_persist=False
     )
+    play_mode = resolve_play_mode(state.username)
     navigation_resolve.clamp_selected_level(state, curriculum)
 
     if (
@@ -203,11 +206,11 @@ def _build_started_state(
         )
         submission_cycle.navigate_to(
             state,
+            play_mode,
             chapter_id=chapter_id,
             topic_id=topic_id,
             level=level,
             curriculum=curriculum,
-            play_mode=play_mode,
             persist=False,
         )
 
@@ -238,11 +241,11 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
 
     submission_cycle.navigate_to(
         state,
+        play_mode,
         chapter_id=chapter_id,
         topic_id=topic_id,
         level=selected_level,
         curriculum=curriculum,
-        play_mode=play_mode,
     )
 
     return respond(state, curriculum, play_mode)
