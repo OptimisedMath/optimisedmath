@@ -3,7 +3,8 @@
     "sandcastle": "npx tsx .sandcastle/main.mts"
   },
   "dependencies": {
-    "@ai-hero/sandcastle": "^0.12.0"
+    "@ai-hero/sandcastle": "^0.12.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "tsx": "^4.23.12"
