@@ -69,19 +69,15 @@ class CurriculumStore:
     """Fully loaded curriculum with precomputed lookup indexes."""
 
     bundles: tuple[ChapterBundle, ...]
-    curriculum: dict[int, list[TopicDict]]
     chapters: list[ChapterSummary]
     bundles_by_chapter_id: dict[int, ChapterBundle]
-    chapter_id_by_name: dict[str, int]
     chapter_name_by_id: dict[int, str]
 
 
 _EMPTY_STORE = CurriculumStore(
     bundles=(),
-    curriculum={},
     chapters=[],
     bundles_by_chapter_id={},
-    chapter_id_by_name={},
     chapter_name_by_id={},
 )
 
@@ -279,23 +275,16 @@ def _validate_file(file_path: Path, data: Any) -> ChapterBundle:
 def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
     bundles.sort(key=lambda bundle: (bundle.chapter_id, bundle.chapter_name))
     bundle_tuple = tuple(bundles)
-    chapter_id_by_name = {
-        bundle.chapter_name: bundle.chapter_id for bundle in bundle_tuple
-    }
     chapter_name_by_id = {
         bundle.chapter_id: bundle.chapter_name for bundle in bundle_tuple
     }
     return CurriculumStore(
         bundles=bundle_tuple,
-        curriculum={
-            bundle.chapter_id: list(bundle.topics_meta) for bundle in bundle_tuple
-        },
         chapters=[
             ChapterSummary(chapter_id=bundle.chapter_id, name=bundle.chapter_name)
             for bundle in bundle_tuple
         ],
         bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundle_tuple},
-        chapter_id_by_name=chapter_id_by_name,
         chapter_name_by_id=chapter_name_by_id,
     )
 

@@ -109,15 +109,11 @@ def build_fixture_curriculum() -> Curriculum:
     bundles = (bundle_alpha, bundle_beta)
     store = CurriculumStore(
         bundles=bundles,
-        curriculum={bundle.chapter_id: list(bundle.topics_meta) for bundle in bundles},
         chapters=[
             ChapterSummary(chapter_id=bundle.chapter_id, name=bundle.chapter_name)
             for bundle in bundles
         ],
         bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundles},
-        chapter_id_by_name={
-            bundle.chapter_name: bundle.chapter_id for bundle in bundles
-        },
         chapter_name_by_id={
             bundle.chapter_id: bundle.chapter_name for bundle in bundles
         },

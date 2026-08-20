@@ -11,7 +11,7 @@ def test_loads_real_curriculum_with_topics():
     store = loader.load_curriculum_store()
     assert 10 in store.bundles_by_chapter_id
     assert 20 in store.bundles_by_chapter_id
-    assert store.curriculum[10][0]["name"] == "Zapisywanie"
+    assert store.bundles_by_chapter_id[10].topics_meta[0]["name"] == "Zapisywanie"
 
 
 def test_chapters_ordered_by_yaml_id():
