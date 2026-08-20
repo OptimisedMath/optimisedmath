@@ -82,6 +82,8 @@ def test_begin_problem_resets_submission_state_and_sets_problem(
     state.feedback_type = "error"
     state.feedback_msg = "wrong"
     state.level_completed = True
+    state.topic_completed = True
+    state.streak = 2
 
     submission_cycle.begin_problem(state, problem, fixture_curriculum)
 
@@ -89,8 +91,10 @@ def test_begin_problem_resets_submission_state_and_sets_problem(
     assert state.feedback_type is None
     assert state.feedback_msg == ""
     assert state.level_completed is False
+    assert state.topic_completed is False
     assert state.current_problem is problem
     assert state.problem_start_time is not None
+    assert state.streak == 2
 
 
 def test_begin_problem_trims_recent_fingerprints(fixture_curriculum: Curriculum):

@@ -159,10 +159,11 @@ def _apply_submission_outcome(
     state.streak = outcome.new_streak
     state.flawless_eligible = outcome.new_flawless_eligible
     state.xp += outcome.xp_earned
-    if outcome.level_completed:
-        state.level_completed = True
-    if outcome.topic_completed:
-        state.topic_completed = True
+    session_state.record_completion(
+        state,
+        level_completed=outcome.level_completed,
+        topic_completed=outcome.topic_completed,
+    )
     if outcome.new_selected_level is not None:
         state.selected_level = outcome.new_selected_level
 

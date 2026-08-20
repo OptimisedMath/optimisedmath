@@ -113,15 +113,11 @@ def begin_problem(
     play_mode: PlayMode | None = None,
 ) -> None:
     """Apply state mutations for a newly generated problem and persist."""
-    state.current_input_mode = session_state.resolve_input_mode(state, curriculum)
+    session_state.clear_submission_cycle_fields(state, curriculum, reset_streak=False)
     if recent_fingerprints is not None:
         state.recent_problem_fingerprints = recent_fingerprints[
             -config.MAX_RETRIES_DUPLICATE_CHECK :
         ]
-    state.problem_answered = False
-    state.feedback_type = None
-    state.feedback_msg = ""
-    state.level_completed = False
     state.problem_start_time = time.time()
     state.current_problem = problem
     session_state.persist(state, play_mode)

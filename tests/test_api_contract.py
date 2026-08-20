@@ -676,6 +676,56 @@ def test_next_problem_at_chapter_end_returns_without_error():
     assert response.problem["problem_id"] == "p-topic-complete"
 
 
+def test_next_problem_after_topic_completion_reports_empty_streak_meter():
+    state = _make_topic_completed_state(
+        chapter_id=10,
+        completed_topic_id=10,
+        completed_level=1,
+        frontier_topic_id=20,
+    )
+
+    response = run(main.problem_next(state.session_id))
+
+    assert response.state.selected_topic_id == 20
+    assert response.state.streak == 0
+    assert response.state.streak_meter == 0
+
+
+def test_wrong_submit_after_topic_completion_does_not_refire_navigation():
+    state = _make_topic_completed_state(
+        chapter_id=10,
+        completed_topic_id=10,
+        completed_level=1,
+        frontier_topic_id=20,
+    )
+
+    next_response = run(main.problem_next(state.session_id))
+    assert next_response.state.selected_topic_id == 20
+    assert next_response.state.topic_completed is False
+
+    active_state = main.ACTIVE_SESSIONS[state.session_id]
+    served_problem = active_state.current_problem
+    correct = served_problem["correct"]
+    wrong_option = next(
+        option for option in served_problem["options"] if option != correct
+    )
+
+    submit_response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id=served_problem["problem_id"],
+                user_input=wrong_option,
+            )
+        )
+    )
+
+    assert submit_response.is_correct is False
+    assert submit_response.state.topic_completed is False
+    assert submit_response.state.selected_chapter_id == 10
+    assert submit_response.state.selected_topic_id == 20
+
+
 def test_generator_messages_override_yaml_traps(monkeypatch):
     from backend.core.utils import build_problem_dict
     import backend.problem_generation as problem_generation
