@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useAppNavigation } from '@/lib/navigation';
 import { PREFERRED_CHAPTER_ID } from './constants';
-import { startSession } from './api';
+import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
 import { getStoredSessionId, getStoredUsername, setStoredSessionId } from './storage';
 import type { SessionState } from './types';
@@ -26,6 +26,7 @@ export function useSessionBootstrap({
   onSessionStarted,
 }: UseSessionBootstrapOptions) {
   const { exitToLogin, prefetchLogin } = useAppNavigation();
+  const client = useSessionClient();
   const [needsLogin, setNeedsLogin] = useState(false);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function useSessionBootstrap({
       }
 
       try {
-        const sessionResponse = await startSession({
+        const sessionResponse = await client.startSession({
           username: storedUsername,
           selected_chapter_id: PREFERRED_CHAPTER_ID,
         });
@@ -56,7 +57,7 @@ export function useSessionBootstrap({
         if (!isMounted) return;
 
         try {
-          const fallbackSession = await startSession({ username: storedUsername });
+          const fallbackSession = await client.startSession({ username: storedUsername });
           if (!isMounted) return;
 
           setStoredSessionId(fallbackSession.session_id);
@@ -77,7 +78,7 @@ export function useSessionBootstrap({
     return () => {
       isMounted = false;
     };
-  }, [setSessionState, setError, onSessionStarted, exitToLogin]);
+  }, [setSessionState, setError, onSessionStarted, exitToLogin, client]);
 
   useEffect(() => {
     prefetchLogin();

@@ -1,10 +1,11 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { onGet, onPost, resetFakeBackend, mockApi } from './apiMock';
+import type { SessionClient } from '@/lib/session';
 import {
   baseProblem,
   baseSession,
+  createFakeSessionClient,
   defaultNavigation,
   wireArenaFlow,
 } from './fakeBackend';
@@ -20,10 +21,10 @@ async function submitTypedAnswer(answer: string) {
   await user.click(screen.getByRole('button', { name: /Sprawdź odpowiedź/ }));
 }
 
-async function waitForArenaReady() {
+async function waitForArenaReady(client: SessionClient) {
   await waitFor(() => {
-    expect(mockApi.post).toHaveBeenCalledWith('/session/start', expect.anything());
-    expect(mockApi.get).toHaveBeenCalledWith('/problem/next', expect.anything());
+    expect(client.startSession).toHaveBeenCalled();
+    expect(client.getNextProblem).toHaveBeenCalled();
   });
   await waitFor(() => {
     expect(screen.queryByText('Ładowanie zadania...')).not.toBeInTheDocument();
@@ -32,7 +33,6 @@ async function waitForArenaReady() {
 
 describe('ADR-0002 leak locks', () => {
   beforeEach(() => {
-    resetFakeBackend();
     resetStoredSession();
     seedStoredSession();
   });
@@ -50,7 +50,7 @@ describe('ADR-0002 leak locks', () => {
     });
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -71,8 +71,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('4');
 
     await waitFor(() => {
@@ -91,7 +91,7 @@ describe('ADR-0002 leak locks', () => {
       correct_answer: '2',
     });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -101,8 +101,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     expect(screen.getByPlaceholderText('Wpisz wynik...')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^1$/ })).not.toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('ADR-0002 leak locks', () => {
       correct_answer: '2',
     });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -139,8 +139,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     const problemCard = screen.getByText('Zadanie').closest('.glass-card-strong') as HTMLElement;
     await waitFor(() => {
@@ -153,7 +153,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -171,8 +171,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('4');
 
     const badge = await screen.findByText('Brawo!');
@@ -184,7 +184,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -202,8 +202,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('3');
 
     const trapBadge = await screen.findByText('Trap feedback');
@@ -215,7 +215,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession({ session_id: 'sess-wrong' });
     const problem = baseProblem({ problem_id: 'prob-2' });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -233,8 +233,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('3');
 
     const wrongBadge = await screen.findByText('Wrong feedback');
@@ -246,7 +246,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -264,8 +264,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('4/');
 
     const softError = await screen.findByText('Zły format odpowiedzi');
@@ -278,7 +278,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -296,8 +296,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('4');
 
     await screen.findByText('Brawo!');
@@ -310,7 +310,7 @@ describe('ADR-0002 leak locks', () => {
     expect(screen.queryByRole('button', { name: /Następne zadanie/ })).not.toBeInTheDocument();
 
     await waitFor(() => {
-      expect(mockApi.post).toHaveBeenCalledWith('/session/navigate', expect.anything());
+      expect(client.navigateSession).toHaveBeenCalled();
     });
   });
 
@@ -327,7 +327,7 @@ describe('ADR-0002 leak locks', () => {
       correct_answer: '2',
     });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -345,8 +345,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /3/ }));
@@ -371,8 +371,7 @@ describe('ADR-0002 leak locks', () => {
     });
     const problem = baseProblem();
 
-    onPost('/session/start', () => session);
-    onGet('/problem/next', () => ({
+    const getNextProblem = async () => ({
       problem,
       state: {
         ...session,
@@ -380,10 +379,15 @@ describe('ADR-0002 leak locks', () => {
         can_submit: false,
         can_next_problem: true,
       },
-    }));
+    });
 
-    renderArena();
-    await waitForArenaReady();
+    const client = createFakeSessionClient({
+      startSession: async () => session,
+      getNextProblem,
+    });
+
+    renderArena(client);
+    await waitForArenaReady(client);
 
     const badge = await screen.findByText('Zaliczone od razu!');
     expect(badge).toHaveAttribute('data-feedback-type', 'success');
@@ -404,7 +408,7 @@ describe('ADR-0002 leak locks', () => {
       correct_answer: '2',
     });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -422,8 +426,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     fireEvent.keyDown(window, { key: '1' });
 
@@ -434,7 +438,7 @@ describe('ADR-0002 leak locks', () => {
     fireEvent.keyDown(window, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(mockApi.post).toHaveBeenCalledWith('/problem/submit', {
+      expect(client.submitAnswer).toHaveBeenCalledWith({
         session_id: session.session_id,
         problem_id: problem.problem_id,
         user_input: '1',
@@ -446,7 +450,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -464,8 +468,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     const user = userEvent.setup();
     const input = (await screen.findByPlaceholderText('Wpisz wynik...')) as HTMLInputElement;
@@ -495,7 +499,7 @@ describe('ADR-0002 leak locks', () => {
       correct_answer: '2',
     });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -513,8 +517,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     const autoSolveButton = screen.getByRole('button', { name: /Auto-Solve/ });
 
@@ -530,7 +534,7 @@ describe('ADR-0002 leak locks', () => {
       await vi.advanceTimersByTimeAsync(450);
     });
 
-    expect(mockApi.post).toHaveBeenCalledWith('/problem/submit', {
+    expect(client.submitAnswer).toHaveBeenCalledWith({
       session_id: session.session_id,
       problem_id: problem.problem_id,
       user_input: '2',
@@ -541,7 +545,7 @@ describe('ADR-0002 leak locks', () => {
     const session = baseSession({ admin_mode: true, current_input_mode: 'input' });
     const problem = baseProblem({ correct_answer: '12' });
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -559,8 +563,8 @@ describe('ADR-0002 leak locks', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
 
     const input = await screen.findByPlaceholderText('Wpisz wynik...');
     const autoSolveButton = screen.getByRole('button', { name: /Auto-Solve/ });
@@ -581,7 +585,7 @@ describe('ADR-0002 leak locks', () => {
       await vi.advanceTimersByTimeAsync(300);
     });
 
-    expect(mockApi.post).toHaveBeenCalledWith('/problem/submit', {
+    expect(client.submitAnswer).toHaveBeenCalledWith({
       session_id: session.session_id,
       problem_id: problem.problem_id,
       user_input: '12',

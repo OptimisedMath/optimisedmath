@@ -9,5 +9,5 @@ Next.js App Router UI. Rule outcomes stay on the backend — [ADR-0002](../docs/
 - **Map** — [frontend/docs/frontend-map.md](docs/frontend-map.md) when locating pages, components, or `lib/` modules.
 - **API contract/calls** — [backend/docs/api.md](../backend/docs/api.md) when changing request/response shapes or working with API calls.
 - **Session client** — [session.md](docs/session.md) when touching arena/login state, session APIs, or session localStorage.
-- **Tests** — `npm test` (Vitest + Testing Library). Fake backend via `test/apiMock.ts` at the HTTP adapter seam.
+- **Tests** — `npm test` (Vitest + Testing Library). The session client (`lib/session/client.ts`) is the test seam: tests inject the in-memory adapter from `test/fakeBackend.ts` via `SessionClientProvider`, and speak in Sessions/Submissions/Navigation, never routes. Do not add a second fake beneath it.
 

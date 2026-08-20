@@ -2,16 +2,10 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { createElement } from 'react';
 import { afterEach, vi } from 'vitest';
-import { mockApi } from './apiMock';
 
 const routerMocks = vi.hoisted(() => ({
   prefetch: vi.fn(),
   replace: vi.fn(),
-}));
-
-vi.mock('@/lib/api', () => ({
-  default: mockApi,
-  getCurriculum: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
