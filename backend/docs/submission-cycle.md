@@ -11,7 +11,7 @@
 
 | Function                                                                                          | Seam                                                                          |
 | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `navigate_to(state, chapter_id=None, topic_id=None, level=None, curriculum=None, play_mode=None)` | Toolbar Navigation: update selection, reset cycle, persist                    |
+| `navigate_to(state, chapter_id=None, topic_id=None, level=None, curriculum=None, play_mode=None, *, persist=True)` | Toolbar Navigation: update Selected chapter/topic/level, reset cycle, persist (`persist=False` for a caller doing one persist itself) |
 | `begin_problem(state, problem, curriculum, *, recent_fingerprints=None, play_mode=None)`          | Apply state mutations for a newly generated problem and persist               |
 | `serve_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)`                     | Generate at selection, dedupe fingerprints, begin problem                     |
 | `resolve_next_problem(state, curriculum, chapter_id, topic_id, play_mode=None)`                   | Post-Topic-completion Navigation, chapter-end fallback, or serve next problem |

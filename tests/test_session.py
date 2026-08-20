@@ -722,3 +722,31 @@ def test_start_session_chapter_override_matching_profile_is_unaffected(
     assert overridden.selected_chapter_id == baseline.selected_chapter_id
     assert overridden.selected_topic_id == baseline.selected_topic_id
     assert overridden.selected_level == baseline.selected_level
+
+
+def test_start_session_chapter_override_persists_exactly_once(
+    fixture_curriculum: Curriculum, monkeypatch
+):
+    """Overriding the chapter on start applies the target chapter/topic/level and
+    the start clock in one DB write, not the two the old navigate-then-persist path made.
+    """
+    calls = []
+    original_persist = session_state.persist
+
+    def counting_persist(state, play_mode=None):
+        calls.append(state)
+        original_persist(state, play_mode)
+
+    monkeypatch.setattr(session_state, "persist", counting_persist)
+
+    set_curriculum(fixture_curriculum)
+    try:
+        session.start_session(
+            SessionStartRequest(
+                username=f"user-{uuid.uuid4()}", selected_chapter_id=CHAPTER_BETA
+            )
+        )
+    finally:
+        set_curriculum(None)
+
+    assert len(calls) == 1

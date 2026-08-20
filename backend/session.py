@@ -165,8 +165,15 @@ def _resolve_navigation_target_or_raise(
         raise SessionError(str(exc)) from exc
 
 
-def start_session(request: SessionStartRequest) -> SessionResponse:
-    """Create a session, load user progress, and return SessionResponse with navigation."""
+def _build_started_state(
+    request: SessionStartRequest,
+) -> tuple[SessionState, Curriculum, PlayMode]:
+    """Construct a fully-started Session: profile loaded, Selected chapter/topic/level
+    resolved, the Problem start clock set, and the state persisted exactly once.
+
+    The start clock is set before the single persist call so a Session recovered
+    from SQLite always has it.
+    """
     play_mode = resolve_play_mode(request.username)
     curriculum = resolve_curriculum()
 
@@ -175,7 +182,9 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
 
     state = SessionState()
     session_state.init_defaults(state, curriculum)
-    session_state.load_profile(state, request.username, curriculum)
+    session_state.load_profile(
+        state, request.username, curriculum, should_persist=False
+    )
     navigation_resolve.clamp_selected_level(state, curriculum)
 
     if (
@@ -199,12 +208,18 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
             level=level,
             curriculum=curriculum,
             play_mode=play_mode,
+            persist=False,
         )
 
-    ACTIVE_SESSIONS[state.session_id] = state
-    session_state.persist(state, play_mode)
     state.problem_start_time = time.time()
+    session_state.persist(state, play_mode)
+    return state, curriculum, play_mode
 
+
+def start_session(request: SessionStartRequest) -> SessionResponse:
+    """Create a session, load user progress, and return SessionResponse with navigation."""
+    state, curriculum, play_mode = _build_started_state(request)
+    ACTIVE_SESSIONS[state.session_id] = state
     return respond(state, curriculum, play_mode)
 
 
