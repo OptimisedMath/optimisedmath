@@ -1,6 +1,6 @@
 """FastAPI backend for the Optimized Math Learning app."""
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -44,7 +44,7 @@ def _map_session_error(exc: SessionError) -> HTTPException:
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     print("🚀 Math Learning API started")
     db.init_db()
     yield
