@@ -33,7 +33,6 @@ function FeedbackCard({
   const showNextButton = !(topicCompleted && !hasNextTopic);
 
   useEffect(() => {
-    if (!feedback) return;
     if (!showNextButton || disabled) {
       wrapperRef.current?.focus();
       return;
