@@ -8,10 +8,10 @@ import { httpSessionClient } from './httpSessionClient';
 const SessionClientContext = createContext<SessionClient>(httpSessionClient);
 
 export function SessionClientProvider({
-  client,
+  client = httpSessionClient,
   children,
 }: {
-  client: SessionClient;
+  client?: SessionClient;
   children: ReactNode;
 }) {
   return (

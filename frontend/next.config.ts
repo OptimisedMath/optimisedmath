@@ -17,6 +17,9 @@ function getLanOrigins(): string[] {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: getLanOrigins(),
+  turbopack: {
+    root: __dirname,
+  },
   async rewrites() {
     return [
       {
