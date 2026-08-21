@@ -1,15 +1,13 @@
 'use client';
 
 import { memo, useEffect, useRef, useState } from 'react';
-import type { SessionView } from '@/lib/session';
 
 interface MasteryScoreboardProps {
-  view: SessionView;
+  streakMeter: number;
+  maxStreak: number;
 }
 
-function MasteryScoreboard({ view }: MasteryScoreboardProps) {
-  const streakMeter = view.streakMeter;
-  const maxStreak = view.maxStreak;
+function MasteryScoreboard({ streakMeter, maxStreak }: MasteryScoreboardProps) {
   const prevStreakMeter = useRef(streakMeter);
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
 

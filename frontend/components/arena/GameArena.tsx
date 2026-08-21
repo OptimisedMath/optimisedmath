@@ -7,8 +7,9 @@ import { Spinner } from '@/components/ui/spinner';
 import XPBar from './XPBar';
 import TopicToolbar from './TopicToolbar';
 import ProblemDisplay from './ProblemDisplay';
-import AnswerInput from './AnswerInput';
-import FeedbackPresenter from './FeedbackPresenter';
+import RadioAnswerInput from './RadioAnswerInput';
+import TextAnswerInput from './TextAnswerInput';
+import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
 
@@ -69,24 +70,36 @@ export default function GameArena() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '0ms' }}>
-      <XPBar view={view} />
+      <XPBar xp={view.xp} flawlessEligible={view.flawlessEligible} />
       </div>
 
       {view.hasNavigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '80ms' }}>
-          <TopicToolbar view={view} actions={actions} />
+          <TopicToolbar
+            selectedChapterId={view.selectedChapterId}
+            selectedTopicId={view.selectedTopicId}
+            selectedLevel={view.selectedLevel}
+            availableChapters={view.availableChapters}
+            availableTopics={view.availableTopics}
+            availableLevels={view.availableLevels}
+            topicName={view.topicName}
+            isNavigating={view.isNavigating}
+            adminMode={view.adminMode}
+            onNavigate={actions.navigate}
+            onReset={actions.reset}
+          />
         </div>
       )}
 
       {view.hasNavigation && (
         <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '160ms' }}>
-          <ProgressBar type="chapter" view={view} />
-          <ProgressBar type="topic" view={view} />
+          <ProgressBar type="chapter" chapterName={view.selectedChapterName} completion={view.chapterCompletion} />
+          <ProgressBar type="topic" topicName={view.topicName} level={view.selectedLevel} completion={view.topicCompletion} />
         </div>
       )}
 
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '240ms' }}>
-        <MasteryScoreboard view={view} />
+        <MasteryScoreboard streakMeter={view.streakMeter} maxStreak={view.maxStreak} />
       </div>
 
       <div
@@ -94,18 +107,60 @@ export default function GameArena() {
         style={{ animationDelay: '320ms' }}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-300" />
-        <ProblemDisplay view={view} />
+        <ProblemDisplay
+          isLoadingProblem={view.isLoadingProblem}
+          problem={view.problem}
+          selectedLevel={view.selectedLevel}
+          selectedChapterName={view.selectedChapterName}
+          topicName={view.topicName}
+        />
 
         {view.problem && (
           <>
-            <AnswerInput key={view.problem.problem_id} view={view} actions={actions} />
+            {view.currentInputMode === 'radio' && view.problem.answer_options ? (
+              <RadioAnswerInput
+                key={view.problem.problem_id}
+                problem={view.problem}
+                feedback={view.feedback}
+                answerLocked={view.answerLocked}
+                canSubmit={view.canSubmit}
+                adminMode={view.adminMode}
+                onSubmit={actions.submit}
+              />
+            ) : (
+              <TextAnswerInput
+                key={view.problem.problem_id}
+                problem={view.problem}
+                answerLocked={view.answerLocked}
+                canSubmit={view.canSubmit}
+                adminMode={view.adminMode}
+                onSubmit={actions.submit}
+              />
+            )}
 
-            <FeedbackPresenter
-              view={view}
-              actions={actions}
-              feedbackRef={feedbackRef}
-              nextButtonRef={nextButtonRef}
-            />
+            {view.feedbackPhase === 'soft_error' && view.feedback && (
+              <div
+                ref={feedbackRef}
+                data-feedback-type={view.feedback.feedback_type ?? ''}
+                className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-700 text-base sm:text-lg font-semibold text-center dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"
+              >
+                {view.feedback.message}
+              </div>
+            )}
+
+            {view.feedbackPhase === 'answer_locked' && view.feedback && (
+              <FeedbackCard
+                feedback={view.feedback}
+                problem={view.problem}
+                inputMode={view.currentInputMode}
+                topicCompleted={view.topicCompleted}
+                levelCompleted={view.levelCompleted}
+                hasNextUnlockedTopic={view.hasNextUnlockedTopic}
+                disabled={view.isLoadingNextProblem}
+                onNextProblem={actions.nextProblem}
+                nextButtonRef={nextButtonRef}
+              />
+            )}
           </>
         )}
       </div>

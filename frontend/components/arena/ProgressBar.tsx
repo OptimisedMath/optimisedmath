@@ -1,19 +1,18 @@
 import { memo } from 'react';
-import type { SessionView } from '@/lib/session';
+import type { NavigationProgress } from '@/lib/session';
 
-interface ProgressBarProps {
-  type: 'chapter' | 'topic';
-  view: SessionView;
-}
+type ProgressBarProps =
+  | { type: 'chapter'; chapterName: string | null; completion: NavigationProgress | null }
+  | { type: 'topic'; topicName: string; level: number; completion: NavigationProgress | null };
 
-function ProgressBar({ type, view }: ProgressBarProps) {
-  if (type === 'chapter' && view.selectedChapterName && view.chapterCompletion) {
-    const { completed, total, percentage } = view.chapterCompletion;
+function ProgressBar(props: ProgressBarProps) {
+  if (props.type === 'chapter' && props.chapterName && props.completion) {
+    const { completed, total, percentage } = props.completion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">🏆 {view.selectedChapterName}</span>
+          <span className="truncate font-medium">🏆 {props.chapterName}</span>
           <span className="shrink-0 tabular-nums">{completed}/{total} tematów ukończonych</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
@@ -26,14 +25,14 @@ function ProgressBar({ type, view }: ProgressBarProps) {
     );
   }
 
-  if (type === 'topic' && view.topicCompletion) {
-    const { total, percentage } = view.topicCompletion;
+  if (props.type === 'topic' && props.completion) {
+    const { total, percentage } = props.completion;
 
     return (
       <div className="glass-card w-full max-w-3xl mb-4 rounded-xl p-3">
         <div className="flex justify-between gap-4 text-sm text-slate-600 dark:text-slate-300 mb-2">
-          <span className="truncate font-medium">📚 {view.topicName}</span>
-          <span className="shrink-0 tabular-nums">Poziom {view.selectedLevel}/{total}</span>
+          <span className="truncate font-medium">📚 {props.topicName}</span>
+          <span className="shrink-0 tabular-nums">Poziom {props.level}/{total}</span>
         </div>
         <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
           <div

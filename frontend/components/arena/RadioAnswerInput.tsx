@@ -5,24 +5,28 @@ import { InlineMath } from 'react-katex';
 import { useDocumentKeydown } from '@/hooks/useDocumentKeydown';
 import { useAutoSolve } from '@/hooks/useAutoSolve';
 import { getRevealedCorrectAnswer } from '@/lib/session';
-import type { SessionActions, SessionView } from '@/lib/session';
+import type { Feedback, Problem, SubmitAnswerHandler } from '@/lib/session';
 import SubmitRow from './SubmitRow';
 import 'katex/dist/katex.min.css';
 
 interface RadioAnswerInputProps {
-  view: SessionView;
-  actions: SessionActions;
+  problem: Problem;
+  feedback: Feedback | null;
+  answerLocked: boolean;
+  canSubmit: boolean;
+  adminMode: boolean;
+  onSubmit: SubmitAnswerHandler;
 }
 
 function RadioAnswerInput({
-  view,
-  actions,
+  problem,
+  feedback,
+  answerLocked,
+  canSubmit,
+  adminMode,
+  onSubmit,
 }: RadioAnswerInputProps) {
   const [value, setValue] = useState('');
-
-  const problem = view.problem!;
-  const feedback = view.feedback;
-  const answerLocked = view.answerLocked;
 
   const {
     isAutoSolving,
@@ -30,11 +34,13 @@ function RadioAnswerInput({
     handleAutoSolve,
     autoSolveDisabled,
     interactionDisabled,
-    canSubmit,
     disabled,
   } = useAutoSolve({
-    view,
-    actions,
+    problem,
+    canSubmit,
+    answerLocked,
+    adminMode,
+    onSubmit,
     inputMode: 'radio',
     value,
     setValue,
@@ -61,7 +67,7 @@ function RadioAnswerInput({
 
       if (e.key === 'Enter' && value.trim() !== '' && !e.repeat) {
         e.preventDefault();
-        actions.submit(value);
+        onSubmit(value);
         return;
       }
 
@@ -71,7 +77,7 @@ function RadioAnswerInput({
         setValue(problem.answer_options[num - 1]);
       }
     },
-    [problem, answerLocked, canSubmit, disabled, value, actions]
+    [problem, answerLocked, canSubmit, disabled, value, onSubmit]
   );
 
   useDocumentKeydown(handleRadioShortcuts, [handleRadioShortcuts]);
@@ -110,7 +116,7 @@ function RadioAnswerInput({
 
       {!answerLocked && (
         <SubmitRow
-          onSubmit={() => actions.submit(value)}
+          onSubmit={() => onSubmit(value)}
           submitType="button"
           submitDisabled={submitDisabled}
           showAutoSolve={showAutoSolve}

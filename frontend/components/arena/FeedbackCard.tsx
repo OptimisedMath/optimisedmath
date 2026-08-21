@@ -3,27 +3,33 @@ import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import { getRevealedCorrectAnswer } from '@/lib/session';
-import type { SessionActions, SessionView } from '@/lib/session';
+import type { Feedback, Problem } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 interface FeedbackCardProps {
-  view: SessionView;
-  actions: SessionActions;
+  feedback: Feedback;
+  problem: Problem | null;
+  inputMode: string;
+  topicCompleted: boolean;
+  levelCompleted: boolean;
+  hasNextUnlockedTopic: boolean;
+  disabled: boolean;
+  onNextProblem: () => Promise<void>;
   nextButtonRef?: RefObject<HTMLButtonElement | null>;
 }
 
 function FeedbackCard({
-  view,
-  actions,
+  feedback,
+  problem,
+  inputMode,
+  topicCompleted,
+  levelCompleted,
+  hasNextUnlockedTopic: hasNextTopic,
+  disabled,
+  onNextProblem,
   nextButtonRef,
 }: FeedbackCardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const feedback = view.feedback!;
-  const problem = view.problem;
-  const topicCompleted = view.topicCompleted;
-  const levelCompleted = view.levelCompleted;
-  const hasNextTopic = view.hasNextUnlockedTopic;
-  const disabled = view.isLoadingNextProblem;
   const showNextButton = !(topicCompleted && !hasNextTopic);
 
   useEffect(() => {
@@ -36,7 +42,7 @@ function FeedbackCard({
   }, [feedback, showNextButton, disabled, nextButtonRef]);
 
   const correctAnswer =
-    view.currentInputMode !== 'radio'
+    inputMode !== 'radio'
       ? getRevealedCorrectAnswer(problem, feedback)
       : undefined;
 
@@ -52,7 +58,7 @@ function FeedbackCard({
     if ((e.target as HTMLElement).tagName === 'BUTTON') return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      actions.nextProblem();
+      onNextProblem();
     }
   };
 
@@ -103,7 +109,7 @@ function FeedbackCard({
         <Button
           ref={nextButtonRef}
           type="button"
-          onClick={actions.nextProblem}
+          onClick={onNextProblem}
           disabled={disabled}
           className="gradient-primary text-white px-5 py-3 sm:px-8 rounded-xl text-base sm:text-xl font-bold transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40 active:translate-y-0 active:scale-[0.98] disabled:hover:translate-y-0"
         >
