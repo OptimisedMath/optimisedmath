@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mockApi, resetFakeBackend } from './apiMock';
+import type { SessionClient } from '@/lib/session';
 import { baseProblem, baseSession, wireArenaFlow } from './fakeBackend';
 import { renderArena } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
@@ -14,10 +14,10 @@ async function submitTypedAnswer(answer: string) {
   await user.click(screen.getByRole('button', { name: /Sprawdź odpowiedź/ }));
 }
 
-async function waitForArenaReady() {
+async function waitForArenaReady(client: SessionClient) {
   await waitFor(() => {
-    expect(mockApi.post).toHaveBeenCalledWith('/session/start', expect.anything());
-    expect(mockApi.get).toHaveBeenCalledWith('/problem/next', expect.anything());
+    expect(client.startSession).toHaveBeenCalled();
+    expect(client.getNextProblem).toHaveBeenCalled();
   });
   await waitFor(() => {
     expect(screen.queryByText('Ładowanie zadania...')).not.toBeInTheDocument();
@@ -26,7 +26,6 @@ async function waitForArenaReady() {
 
 describe('answerLocked derived from feedbackPhase', () => {
   beforeEach(() => {
-    resetFakeBackend();
     resetStoredSession();
     seedStoredSession();
   });
@@ -35,7 +34,7 @@ describe('answerLocked derived from feedbackPhase', () => {
     const session = baseSession({ admin_mode: true });
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -53,8 +52,8 @@ describe('answerLocked derived from feedbackPhase', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('4/');
 
     await screen.findByText('Zły format odpowiedzi');
@@ -69,7 +68,7 @@ describe('answerLocked derived from feedbackPhase', () => {
     const session = baseSession({ admin_mode: true });
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -87,8 +86,8 @@ describe('answerLocked derived from feedbackPhase', () => {
       }),
     });
 
-    renderArena();
-    await waitForArenaReady();
+    renderArena(client);
+    await waitForArenaReady(client);
     await submitTypedAnswer('4');
 
     await screen.findByText('Brawo!');

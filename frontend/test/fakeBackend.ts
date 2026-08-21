@@ -1,10 +1,11 @@
+import { vi } from 'vitest';
+import type { SessionClient } from '@/lib/session/client';
 import type {
   Problem,
   ProblemResponse,
   SessionState,
   SubmissionResponse,
 } from '@/lib/session/types';
-import { onGet, onPost } from './apiMock';
 
 export function defaultNavigation(): SessionState['navigation'] {
   return {
@@ -59,7 +60,29 @@ export function baseProblem(overrides: Partial<Problem> = {}): Problem {
   };
 }
 
-/** Wire the three session endpoints used by a typical arena play-through. */
+function unwired(operation: string) {
+  return async () => {
+    throw new Error(`Unhandled ${operation}`);
+  };
+}
+
+/**
+ * The in-memory SessionClient adapter — the one fake for frontend tests.
+ * Tests supply handlers for the operations a scenario exercises; every
+ * method is a spy so a test can assert on the domain-shaped request it
+ * received without knowing a route.
+ */
+export function createFakeSessionClient(handlers: Partial<SessionClient> = {}): SessionClient {
+  return {
+    startSession: vi.fn(handlers.startSession ?? unwired('startSession')),
+    navigateSession: vi.fn(handlers.navigateSession ?? unwired('navigateSession')),
+    resetSession: vi.fn(handlers.resetSession ?? unwired('resetSession')),
+    getNextProblem: vi.fn(handlers.getNextProblem ?? unwired('getNextProblem')),
+    submitAnswer: vi.fn(handlers.submitAnswer ?? unwired('submitAnswer')),
+  };
+}
+
+/** Wires the three session operations used by a typical arena play-through. */
 export function wireArenaFlow({
   session,
   problem,
@@ -68,10 +91,8 @@ export function wireArenaFlow({
   session: SessionState;
   problem: Problem;
   onSubmit: () => SubmissionResponse;
-}) {
-  onPost('/session/start', () => session);
-
-  onGet('/problem/next', () => {
+}): SessionClient {
+  const getNextProblem = async () => {
     const state: SessionState = {
       ...session,
       current_problem: problem,
@@ -80,7 +101,11 @@ export function wireArenaFlow({
     };
     const response: ProblemResponse = { problem, state };
     return response;
-  });
+  };
 
-  onPost('/problem/submit', () => onSubmit());
+  return createFakeSessionClient({
+    startSession: async () => session,
+    getNextProblem,
+    submitAnswer: async () => onSubmit(),
+  });
 }

@@ -11,6 +11,6 @@ Every file has it's own
 | `lib/session/`      | Session client - 'frontend/docs/session.md'                  |
 | `lib/types.ts`      | Curriculum catalog types (mirror backend)                    |
 | `lib/api.ts`        | API helpers                                                  |
-| `test/`             | Vitest + Testing Library; fake backend via `test/apiMock.ts` |
+| `test/`             | Vitest + Testing Library; fake session client via `test/fakeBackend.ts` |
 
 

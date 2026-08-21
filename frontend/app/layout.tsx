@@ -5,6 +5,7 @@ import "katex/dist/katex.min.css";
 import { cn } from "@/lib/utils";
 import ThemeProvider from "@/components/ThemeProvider";
 import ConnectionOverlay from "@/components/ConnectionOverlay";
+import { SessionClientProvider, httpSessionClient } from "@/lib/session";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -36,7 +37,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <ConnectionOverlay>{children}</ConnectionOverlay>
+          <SessionClientProvider client={httpSessionClient}>
+            <ConnectionOverlay>{children}</ConnectionOverlay>
+          </SessionClientProvider>
         </ThemeProvider>
       </body>
     </html>

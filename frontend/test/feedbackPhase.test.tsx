@@ -1,7 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useSession, type FeedbackPhase } from '@/lib/session';
-import { resetFakeBackend, mockApi } from './apiMock';
+import {
+  SessionClientProvider,
+  useSession,
+  type FeedbackPhase,
+  type SessionClient,
+} from '@/lib/session';
 import { baseProblem, baseSession, wireArenaFlow } from './fakeBackend';
 import { resetStoredSession, seedStoredSession } from './testSession';
 
@@ -14,16 +18,23 @@ async function waitForPhase(
   });
 }
 
-async function waitForSessionReady() {
+async function waitForSessionReady(client: SessionClient) {
   await waitFor(() => {
-    expect(mockApi.post).toHaveBeenCalledWith('/session/start', expect.anything());
-    expect(mockApi.get).toHaveBeenCalledWith('/problem/next', expect.anything());
+    expect(client.startSession).toHaveBeenCalled();
+    expect(client.getNextProblem).toHaveBeenCalled();
+  });
+}
+
+function renderUseSession(client: SessionClient) {
+  return renderHook(() => useSession(), {
+    wrapper: ({ children }) => (
+      <SessionClientProvider client={client}>{children}</SessionClientProvider>
+    ),
   });
 }
 
 describe('feedbackPhase on SessionView', () => {
   beforeEach(() => {
-    resetFakeBackend();
     resetStoredSession();
     seedStoredSession();
   });
@@ -32,14 +43,14 @@ describe('feedbackPhase on SessionView', () => {
     const session = baseSession({ feedback_type: null, feedback_msg: '' });
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({ is_correct: true, feedback: '', state: session }),
     });
 
-    const { result } = renderHook(() => useSession());
-    await waitForSessionReady();
+    const { result } = renderUseSession(client);
+    await waitForSessionReady(client);
     await waitForPhase(() => result.current.view.feedbackPhase, 'none');
   });
 
@@ -47,7 +58,7 @@ describe('feedbackPhase on SessionView', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -65,8 +76,8 @@ describe('feedbackPhase on SessionView', () => {
       }),
     });
 
-    const { result } = renderHook(() => useSession());
-    await waitForSessionReady();
+    const { result } = renderUseSession(client);
+    await waitForSessionReady(client);
     await result.current.actions.submit('4/');
     await waitForPhase(() => result.current.view.feedbackPhase, 'soft_error');
   });
@@ -75,7 +86,7 @@ describe('feedbackPhase on SessionView', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -93,8 +104,8 @@ describe('feedbackPhase on SessionView', () => {
       }),
     });
 
-    const { result } = renderHook(() => useSession());
-    await waitForSessionReady();
+    const { result } = renderUseSession(client);
+    await waitForSessionReady(client);
     await result.current.actions.submit('4');
     await waitForPhase(() => result.current.view.feedbackPhase, 'answer_locked');
   });
@@ -103,7 +114,7 @@ describe('feedbackPhase on SessionView', () => {
     const session = baseSession();
     const problem = baseProblem();
 
-    wireArenaFlow({
+    const client = wireArenaFlow({
       session,
       problem,
       onSubmit: () => ({
@@ -121,8 +132,8 @@ describe('feedbackPhase on SessionView', () => {
       }),
     });
 
-    const { result } = renderHook(() => useSession());
-    await waitForSessionReady();
+    const { result } = renderUseSession(client);
+    await waitForSessionReady(client);
     await result.current.actions.submit('3');
     await waitForPhase(() => result.current.view.feedbackPhase, 'answer_locked');
   });

@@ -2,12 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import {
-  getNextProblem,
-  navigateSession,
-  resetSession,
-  submitAnswer,
-} from './api';
+import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
 import type {
   NavigateIntent,
@@ -60,6 +55,7 @@ export function useProblemLifecycle({
   setError,
   problem,
 }: UseProblemLifecycleOptions) {
+  const client = useSessionClient();
   const [isNavigating, setIsNavigating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingNextProblem, setIsLoadingNextProblem] = useState(false);
@@ -84,7 +80,7 @@ export function useProblemLifecycle({
     }
 
     try {
-      const response = await getNextProblem(currentSessionId);
+      const response = await client.getNextProblem(currentSessionId);
       setSessionState(response.state);
       requestAnimationFrame(() => window.scrollTo(0, scrollY));
       return true;
@@ -94,7 +90,7 @@ export function useProblemLifecycle({
     } finally {
       isFetchingRef.current = false;
     }
-  }, [setSessionState, setError]);
+  }, [client, setSessionState, setError]);
 
   const applySubmissionResponse = useCallback((response: SubmissionResponse) => {
     setSessionState(response.state);
@@ -114,7 +110,7 @@ export function useProblemLifecycle({
     setIsSubmitting(true);
 
     try {
-      const response = await submitAnswer({
+      const response = await client.submitAnswer({
         session_id: sessionState.session_id,
         problem_id: problem.problem_id,
         user_input: trimmed,
@@ -125,7 +121,7 @@ export function useProblemLifecycle({
     } finally {
       setIsSubmitting(false);
     }
-  }, [isSubmitting, sessionState, problem, applySubmissionResponse, setError]);
+  }, [client, isSubmitting, sessionState, problem, applySubmissionResponse, setError]);
 
   const handleNavigate = useCallback(async (intent: NavigateIntent) => {
     if (!sessionId) {
@@ -137,7 +133,7 @@ export function useProblemLifecycle({
     clearOptimisticState(setSessionState, setError);
 
     try {
-      const nextState = await navigateSession({
+      const nextState = await client.navigateSession({
         session_id: sessionId,
         ...intent,
       });
@@ -150,7 +146,7 @@ export function useProblemLifecycle({
     } finally {
       setIsNavigating(false);
     }
-  }, [sessionId, fetchNextProblem, setSessionState, setError]);
+  }, [client, sessionId, fetchNextProblem, setSessionState, setError]);
 
   const handleNextProblem = useCallback(async () => {
     if (!sessionState || !sessionState.can_next_problem || isLoadingNextProblemRef.current) return;
@@ -179,7 +175,7 @@ export function useProblemLifecycle({
     clearOptimisticState(setSessionState, setError);
 
     try {
-      const nextState = await resetSession({
+      const nextState = await client.resetSession({
         session_id: sessionState.session_id,
       });
 
@@ -190,7 +186,7 @@ export function useProblemLifecycle({
     } finally {
       setIsNavigating(false);
     }
-  }, [sessionState, fetchNextProblem, setSessionState, setError]);
+  }, [client, sessionState, fetchNextProblem, setSessionState, setError]);
 
   return {
     isNavigating,

@@ -1,5 +1,16 @@
 # Session client
 
-Arena/login session state lives in `lib/session/` — types, API calls, localStorage, constants, and `useSession()`. Import from `@/lib/session`; do not call session APIs or touch session localStorage elsewhere.
+Arena/login session state lives in `lib/session/` — types, the session client, localStorage, constants, and `useSession()`. Import from `@/lib/session`; do not call session operations or touch session localStorage elsewhere.
 
 `useSession()` returns `{ view, actions }`; arena children read the slices of `view` they render and call handlers on `actions`.
+
+## The session client seam
+
+`SessionClient` (`lib/session/client.ts`) is the interface for the operations the app performs on a Session — start, submit, next problem, navigate, reset — expressed in domain terms with the existing payload types. There are exactly two adapters:
+
+- `httpSessionClient` (`lib/session/httpSessionClient.ts`) — talks to the FastAPI backend. Wired in production via `SessionClientProvider` in `app/layout.tsx`.
+- The in-memory adapter in `frontend/test/fakeBackend.ts` — used by every frontend test.
+
+Consumers (`useSessionBootstrap`, `useProblemLifecycle`, `LoginForm`) read the client via `useSessionClient()` rather than importing an adapter directly.
+
+This is the frontend's one test seam. Tests supply the in-memory adapter through `SessionClientProvider` and assert in Sessions/Submissions/Navigation terms — never on a URL or HTTP call. Do not add a second fake beneath this one (e.g. mocking `@/lib/api` in an app-level test); the only legitimate place that mocks `@/lib/api` is `test/httpSessionClient.test.ts`, which exists to test the HTTP adapter itself.
