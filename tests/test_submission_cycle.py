@@ -5,10 +5,11 @@ import uuid
 import pytest
 
 import backend.config as config
+import backend.navigation_snapshot as navigation_snapshot
 import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, SessionState
-from backend.play_mode import StudentPlayMode
+from backend.play_mode import PlayMode, StudentPlayMode
 import backend.session_state as session_state
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
@@ -23,6 +24,12 @@ def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
     state.username = "submission-cycle-user"
     state.session_id = str(uuid.uuid4())
     return state
+
+
+def _snapshot(
+    state: SessionState, curriculum: Curriculum, play_mode: PlayMode
+) -> navigation_snapshot.NavigationSnapshot:
+    return navigation_snapshot.build_navigation_snapshot(state, curriculum, play_mode)
 
 
 def test_clear_submission_cycle_fields_clears_problem_and_feedback(
@@ -175,6 +182,7 @@ def test_resolve_next_problem_navigates_to_frontier_topic(
         CHAPTER_ALPHA,
         TOPIC_MULTI,
         play_mode=StudentPlayMode(),
+        nav_snapshot=_snapshot(state, fixture_curriculum, StudentPlayMode()),
     )
 
     assert state.selected_topic_id == TOPIC_RADIO
@@ -211,6 +219,7 @@ def test_resolve_next_problem_chapter_end_returns_current_problem(
         CHAPTER_ALPHA,
         TOPIC_RADIO,
         play_mode=StudentPlayMode(),
+        nav_snapshot=_snapshot(state, fixture_curriculum, StudentPlayMode()),
     )
 
     assert problem is completed_problem
@@ -242,4 +251,5 @@ def test_resolve_next_problem_chapter_end_raises_without_active_problem(
             CHAPTER_ALPHA,
             TOPIC_RADIO,
             play_mode=StudentPlayMode(),
+            nav_snapshot=_snapshot(state, fixture_curriculum, StudentPlayMode()),
         )

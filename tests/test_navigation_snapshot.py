@@ -77,7 +77,9 @@ def test_snapshot_exposes_chapters_from_handed_curriculum(
     ]
 
 
-def test_chapter_context_is_memoized_per_chapter_id(fixture_curriculum: Curriculum):
+def test_chapter_context_returns_the_same_value_for_a_chapter_id_every_time(
+    fixture_curriculum: Curriculum,
+):
     state = _fresh_state(fixture_curriculum)
     snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
 
@@ -87,7 +89,7 @@ def test_chapter_context_is_memoized_per_chapter_id(fixture_curriculum: Curricul
     assert first is second
 
 
-def test_chapter_context_memoization_is_scoped_per_chapter_id(
+def test_chapter_context_is_distinct_per_chapter_id(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
@@ -99,6 +101,93 @@ def test_chapter_context_memoization_is_scoped_per_chapter_id(
     assert alpha_ctx is not beta_ctx
     assert alpha_ctx.chapter_id == CHAPTER_ALPHA
     assert beta_ctx.chapter_id == CHAPTER_BETA
+
+
+def test_chapter_context_for_unknown_chapter_id_does_not_raise(
+    fixture_curriculum: Curriculum,
+):
+    """An unvalidated client chapter id can reach chapter_context() before the
+    caller has checked it exists — this must fall back, not read live state."""
+    state = _fresh_state(fixture_curriculum)
+    snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
+
+    ctx = snapshot.chapter_context(999999)
+
+    assert ctx.chapter_id == 999999
+    assert ctx.chapter_topics == ()
+
+
+# --- Snapshot answers do not move after the Session it was built from mutates ---
+
+
+def test_snapshot_selected_fields_do_not_move_after_state_mutates(
+    fixture_curriculum: Curriculum,
+):
+    state = _fresh_state(fixture_curriculum)
+    snapshot, view = _build(state, fixture_curriculum, _STUDENT)
+
+    state.selected_chapter_id = CHAPTER_BETA
+    state.selected_topic_id = TOPIC_SINGLE
+    state.selected_level = 2
+
+    assert snapshot.selected_chapter_id == CHAPTER_ALPHA
+    assert snapshot.selected_topic_id == TOPIC_MULTI
+    assert snapshot.selected_level == 1
+    assert view.current_topic_name == "Multi Level Topic"
+
+
+def test_chapter_context_answers_do_not_move_after_frontier_mutates(
+    fixture_curriculum: Curriculum,
+):
+    """Reachability read off a chapter's context must not change because the
+    Session's chapter_frontiers dict was mutated after the snapshot was built —
+    the snapshot holds no live reference into it."""
+    state = _fresh_state(fixture_curriculum)
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+    )
+    snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
+    before = snapshot.chapter_context(CHAPTER_ALPHA)
+    before_accessible = {int(t["topic_id"]) for t in before.accessible_topics}
+
+    state.chapter_frontiers[CHAPTER_ALPHA].frontier_topic_id = TOPIC_RADIO
+    state.chapter_frontiers[CHAPTER_ALPHA].frontier_level = 1
+
+    after = snapshot.chapter_context(CHAPTER_ALPHA)
+    after_accessible = {int(t["topic_id"]) for t in after.accessible_topics}
+
+    assert after is before
+    assert after_accessible == before_accessible
+    assert TOPIC_RADIO not in after_accessible
+
+
+def test_chapter_context_answers_are_the_same_regardless_of_which_chapter_is_asked_first(
+    fixture_curriculum: Curriculum,
+):
+    """The same Navigation must not depend on the order chapters are asked
+    about — asking about one chapter first must not change what a later
+    question about another chapter (or the same chapter again) returns."""
+    state_ask_alpha_first = _fresh_state(fixture_curriculum)
+    state_ask_beta_first = _fresh_state(fixture_curriculum)
+    for state in (state_ask_alpha_first, state_ask_beta_first):
+        state.chapter_frontiers[CHAPTER_BETA] = ChapterFrontier(
+            frontier_topic_id=TOPIC_SINGLE,
+            frontier_level=1,
+        )
+
+    snapshot_a, _ = _build(state_ask_alpha_first, fixture_curriculum, _STUDENT)
+    snapshot_a.chapter_context(CHAPTER_ALPHA)
+    beta_after_alpha = snapshot_a.chapter_context(CHAPTER_BETA)
+
+    snapshot_b, _ = _build(state_ask_beta_first, fixture_curriculum, _STUDENT)
+    beta_first = snapshot_b.chapter_context(CHAPTER_BETA)
+    snapshot_b.chapter_context(CHAPTER_ALPHA)
+
+    assert (
+        beta_after_alpha.implicit_chapter_landing == beta_first.implicit_chapter_landing
+    )
+    assert beta_after_alpha.effective_frontier == beta_first.effective_frontier
 
 
 def test_snapshot_defaults_selected_chapter_from_handed_curriculum(
@@ -126,7 +215,7 @@ def test_student_at_frontier_topic_and_level_limits(
         frontier_level=1,
     )
     snapshot, view = _build(state, fixture_curriculum, _STUDENT)
-    ctx = snapshot.current
+    ctx = snapshot.selected_chapter_context
     frontier = state.chapter_frontiers[CHAPTER_ALPHA]
 
     assert ctx.effective_frontier.frontier_topic_id == frontier.frontier_topic_id
@@ -156,7 +245,12 @@ def test_student_at_frontier_with_next_topic_unlocked(
 
     snapshot, view = _build(state, fixture_curriculum, _STUDENT)
 
-    assert snapshot.current.has_next_unlocked_topic(state.selected_topic_id) is True
+    assert (
+        snapshot.selected_chapter_context.has_next_unlocked_topic(
+            state.selected_topic_id
+        )
+        is True
+    )
     assert view.has_next_unlocked_topic is True
 
 
@@ -173,7 +267,7 @@ def test_student_behind_frontier_sees_reachable_topics_and_levels(
     )
     state.selected_topic_id = TOPIC_MULTI
     snapshot, view = _build(state, fixture_curriculum, _STUDENT)
-    ctx = snapshot.current
+    ctx = snapshot.selected_chapter_context
 
     accessible_ids = {int(t["topic_id"]) for t in ctx.accessible_topics}
     assert accessible_ids == {TOPIC_MULTI, TOPIC_RADIO}
@@ -194,8 +288,8 @@ def test_student_behind_frontier_progress(fixture_curriculum: Curriculum):
     state.selected_level = 1
 
     snapshot, view = _build(state, fixture_curriculum, _STUDENT)
-    chapter_progress = snapshot.current.chapter_progress()
-    topic_progress = snapshot.current.topic_progress(
+    chapter_progress = snapshot.selected_chapter_context.chapter_progress()
+    topic_progress = snapshot.selected_chapter_context.topic_progress(
         snapshot.selected_topic_id, snapshot.selected_level
     )
 
@@ -220,7 +314,7 @@ def test_student_beyond_frontier_topics_are_locked(
     state = _fresh_state(fixture_curriculum)
     # Default frontier is TOPIC_MULTI level 1 — TOPIC_RADIO stays beyond.
     snapshot, view = _build(state, fixture_curriculum, _STUDENT)
-    ctx = snapshot.current
+    ctx = snapshot.selected_chapter_context
 
     accessible_ids = {int(t["topic_id"]) for t in ctx.accessible_topics}
     assert accessible_ids == {TOPIC_MULTI}
@@ -251,7 +345,7 @@ def test_student_radio_only_follows_active_topic(fixture_curriculum: Curriculum)
 def test_admin_sees_all_topics_and_full_levels(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum, username="Antoni")
     snapshot, view = _build(state, fixture_curriculum, _ADMIN)
-    ctx = snapshot.current
+    ctx = snapshot.selected_chapter_context
 
     assert ctx.effective_frontier.frontier_topic_id == TOPIC_RADIO
     assert ctx.effective_frontier.frontier_level == 1
@@ -266,8 +360,8 @@ def test_admin_sees_all_topics_and_full_levels(fixture_curriculum: Curriculum):
 def test_admin_progress_bars_show_full_completion(fixture_curriculum: Curriculum):
     state = _fresh_state(fixture_curriculum, username="Antoni")
     snapshot, view = _build(state, fixture_curriculum, _ADMIN)
-    chapter_progress = snapshot.current.chapter_progress()
-    topic_progress = snapshot.current.topic_progress(
+    chapter_progress = snapshot.selected_chapter_context.chapter_progress()
+    topic_progress = snapshot.selected_chapter_context.topic_progress(
         snapshot.selected_topic_id, snapshot.selected_level
     )
 
@@ -292,7 +386,12 @@ def test_admin_has_next_unlocked_topic_is_false(fixture_curriculum: Curriculum):
         state, fixture_curriculum, resolve_play_mode(state.username)
     )
 
-    assert snapshot.current.has_next_unlocked_topic(state.selected_topic_id) is False
+    assert (
+        snapshot.selected_chapter_context.has_next_unlocked_topic(
+            state.selected_topic_id
+        )
+        is False
+    )
     assert view.has_next_unlocked_topic is False
 
 

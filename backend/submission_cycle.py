@@ -32,6 +32,7 @@ def _navigate_after_topic_completion(
     state: SessionState,
     curriculum: Curriculum,
     play_mode: PlayMode,
+    nav_snapshot: navigation_snapshot.NavigationSnapshot,
 ) -> bool:
     """Navigate to the next Topic after Topic completion when Next problem unlocks one.
 
@@ -40,15 +41,15 @@ def _navigate_after_topic_completion(
     path toolbar Navigation uses — so Reachable/Locked determination cannot
     diverge between manual Navigation and post-completion auto-navigation.
 
+    ``nav_snapshot`` is built once by the caller at the session use-case edge and
+    passed down — this function reads it, it never builds its own.
+
     Returns True when Navigation moved the Session to the Frontier topic at level 1.
     """
     chapter_id = state.selected_chapter_id
     if chapter_id is None:
         return False
 
-    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
-        state, curriculum, play_mode
-    )
     ctx = nav_snapshot.chapter_context(chapter_id)
     if not ctx.has_next_unlocked_topic(state.selected_topic_id):
         return False
@@ -167,8 +168,13 @@ def resolve_next_problem(
     chapter_id: int,
     topic_id: int,
     play_mode: PlayMode,
+    nav_snapshot: navigation_snapshot.NavigationSnapshot,
 ) -> ProblemDict:
     """Serve the next problem, handling post-Topic-completion Navigation and chapter-end fallback.
+
+    ``nav_snapshot`` is built once by the caller at the session use-case edge and
+    threaded down into ``_navigate_after_topic_completion`` — this function never
+    builds one itself.
 
     Raises:
         NoActiveProblemError: At chapter end with no active problem, or missing selection
@@ -176,7 +182,9 @@ def resolve_next_problem(
         TopicNotFoundError: Selected topic is missing from the curriculum.
     """
     if state.problem_answered and state.topic_completed:
-        if not _navigate_after_topic_completion(state, curriculum, play_mode):
+        if not _navigate_after_topic_completion(
+            state, curriculum, play_mode, nav_snapshot
+        ):
             problem = state.current_problem
             if problem is None:
                 raise NoActiveProblemError("No active problem in this session")
