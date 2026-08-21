@@ -31,7 +31,7 @@ export default function GameArena() {
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [view.feedbackPhase]);
+  }, [view.feedbackPhase, view.answerLocked]);
 
   if (view.error) {
     return (
