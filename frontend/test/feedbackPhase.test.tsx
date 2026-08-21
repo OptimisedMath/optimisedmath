@@ -52,6 +52,7 @@ describe('feedbackPhase on SessionView', () => {
     const { result } = renderUseSession(client);
     await waitForSessionReady(client);
     await waitForPhase(() => result.current.view.feedbackPhase, 'none');
+    expect(result.current.view.answerLocked).toBe(false);
   });
 
   it('is soft_error when feedback is present and can_next_problem is false', async () => {
@@ -80,6 +81,7 @@ describe('feedbackPhase on SessionView', () => {
     await waitForSessionReady(client);
     await result.current.actions.submit('4/');
     await waitForPhase(() => result.current.view.feedbackPhase, 'soft_error');
+    expect(result.current.view.answerLocked).toBe(false);
   });
 
   it('is answer_locked when correct feedback has can_next_problem true', async () => {
@@ -108,6 +110,7 @@ describe('feedbackPhase on SessionView', () => {
     await waitForSessionReady(client);
     await result.current.actions.submit('4');
     await waitForPhase(() => result.current.view.feedbackPhase, 'answer_locked');
+    expect(result.current.view.answerLocked).toBe(true);
   });
 
   it('is answer_locked when wrong feedback has can_next_problem true', async () => {
@@ -136,5 +139,6 @@ describe('feedbackPhase on SessionView', () => {
     await waitForSessionReady(client);
     await result.current.actions.submit('3');
     await waitForPhase(() => result.current.view.feedbackPhase, 'answer_locked');
+    expect(result.current.view.answerLocked).toBe(true);
   });
 });

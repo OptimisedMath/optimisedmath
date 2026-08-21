@@ -12,7 +12,6 @@ import 'katex/dist/katex.min.css';
 interface TextAnswerInputProps {
   view: SessionView;
   actions: SessionActions;
-  answerLocked: boolean;
 }
 
 function formatInputAsLatex(s: string): string {
@@ -34,12 +33,12 @@ function formatInputAsLatex(s: string): string {
 function TextAnswerInput({
   view,
   actions,
-  answerLocked,
 }: TextAnswerInputProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const problem = view.problem;
+  const answerLocked = view.answerLocked;
 
   const {
     isAutoSolving,

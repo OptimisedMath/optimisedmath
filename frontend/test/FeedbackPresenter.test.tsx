@@ -19,8 +19,8 @@ function baseView(overrides: Partial<SessionView> = {}): SessionView {
     isSubmitting: false,
     isLoadingNextProblem: false,
     canSubmit: true,
-    canNextProblem: false,
     feedbackPhase: 'none',
+    answerLocked: false,
     isLoadingProblem: false,
     problem,
     feedback: null,
@@ -45,7 +45,6 @@ function softErrorFeedback(message = 'Zły format odpowiedzi'): Feedback {
     correct: false,
     message,
     feedback_type: 'info',
-    answer_locked: false,
   };
 }
 
@@ -58,7 +57,6 @@ function answerLockedFeedback(
     correct,
     message,
     feedback_type,
-    answer_locked: true,
   };
 }
 
@@ -93,7 +91,7 @@ describe('FeedbackPresenter', () => {
       <FeedbackPresenter
         view={baseView({
           feedbackPhase: 'answer_locked',
-          canNextProblem: true,
+          answerLocked: true,
           feedback: answerLockedFeedback('Brawo!', true, 'success'),
         })}
         actions={noopActions}
@@ -111,7 +109,7 @@ describe('FeedbackPresenter', () => {
       <FeedbackPresenter
         view={baseView({
           feedbackPhase: 'answer_locked',
-          canNextProblem: true,
+          answerLocked: true,
           feedback: answerLockedFeedback('Wrong feedback', false, 'warning'),
         })}
         actions={noopActions}

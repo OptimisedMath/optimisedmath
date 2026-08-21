@@ -59,7 +59,6 @@ export function useSession() {
             correct: session.feedback_type === 'success',
             message: session.feedback_msg,
             feedback_type: session.feedback_type,
-            answer_locked: session.can_next_problem,
           }
         : null;
 
@@ -69,6 +68,8 @@ export function useSession() {
           ? 'answer_locked'
           : 'soft_error'
         : 'none';
+
+    const answerLocked = feedbackPhase === 'answer_locked';
 
     const display = session
       ? projectSessionState(session)
@@ -82,8 +83,8 @@ export function useSession() {
       isSubmitting,
       isLoadingNextProblem,
       canSubmit: Boolean(session?.can_submit && !isSubmitting),
-      canNextProblem: Boolean(session?.can_next_problem),
       feedbackPhase,
+      answerLocked,
       isLoadingProblem: session !== null && problem === null,
       problem,
       feedback,

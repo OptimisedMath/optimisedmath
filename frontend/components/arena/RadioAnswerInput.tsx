@@ -12,18 +12,17 @@ import 'katex/dist/katex.min.css';
 interface RadioAnswerInputProps {
   view: SessionView;
   actions: SessionActions;
-  answerLocked: boolean;
 }
 
 function RadioAnswerInput({
   view,
   actions,
-  answerLocked,
 }: RadioAnswerInputProps) {
   const [value, setValue] = useState('');
 
   const problem = view.problem!;
   const feedback = view.feedback;
+  const answerLocked = view.answerLocked;
 
   const {
     isAutoSolving,

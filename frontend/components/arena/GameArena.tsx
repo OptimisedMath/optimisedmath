@@ -22,10 +22,9 @@ export default function GameArena() {
     if (view.feedbackPhase === 'none') return;
 
     const frameId = requestAnimationFrame(() => {
-      const target =
-        view.feedbackPhase === 'answer_locked'
-          ? nextButtonRef.current
-          : feedbackRef.current;
+      const target = view.answerLocked
+        ? nextButtonRef.current
+        : feedbackRef.current;
       if (target) {
         scrollElementClearOfMobileChrome(target);
       }

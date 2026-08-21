@@ -108,7 +108,6 @@ export interface Feedback {
   correct: boolean;
   message: string;
   feedback_type: string | null;
-  answer_locked: boolean;
 }
 
 export type SubmitAnswerHandler = (answer: string) => void | Promise<void>;
@@ -127,8 +126,8 @@ export interface SessionView {
   isSubmitting: boolean;
   isLoadingNextProblem: boolean;
   canSubmit: boolean;
-  canNextProblem: boolean;
   feedbackPhase: FeedbackPhase;
+  answerLocked: boolean;
   isLoadingProblem: boolean;
   problem: Problem | null;
   feedback: Feedback | null;
