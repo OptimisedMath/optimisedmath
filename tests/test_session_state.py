@@ -305,6 +305,55 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
     )
 
 
+def test_persist_round_trips_flawless_eligible_for_student(
+    fixture_curriculum: Curriculum,
+):
+    """A Flawless-eligible profile survives a real persist and re-read."""
+    state = _fresh_state(fixture_curriculum)
+    state.flawless_eligible = False
+
+    session_state.persist(state, StudentPlayMode())
+
+    reloaded = db.load_session(state.session_id)
+    assert reloaded is not None
+    assert reloaded.flawless_eligible is False
+
+
+def test_persist_round_trips_flawless_eligible_and_preserved_profile_for_admin(
+    fixture_curriculum: Curriculum,
+):
+    """The non-write-all build_db_write_plan path preserves the profile and flawless_eligible."""
+    state = _fresh_state(fixture_curriculum)
+    state.username = "admin-round-trip-user"
+    state.flawless_eligible = False
+    db.save_user(
+        state.username,
+        SessionState(
+            username=state.username,
+            xp=50,
+            streak=0,
+            chapter_frontiers={
+                CHAPTER_ALPHA: ChapterFrontier(
+                    frontier_topic_id=TOPIC_MULTI,
+                    frontier_level=1,
+                )
+            },
+        ),
+    )
+
+    session_state.persist(state, AdminPlayMode())
+
+    reloaded = db.load_session(state.session_id)
+    assert reloaded is not None
+    assert reloaded.xp == 50
+    assert reloaded.streak == 0
+    assert reloaded.flawless_eligible is False
+    assert reloaded.chapter_frontiers[CHAPTER_ALPHA] == ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=1,
+    )
+
+
 def test_persist_matches_manual_build_and_sync_sequence_for_student_and_admin(
     fixture_curriculum: Curriculum,
 ):
