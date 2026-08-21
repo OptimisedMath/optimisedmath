@@ -1,8 +1,5 @@
 # Frontend file map
 
-Every file has it's own
-
-
 | Path                | Purpose                                                      |
 | ------------------- | ------------------------------------------------------------ |
 | `app/`              | App Router pages: `/`, `/login`, `/arena`                    |
