@@ -7,10 +7,10 @@ import { PREFERRED_CHAPTER_ID } from './constants';
 import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
 import { getStoredSessionId, getStoredUsername, setStoredSessionId } from './storage';
-import type { SessionState } from './types';
+import type { SessionResponse } from './types';
 
 interface UseSessionBootstrapOptions {
-  setSessionState: Dispatch<SetStateAction<SessionState | null>>;
+  setSessionState: Dispatch<SetStateAction<SessionResponse | null>>;
   setError: Dispatch<SetStateAction<string | null>>;
   onSessionStarted: (sessionId: string) => void;
 }

@@ -12,12 +12,12 @@ import type {
   Feedback,
   FeedbackPhase,
   SessionActions,
-  SessionState,
+  SessionResponse,
   SessionView,
 } from './types';
 
 export function useSession() {
-  const [sessionState, setSessionState] = useState<SessionState | null>(null);
+  const [sessionState, setSessionState] = useState<SessionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const problem = sessionState?.current_problem ?? null;

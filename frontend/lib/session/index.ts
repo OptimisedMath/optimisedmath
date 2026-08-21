@@ -32,7 +32,7 @@ export type {
   SessionResetRequest,
   SessionActions,
   SessionStartRequest,
-  SessionState,
+  SessionResponse,
   SessionView,
   SubmissionResponse,
   SubmitAnswerHandler,

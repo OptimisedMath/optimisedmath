@@ -3,11 +3,11 @@ import type { SessionClient } from '@/lib/session/client';
 import type {
   Problem,
   ProblemResponse,
-  SessionState,
+  SessionResponse,
   SubmissionResponse,
 } from '@/lib/session/types';
 
-export function defaultNavigation(): SessionState['navigation'] {
+export function defaultNavigation(): SessionResponse['navigation'] {
   return {
     available_chapters: [{ chapter_id: 10, name: 'Ułamki' }],
     current_topic_name: 'Dodawanie',
@@ -20,7 +20,7 @@ export function defaultNavigation(): SessionState['navigation'] {
   };
 }
 
-export function baseSession(overrides: Partial<SessionState> = {}): SessionState {
+export function baseSession(overrides: Partial<SessionResponse> = {}): SessionResponse {
   return {
     session_id: 'sess-test',
     username: 'testuser',
@@ -88,12 +88,12 @@ export function wireArenaFlow({
   problem,
   onSubmit,
 }: {
-  session: SessionState;
+  session: SessionResponse;
   problem: Problem;
   onSubmit: () => SubmissionResponse;
 }): SessionClient {
   const getNextProblem = async () => {
-    const state: SessionState = {
+    const state: SessionResponse = {
       ...session,
       current_problem: problem,
       can_submit: true,

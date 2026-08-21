@@ -27,21 +27,21 @@ function collectSourceFiles(directory: string): string[] {
   return files;
 }
 
-describe('ADR-0002 SessionState privacy', () => {
+describe('ADR-0002 SessionResponse privacy', () => {
   it('SessionView no longer exposes a session field', () => {
     const source = readFileSync(SESSION_TYPES_PATH, 'utf8');
     const sessionViewBlock = source.match(/export interface SessionView \{[\s\S]*?\n\}/)?.[0];
 
     expect(sessionViewBlock).toBeDefined();
-    expect(sessionViewBlock).not.toMatch(/\bsession\s*:\s*SessionState/);
+    expect(sessionViewBlock).not.toMatch(/\bsession\s*:\s*SessionResponse/);
   });
 
-  it('no file under frontend/components imports SessionState', () => {
+  it('no file under frontend/components imports SessionResponse', () => {
     const violations: string[] = [];
 
     for (const filePath of collectSourceFiles(COMPONENTS_ROOT)) {
       const source = readFileSync(filePath, 'utf8');
-      if (/\bSessionState\b/.test(source)) {
+      if (/\bSessionResponse\b/.test(source)) {
         violations.push(relative(FRONTEND_ROOT, filePath));
       }
     }

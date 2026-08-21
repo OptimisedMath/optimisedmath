@@ -1,4 +1,6 @@
-// Session types matching FastAPI Pydantic models (backend SessionState and related).
+// Session types matching FastAPI Pydantic models (backend SessionResponse and related);
+// note the backend also has its own SessionState class for persisted sessions, which this
+// interface does not mirror.
 
 export interface ChapterFrontier {
   frontier_topic_id: number;
@@ -32,7 +34,7 @@ export interface NavigationView {
   topic_completion: NavigationProgress | null;
 }
 
-export interface SessionState {
+export interface SessionResponse {
   session_id: string;
   username: string | null;
   xp: number;
@@ -93,11 +95,11 @@ export interface ProblemSubmissionRequest {
 
 export interface ProblemResponse {
   problem: Problem;
-  state: SessionState;
+  state: SessionResponse;
 }
 
 export interface SubmissionResponse {
-  state: SessionState;
+  state: SessionResponse;
   is_correct: boolean;
   feedback: string;
 }

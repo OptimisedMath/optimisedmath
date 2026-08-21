@@ -2,10 +2,10 @@ import type {
   NavigationChapterOption,
   NavigationProgress,
   NavigationTopicOption,
-  SessionState,
+  SessionResponse,
 } from './types';
 
-/** Display fields projected from SessionState for arena rendering. */
+/** Display fields projected from SessionResponse for arena rendering. */
 export interface SessionDisplayProjection {
   hasNavigation: boolean;
   xp: number;
@@ -48,7 +48,7 @@ export function emptySessionDisplayProjection(): SessionDisplayProjection {
   };
 }
 
-export function projectSessionState(state: SessionState): SessionDisplayProjection {
+export function projectSessionState(state: SessionResponse): SessionDisplayProjection {
   const navigation = state.navigation;
 
   return {

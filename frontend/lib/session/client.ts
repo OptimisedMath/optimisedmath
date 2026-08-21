@@ -3,7 +3,7 @@ import type {
   SessionNavigateRequest,
   SessionResetRequest,
   SessionStartRequest,
-  SessionState,
+  SessionResponse,
   SubmissionResponse,
   ProblemSubmissionRequest,
 } from './types';
@@ -14,9 +14,9 @@ import type {
  * frontend/docs/session.md.
  */
 export interface SessionClient {
-  startSession(request: SessionStartRequest): Promise<SessionState>;
-  navigateSession(request: SessionNavigateRequest): Promise<SessionState>;
-  resetSession(request: SessionResetRequest): Promise<SessionState>;
+  startSession(request: SessionStartRequest): Promise<SessionResponse>;
+  navigateSession(request: SessionNavigateRequest): Promise<SessionResponse>;
+  resetSession(request: SessionResetRequest): Promise<SessionResponse>;
   getNextProblem(sessionId: string): Promise<ProblemResponse>;
   submitAnswer(request: ProblemSubmissionRequest): Promise<SubmissionResponse>;
 }

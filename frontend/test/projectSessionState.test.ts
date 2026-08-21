@@ -6,7 +6,7 @@ import {
 import { baseSession, defaultNavigation } from './fakeBackend';
 
 describe('projectSessionState', () => {
-  it('projects display fields from a SessionState fixture', () => {
+  it('projects display fields from a SessionResponse fixture', () => {
     const navigation = defaultNavigation()!;
     const state = baseSession({
       xp: 120,

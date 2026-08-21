@@ -7,19 +7,19 @@ import { reportError } from './errors';
 import type {
   NavigateIntent,
   Problem,
-  SessionState,
+  SessionResponse,
   SubmitAnswerHandler,
   SubmissionResponse,
 } from './types';
 
 /**
- * Clears the optimistic-fetch slice of SessionState (current problem,
+ * Clears the optimistic-fetch slice of SessionResponse (current problem,
  * submit/next-problem gates, and Feedback fields) plus any stale error, in
  * one place. Called by every action that optimistically clears the board
  * before a network round-trip completes.
  */
 function clearOptimisticState(
-  setSessionState: Dispatch<SetStateAction<SessionState | null>>,
+  setSessionState: Dispatch<SetStateAction<SessionResponse | null>>,
   setError: Dispatch<SetStateAction<string | null>>
 ) {
   setSessionState((prev) =>
@@ -38,8 +38,8 @@ function clearOptimisticState(
 }
 
 interface UseProblemLifecycleOptions {
-  sessionState: SessionState | null;
-  setSessionState: Dispatch<SetStateAction<SessionState | null>>;
+  sessionState: SessionResponse | null;
+  setSessionState: Dispatch<SetStateAction<SessionResponse | null>>;
   setError: Dispatch<SetStateAction<string | null>>;
   problem: Problem | null;
 }
