@@ -5,13 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { InlineMath } from 'react-katex';
 import { useAutoSolve } from '@/hooks/useAutoSolve';
-import type { SessionActions, SessionView } from '@/lib/session';
+import type { Problem, SubmitAnswerHandler } from '@/lib/session';
 import SubmitRow from './SubmitRow';
 import 'katex/dist/katex.min.css';
 
 interface TextAnswerInputProps {
-  view: SessionView;
-  actions: SessionActions;
+  problem: Problem;
+  answerLocked: boolean;
+  canSubmit: boolean;
+  adminMode: boolean;
+  onSubmit: SubmitAnswerHandler;
 }
 
 function formatInputAsLatex(s: string): string {
@@ -31,14 +34,14 @@ function formatInputAsLatex(s: string): string {
 }
 
 function TextAnswerInput({
-  view,
-  actions,
+  problem,
+  answerLocked,
+  canSubmit,
+  adminMode,
+  onSubmit,
 }: TextAnswerInputProps) {
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const problem = view.problem;
-  const answerLocked = view.answerLocked;
 
   const {
     isAutoSolving,
@@ -46,10 +49,12 @@ function TextAnswerInput({
     handleAutoSolve,
     autoSolveDisabled,
     interactionDisabled,
-    canSubmit,
   } = useAutoSolve({
-    view,
-    actions,
+    problem,
+    canSubmit,
+    answerLocked,
+    adminMode,
+    onSubmit,
     inputMode: 'input',
     value,
     setValue,
@@ -57,7 +62,7 @@ function TextAnswerInput({
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    actions.submit(value);
+    onSubmit(value);
   };
 
   const appendChar = (char: string) => {

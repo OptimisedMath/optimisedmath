@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { SessionActions, SessionView } from '@/lib/session';
+import type { Problem, SubmitAnswerHandler } from '@/lib/session';
 
 const AUTO_SOLVE_RADIO_DELAY_MS = 450;
 const AUTO_SOLVE_INPUT_CHAR_DELAY_MS = 45;
@@ -12,16 +12,22 @@ const sleep = (ms: number) => new Promise<void>((resolve) => {
 type AutoSolveInputMode = 'radio' | 'input';
 
 interface UseAutoSolveOptions {
-  view: SessionView;
-  actions: SessionActions;
+  problem: Problem | null;
+  canSubmit: boolean;
+  answerLocked: boolean;
+  adminMode: boolean;
+  onSubmit: SubmitAnswerHandler;
   inputMode: AutoSolveInputMode;
   value: string;
   setValue: (value: string) => void;
 }
 
 export function useAutoSolve({
-  view,
-  actions,
+  problem,
+  canSubmit,
+  answerLocked,
+  adminMode,
+  onSubmit,
   inputMode,
   value,
   setValue,
@@ -29,11 +35,8 @@ export function useAutoSolve({
   const [isAutoSolving, setIsAutoSolving] = useState(false);
   const autoSolveRunRef = useRef(0);
 
-  const problem = view.problem;
-  const canSubmit = view.canSubmit;
-  const answerLocked = view.answerLocked;
   const disabled = !canSubmit;
-  const showAutoSolve = view.adminMode;
+  const showAutoSolve = adminMode;
 
   const interactionDisabled = disabled || isAutoSolving;
   const autoSolveDisabled =
@@ -76,7 +79,7 @@ export function useAutoSolve({
         return;
       }
 
-      await actions.submit(correctAnswer);
+      await onSubmit(correctAnswer);
     } finally {
       if (autoSolveRunRef.current === runId) {
         setIsAutoSolving(false);
@@ -90,7 +93,7 @@ export function useAutoSolve({
     canSubmit,
     disabled,
     inputMode,
-    actions,
+    onSubmit,
     setValue,
   ]);
 
