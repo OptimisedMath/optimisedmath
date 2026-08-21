@@ -21,7 +21,7 @@ Navigation is split into two modules: `navigation_snapshot.py` builds the Naviga
 3. **`TopicDict` is the single topic shape.** `TopicMeta` collapses into it; `topic_id` is added to what `curriculum.topic()` returns. (Verified additive: none of its 7 production callers read `topic_id`.)
 4. **Navigation stays split.** Reopening the merge-versus-split question requires new evidence, not a new preference — the history above is the cost of the last four attempts.
 
-**Status of the code:** Rules 2 and 3 are decided but not yet implemented — `Curriculum.topic_by_id()` and `Curriculum.clamp_level()` do not exist yet, and `navigation_resolve.py:7-12` still imports the private helpers.
+**Status of the code:** Rules 2 and 3 are implemented. `Curriculum.topic_by_id()` and `Curriculum.clamp_level()` exist (`curriculum.py:47`, `curriculum.py:52`), and `navigation_resolve.py` imports only `Curriculum`, `NavigationSnapshot`, `SessionState`, and `first_topic_id` — no private cross-module import remains.
 
 **Considered options:** Merge the two modules back into one (rejected — that is swing five, and #66 already proved a merge hides this defect rather than fixing it); keep the helpers in `navigation_snapshot` but make them public (rejected — the import direction stays wrong, and navigation would still own a curriculum concern); a mechanical rule banning cross-module `_` imports (rejected — satisfiable by a rename, which leaves the misplacement intact); add a pre-commit tripwire enforcing the rule (rejected for now — one violation repo-wide does not justify it, and a hook cannot check the part that matters, whether the placement is right; the repo already does hook-based enforcement in `fb926cb`, so the option stays live if it recurs).
 
