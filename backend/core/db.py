@@ -84,7 +84,7 @@ def init_db() -> None:
                 topic TEXT NOT NULL,
                 level_number INTEGER NOT NULL,
                 is_input_mode BOOLEAN NOT NULL,
-                trap_id TEXT,
+                answer_outcome TEXT,
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
                 time_spent_seconds INTEGER,
@@ -246,7 +246,7 @@ def log_telemetry(
     is_input_mode: bool,
     is_correct: bool,
     user_input: str | None = None,
-    trap_id: str | None = None,
+    answer_outcome: str | None = None,
     time_spent_seconds: int | None = None,
     equation_state: str | None = None,
 ) -> None:
@@ -257,7 +257,7 @@ def log_telemetry(
             """
             INSERT INTO telemetry_logs (
                 session_id, username, chapter, topic, level_number, is_input_mode,
-                trap_id, is_correct, user_input, time_spent_seconds, equation_state
+                answer_outcome, is_correct, user_input, time_spent_seconds, equation_state
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
@@ -267,7 +267,7 @@ def log_telemetry(
                 topic_name,
                 level_number,
                 is_input_mode,
-                trap_id,
+                answer_outcome,
                 is_correct,
                 str(user_input) if user_input is not None else None,
                 time_spent_seconds,

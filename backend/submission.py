@@ -95,7 +95,7 @@ def _log_submission_telemetry(
         is_input_mode=is_input_mode,
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
-        trap_id=eval_result.get("trap_id"),
+        answer_outcome=eval_result.get("answer_outcome"),
         time_spent_seconds=time_spent,
         equation_state=_sanitize_problem_for_telemetry(problem),
     )

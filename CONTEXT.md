@@ -117,12 +117,16 @@ A wrong option based on a predictable misconception. Gets targeted feedback expl
 _Avoid_: distractor, diagnostic answer
 
 **Wrong**:
-A calculation slip — the method was roughly right but arithmetic failed. Generic feedback, not misconception-specific.
+An incorrect answer with no misconception behind it — usually a calculation slip, where the method was roughly right but the arithmetic failed. Generic feedback, not misconception-specific. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer.
 _Avoid_: w1, w2 (internal ids)
 
 **Soft Error**:
-Syntax or format issue (e.g. wrong notation). Does not penalize streak or forfeit Flawless.
+The answer could not be read as a maths expression, or used a notation the Problem did not ask for. Does not penalize streak or forfeit Flawless. Only applies where the required form was not itself part of the question — otherwise the answer is Wrong.
 _Avoid_: format error
+
+**Answer Outcome**:
+Which of the above one Submission landed in — the single value the grader returns alongside its feedback, and the one telemetry groups attempts by. Correct answers have none.
+_Avoid_: trap_id, error code, result
 
 ## Session
 

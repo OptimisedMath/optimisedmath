@@ -846,7 +846,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     )
 
     eval_result = grade(">", problem, is_input_mode=False)
-    assert eval_result.get("trap_id") == "t1"
+    assert eval_result.get("answer_outcome") == "t1"
     assert eval_result.get("feedback_msg") == branch_message
 
 

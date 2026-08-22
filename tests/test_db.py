@@ -193,7 +193,7 @@ def test_log_telemetry_persists_entry():
         is_input_mode=True,
         is_correct=False,
         user_input="1/2",
-        trap_id="t1",
+        answer_outcome="t1",
         time_spent_seconds=15,
         equation_state="1/4 + 1/4",
     )

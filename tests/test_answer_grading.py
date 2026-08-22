@@ -64,12 +64,12 @@ class TestMultipleChoiceGrading:
     def test_trap_answer(self):
         result = grade(r"\frac{2}{4}", _sample_problem(), is_input_mode=False)
         assert "is_correct" not in result
-        assert result["trap_id"] == "t1"
+        assert result["answer_outcome"] == "t1"
         assert result["feedback_msg"] == "Trap one"
 
     def test_wrong_answer(self):
         result = grade("2", _sample_problem(), is_input_mode=False)
-        assert result["trap_id"] == "w1"
+        assert result["answer_outcome"] == "w1"
         assert result["feedback_msg"] == "Wrong one"
 
 
@@ -80,13 +80,13 @@ class TestTextGrading:
 
     def test_syntax_error(self):
         result = grade("abc", _sample_problem(), is_input_mode=True)
-        assert result["trap_id"] == "syntax_error"
+        assert result["answer_outcome"] == "syntax_error"
         assert result["lock_answer"] is False
 
     def test_equivalent_unsimplified(self):
         problem = _sample_problem(correct=r"\frac{1}{2}")
         result = grade("2/4", problem, is_input_mode=True)
-        assert result["trap_id"] == "unsimplified"
+        assert result["answer_outcome"] == "unsimplified"
         assert result["lock_answer"] is False
 
     def test_equivalent_accepted_policy(self):
@@ -108,7 +108,7 @@ class TestTextGrading:
             grading_policy="exact_match_only",
         )
         result = grade("2/4", problem, is_input_mode=True)
-        assert result["trap_id"] == "exact_match_violation"
+        assert result["answer_outcome"] == "exact_match_violation"
         assert result["lock_answer"] is True
 
     def test_exact_match_equivalent_trap_shows_trap_message(self):
@@ -127,20 +127,20 @@ class TestTextGrading:
             grading_policy="exact_match_only",
         )
         result = grade("9/21", problem, is_input_mode=True)
-        assert result["trap_id"] == "t1"
+        assert result["answer_outcome"] == "t1"
         assert result["feedback_msg"] == "Partially simplified trap"
         assert "is_correct" not in result
 
     def test_text_trap_match(self):
         problem = _sample_problem(correct="1")
         result = grade("2", problem, is_input_mode=True)
-        assert result["trap_id"] == "w1"
+        assert result["answer_outcome"] == "w1"
 
     def test_missing_options_map_does_not_crash(self):
         problem = _sample_problem()
         del problem["options_map"]
         result = grade("9", problem, is_input_mode=True)
-        assert result["trap_id"] == "w1"
+        assert result["answer_outcome"] == "w1"
 
 
 class TestFormatMismatch:
@@ -159,7 +159,7 @@ class TestFormatMismatch:
             grading_policy="equivalent_accepted",
         )
         result = grade(user_text, problem, is_input_mode=True)
-        assert result["trap_id"] == "format_mismatch"
+        assert result["answer_outcome"] == "format_mismatch"
         assert expected_substring in result["feedback_msg"]
 
     def test_no_mismatch_for_matching_formats(self):
@@ -168,7 +168,7 @@ class TestFormatMismatch:
             grading_policy="equivalent_accepted",
         )
         result = grade("1/2", problem, is_input_mode=True)
-        assert result.get("trap_id") != "format_mismatch"
+        assert result.get("answer_outcome") != "format_mismatch"
         assert result["is_correct"] is True
 
 

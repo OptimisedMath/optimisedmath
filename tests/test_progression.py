@@ -197,7 +197,7 @@ def test_soft_error_preserves_streak_and_flawless():
             "lock_answer": False,
             "feedback_type": "info",
             "feedback_msg": "syntax",
-            "trap_id": "syntax_error",
+            "answer_outcome": "syntax_error",
         },
         _ctx(streak=2, flawless_eligible=True),
     )
@@ -317,7 +317,7 @@ def test_streak_only_soft_error_preserves_streak():
             "lock_answer": False,
             "feedback_type": "info",
             "feedback_msg": "syntax",
-            "trap_id": "syntax_error",
+            "answer_outcome": "syntax_error",
         },
         _ctx(streak=2, flawless_eligible=True, full_progression=False),
     )

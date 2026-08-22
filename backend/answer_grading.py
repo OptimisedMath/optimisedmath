@@ -13,7 +13,7 @@ class EvalResult(TypedDict, total=False):
     lock_answer: bool
     feedback_type: str
     feedback_msg: str
-    trap_id: str
+    answer_outcome: str
 
 
 def _match_trap_feedback(
@@ -36,7 +36,7 @@ def _match_trap_feedback(
                 "lock_answer": True,
                 "feedback_type": "warning",
                 "feedback_msg": msg_text,
-                "trap_id": opt_type,
+                "answer_outcome": opt_type,
             }
     return None
 
@@ -75,7 +75,7 @@ def grade(
             "lock_answer": True,
             "feedback_type": "warning",
             "feedback_msg": msg_text,
-            "trap_id": msg_key,
+            "answer_outcome": msg_key,
         }
 
     # --- 2. TEXT INPUT MODE ---
@@ -92,7 +92,7 @@ def grade(
             "lock_answer": False,
             "feedback_type": "info",
             "feedback_msg": "Niepoprawny zapis matematyczny.",
-            "trap_id": "syntax_error",
+            "answer_outcome": "syntax_error",
         }
 
     if student_val == correct_val:
@@ -102,7 +102,7 @@ def grade(
                 "lock_answer": False,
                 "feedback_type": "info",
                 "feedback_msg": format_warning,
-                "trap_id": "format_mismatch",
+                "answer_outcome": "format_mismatch",
             }
 
         if policy == "exact_match_only":
@@ -113,7 +113,7 @@ def grade(
                 "lock_answer": True,
                 "feedback_type": "warning",
                 "feedback_msg": "Zapisz ułamek w dokładnie takiej postaci, o jaką prosi polecenie!",
-                "trap_id": "exact_match_violation",
+                "answer_outcome": "exact_match_violation",
             }
         if policy == "equivalent_accepted":
             return {"is_correct": True, "lock_answer": True}
@@ -121,7 +121,7 @@ def grade(
             "lock_answer": False,
             "feedback_type": "info",
             "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
-            "trap_id": "unsimplified",
+            "answer_outcome": "unsimplified",
         }
 
     # --- 3. TEXT MODE TRAP SCANNER ---
@@ -136,5 +136,5 @@ def grade(
         "lock_answer": True,
         "feedback_type": "warning",
         "feedback_msg": msg_text,
-        "trap_id": "w1",
+        "answer_outcome": "w1",
     }

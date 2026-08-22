@@ -68,7 +68,7 @@ class ExpectedTelemetry:
     topic: str
     level_number: int
     is_input_mode: bool
-    trap_id: str | None = None
+    answer_outcome: str | None = None
 
 
 def _fresh_state(
@@ -235,7 +235,7 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
         row = conn.execute(
             """
             SELECT equation_state, is_correct, user_input, chapter, topic,
-                   level_number, is_input_mode, trap_id
+                   level_number, is_input_mode, answer_outcome
             FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
@@ -280,7 +280,7 @@ def _assert_telemetry(
     assert row[4] == expected.topic
     assert row[5] == expected.level_number
     assert row[6] == (1 if expected.is_input_mode else 0)
-    assert row[7] == expected.trap_id
+    assert row[7] == expected.answer_outcome
 
 
 def _assert_admin_profile_unchanged(
@@ -412,7 +412,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
             topic="Multi Level Topic",
             level_number=1,
             is_input_mode=False,
-            trap_id="w1",
+            answer_outcome="w1",
         ),
     )
 
@@ -455,7 +455,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
             topic="Multi Level Topic",
             level_number=1,
             is_input_mode=True,
-            trap_id="unsimplified",
+            answer_outcome="unsimplified",
         ),
     )
 
@@ -463,7 +463,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
 # --- Trap ---
 
 
-def test_trap_answer_sets_warning_feedback_and_logs_trap_id(
+def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
     fixture_curriculum: Curriculum,
 ):
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
@@ -500,7 +500,7 @@ def test_trap_answer_sets_warning_feedback_and_logs_trap_id(
             topic="Multi Level Topic",
             level_number=1,
             is_input_mode=True,
-            trap_id="t1",
+            answer_outcome="t1",
         ),
     )
 
@@ -708,7 +708,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
             topic="Multi Level Topic",
             level_number=2,
             is_input_mode=False,
-            trap_id="w1",
+            answer_outcome="w1",
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)
