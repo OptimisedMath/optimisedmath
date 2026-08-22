@@ -139,13 +139,20 @@ class ChapterNavigationContext:
 
 @dataclass(frozen=True, slots=True)
 class NavigationSnapshot:
-    """One immutable NavigationSnapshot per request.
+    """One immutable NavigationSnapshot per (state, mutation-epoch).
 
     Holds no live reference to a ``SessionState`` — every field a
     ``ChapterNavigationContext`` needs is copied at construction, and every
     Chapter's context is computed then, not on first access. Answers never
     move regardless of what the Session this value was built from does
     afterward, or which Chapter is asked about first.
+
+    That immutability is why this value does not track the Session: a
+    snapshot answers for the state as it stood when built, so once a
+    use-case mutates that state the snapshot is stale by construction and
+    the mutating use-case owes the response a fresh one. Two builds in one
+    request is therefore correct, not redundant — see ``navigate_session``
+    and ``next_problem`` in ``session.py``. See ADR-0003.
     """
 
     selected_chapter_id: int
@@ -249,7 +256,9 @@ def build_navigation_snapshot(
 
     Copies ``state.chapter_frontiers`` and computes every Chapter's context
     now, so the returned value holds no live reference into ``state`` and
-    cannot see any mutation the caller makes to it afterward.
+    cannot see any mutation the caller makes to it afterward. Call this again
+    after mutating ``state`` — the previous value still answers for the older
+    state and will not follow the change.
     """
     chapter_frontiers = deepcopy(state.chapter_frontiers)
     chapter_ids = curriculum.chapter_ids()
