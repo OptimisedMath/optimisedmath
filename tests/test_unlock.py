@@ -8,8 +8,8 @@ from backend.unlock import (
     Frontier,
     FrontierUpdate,
     accessible_topics,
-    apply_frontier_on_mastery,
-    can_access,
+    increase_frontier_on_mastery,
+    is_reachable,
     chapter_max_frontier,
     first_topic_id,
     get_frontier,
@@ -57,13 +57,13 @@ def test_get_frontier_reads_progress():
 def test_can_access_frontier_topic_and_level(topic_id, level, expected):
     frontier = Frontier(frontier_topic_id=10, frontier_level=2)
 
-    assert can_access(topic_id, level, frontier) is expected
+    assert is_reachable(topic_id, level, frontier) is expected
 
 
 def test_can_access_allows_replaying_completed_topic():
     frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
-    assert can_access(10, 3, frontier) is True
+    assert is_reachable(10, 3, frontier) is True
 
 
 def test_chapter_max_frontier_uses_last_topic_and_its_max_level():
@@ -99,8 +99,8 @@ def test_accessible_topics_filters_to_frontier():
     assert [t["topic_id"] for t in visible] == [10, 20]
 
 
-def test_apply_frontier_on_mastery_unlocks_next_level():
-    result = apply_frontier_on_mastery(1, 3, (20, 30))
+def test_increase_frontier_on_mastery_unlocks_next_level():
+    result = increase_frontier_on_mastery(1, 3, (20, 30))
 
     assert result == FrontierUpdate(
         level_unlocked=True,
@@ -109,8 +109,8 @@ def test_apply_frontier_on_mastery_unlocks_next_level():
     )
 
 
-def test_apply_frontier_on_mastery_completes_topic_and_moves_frontier():
-    result = apply_frontier_on_mastery(3, 3, (20, 30))
+def test_increase_frontier_on_mastery_completes_topic_and_moves_frontier():
+    result = increase_frontier_on_mastery(3, 3, (20, 30))
 
     assert result == FrontierUpdate(
         topic_completed=True,
@@ -119,7 +119,7 @@ def test_apply_frontier_on_mastery_completes_topic_and_moves_frontier():
     )
 
 
-def test_apply_frontier_on_mastery_completes_last_topic_without_next():
-    result = apply_frontier_on_mastery(3, 3, ())
+def test_increase_frontier_on_mastery_completes_last_topic_without_next():
+    result = increase_frontier_on_mastery(3, 3, ())
 
     assert result == FrontierUpdate(topic_completed=True)

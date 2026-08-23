@@ -64,7 +64,7 @@ def _respond(
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
     )
-    return session.respond(state, play_mode, nav_snapshot)
+    return session.build_session_response(state, play_mode, nav_snapshot)
 
 
 # --- Session lookup ---

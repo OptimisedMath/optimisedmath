@@ -131,7 +131,7 @@ class SessionResponse(BaseModel):
     """Client Session payload — composed from `SessionState` plus derived response view.
 
     Shared persisted fields are copied in `from_state()`; derived view fields are
-    passed explicitly by `session.respond()`. Persisted-only fields (e.g.
+    passed explicitly by `session.build_session_response()`. Persisted-only fields (e.g.
     `problem_start_time`, `recent_problem_fingerprints`) never leak onto the wire when
     a new persisted field is added unless it is also wired through `from_state()`.
     """

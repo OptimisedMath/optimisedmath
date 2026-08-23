@@ -2,7 +2,7 @@
 
 `submission_cycle.py` owns the Submission cycle choreography (see `CONTEXT.md`): begin-problem, post-Topic-completion Navigation, and the chapter-end fallback. It sits between `session.py` and `submission.py` / `session_state.py` — call it from session use-cases; do not import `session` from here.
 
-**Cycle flag ownership:** `session_state.py` owns the Submission-cycle completion flags (`problem_answered`, `topic_completed`, `level_completed`) for their whole lifetime — `clear_submission_cycle_fields` clears them (with `reset_streak=False` as the begin-problem variant that keeps the running streak) and `record_completion` sets `level_completed`/`topic_completed` from a graded Submission's outcome. `begin_problem` calls the former instead of clearing a subset directly, so a Topic-completion flag can no longer survive into the next Problem. No other module writes these fields directly.
+**Cycle flag ownership:** `session_state.py` owns the Submission-cycle completion flags (`problem_answered`, `topic_completed`, `level_completed`) for their whole lifetime — `reset_submission_cycle` clears them (with `reset_streak=False` as the begin-problem variant that keeps the running streak) and `mark_level_and_topic_completion` sets `level_completed`/`topic_completed` from a graded Submission's outcome. `begin_problem` calls the former instead of clearing a subset directly, so a Topic-completion flag can no longer survive into the next Problem. No other module writes these fields directly.
 
 **Why a separate module:** `submission.py` owns one graded Submission. The cycle spans problem serving and Navigation across multiple state transitions.
 

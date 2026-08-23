@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import backend.config as config
 from backend.answer_grading import EvalResult
 from backend.models import SessionState
-from backend.unlock import apply_frontier_on_mastery
+from backend.unlock import increase_frontier_on_mastery
 
 
 @dataclass(frozen=True)
@@ -43,14 +43,14 @@ class SubmissionOutcome:
     unlock_topic_id: int | None = None
 
 
-def streak_meter_for(state: SessionState) -> int:
+def resolve_streak_meter(state: SessionState) -> int:
     """Streak meter display value for the Session payload."""
     if state.problem_answered and state.level_completed and state.streak == 0:
         return state.max_streak
     return state.streak
 
 
-def apply_submission(
+def resolve_submission_outcome(
     eval_result: EvalResult, ctx: SubmissionContext
 ) -> SubmissionOutcome:
     """Apply progression rules given a grading result and session context."""
@@ -59,7 +59,7 @@ def apply_submission(
     is_soft_error = feedback_type == "info"
 
     if not ctx.full_progression:
-        return _apply_streak_only_submission(ctx, is_correct, is_soft_error)
+        return _advance_streak_only(ctx, is_correct, is_soft_error)
 
     if not is_correct and not is_soft_error:
         new_flawless_eligible = False
@@ -67,7 +67,7 @@ def apply_submission(
         new_flawless_eligible = ctx.flawless_eligible
 
     if is_correct:
-        return _apply_correct_submission(ctx, new_flawless_eligible)
+        return _advance_streak_and_xp(ctx, new_flawless_eligible)
 
     new_streak = ctx.current_streak
     if ctx.current_streak > 0 and not is_soft_error:
@@ -96,7 +96,7 @@ def _is_at_streak_reset_boundary(
     return True
 
 
-def _apply_streak_only_submission(
+def _advance_streak_only(
     ctx: SubmissionContext, is_correct: bool, is_soft_error: bool
 ) -> SubmissionOutcome:
     """Admin QA: in-cycle streak only — no XP, Flawless, or Frontier writes."""
@@ -134,7 +134,7 @@ def _apply_streak_only_submission(
     )
 
 
-def _apply_correct_submission(
+def _advance_streak_and_xp(
     ctx: SubmissionContext, flawless_eligible: bool
 ) -> SubmissionOutcome:
     earned_xp = config.XP_REWARDS.get(ctx.selected_level, config.DEFAULT_XP_REWARD)
@@ -160,7 +160,7 @@ def _apply_correct_submission(
         require_topic_match=False,
     )
     if new_streak == config.MAX_STREAK and at_boundary:
-        frontier_update = apply_frontier_on_mastery(
+        frontier_update = increase_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )
         level_unlocked = frontier_update.level_unlocked

@@ -59,7 +59,7 @@ def chapter_max_frontier(chapter_topics: list[TopicDict]) -> Frontier:
     )
 
 
-def can_access(
+def is_reachable(
     topic_id: int,
     level: int,
     frontier: Frontier,
@@ -98,7 +98,7 @@ def accessible_topics(
     return chapter_topics[:1]
 
 
-def apply_frontier_on_mastery(
+def increase_frontier_on_mastery(
     frontier_level: int,
     topic_max_level: int,
     next_topic_ids: tuple[int, ...],

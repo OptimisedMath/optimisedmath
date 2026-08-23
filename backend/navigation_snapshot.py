@@ -21,7 +21,7 @@ from backend.play_mode import PlayMode
 from backend.unlock import (
     Frontier,
     accessible_topics,
-    can_access as unlock_can_access,
+    is_reachable as unlock_can_access,
     first_topic_id,
     level_limit,
 )
@@ -80,12 +80,12 @@ class ChapterNavigationContext:
     """Navigation read model for one chapter.
 
     Landing, progress, and unlock-visibility are derived once from
-    ``effective_frontier`` and ``is_admin`` when the context is built.
+    ``resolve_frontier`` and ``is_admin`` when the context is built.
     """
 
     chapter_id: int
     chapter_topics: tuple[TopicDict, ...]
-    effective_frontier: Frontier
+    resolve_frontier: Frontier
     accessible_topics: tuple[TopicDict, ...]
     implicit_chapter_landing: tuple[int, int]
     has_frontier_record: bool
@@ -95,7 +95,7 @@ class ChapterNavigationContext:
     _next_unlocked_frontier_topic_id: int | None
 
     def level_limit_for(self, topic_id: int, topic_max_level: int) -> int:
-        return level_limit(topic_id, topic_max_level, self.effective_frontier)
+        return level_limit(topic_id, topic_max_level, self.resolve_frontier)
 
     def level_options_for(self, topic_id: int, topic_max_level: int) -> list[int]:
         return _get_level_options(self.level_limit_for(topic_id, topic_max_level))
@@ -104,10 +104,10 @@ class ChapterNavigationContext:
         stored = self._implicit_topic_landings.get(topic_id)
         if stored is not None:
             return stored
-        return _implicit_topic_landing(self.is_admin, topic_id, self.effective_frontier)
+        return _implicit_topic_landing(self.is_admin, topic_id, self.resolve_frontier)
 
-    def can_access(self, topic_id: int, level: int) -> bool:
-        return unlock_can_access(topic_id, level, self.effective_frontier)
+    def is_reachable(self, topic_id: int, level: int) -> bool:
+        return unlock_can_access(topic_id, level, self.resolve_frontier)
 
     def chapter_progress(self) -> NavigationProgress | None:
         return self._chapter_progress
@@ -203,7 +203,7 @@ def _build_chapter_context(
     chapter_topics = list(curriculum.topics(chapter_id))
     frontier_record = chapter_frontiers.get(chapter_id)
     is_admin = play_mode.is_admin
-    effective = play_mode.effective_frontier(chapter_topics, frontier_record)
+    effective = play_mode.resolve_frontier(chapter_topics, frontier_record)
     accessible = tuple(accessible_topics(chapter_topics, effective))
     implicit_landing = _implicit_chapter_landing(is_admin, chapter_topics, effective)
     completed, total = _chapter_progress_counts(is_admin, chapter_topics, effective)
@@ -220,7 +220,7 @@ def _build_chapter_context(
     return ChapterNavigationContext(
         chapter_id=chapter_id,
         chapter_topics=tuple(chapter_topics),
-        effective_frontier=effective,
+        resolve_frontier=effective,
         accessible_topics=accessible,
         implicit_chapter_landing=implicit_landing,
         has_frontier_record=has_frontier_record,

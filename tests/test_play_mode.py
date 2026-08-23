@@ -52,7 +52,7 @@ def test_effective_frontier(mode_factory, expected_topic, expected_level):
     stored = _stored_frontier()
     mode = mode_factory()
 
-    frontier = mode.effective_frontier(chapter_topics, stored)
+    frontier = mode.resolve_frontier(chapter_topics, stored)
 
     assert frontier.frontier_topic_id == expected_topic
     assert frontier.frontier_level == expected_level

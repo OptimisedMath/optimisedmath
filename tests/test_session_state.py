@@ -176,7 +176,7 @@ def _polluted_submission_cycle_state(
 
 
 def _submission_cycle_field_snapshot(state: SessionState) -> dict[str, object]:
-    """Capture the Submission-cycle fields owned by clear_submission_cycle_fields."""
+    """Capture the Submission-cycle fields owned by reset_submission_cycle."""
     return {
         "streak": state.streak,
         "flawless_eligible": state.flawless_eligible,
@@ -195,7 +195,7 @@ def _reference_cleared_cycle_snapshot(
 ) -> dict[str, object]:
     reference = _fresh_state(fixture_curriculum)
     _polluted_submission_cycle_state(reference, fixture_curriculum)
-    session_state.clear_submission_cycle_fields(reference, fixture_curriculum)
+    session_state.reset_submission_cycle(reference, fixture_curriculum)
     return _submission_cycle_field_snapshot(reference)
 
 
@@ -249,7 +249,7 @@ def test_build_db_write_plan_student_writes_all_fields(fixture_curriculum: Curri
     plan = session_state.build_db_write_plan(state, StudentPlayMode())
 
     assert plan == DbWritePlan.write_all()
-    persisted = session_state.apply_db_write_plan(state, plan)
+    persisted = session_state.overlay_db_write_plan(state, plan)
     assert persisted is state
     assert persisted.xp == 99
     assert persisted.streak == 3
@@ -295,7 +295,7 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
         frontier_level=1,
     )
 
-    persisted = session_state.apply_db_write_plan(state, plan)
+    persisted = session_state.overlay_db_write_plan(state, plan)
     assert persisted.xp == 50
     assert persisted.streak == 0
     assert persisted.flawless_eligible is False
@@ -388,7 +388,7 @@ def test_persist_matches_manual_build_and_sync_sequence_for_student_and_admin(
         state_via_manual.session_id = str(uuid.uuid4())
 
         session_state.persist(state_via_persist, mode)
-        session_state.sync_to_db(
+        session_state.write_state_to_db(
             state_via_manual,
             session_state.build_db_write_plan(state_via_manual, mode),
         )

@@ -92,7 +92,7 @@ export function useProblemLifecycle({
     }
   }, [client, setSessionState, setError]);
 
-  const applySubmissionResponse = useCallback((response: SubmissionResponse) => {
+  const updateSessionFromSubmission = useCallback((response: SubmissionResponse) => {
     setSessionState(response.state);
     setError(null);
   }, [setSessionState, setError]);
@@ -115,13 +115,13 @@ export function useProblemLifecycle({
         problem_id: problem.problem_id,
         user_input: trimmed,
       });
-      applySubmissionResponse(response);
+      updateSessionFromSubmission(response);
     } catch (err) {
       reportError(setError, err, 'Failed to submit answer', 'Error submitting answer:');
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isSubmitting, sessionState, problem, applySubmissionResponse, setError]);
+  }, [client, isSubmitting, sessionState, problem, updateSessionFromSubmission, setError]);
 
   const handleNavigate = useCallback(async (intent: NavigateIntent) => {
     if (!sessionId) {

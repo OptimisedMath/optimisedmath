@@ -74,7 +74,7 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
         state.selected_topic_id = first_curr_topic_id
 
 
-def clear_submission_cycle_fields(
+def reset_submission_cycle(
     state: SessionState,
     curriculum: Curriculum | None = None,
     *,
@@ -101,7 +101,7 @@ def clear_submission_cycle_fields(
         state.current_input_mode = "radio"
 
 
-def record_completion(
+def mark_level_and_topic_completion(
     state: SessionState, *, level_completed: bool, topic_completed: bool
 ) -> None:
     """Set Level/Topic completion flags from one graded Submission's outcome."""
@@ -131,7 +131,7 @@ def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan
     )
 
 
-def apply_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> SessionState:
+def overlay_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> SessionState:
     """Return session snapshot for DB writes according to ``write_plan``."""
     if (
         write_plan.write_xp
@@ -154,9 +154,9 @@ def apply_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> Session
     return persist_state
 
 
-def sync_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
+def write_state_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
     """Pushes current session state to the database."""
-    persist_state = apply_db_write_plan(state, write_plan)
+    persist_state = overlay_db_write_plan(state, write_plan)
     if persist_state.username:
         try:
             db.save_user(persist_state.username, persist_state)
@@ -173,7 +173,7 @@ def sync_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
 
 def persist(state: SessionState, play_mode: PlayMode) -> None:
     """Build the write plan for the resolved play mode and sync state to the DB."""
-    sync_to_db(state, build_db_write_plan(state, play_mode))
+    write_state_to_db(state, build_db_write_plan(state, play_mode))
 
 
 def load_profile(
@@ -201,7 +201,7 @@ def load_profile(
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
         state.chapter_frontiers = user_data["chapter_frontiers"]
-        clear_submission_cycle_fields(state, curriculum)
+        reset_submission_cycle(state, curriculum)
     else:
         hard_reset(
             state,
@@ -237,6 +237,6 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
-    clear_submission_cycle_fields(state, curriculum)
+    reset_submission_cycle(state, curriculum)
     if should_persist:
         persist(state, play_mode)

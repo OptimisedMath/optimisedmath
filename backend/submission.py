@@ -14,7 +14,7 @@ from backend.play_mode import PlayMode
 from backend.progression import (
     SubmissionContext,
     SubmissionOutcome,
-    apply_submission,
+    resolve_submission_outcome,
 )
 import backend.session_state as session_state
 
@@ -32,7 +32,7 @@ _TELEMETRY_STRIP_KEYS = frozenset(
 )
 
 
-def process_submission(
+def run_submission_cycle(
     state: SessionState,
     problem: ProblemDict,
     user_input: str,
@@ -54,7 +54,7 @@ def process_submission(
     _log_submission_telemetry(
         state, problem, user_input, is_input_mode, eval_result, curriculum
     )
-    _apply_progression(state, eval_result, curriculum, play_mode)
+    _run_progression_step(state, eval_result, curriculum, play_mode)
     session_state.persist(state, play_mode)
     return eval_result
 
@@ -147,7 +147,7 @@ def _resolve_feedback(
     return feedback_type, feedback_msg
 
 
-def _apply_submission_outcome(
+def _write_submission_outcome_to_state(
     state: SessionState,
     chapter_id: int,
     outcome: SubmissionOutcome,
@@ -159,7 +159,7 @@ def _apply_submission_outcome(
     state.streak = outcome.new_streak
     state.flawless_eligible = outcome.new_flawless_eligible
     state.xp += outcome.xp_earned
-    session_state.record_completion(
+    session_state.mark_level_and_topic_completion(
         state,
         level_completed=outcome.level_completed,
         topic_completed=outcome.topic_completed,
@@ -174,7 +174,7 @@ def _apply_submission_outcome(
         prog.frontier_topic_id = outcome.unlock_topic_id
 
 
-def _apply_progression(
+def _run_progression_step(
     state: SessionState,
     eval_result: EvalResult,
     curriculum: Curriculum,
@@ -192,5 +192,7 @@ def _apply_progression(
         topic_id,
         full_progression=play_mode.persists_profile,
     )
-    submission_outcome = apply_submission(eval_result, submission_ctx)
-    _apply_submission_outcome(state, chapter_id, submission_outcome, eval_result)
+    submission_outcome = resolve_submission_outcome(eval_result, submission_ctx)
+    _write_submission_outcome_to_state(
+        state, chapter_id, submission_outcome, eval_result
+    )

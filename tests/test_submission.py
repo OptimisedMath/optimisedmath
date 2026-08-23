@@ -216,7 +216,7 @@ def _submit(
     state.current_problem = problem
     state.problem_start_time = 0
     session_state.persist(state, play_mode)
-    return submission.process_submission(
+    return submission.run_submission_cycle(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
 

@@ -187,7 +187,7 @@ def test_chapter_context_answers_are_the_same_regardless_of_which_chapter_is_ask
     assert (
         beta_after_alpha.implicit_chapter_landing == beta_first.implicit_chapter_landing
     )
-    assert beta_after_alpha.effective_frontier == beta_first.effective_frontier
+    assert beta_after_alpha.resolve_frontier == beta_first.resolve_frontier
 
 
 def test_snapshot_defaults_selected_chapter_from_handed_curriculum(
@@ -218,8 +218,8 @@ def test_student_at_frontier_topic_and_level_limits(
     ctx = snapshot.selected_chapter_context
     frontier = state.chapter_frontiers[CHAPTER_ALPHA]
 
-    assert ctx.effective_frontier.frontier_topic_id == frontier.frontier_topic_id
-    assert ctx.effective_frontier.frontier_level == frontier.frontier_level
+    assert ctx.resolve_frontier.frontier_topic_id == frontier.frontier_topic_id
+    assert ctx.resolve_frontier.frontier_level == frontier.frontier_level
     assert ctx.level_limit_for(TOPIC_MULTI, 2) == min(frontier.frontier_level, 2)
     assert view.available_levels == [1]
 
@@ -274,8 +274,8 @@ def test_student_behind_frontier_sees_reachable_topics_and_levels(
     assert [t.topic_id for t in view.available_topics] == [TOPIC_MULTI, TOPIC_RADIO]
     assert view.current_topic_name == "Multi Level Topic"
     assert view.available_levels == [1, 2]
-    assert ctx.can_access(TOPIC_MULTI, 1) is True
-    assert ctx.can_access(TOPIC_MULTI, 2) is True
+    assert ctx.is_reachable(TOPIC_MULTI, 1) is True
+    assert ctx.is_reachable(TOPIC_MULTI, 2) is True
 
 
 def test_student_behind_frontier_progress(fixture_curriculum: Curriculum):
@@ -320,8 +320,8 @@ def test_student_beyond_frontier_topics_are_locked(
     assert accessible_ids == {TOPIC_MULTI}
     assert TOPIC_RADIO not in accessible_ids
     assert [t.topic_id for t in view.available_topics] == [TOPIC_MULTI]
-    assert ctx.can_access(TOPIC_MULTI, 1) is True
-    assert ctx.can_access(TOPIC_RADIO, 1) is False
+    assert ctx.is_reachable(TOPIC_MULTI, 1) is True
+    assert ctx.is_reachable(TOPIC_RADIO, 1) is False
 
 
 def test_student_radio_only_follows_active_topic(fixture_curriculum: Curriculum):
@@ -347,8 +347,8 @@ def test_admin_sees_all_topics_and_full_levels(fixture_curriculum: Curriculum):
     snapshot, view = _build(state, fixture_curriculum, _ADMIN)
     ctx = snapshot.selected_chapter_context
 
-    assert ctx.effective_frontier.frontier_topic_id == TOPIC_RADIO
-    assert ctx.effective_frontier.frontier_level == 1
+    assert ctx.resolve_frontier.frontier_topic_id == TOPIC_RADIO
+    assert ctx.resolve_frontier.frontier_level == 1
     assert {int(t["topic_id"]) for t in ctx.accessible_topics} == {
         TOPIC_MULTI,
         TOPIC_RADIO,

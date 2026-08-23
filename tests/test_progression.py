@@ -4,7 +4,11 @@ import pytest
 
 import backend.config as config
 from backend.models import SessionState
-from backend.progression import SubmissionContext, apply_submission, streak_meter_for
+from backend.progression import (
+    SubmissionContext,
+    resolve_submission_outcome,
+    resolve_streak_meter,
+)
 
 
 def _ctx(
@@ -36,7 +40,7 @@ def _ctx(
 def test_streak_meter_equals_streak_by_default():
     state = SessionState(streak=2, max_streak=3)
 
-    assert streak_meter_for(state) == 2
+    assert resolve_streak_meter(state) == 2
 
 
 def test_streak_meter_stays_full_during_level_completion_feedback():
@@ -47,7 +51,7 @@ def test_streak_meter_stays_full_during_level_completion_feedback():
         level_completed=True,
     )
 
-    assert streak_meter_for(state) == 3
+    assert resolve_streak_meter(state) == 3
 
 
 @pytest.mark.parametrize(
@@ -69,11 +73,11 @@ def test_streak_meter_exception_requires_all_three_conditions(
         level_completed=level_completed,
     )
 
-    assert streak_meter_for(state) == expected
+    assert resolve_streak_meter(state) == expected
 
 
 def test_correct_increments_streak_without_unlock():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True}, _ctx(streak=1)
     )
 
@@ -86,7 +90,7 @@ def test_correct_increments_streak_without_unlock():
 
 
 def test_correct_at_streak_cap_unlocks_when_at_frontier():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=3, selected_level=2, frontier_level=2, topic_max_level=5),
     )
@@ -97,7 +101,7 @@ def test_correct_at_streak_cap_unlocks_when_at_frontier():
 
 
 def test_correct_at_streak_cap_without_unlock_when_replaying_old_level():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=3, selected_level=1, frontier_level=2),
     )
@@ -108,7 +112,7 @@ def test_correct_at_streak_cap_without_unlock_when_replaying_old_level():
 
 
 def test_correct_unlocks_next_level_at_power_of_three():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=2, selected_level=1, frontier_level=1, topic_max_level=3),
     )
@@ -122,7 +126,7 @@ def test_correct_unlocks_next_level_at_power_of_three():
 
 
 def test_flawless_bonus_on_level_unlock():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=2, flawless_eligible=True),
     )
@@ -133,7 +137,7 @@ def test_flawless_bonus_on_level_unlock():
 
 
 def test_no_flawless_bonus_when_not_eligible():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=2, flawless_eligible=False),
     )
@@ -143,7 +147,7 @@ def test_no_flawless_bonus_when_not_eligible():
 
 
 def test_correct_completes_topic_at_max_level():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=2,
@@ -163,7 +167,7 @@ def test_correct_completes_topic_at_max_level():
 
 
 def test_topic_complete_without_next_topic():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=2,
@@ -180,7 +184,7 @@ def test_topic_complete_without_next_topic():
 
 
 def test_wrong_answer_decrements_streak():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"lock_answer": True, "feedback_type": "warning", "feedback_msg": "wrong"},
         _ctx(streak=2),
     )
@@ -192,7 +196,7 @@ def test_wrong_answer_decrements_streak():
 
 
 def test_soft_error_preserves_streak_and_flawless():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {
             "lock_answer": False,
             "feedback_type": "info",
@@ -207,7 +211,7 @@ def test_soft_error_preserves_streak_and_flawless():
 
 
 def test_wrong_at_streak_zero_stays_zero():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"lock_answer": True, "feedback_type": "warning"},
         _ctx(streak=0),
     )
@@ -224,7 +228,7 @@ def test_wrong_at_streak_zero_stays_zero():
     ],
 )
 def test_unlock_requires_playing_at_frontier(streak, selected_level, frontier_level):
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=streak,
@@ -238,7 +242,7 @@ def test_unlock_requires_playing_at_frontier(streak, selected_level, frontier_le
 
 
 def test_streak_only_increments_without_xp():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=1, full_progression=False),
     )
@@ -252,7 +256,7 @@ def test_streak_only_increments_without_xp():
 
 
 def test_streak_only_resets_at_stored_frontier_boundary():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=2,
@@ -271,7 +275,7 @@ def test_streak_only_resets_at_stored_frontier_boundary():
 
 
 def test_streak_only_no_reset_when_ahead_by_topic():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=2,
@@ -286,7 +290,7 @@ def test_streak_only_no_reset_when_ahead_by_topic():
 
 
 def test_streak_only_no_reset_when_ahead_by_level():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
             streak=2,
@@ -301,7 +305,7 @@ def test_streak_only_no_reset_when_ahead_by_level():
 
 
 def test_streak_only_wrong_decrements_without_flawless_forfeit():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {"lock_answer": True, "feedback_type": "warning", "feedback_msg": "wrong"},
         _ctx(streak=2, flawless_eligible=True, full_progression=False),
     )
@@ -312,7 +316,7 @@ def test_streak_only_wrong_decrements_without_flawless_forfeit():
 
 
 def test_streak_only_soft_error_preserves_streak():
-    outcome = apply_submission(
+    outcome = resolve_submission_outcome(
         {
             "lock_answer": False,
             "feedback_type": "info",

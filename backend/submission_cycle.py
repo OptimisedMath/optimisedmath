@@ -54,7 +54,7 @@ def _navigate_after_topic_completion(
     if not ctx.has_next_unlocked_topic(state.selected_topic_id):
         return False
 
-    next_topic_id = ctx.effective_frontier.frontier_topic_id
+    next_topic_id = ctx.resolve_frontier.frontier_topic_id
     request = SessionNavigateRequest(
         session_id=state.session_id,
         selected_chapter_id=chapter_id,
@@ -101,7 +101,7 @@ def navigate_to(
         state.selected_topic_id = topic_id
     if level is not None:
         state.selected_level = level
-    session_state.clear_submission_cycle_fields(state, curriculum)
+    session_state.reset_submission_cycle(state, curriculum)
     if persist:
         session_state.persist(state, play_mode)
 
@@ -115,7 +115,7 @@ def begin_problem(
     recent_fingerprints: list[str] | None = None,
 ) -> None:
     """Apply state mutations for a newly generated problem and persist."""
-    session_state.clear_submission_cycle_fields(state, curriculum, reset_streak=False)
+    session_state.reset_submission_cycle(state, curriculum, reset_streak=False)
     if recent_fingerprints is not None:
         state.recent_problem_fingerprints = recent_fingerprints[
             -config.RECENT_FINGERPRINT_HISTORY_SIZE :

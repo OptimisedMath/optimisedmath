@@ -16,7 +16,7 @@ from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
 from backend.problem_generation import ProblemGenerationError
-from backend.progression import streak_meter_for
+from backend.progression import resolve_streak_meter
 from backend.models import (
     AutoSolveRequest,
     SessionResponse,
@@ -121,7 +121,7 @@ def public_problem(
     return public
 
 
-def respond(
+def build_session_response(
     state: SessionState,
     play_mode: PlayMode,
     nav_snapshot: navigation_snapshot.NavigationSnapshot,
@@ -143,7 +143,7 @@ def respond(
         current_problem=current_problem,
         can_submit=can_submit,
         can_next_problem=can_next_problem,
-        streak_meter=streak_meter_for(state),
+        streak_meter=resolve_streak_meter(state),
         admin_mode=play_mode.is_admin,
         navigation=navigation_view,
     )
@@ -226,7 +226,7 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
     )
-    return respond(state, play_mode, nav_snapshot)
+    return build_session_response(state, play_mode, nav_snapshot)
 
 
 def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
@@ -252,11 +252,11 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
     )
 
     # What's Selected just moved — an explicit, named rebuild against the
-    # mutated state, not an incidental one buried inside respond().
+    # mutated state, not an incidental one buried inside build_session_response().
     post_navigation_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
     )
-    return respond(state, play_mode, post_navigation_snapshot)
+    return build_session_response(state, play_mode, post_navigation_snapshot)
 
 
 def reset_session(request: SessionResetRequest) -> SessionResponse:
@@ -268,7 +268,7 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
     )
-    return respond(state, play_mode, nav_snapshot)
+    return build_session_response(state, play_mode, nav_snapshot)
 
 
 def next_problem(session_id: str) -> ProblemResponse:
@@ -311,7 +311,7 @@ def next_problem(session_id: str) -> ProblemResponse:
     )
     return ProblemResponse(
         problem=public_problem(problem, state, play_mode),
-        state=respond(state, play_mode, post_navigation_snapshot),
+        state=build_session_response(state, play_mode, post_navigation_snapshot),
     )
 
 
@@ -347,7 +347,7 @@ def _submit_active_problem(
     if chapter_id is None or not curriculum.has_chapter(chapter_id):
         raise SessionError(f"Chapter id {chapter_id} not found")
 
-    eval_result = submission.process_submission(
+    eval_result = submission.run_submission_cycle(
         state, problem, user_input, is_input_mode, curriculum, play_mode
     )
 
@@ -355,7 +355,7 @@ def _submit_active_problem(
         state, curriculum, play_mode
     )
     return SubmissionResponse(
-        state=respond(state, play_mode, nav_snapshot),
+        state=build_session_response(state, play_mode, nav_snapshot),
         is_correct=eval_result.get("is_correct", False),
         feedback=state.feedback_msg,
     )

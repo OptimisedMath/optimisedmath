@@ -177,8 +177,8 @@ def resolve_navigation_target(
         raise NavigationLevelOutOfRangeError(level, topic_id)
 
     ctx = snapshot.chapter_context(chapter_id)
-    if not ctx.can_access(topic_id, level):
-        if topic_id > ctx.effective_frontier.frontier_topic_id:
+    if not ctx.is_reachable(topic_id, level):
+        if topic_id > ctx.resolve_frontier.frontier_topic_id:
             raise NavigationLockedError("Topic is locked")
         raise NavigationLockedError("Level is locked")
 

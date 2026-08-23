@@ -27,7 +27,7 @@ class PlayMode(Protocol):
     @property
     def reveals_correct_answer(self) -> bool: ...
 
-    def effective_frontier(
+    def resolve_frontier(
         self,
         chapter_topics: list[TopicDict],
         frontier_record: ChapterFrontier | None,
@@ -42,7 +42,7 @@ class StudentPlayMode:
     persists_profile: bool = True
     reveals_correct_answer: bool = False
 
-    def effective_frontier(
+    def resolve_frontier(
         self,
         chapter_topics: list[TopicDict],
         frontier_record: ChapterFrontier | None,
@@ -58,7 +58,7 @@ class AdminPlayMode:
     persists_profile: bool = False
     reveals_correct_answer: bool = True
 
-    def effective_frontier(
+    def resolve_frontier(
         self,
         chapter_topics: list[TopicDict],
         frontier_record: ChapterFrontier | None,
