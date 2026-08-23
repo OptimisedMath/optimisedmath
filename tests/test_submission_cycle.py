@@ -112,7 +112,7 @@ def test_begin_problem_trims_recent_fingerprints(fixture_curriculum: Curriculum)
     problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
 
     fingerprints = [
-        f"fp-{index}" for index in range(config.MAX_RETRIES_DUPLICATE_CHECK + 3)
+        f"fp-{index}" for index in range(config.RECENT_FINGERPRINT_HISTORY_SIZE + 3)
     ]
     submission_cycle.begin_problem(
         state,
@@ -122,10 +122,12 @@ def test_begin_problem_trims_recent_fingerprints(fixture_curriculum: Curriculum)
         recent_fingerprints=fingerprints,
     )
 
-    assert len(state.recent_problem_fingerprints) == config.MAX_RETRIES_DUPLICATE_CHECK
+    assert (
+        len(state.recent_problem_fingerprints) == config.RECENT_FINGERPRINT_HISTORY_SIZE
+    )
     assert (
         state.recent_problem_fingerprints
-        == fingerprints[-config.MAX_RETRIES_DUPLICATE_CHECK :]
+        == fingerprints[-config.RECENT_FINGERPRINT_HISTORY_SIZE :]
     )
 
 

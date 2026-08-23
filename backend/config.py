@@ -42,6 +42,9 @@ MAX_RETRIES_GENERATE = 50
 # Maximum attempts to fetch a problem that hasn't been shown in current session
 MAX_RETRIES_DUPLICATE_CHECK = 10
 
+# Number of recent problem fingerprints retained per session for duplicate checks
+RECENT_FINGERPRINT_HISTORY_SIZE = 10
+
 # --- ERROR MESSAGES & FEEDBACK ---
 DEFAULT_WRONG_MESSAGE = "Niepoprawna odpowiedź, spróbuj ponownie."
 

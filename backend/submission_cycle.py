@@ -118,7 +118,7 @@ def begin_problem(
     session_state.clear_submission_cycle_fields(state, curriculum, reset_streak=False)
     if recent_fingerprints is not None:
         state.recent_problem_fingerprints = recent_fingerprints[
-            -config.MAX_RETRIES_DUPLICATE_CHECK :
+            -config.RECENT_FINGERPRINT_HISTORY_SIZE :
         ]
     state.problem_start_time = time.time()
     state.current_problem = problem
