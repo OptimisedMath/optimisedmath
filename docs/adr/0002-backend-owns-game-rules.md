@@ -1,6 +1,6 @@
 # Backend owns game rules
 
-FastAPI owns authoritative game state and rule outcomes: grading, streak, XP, Flawless, input mode, and what is Locked vs Reachable. Next.js owns presentation, interaction, and mapping those payload fields into UI — not a second rules engine, and not a dumb visual client.
+FastAPI owns authoritative game state and rule outcomes: grading, streak, XP, Flawless, input mode, and what is Locked vs Reachable. Next.js owns presentation, interaction, and mapping those payload fields into UI — not a second rules engine.
 
 **Decision:** Re-deriving a rule outcome in React/TypeScript is a leak. Drawing or combining fields the server already computed is not.
 
