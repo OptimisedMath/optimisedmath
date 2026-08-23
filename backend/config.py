@@ -11,10 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DB_PATH = PROJECT_ROOT / "storage" / "users.db"
 
 # --- GAME MECHANICS: PROGRESSION ---
-# Threshold of consecutive correct answers needed to unlock the next level
-STARS_FOR_UNLOCK = 3
-
-# Maximum streak counter (display limit)
+# Consecutive correct answers required to master a level (unlock the next one).
+# Doubles as the streak counter ceiling and the star display limit - the counter
+# resets on mastery, so it can never exceed this value.
 MAX_STREAK = 3
 
 # Streak count required to enable input mode (instead of radio mode)

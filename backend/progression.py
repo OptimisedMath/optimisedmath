@@ -112,7 +112,7 @@ def _apply_streak_only_submission(
             frontier_topic_id=ctx.frontier_topic_id,
             require_topic_match=True,
         )
-        if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
+        if new_streak == config.MAX_STREAK and at_boundary:
             new_streak = 0
 
         return SubmissionOutcome(
@@ -159,7 +159,7 @@ def _apply_correct_submission(
         frontier_topic_id=ctx.frontier_topic_id,
         require_topic_match=False,
     )
-    if new_streak == config.STARS_FOR_UNLOCK and at_boundary:
+    if new_streak == config.MAX_STREAK and at_boundary:
         frontier_update = apply_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )
