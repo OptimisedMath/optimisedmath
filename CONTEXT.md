@@ -113,8 +113,12 @@ _Avoid_: exercise, item
 Mathematically right answer for this problem.
 
 **Trap**:
-A wrong option based on a predictable misconception. Gets targeted feedback explaining the specific error.
+A wrong option that instantiates a Misconception in one Level's options. Gets targeted feedback explaining the specific error. Several Traps across different Topics may instantiate the same Misconception.
 _Avoid_: distractor, diagnostic answer
+
+**Misconception**:
+A named, recurring error in a Student's mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
+_Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)
 
 **Wrong**:
 An incorrect answer with no misconception behind it — usually a calculation slip, where the method was roughly right but the arithmetic failed. Generic feedback, not misconception-specific. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer.
@@ -160,6 +164,18 @@ _Avoid_: nav state, navigation model, snapshot (unqualified)
 
 **Submission cycle**:
 One Problem lifecycle within a Session: served → answered (Submission) → Feedback → Next problem. Navigation or Next problem starts a fresh cycle (streak resets).
+
+**Deconstruction**:
+A guided walkthrough that takes over when a Student hits the same Misconception repeatedly at a Level. It breaks the Problem in front of them into sequential steps they answer themselves, then returns them to that same Problem. A Deconstruction is not a Submission: it runs outside the Submission cycle, so it never moves Streak, XP, Flawless, or the Frontier.
+_Avoid_: speed bump, intervention, hint mode, tutorial
+
+**Deconstruction step**:
+One question within a Deconstruction, derived from the Problem's parameters rather than authored per Problem. Answered by the Student to advance the walkthrough.
+_Avoid_: sub-problem, micro-step
+
+**Problem parameters**:
+The structured values a Problem was generated from (operands, denominators, dimensions), carried on the Problem alongside its rendered question. What lets a Deconstruction speak about the exact Problem on screen instead of an analogous one.
+_Avoid_: params (unqualified), problem data
 
 **Selected**:
 Prefix for the Chapter, Topic, or Level the Session is currently set to — where the Student is playing now, not necessarily At the Frontier. Used as Selected chapter, Selected topic, Selected level.

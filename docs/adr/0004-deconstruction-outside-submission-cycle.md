@@ -1,0 +1,9 @@
+# Deconstruction runs outside the Submission cycle
+
+A Deconstruction takes over when a Student hits the same Misconception twice at a Level, walks them through the Problem in front of them step by step, then returns them to that Problem. Its steps are graded, but they are not Submissions.
+
+**Decision:** A Deconstruction writes no Streak, no XP, no Flawless change, and never triggers level unlock or topic completion. It does write telemetry. Only the Student's eventual answer to the original Problem is a Submission.
+
+**Considered options:** Model each Deconstruction step as a Submission (rejected — a Deconstruction is triggered *by* failure, so penalizing failure inside it punishes the Student twice for the same wall and turns the intervention into a trap); model the whole Deconstruction as one Submission with internal steps (rejected — its steps have their own outcome space and would have to be flattened into a single Answer Outcome, losing exactly the signal the feature exists to produce); walk the Student through an *analogous* Problem with different numbers (rejected — cheaper to author, but it demands a transfer leap at the moment the Student is already stuck, and carrying Problem parameters is useful beyond Deconstruction).
+
+**Consequences:** `CONTEXT.md`'s "grading, streak/XP updates, and level/topic progression run once per Submission" holds unchanged — Deconstruction steps are simply not Submissions. Problems must carry **Problem parameters** so a Deconstruction can derive its steps from the exact Problem on screen; generators for deconstructed Topics pass the operands they already hold. Deconstructions are authored per Misconception, not per Level or per Problem, so a Misconception catalogue is a prerequisite. Telemetry gains Deconstruction step rows, which is the only way to learn whether an intervention got the Student past the wall. The trigger count is config-tunable (`backend/config.py`), alongside `MAX_STREAK`.
