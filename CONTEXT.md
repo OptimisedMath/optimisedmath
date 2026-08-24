@@ -120,6 +120,10 @@ _Avoid_: distractor, diagnostic answer
 An incorrect answer with no misconception behind it — usually a calculation slip, where the method was roughly right but the arithmetic failed. Generic feedback, not misconception-specific. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer.
 _Avoid_: w1, w2 (internal ids)
 
+**Problem fingerprint**:
+A hash of a Problem's question, correct answer, and options — identifies when two generated Problems are the same content-wise even though their problem_ids differ. Used to avoid serving the Student a Problem they just saw.
+_Avoid_: dedup key, content hash
+
 **Soft Error**:
 The answer could not be read as a maths expression, or used a notation the Problem did not ask for. Does not penalize streak or forfeit Flawless. Only applies where the required form was not itself part of the question — otherwise the answer is Wrong.
 _Avoid_: format error
