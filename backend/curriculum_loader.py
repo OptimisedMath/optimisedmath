@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, TypedDict
 
@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
+
+# The Misconception catalogue lives beside the Chapter files but is not a Chapter.
+MISCONCEPTIONS_FILE = "misconceptions.yaml"
 
 # --- Exceptions & types ---
 
@@ -40,6 +43,7 @@ class LevelConfig:
     function: str
     traps: dict[str, str]
     published: bool
+    trap_misconceptions: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -126,6 +130,23 @@ def _derive_topics_by_id(topics_meta: list[TopicDict]) -> dict[int, TopicDict]:
     return {int(topic_entry["topic_id"]): topic_entry for topic_entry in topics_meta}
 
 
+def _derive_trap_prose(level_entry: dict[str, Any]) -> dict[str, str]:
+    """Per-Level trap sentences, keyed by trap slug. The Student-facing first hit."""
+    return {
+        str(key): str(entry["explanation"])
+        for key, entry in level_entry.get("traps", {}).items()
+    }
+
+
+def _derive_trap_misconceptions(level_entry: dict[str, Any]) -> dict[str, str]:
+    """Trap slug -> Misconception id. Absent for a Trap swept to `Wrong`."""
+    return {
+        str(key): str(entry["misconception"])
+        for key, entry in level_entry.get("traps", {}).items()
+        if entry.get("misconception")
+    }
+
+
 def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[int, int], LevelConfig]:
     configs: dict[tuple[int, int], LevelConfig] = {}
     for topic_entry in data.get("topics", []):
@@ -135,10 +156,8 @@ def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[int, int], LevelCo
                 level=int(level_entry["level"]),
                 name=str(level_entry["name"]),
                 function=str(level_entry["function"]),
-                traps={
-                    str(key): str(value)
-                    for key, value in level_entry.get("traps", {}).items()
-                },
+                traps=_derive_trap_prose(level_entry),
+                trap_misconceptions=_derive_trap_misconceptions(level_entry),
                 published=bool(level_entry.get("published", True)),
             )
     return configs
@@ -289,6 +308,61 @@ def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
     )
 
 
+def _load_misconception_catalogue(data_dir: Path) -> dict[str, Any]:
+    """Parse `misconceptions.yaml` — the global, named catalogue of wrong rules."""
+    catalogue_path = data_dir / MISCONCEPTIONS_FILE
+    if not catalogue_path.exists():
+        return {}
+
+    try:
+        with open(catalogue_path, encoding="utf-8") as handle:
+            catalogue = yaml.safe_load(handle)
+    except Exception as exc:
+        raise CurriculumLoadError(
+            f"Failed to parse {MISCONCEPTIONS_FILE}: {exc}"
+        ) from exc
+
+    if not isinstance(catalogue, dict):
+        raise CurriculumLoadError(f"{MISCONCEPTIONS_FILE}: must be a mapping")
+
+    for entry_id, entry in catalogue.items():
+        if not isinstance(entry, dict):
+            raise CurriculumLoadError(
+                f"{MISCONCEPTIONS_FILE}: '{entry_id}' must be a mapping"
+            )
+        for key in ("name", "explanation"):
+            if not entry.get(key):
+                raise CurriculumLoadError(
+                    f"{MISCONCEPTIONS_FILE}: '{entry_id}' missing '{key}'"
+                )
+
+    return catalogue
+
+
+def _validate_misconceptions(data_dir: Path, bundles: list[ChapterBundle]) -> None:
+    """Assert Chapter Traps and the catalogue agree in both directions."""
+    catalogue = _load_misconception_catalogue(data_dir)
+    if not catalogue:
+        return
+
+    referenced: set[str] = set()
+    for bundle in bundles:
+        for (topic_id, level), level_config in bundle.level_configs.items():
+            for slug, misconception_id in level_config.trap_misconceptions.items():
+                if misconception_id not in catalogue:
+                    raise CurriculumLoadError(
+                        f"{bundle.chapter_name} topic {topic_id} level {level} "
+                        f"trap '{slug}': unknown misconception '{misconception_id}'"
+                    )
+                referenced.add(misconception_id)
+
+    orphans = sorted(set(catalogue) - referenced)
+    if orphans:
+        raise CurriculumLoadError(
+            f"{MISCONCEPTIONS_FILE}: no Trap references {', '.join(orphans)}"
+        )
+
+
 @functools.lru_cache(maxsize=32)
 def _load_store(data_dir: Path) -> CurriculumStore:
     if not data_dir.exists():
@@ -299,6 +373,8 @@ def _load_store(data_dir: Path) -> CurriculumStore:
     seen_chapter_names: set[str] = set()
 
     for file_path in sorted(data_dir.glob("*.yaml")):
+        if file_path.name == MISCONCEPTIONS_FILE:
+            continue
         try:
             with open(file_path, encoding="utf-8") as handle:
                 data = yaml.safe_load(handle)
@@ -320,6 +396,7 @@ def _load_store(data_dir: Path) -> CurriculumStore:
         seen_chapter_names.add(bundle.chapter_name)
         bundles.append(bundle)
 
+    _validate_misconceptions(data_dir, bundles)
     return _build_store(bundles)
 
 

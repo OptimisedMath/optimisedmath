@@ -1,0 +1,265 @@
+# Misconception catalogue — the named, global set of wrong rules a Student may be following.
+#
+# Schema (see issue #168):
+#   <english_id>:
+#     name:           Polish display name, in the "rule the student is following" register (ADR-0001: English ids, Polish prose).
+#     explanation:    Polish fallback prose — used where a Level does not override, as the telemetry label,
+#                     and as the opening line of a Deconstruction.
+#     deconstruction: optional; names a registered step-sequence function. Absent for most.
+#
+# A Trap references exactly one entry; many Traps map to one entry. A Trap that no walkthrough
+# could address carries no `misconception:` at all — it is Wrong, not a Misconception.
+
+# --- Zapis i znaczenie ułamka ---
+
+misreads_the_fraction_bar_as_division:
+  name: "Nie czyta kreski ułamkowej jako dzielenia"
+  explanation: "Kreska ułamkowa to inny zapis dzielenia: dzielna idzie na górę do licznika, dzielnik na dół do mianownika."
+
+# --- Rozszerzanie i skracanie ---
+
+expands_only_one_part:
+  name: "Rozszerza tylko jedną część ułamka"
+  explanation: "Przy rozszerzaniu mnożymy przez tę samą liczbę i licznik, i mianownik."
+
+reduces_only_one_part:
+  name: "Skraca tylko jedną część ułamka"
+  explanation: "Przy skracaniu dzielimy przez tę samą liczbę i licznik, i mianownik."
+
+expands_to_target_denominator_without_finding_factor:
+  name: "Rozszerza do danego mianownika bez wyznaczenia mnożnika"
+  explanation: "Gdy mianownik jest z góry zadany, najpierw sprawdź, ile razy urósł, i przez tę samą liczbę pomnóż licznik."
+
+adds_or_subtracts_instead_of_scaling:
+  name: "Dodaje lub odejmuje zamiast mnożyć i dzielić"
+  explanation: "Rozszerzanie to zawsze mnożenie, a skracanie to zawsze dzielenie — nigdy dodawanie ani odejmowanie."
+
+does_not_reduce_to_lowest_terms:
+  name: "Nie skraca wyniku do postaci nieskracalnej"
+  explanation: "Znajdź największy wspólny dzielnik licznika i mianownika i podziel przez niego obie liczby — aż ułamka nie da się już skrócić."
+
+# --- Liczby mieszane ---
+
+mixed_to_improper_miscombines_parts:
+  name: "Źle łączy całości z ułamkiem przy zamianie na niewłaściwy"
+  explanation: "Mianownik razy całości, PLUS licznik — a mianownik zostaje ten sam."
+
+improper_to_mixed_mishandles_remainder:
+  name: "Gubi lub odwraca resztę przy wyłączaniu całości"
+  explanation: "Podziel licznik przez mianownik: iloraz to całości, reszta ląduje w liczniku, mianownik zostaje ten sam."
+
+operates_on_mixed_number_without_converting:
+  name: "Działa na liczbie mieszanej bez zamiany na ułamek niewłaściwy"
+  explanation: "Zanim pomnożysz, podzielisz lub spotęgujesz liczbę mieszaną, wciągnij całości do ułamka niewłaściwego. Osobno całości i osobno ułamek to pułapka."
+
+drops_whole_part:
+  name: "Gubi całości z przodu"
+  explanation: "Liczba mieszana ma dwie części. Całości też biorą udział w działaniu i muszą znaleźć się w wyniku."
+
+leaves_improper_fraction_in_result:
+  name: "Zostawia ułamek niewłaściwy w wyniku"
+  explanation: "Jeśli licznik wyszedł większy od mianownika, wyłącz z niego całości."
+
+# --- Porównywanie ---
+
+compares_wrong_when_denominators_equal:
+  name: "Myli znak przy równych mianownikach"
+  explanation: "Kiedy mianowniki są takie same, większy jest ten ułamek, który ma większy licznik."
+
+assumes_bigger_denominator_means_bigger_fraction:
+  name: "Uważa, że większy mianownik oznacza większy ułamek"
+  explanation: "Im większy mianownik, tym na więcej kawałków dzielimy całość — więc każdy kawałek jest MNIEJSZY."
+
+compares_unlike_fractions_without_common_denominator:
+  name: "Porównuje ułamki o różnych mianownikach wprost"
+  explanation: "Sprowadź oba ułamki do wspólnego mianownika i dopiero wtedy porównaj liczniki."
+
+# --- Oś liczbowa ---
+
+misreads_number_line_scale:
+  name: "Nie wyznacza wartości jednego skoku na osi"
+  explanation: "Weź dwie sąsiednie etykiety, policz przerwy między nimi i podziel ich odległość przez liczbę przerw — to jest jeden skok. Dopiero potem licz skoki do punktu."
+
+# --- Dodawanie i odejmowanie ułamków zwykłych ---
+
+adds_denominators_with_like_fractions:
+  name: "Dodaje mianowniki, choć są takie same"
+  explanation: "Przy jednakowych mianownikach dodajemy tylko liczniki, a mianownik przepisujemy bez zmian."
+
+operates_on_unlike_fractions_directly:
+  name: "Dodaje lub odejmuje ułamki o różnych mianownikach wprost"
+  explanation: "Najpierw znajdź wspólny mianownik i rozszerz oba ułamki, a dopiero potem dodaj lub odejmij liczniki."
+
+adds_instead_of_subtracting:
+  name: "Dodaje zamiast odjąć"
+  explanation: "Sprawdź znak działania — tutaj liczniki odejmujemy, nie dodajemy."
+
+subtracts_without_borrowing_from_whole:
+  name: "Odejmuje ułamek od całości bez rozmieniania"
+  explanation: "Rozmień jedną całość na ułamek o tym samym liczniku i mianowniku (np. 5/5) i dopiero z niego odejmuj."
+
+borrows_incorrectly_in_mixed_subtraction:
+  name: "Źle pożycza całość przy odejmowaniu liczb mieszanych"
+  explanation: "Gdy pierwszy licznik jest za mały, pożycz jedną całość: dodaj mianownik do licznika i zmniejsz liczbę całości o 1. Kolejności odejmowania nie wolno zamieniać."
+
+# --- Mnożenie ---
+
+multiplies_fraction_by_whole_number_wrongly:
+  name: "Źle mnoży ułamek przez liczbę całkowitą"
+  explanation: "Liczba całkowita mnoży TYLKO licznik — mianownik zostaje bez zmian."
+
+misapplies_fraction_multiplication_rule:
+  name: "Nie stosuje zasady góra razy góra, dół razy dół"
+  explanation: "Ułamki mnożymy prosto: licznik przez licznik, mianownik przez mianownik. Nie na krzyż i bez szukania wspólnego mianownika."
+
+cancels_horizontally:
+  name: "Skraca licznik z licznikiem"
+  explanation: "Skracać wolno tylko górę z dołem — nigdy dwóch liczników ani dwóch mianowników ze sobą."
+
+inverts_fraction_unnecessarily:
+  name: "Odwraca ułamek bez potrzeby"
+  explanation: "Odwrotność bierzemy tylko przy dzieleniu, i tylko z drugiego ułamka."
+
+# --- Dzielenie ---
+
+divides_denominator_instead_of_numerator:
+  name: "Dzieli mianownik zamiast licznika"
+  explanation: "Dzieląc ułamek przez liczbę całkowitą, dzielimy licznik — mianownik zostaje."
+
+divides_denominator_instead_of_multiplying_it:
+  name: "Dzieli mianownik, zamiast go pomnożyć"
+  explanation: "Gdy licznik nie dzieli się przez tę liczbę, mnożymy przez nią mianownik — bo dzielenie przez liczbę to mnożenie przez 1/liczba."
+
+divides_fractions_without_inverting_the_second:
+  name: "Dzieli ułamki bez odwrócenia drugiego"
+  explanation: "Dzielenie ułamków to mnożenie pierwszego przez odwrotność DRUGIEGO. Pierwszy zostaje bez zmian."
+
+cancels_before_inverting:
+  name: "Skraca przed odwróceniem ułamka"
+  explanation: "Najpierw odwróć drugi ułamek i zmień znak na mnożenie — dopiero wtedy wolno skracać."
+
+# --- Potęgowanie ---
+
+multiplies_by_exponent_instead_of_powering:
+  name: "Mnoży przez wykładnik zamiast potęgować"
+  explanation: "Potęgowanie to mnożenie liczby przez samą siebie tyle razy, ile wynosi wykładnik — a nie mnożenie przez wykładnik."
+
+raises_only_one_part_to_power:
+  name: "Podnosi do potęgi tylko jedną część ułamka"
+  explanation: "Do potęgi podnosimy osobno licznik i osobno mianownik — obie liczby."
+
+distributes_power_over_bracket_terms:
+  name: "Potęguje osobno składniki w nawiasie"
+  explanation: "Najpierw policz, co jest w nawiasie, i dopiero wynik podnieś do potęgi. Potęga nie rozdziela się na składniki sumy."
+
+# --- Kolejność działań ---
+
+ignores_the_order_of_operations:
+  name: "Liczy po kolei, ignorując kolejność działań"
+  explanation: "Kolejność jest zawsze ta sama: 1. nawiasy, 2. potęgi, 3. mnożenie i dzielenie, 4. dodawanie i odejmowanie."
+
+uses_wrong_sign_after_brackets:
+  name: "Myli znak działania poza nawiasem"
+  explanation: "Po policzeniu nawiasu wróć do znaku, który stoi przed nim — to on decyduje, co zrobić z wynikiem."
+
+# --- Ułamek z liczby ---
+
+does_not_read_fraction_of_as_multiplication:
+  name: "Nie czyta słowa z jako mnożenia"
+  explanation: "Ułamek z liczby to mnożenie. Zastąp słowo z znakiem mnożenia i pomnóż liczbę przez ułamek."
+
+# --- Zamiana ułamków zwykłych i dziesiętnych ---
+
+misreads_decimal_place_value_as_denominator:
+  name: "Źle odczytuje mianownik z miejsc po przecinku"
+  explanation: "Liczba miejsc po przecinku to liczba zer w mianowniku: jedno miejsce to 10, dwa to 100, trzy to 1000. Cyfry po przecinku przepisujemy do licznika."
+
+misreads_denominator_zeros_as_decimal_places:
+  name: "Źle odczytuje miejsca po przecinku z zer w mianowniku"
+  explanation: "Liczba zer w mianowniku to DOKŁADNIE tyle miejsc, ile musisz zająć po przecinku."
+
+converts_to_decimal_without_expanding_to_power_of_ten:
+  name: "Zapisuje przecinek bez rozszerzenia do 10, 100 lub 1000"
+  explanation: "Zanim zapiszesz ułamek dziesiętnie, rozszerz go tak, aby w mianowniku było 10, 100 albo 1000."
+
+omits_repeating_decimal_notation:
+  name: "Pomija nawias okresu"
+  explanation: "Rozwinięcie nieskończone zapisujemy z nawiasem wokół powtarzającej się części, np. 0,(3)."
+
+mixes_fraction_and_decimal_forms_without_converting:
+  name: "Liczy na obu postaciach naraz, bez sprowadzenia do jednej"
+  explanation: "Gdy w jednym działaniu są ułamki zwykłe i dziesiętne, najpierw zamień wszystkie na jedną postać."
+
+# --- Porównywanie ułamków dziesiętnych ---
+
+compares_decimals_by_wrong_digit_order:
+  name: "Porównuje ułamki dziesiętne nie od lewej strony"
+  explanation: "Wyrównaj liczby zerami, a potem porównuj cyfry po przecinku od lewej — pierwsza różnica rozstrzyga. Jeśli wszystkie są równe, liczby są równe."
+
+compares_repeating_decimals_incorrectly:
+  name: "Źle porównuje rozwinięcia nieskończone"
+  explanation: "Rozpisz okres na kilka cyfr w obu liczbach i dopiero wtedy porównuj je od lewej strony."
+
+# --- Zaokrąglanie ---
+
+rounds_using_the_wrong_digit:
+  name: "Zaokrągla, patrząc na złą cyfrę"
+  explanation: "Znajdź cyfrę na miejscu, do którego zaokrąglasz, i spójrz na NASTĘPNĄ. Jeśli to 5 lub więcej — w górę; jeśli mniej — zostaje."
+
+rounds_nine_without_carrying:
+  name: "Zaokrągla dziewiątkę bez przeniesienia"
+  explanation: "Gdy zaokrąglana dziewiątka rośnie, staje się dziesiątką — musisz przenieść jeden do wyższego rzędu (efekt domina)."
+
+# --- Pisemne dodawanie i odejmowanie ---
+
+does_not_align_decimals_before_column_arithmetic:
+  name: "Nie wyrównuje przecinków przed liczeniem pisemnym"
+  explanation: "Przecinek stoi dokładnie pod przecinkiem, a krótszą liczbę uzupełnij zerami na końcu (np. 1,2 to 1,20)."
+
+forgets_to_carry:
+  name: "Zapomina przenieść jeden do wyższego rzędu"
+  explanation: "Gdy suma cyfr w jednym rzędzie przekracza 9, zapisujesz jedność, a dziesiątkę przenosisz do rzędu wyżej."
+
+forgets_to_borrow:
+  name: "Zapomina pożyczyć z sąsiedniego rzędu"
+  explanation: "Gdy górna cyfra jest mniejsza od dolnej, pożycz jedność z rzędu obok."
+
+borrows_across_zero_incorrectly:
+  name: "Źle pożycza przez zero"
+  explanation: "Gdy pożyczasz nad zerem, to zero staje się dziewiątką, a pożyczka wędruje dalej w lewo."
+
+applies_multiplication_decimal_rule_to_addition:
+  name: "Stosuje zasadę z mnożenia przy dodawaniu"
+  explanation: "Przy dodawaniu i odejmowaniu przecinek po prostu opada w dół. Miejsc po przecinku się nie sumuje — to zasada z mnożenia."
+
+# --- Przecinek w mnożeniu, dzieleniu i przesuwaniu ---
+
+shifts_decimal_point_incorrectly:
+  name: "Przesuwa przecinek w złą stronę lub o złą liczbę miejsc"
+  explanation: "Policz zera: tyle miejsc przesuwasz. Mnożenie powiększa liczbę, więc przecinek idzie w PRAWO; dzielenie ją pomniejsza, więc przecinek idzie w LEWO."
+
+misplaces_decimal_point_in_product:
+  name: "Źle stawia przecinek w iloczynie"
+  explanation: "Wymnóż liczby tak, jakby przecinka nie było, a potem policz miejsca po przecinku w OBU czynnikach — wynik musi mieć ich sumę."
+
+misplaces_decimal_point_in_quotient:
+  name: "Źle stawia przecinek w ilorazie"
+  explanation: "W dzieleniu pisemnym przecinek w wyniku stawiasz dokładnie nad przecinkiem w dzielnej."
+
+omits_leading_zero:
+  name: "Gubi zero na początku liczby"
+  explanation: "Zera zaraz po przecinku trzymają miejsce i zmieniają wartość — 0,04 to nie to samo co 0,4."
+
+stops_division_at_remainder:
+  name: "Przerywa dzielenie na reszcie"
+  explanation: "W ułamkach dziesiętnych zawsze możesz dopisać zero na końcu dzielnej i ciągnąć dzielenie dalej."
+
+divides_by_decimal_without_clearing_the_divisor:
+  name: "Dzieli przez ułamek dziesiętny bez pozbycia się przecinka"
+  explanation: "Przesuń przecinek w prawo w dzielniku, aż stanie się liczbą całkowitą — i o tyle samo miejsc przesuń go w dzielnej."
+
+# --- Jednostki ---
+
+converts_units_incorrectly:
+  name: "Źle zamienia jednostki"
+  explanation: "Ustal przelicznik (np. 1 kg to 1000 g), a potem: z dużych na małe MNOŻYMY, z małych na duże DZIELIMY."
