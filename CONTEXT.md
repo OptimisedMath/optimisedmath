@@ -113,7 +113,7 @@ _Avoid_: exercise, item
 Mathematically right answer for this problem.
 
 **Trap**:
-A wrong option that instantiates a Misconception in one Level's options. Gets targeted feedback explaining the specific error. Several Traps across different Topics may instantiate the same Misconception.
+An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error no walkthrough could address references none and is Wrong. An answer matching no Trap is Wrong too, but unanticipated.
 _Avoid_: distractor, diagnostic answer
 
 **Misconception**:
@@ -121,7 +121,7 @@ A named, recurring error in a Student's mathematical thinking (e.g. operating on
 _Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)
 
 **Wrong**:
-An incorrect answer with no misconception behind it — usually a calculation slip, where the method was roughly right but the arithmetic failed. Generic feedback, not misconception-specific. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer.
+An incorrect answer with no misconception behind it — usually a calculation slip, where the method was roughly right but the arithmetic failed. Generic feedback, not misconception-specific. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. A Wrong answer may still be an authored Trap: whether a person anticipated it and whether it maps to a Misconception are separate facts.
 _Avoid_: w1, w2 (internal ids)
 
 **Problem fingerprint**:
@@ -133,7 +133,7 @@ The answer could not be read as a maths expression, or used a notation the Probl
 _Avoid_: format error
 
 **Answer Outcome**:
-Which of the above one Submission landed in — the single value the grader returns alongside its feedback, and the one telemetry groups attempts by. Correct answers have none.
+Which of the above one Submission landed in — what the grader returns alongside its feedback, and what telemetry groups attempts by. Two independent facts: whether a person anticipated the answer (Trap or Wrong), and, separately, which Misconception it maps to, if any. Correct answers have neither.
 _Avoid_: trap_id, error code, result
 
 ## Session
