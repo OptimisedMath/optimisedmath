@@ -38,8 +38,11 @@
 # repeating heavily after its trap prose, the BAR above is wrong and needs revisiting —
 # that is this rule's own falsification condition, not a reason to bend the shortlist.
 #
-# ignores_the_order_of_operations and misreads_number_line_scale are excluded on the VETO:
-# both are suspected over-clusters awaiting re-clustering.
+# ignores_the_order_of_operations is excluded on the VETO as a suspected over-cluster,
+# awaiting re-clustering. misreads_number_line_scale was the other; issue #180 split it into
+# assumes_the_tick_value_without_deriving_it, counts_ticks_instead_of_gaps, and
+# counts_from_the_axis_edge_not_the_label. None of the three is nominated for batch one —
+# the shortlist stays at five until the step-sequence signature exists.
 
 # --- Zapis i znaczenie ułamka ---
 
@@ -107,9 +110,17 @@ compares_unlike_fractions_without_common_denominator:
 
 # --- Oś liczbowa ---
 
-misreads_number_line_scale:
-  name: "Nie wyznacza wartości jednego skoku na osi"
-  explanation: "Weź dwie sąsiednie etykiety, policz przerwy między nimi i podziel ich odległość przez liczbę przerw — to jest jeden skok. Dopiero potem licz skoki do punktu."
+assumes_the_tick_value_without_deriving_it:
+  name: "Zakłada wartość jednego skoku, zamiast ją wyliczyć"
+  explanation: "Weź dwie sąsiednie etykiety, policz przerwy między nimi i podziel ich odległość przez liczbę przerw — to jest wartość jednego skoku. Dopiero potem licz skoki do punktu."
+
+counts_ticks_instead_of_gaps:
+  name: "Liczy kreski zamiast przerw między nimi"
+  explanation: "Wartość odczytujesz z liczby przerw, nie kresek. Między 5 kreskami są 4 przerwy — dlatego tak łatwo pomylić się o jeden skok."
+
+counts_from_the_axis_edge_not_the_label:
+  name: "Liczy skoki od początku osi, a nie od podpisanej kreski"
+  explanation: "Zacznij liczyć od najbliższej podpisanej kreski i od jej wartości — nie od lewego końca osi."
 
 # --- Dodawanie i odejmowanie ułamków zwykłych ---
 

@@ -136,18 +136,18 @@ topics:
         function: "frac_number_line_1"
         traps:
           t1:
-            misconception: misreads_number_line_scale
+            misconception: counts_ticks_instead_of_gaps
             explanation: "Pomyłka! Zobacz na mianownik i policz wszystkie przerwy między 0 a 1. To jest twój 'skok'."
           t2:
-            misconception: misreads_number_line_scale
+            misconception: counts_ticks_instead_of_gaps
             explanation: "Jesteś o jeden skok za daleko lub za blisko."
       - level: 2
         name: "Jeden skok to wielokrotność"
         function: "frac_number_line_2"
         traps:
           t1:
-            misconception: misreads_number_line_scale
-            explanation: "Ułamek skrócony niepoprawnie. Sprawdź, czy dobrze policzyłeś odległość!"
+            misconception: counts_ticks_instead_of_gaps
+            explanation: "Policzyłeś kreski zamiast przerw — dlatego mianownik wyszedł o jeden za duży."
           t2:
             misconception: does_not_reduce_to_lowest_terms
             explanation: "Zapomniałeś skrócić ułamka na końcu."
@@ -159,17 +159,17 @@ topics:
             misconception: drops_whole_part
             explanation: "Zapomniałeś o całościach z przodu!"
           t2:
-            misconception: misreads_number_line_scale
+            misconception: counts_ticks_instead_of_gaps
             explanation: "Źle policzyłeś 'skoki' między całościami."
       - level: 4
         name: "Trudne przedziały"
         function: "frac_number_line_4"
         traps:
           t1:
-            misconception: misreads_number_line_scale
-            explanation: "Pomyłka! Najpierw oblicz wartość jednego małego skoku."
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczysz od lewego końca osi. Zacznij od podpisanej kreski i od jej wartości."
           t2:
-            misconception: misreads_number_line_scale
+            misconception: counts_ticks_instead_of_gaps
             explanation: "Błąd w liczeniu skoków między etykietami."
 
   - id: 60
