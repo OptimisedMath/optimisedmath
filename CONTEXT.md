@@ -173,6 +173,10 @@ _Avoid_: speed bump, intervention, hint mode, tutorial
 One question within a Deconstruction, derived from the Problem's parameters rather than authored per Problem. Answered by the Student to advance the walkthrough.
 _Avoid_: sub-problem, micro-step
 
+**Reveal**:
+Showing a Student the correct answer to a Deconstruction step after they have got it wrong repeatedly. The step is not skipped — the Student still enters the revealed answer to advance. A Reveal is the walkthrough's only escalation; there is no lesser tier below it, because a Deconstruction step is already the help a Student gets after the Trap prose did not land.
+_Avoid_: hint, give up, solution, skip
+
 **Problem parameters**:
 The structured values a Problem was generated from (operands, denominators, dimensions), carried on the Problem alongside its rendered question. What lets a Deconstruction speak about the exact Problem on screen instead of an analogous one.
 _Avoid_: params (unqualified), problem data
