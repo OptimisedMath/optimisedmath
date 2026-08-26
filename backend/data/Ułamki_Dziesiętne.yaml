@@ -124,7 +124,7 @@ topics:
             explanation: "Pomyłka! Zobacz na przedział i policz wszystkie przerwy. Każdy skok to jedna dziesiąta (0.1)."
           t2:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Jesteś o jeden skok za daleko lub za blisko — policz kreski od zera."
+            explanation: "Jesteś o jeden skok za daleko lub za blisko — policz przerwy od zera, nie kreski."
       - level: 2
         name: "Oś co 0.01"
         function: "dec_number_line_2"
