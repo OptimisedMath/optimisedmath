@@ -147,11 +147,11 @@ The graded result shown after a Submission while the Problem stays under Answer 
 _Avoid_: result screen, response state
 
 **Answer lock**:
-After a Submission, the active Problem cannot be re-answered until Next problem.
+After a Submission, the active Problem cannot be re-answered until Next problem. Lifted once, exceptionally, by a completed Deconstruction, which returns the Student to the triggering Problem for a second attempt.
 _Avoid_: problem_answered (code name), lock_answer
 
 **Next problem**:
-The student dismisses Feedback and continues. Loads the next Problem at the current or newly unlocked Level; after topic completion, also navigates to the next Topic at level 1.
+The student dismisses Feedback and continues. Loads the next Problem at the current or newly unlocked Level; after topic completion, also navigates to the next Topic at level 1. Unavailable while a Deconstruction is active — dismissing Feedback would otherwise skip the walkthrough while keeping everything the Problem was worth.
 _Avoid_: Advance, continue, proceed
 
 **Navigation**:
@@ -166,8 +166,12 @@ _Avoid_: nav state, navigation model, snapshot (unqualified)
 One Problem lifecycle within a Session: served → answered (Submission) → Feedback → Next problem. Navigation or Next problem starts a fresh cycle (streak resets).
 
 **Deconstruction**:
-A guided walkthrough that takes over when a Student hits the same Misconception repeatedly at a Level. It breaks the Problem in front of them into sequential steps they answer themselves, then returns them to that same Problem. A Deconstruction is not a Submission: it runs outside the Submission cycle, so it never moves Streak, XP, Flawless, or the Frontier.
+A guided walkthrough that takes over when a Student hits the same Misconception repeatedly at a Level. It breaks the Problem in front of them into sequential steps they answer themselves, then returns them to that same Problem. A Deconstruction is not a Submission: it runs outside the Submission cycle, so it never moves Streak, XP, Flawless, or the Frontier — though the Problem it interrupts is worth less afterwards. It opens with a brief **pause**: the triggering answer's Feedback stays on screen, without the correct answer, long enough to read the Trap prose before the takeover appears. A Deconstruction ends either by reaching its final step or by Abandonment, and either way it does not fire again for that Misconception at that Level for the rest of the Session.
 _Avoid_: speed bump, intervention, hint mode, tutorial
+
+**Abandonment**:
+A Deconstruction that ended without reaching its final step — whether the Student used the walkthrough's exit control or navigated away. One concept, not two: the doors differ only in what telemetry records. An abandoned Deconstruction leaves the triggering Problem under Answer lock with its correct answer revealed, so nothing more can be earned from it.
+_Avoid_: skip, quit, drop out, bail
 
 **Deconstruction step**:
 One question within a Deconstruction, derived from the Problem's parameters rather than authored per Problem. Answered by the Student to advance the walkthrough.
