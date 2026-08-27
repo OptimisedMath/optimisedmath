@@ -7,8 +7,24 @@
 #                     and as the opening line of a Deconstruction.
 #     deconstruction: optional; names a registered step-sequence function. Absent for most.
 #
-# A Trap references exactly one entry; many Traps map to one entry. A Trap that no walkthrough
-# could address carries no `misconception:` at all — it is Wrong, not a Misconception.
+# A Trap references exactly one entry; many Traps map to one entry.
+#
+# --- MEMBERSHIP: a believed rule, or a slip? ---
+#
+# A Trap earns a `misconception:` only if a Student producing it is FOLLOWING A WRONG RULE.
+# Where the error is a slip — the rules were sound, the execution was not — the Trap carries
+# no `misconception:` key. It REMAINS A TRAP: still authored, still anticipated, still firing
+# its own targeted `explanation:` on the first hit. It simply maps to no catalogue entry, so
+# it never accumulates toward a Deconstruction. (Such an answer grades as Wrong, but "Wrong"
+# is the grading outcome, not a category of authored answer — see CONTEXT.md.)
+#
+# Slips include misreading a symbol (computing a - b*c where a - b:c is written), pairing the
+# wrong operands, and dropping an operation outright.
+#
+# This test is about CAUSE, not capability, and it replaces the earlier "a Trap that no
+# walkthrough could address is Wrong" (#168, amended by #183). The two disagree: a walkthrough
+# easily could say "look at the symbol again", but a Deconstruction fired on a misread would
+# tell a Student who knows the order of operations perfectly well that they do not.
 #
 # --- Whether an entry earns a `deconstruction:` ---
 #
@@ -21,6 +37,14 @@
 #      plausibly exist for EVERY Trap referencing the entry? Failing it means the entry
 #      should be split, not deconstructed.
 #   3. TIE-BREAK — reach. Trap count and Levels spanned. Never a nomination on its own.
+#
+# Both entries once excluded on the VETO are now resolved. misreads_number_line_scale was split
+# by #180 into three entries. ignores_the_order_of_operations was NOT split (#183): the
+# membership test above un-mapped 24 of its 49 Traps as slips, and the 25 that remain —
+# precedence inverted, brackets ignored, brackets invented — are one rule, fixed by one step
+# sequence that establishes the priority ladder before touching any numbers. The over-cluster
+# was real; it was the 24 slips, not the 25 order errors. Neither entry is nominated for batch
+# one — the shortlist stays at five until the step-sequence signature exists.
 
 # --- Zapis i znaczenie ułamka ---
 

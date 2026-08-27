@@ -477,16 +477,12 @@ topics:
             misconception: ignores_the_order_of_operations
             explanation: "Dodałeś przed mnożeniem! Mnożenie i dzielenie wykonujemy przed dodawaniem."
           flattens_to_all_addition:
-            misconception: ignores_the_order_of_operations
             explanation: "Dodałeś wszystkie liczby po kolei, ignorując pozostałe działania."
           flattens_to_all_multiplication:
-            misconception: ignores_the_order_of_operations
             explanation: "Pomnożyłeś wszystkie liczby przez siebie, ignorując dodawanie."
           flattens_to_all_subtraction:
-            misconception: ignores_the_order_of_operations
             explanation: "Odjąłeś wszystko po kolei od lewej do prawej, ignorując dzielenie."
           replaces_multiplication_with_addition:
-            misconception: ignores_the_order_of_operations
             explanation: "Zamieniłeś mnożenie na dodawanie."
           subtracts_before_multiplying:
             misconception: ignores_the_order_of_operations
@@ -496,7 +492,6 @@ topics:
         function: "frac_ord_2"
         traps:
           flattens_to_all_multiplication:
-            misconception: ignores_the_order_of_operations
             explanation: "Pomnożyłeś wszystkie liczby przez siebie, ignorując dodawanie."
           flips_the_sign_inside_the_bracket:
             misconception: uses_wrong_sign_after_brackets
@@ -505,10 +500,8 @@ topics:
             misconception: ignores_the_order_of_operations
             explanation: "Zignorowałeś nawias! Nawias zawsze idzie na pierwszy ogień."
           replaces_division_with_multiplication:
-            misconception: ignores_the_order_of_operations
             explanation: "Zamieniłeś dzielenie na mnożenie."
           replaces_multiplication_with_addition:
-            misconception: ignores_the_order_of_operations
             explanation: "Zamieniłeś mnożenie na dodawanie."
       - level: 3
         name: "Dwa Zestawy"
@@ -527,10 +520,8 @@ topics:
             misconception: ignores_the_order_of_operations
             explanation: "Wstawiłeś nawiasy, których nie ma, wokół obu dodawań."
           replaces_addition_with_multiplication:
-            misconception: ignores_the_order_of_operations
             explanation: "Zamieniłeś dodawanie na mnożenie."
           replaces_division_with_multiplication:
-            misconception: ignores_the_order_of_operations
             explanation: "Zamieniłeś dzielenie na mnożenie."
       - level: 4
         name: "Potęgi i Ułamki"
@@ -540,7 +531,6 @@ topics:
             misconception: ignores_the_order_of_operations
             explanation: "Dodałeś przed mnożeniem! Mnożenie i dzielenie wykonujemy przed dodawaniem."
           ignores_the_exponent:
-            misconception: ignores_the_order_of_operations
             explanation: "Pominąłeś potęgowanie i przepisałeś liczbę bez zmian."
           multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
