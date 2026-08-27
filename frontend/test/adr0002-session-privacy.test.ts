@@ -61,4 +61,25 @@ describe('ADR-0002 SessionResponse privacy', () => {
 
     expect(violations).toEqual([]);
   });
+
+  it('Problem type does not expose the server-only parameters field', () => {
+    const source = readFileSync(SESSION_TYPES_PATH, 'utf8');
+    const problemBlock = source.match(/export interface Problem \{[\s\S]*?\n\}/)?.[0];
+
+    expect(problemBlock).toBeDefined();
+    expect(problemBlock).not.toMatch(/\bparameters\s*:/);
+  });
+
+  it('no file under frontend/components references problem.parameters', () => {
+    const violations: string[] = [];
+
+    for (const filePath of collectSourceFiles(COMPONENTS_ROOT)) {
+      const source = readFileSync(filePath, 'utf8');
+      if (/\.parameters\b/.test(source)) {
+        violations.push(relative(FRONTEND_ROOT, filePath));
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
 });

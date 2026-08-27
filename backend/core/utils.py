@@ -98,12 +98,17 @@ def build_problem_dict(
     fillers: list[str | None] | None = None,
     grading_policy: str = "standard",
     image_html: str | None = None,
+    parameters: dict[str, int | float | str] | None = None,
 ) -> ProblemDict | None:
     """Build the canonical problem dict with options, options_map, and grading_policy.
 
     `traps` maps Trap slug -> answer string; `fillers` are padding options that carry
     no rule and all share `FILLER_SLUG`. A `None` value is skipped, so a generator may
     offer a Trap conditionally. Returns None when two options collide.
+
+    `parameters` is the structured values the Problem was generated from, keyed by the
+    generator's own operand names, for a future Deconstruction walkthrough to consume.
+    Omitted when a generator does not supply it.
     """
     option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
     option_entries += [(value, slug) for slug, value in (traps or {}).items()]
@@ -125,7 +130,7 @@ def build_problem_dict(
     else:
         random.shuffle(options)
 
-    return {
+    problem: ProblemDict = {
         "problem_id": str(uuid.uuid4()),
         "question": q_str,
         "image_html": image_html,
@@ -134,6 +139,9 @@ def build_problem_dict(
         "options_map": options_map,
         "grading_policy": grading_policy,
     }
+    if parameters is not None:
+        problem["parameters"] = parameters
+    return problem
 
 
 # --- Number line SVG ---

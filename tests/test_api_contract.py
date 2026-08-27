@@ -1,6 +1,7 @@
 """FastAPI integration tests for session flow, grading, and API contract."""
 
 import asyncio
+import json
 import sqlite3
 import uuid
 
@@ -920,3 +921,71 @@ def test_start_next_submit_logs_time_spent_telemetry():
 
     assert row is not None
     assert row[0] is not None
+
+
+def test_parameters_never_reaches_public_problem_payload():
+    """Issue #189: `parameters` is server-side only, withheld by public_problem's allowlist."""
+    problem = {
+        "problem_id": "p-parameters-wrong",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+        "parameters": {"n": 1, "d": 2, "op": "+"},
+    }
+    state = make_state(problem, input_mode="radio")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-parameters-wrong",
+                user_input="3",
+            )
+        )
+    )
+
+    revealed = response.state.current_problem
+    assert revealed is not None
+    assert "parameters" not in revealed
+
+
+def test_submission_telemetry_records_parameters_when_present():
+    """Issue #189: `parameters` rides through equation_state, which strips nothing new."""
+    problem = {
+        "problem_id": "p-parameters-telemetry",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+        "parameters": {"n": 1, "d": 2, "op": "+"},
+    }
+    state = make_state(problem, input_mode="radio")
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-parameters-telemetry",
+                user_input="2",
+            )
+        )
+    )
+
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT equation_state FROM telemetry_logs
+            WHERE session_id = ?
+            ORDER BY log_id DESC
+            LIMIT 1
+            """,
+            (state.session_id,),
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] is not None
+    equation_state = json.loads(row[0])
+    assert equation_state["parameters"] == {"n": 1, "d": 2, "op": "+"}

@@ -165,3 +165,15 @@ class TestBuildProblemDict:
         assert problem is not None
         assert "improper" not in problem
         assert "unsimplified" not in problem
+
+    def test_parameters_included_when_provided(self):
+        problem = build_problem_dict(
+            "q", "1/2", parameters={"n": 1, "d": 2.5, "op": "+"}
+        )
+        assert problem is not None
+        assert problem["parameters"] == {"n": 1, "d": 2.5, "op": "+"}
+
+    def test_parameters_absent_when_not_provided(self):
+        problem = build_problem_dict("q", "1/2")
+        assert problem is not None
+        assert "parameters" not in problem
