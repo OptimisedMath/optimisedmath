@@ -5,7 +5,12 @@ from __future__ import annotations
 from fractions import Fraction
 from typing import TypedDict
 
-from backend.core.utils import ProblemDict, check_text_answer, parse_to_fraction
+from backend.core.utils import (
+    FILLER_SLUG,
+    ProblemDict,
+    check_text_answer,
+    parse_to_fraction,
+)
 
 
 class EvalResult(TypedDict, total=False):
@@ -22,7 +27,7 @@ def _match_trap_feedback(
     """Return trap/wrong feedback if user input matches a known distractor."""
     options_map = problem.get("options_map", {})
     for opt_str, opt_type in options_map.items():
-        if opt_type not in ("t1", "t2", "t3", "w1", "w2"):
+        if opt_type == "correct":
             continue
         matched = check_text_answer(opt_str, user_input)
         if not matched:
@@ -67,7 +72,7 @@ def grade(
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
 
-        msg_key = options_map.get(user_input, "w1")
+        msg_key = options_map.get(user_input, FILLER_SLUG)
         msg_text = problem.get("messages", {}).get(
             msg_key, "Niepoprawna odpowiedź, spróbuj ponownie."
         )
@@ -130,11 +135,11 @@ def grade(
         return trap_result
 
     msg_text = problem.get("messages", {}).get(
-        "w1", "Niepoprawna odpowiedź, spróbuj ponownie."
+        FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
     )
     return {
         "lock_answer": True,
         "feedback_type": "warning",
         "feedback_msg": msg_text,
-        "answer_outcome": "w1",
+        "answer_outcome": FILLER_SLUG,
     }

@@ -4,9 +4,11 @@ from backend.core.utils import (
     format_answers,
     format_fraction_question,
     build_problem_dict,
+    declares_traps,
 )
 
 
+@declares_traps("adds_instead_of_subtracting")
 def frac_sub_1() -> dict | None:
     """Ten sam mianownik (poziom 1)."""
     d = random.randint(3, 9)
@@ -16,21 +18,21 @@ def frac_sub_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d}}} - \frac{{{n2}}}{{{d}}}"
 
     c_str, _ = format_answers(n1 - n2, d)
-    t1, _ = format_answers(n1 + n2, d)  # Trap (t1): Dodałeś zamiast odjąć
-    w1, _ = format_answers(max(1, n1 - n2 - 1), d)
-    w2, _ = format_answers(n1 - n2 + 1, d)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        w1=w1,
-        w2=w2,
+        traps={"adds_instead_of_subtracting": format_answers(n1 + n2, d)[0]},
+        fillers=[
+            format_answers(max(1, n1 - n2 - 1), d)[0],
+            format_answers(n1 - n2 + 1, d)[0],
+        ],
     )
     if result:
         return result
 
 
+@declares_traps("subtracts_numerators_without_expanding", "subtracts_the_denominators")
 def frac_sub_2() -> dict | None:
     """Liczby mieszane (poziom 2)."""
     d1 = random.randint(2, 5)
@@ -43,21 +45,29 @@ def frac_sub_2() -> dict | None:
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
 
     c_str, _ = format_answers((n1 * factor) - n2, d2)
-    t1, _ = format_answers(abs(n1 - n2), d2)
-    t2, _ = format_answers(abs(n1 - n2), abs(d1 - d2) if d1 != d2 else 1)
-    w1, _ = format_answers((n1 * factor) - n2 + 1, d2)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "subtracts_numerators_without_expanding": format_answers(abs(n1 - n2), d2)[
+                0
+            ],
+            "subtracts_the_denominators": format_answers(
+                abs(n1 - n2), abs(d1 - d2) if d1 != d2 else 1
+            )[0],
+        },
+        fillers=[format_answers((n1 * factor) - n2 + 1, d2)[0]],
     )
     if result:
         return result
 
 
+@declares_traps(
+    "subtracts_the_denominators",
+    "uses_the_product_denominator_without_scaling_numerators",
+    "adds_instead_of_subtracting",
+)
 def frac_sub_3() -> dict | None:
     """Zabieranie całości (poziom 3)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
@@ -70,72 +80,88 @@ def frac_sub_3() -> dict | None:
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
 
     c_str, _ = format_answers((n1 * d2) - (n2 * d1), d1 * d2)
-    t1, _ = format_answers(abs(n1 - n2), abs(d1 - d2))
-    t2, _ = format_answers(abs(n1 - n2), d1 * d2)
-    t3, _ = format_answers((n1 * d2) + (n2 * d1), d1 * d2)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "subtracts_the_denominators": format_answers(abs(n1 - n2), abs(d1 - d2))[0],
+            "uses_the_product_denominator_without_scaling_numerators": format_answers(
+                abs(n1 - n2), d1 * d2
+            )[0],
+            "adds_instead_of_subtracting": format_answers(
+                (n1 * d2) + (n2 * d1), d1 * d2
+            )[0],
+        },
     )
     if result:
         return result
 
 
+@declares_traps("drops_the_denominator_after_subtracting", "drops_the_whole_parts")
 def frac_sub_4() -> dict | None:
     """Zabieranie całości w liczbie mieszanej (poziom 4)."""
-    w1, w2 = random.randint(2, 4), random.randint(1, 2)
-    if w1 <= w2:
+    whole1, whole2 = random.randint(2, 4), random.randint(1, 2)
+    if whole1 <= whole2:
         return None
     d = random.randint(3, 7)
     n1, n2 = random.randint(2, d - 1), random.randint(1, d - 2)
     if n1 <= n2:
         return None
 
-    q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, w1)} - {format_fraction_question(n2, d, w2)}"
+    q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, whole1)} - {format_fraction_question(n2, d, whole2)}"
 
-    c_str, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
-    t1, _ = format_answers(n1 - n2, 1, w1 - w2)
-    t2, _ = format_answers(n1 - n2, d)
-    w1_str, _ = format_answers((w1 * d + n1) - (w2 * d + n2) + d, d)
+    total = (whole1 * d + n1) - (whole2 * d + n2)
+    c_str, _ = format_answers(total, d)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1_str,
+        traps={
+            "drops_the_denominator_after_subtracting": format_answers(
+                n1 - n2, 1, whole1 - whole2
+            )[0],
+            "drops_the_whole_parts": format_answers(n1 - n2, d)[0],
+        },
+        fillers=[format_answers(total + d, d)[0]],
     )
     if result:
         return result
 
 
+@declares_traps(
+    "subtracts_the_fractions_in_reverse_to_avoid_borrowing",
+    "borrows_ten_instead_of_the_denominator",
+    "borrows_without_decrementing_the_whole",
+)
 def frac_sub_5() -> dict | None:
     """Różne mianowniki (poziom 5)."""
-    w1, w2 = random.randint(2, 4), random.randint(1, 2)
-    if w1 <= w2:
+    whole1, whole2 = random.randint(2, 4), random.randint(1, 2)
+    if whole1 <= whole2:
         return None
     d = random.randint(3, 7)
     n1, n2 = random.randint(1, d - 2), random.randint(2, d - 1)
     if n1 >= n2:
         return None
 
-    q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, w1)} - {format_fraction_question(n2, d, w2)}"
+    q_str = rf"\text{{Oblicz: }} {format_fraction_question(n1, d, whole1)} - {format_fraction_question(n2, d, whole2)}"
 
-    c_str, _ = format_answers((w1 * d + n1) - (w2 * d + n2), d)
-    t1, _ = format_answers(n2 - n1, d, w1 - w2)
-    t2, _ = format_answers((n1 + 10) - n2, d, (w1 - 1) - w2)
-    t3, _ = format_answers((d + n1) - n2, d, w1 - w2)
+    c_str, _ = format_answers((whole1 * d + n1) - (whole2 * d + n2), d)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "subtracts_the_fractions_in_reverse_to_avoid_borrowing": format_answers(
+                n2 - n1, d, whole1 - whole2
+            )[0],
+            "borrows_ten_instead_of_the_denominator": format_answers(
+                (n1 + 10) - n2, d, (whole1 - 1) - whole2
+            )[0],
+            "borrows_without_decrementing_the_whole": format_answers(
+                (d + n1) - n2, d, whole1 - whole2
+            )[0],
+        },
     )
     if result:
         return result

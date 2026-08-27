@@ -1,7 +1,8 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps("subtracts_the_smaller_digit_in_each_column")
 def dec_sub_1() -> dict | None:
     """Bez pożyczania (poziom 1)."""
     v1 = random.randint(31, 99) / 10
@@ -17,23 +18,27 @@ def dec_sub_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
 
-    t1 = fmt_dec(
-        round(int(v1) - int(v2) + abs(d1 - d2) / 10, 2)
-    )  # Trap (t1): Przecinek uciekł w złe miejsce
-    w1 = fmt_dec(round(v1 - v2 + 0.1, 2))
-    w2 = fmt_dec(round(v1 - v2 - 0.1, 2))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        w1=w1,
-        w2=w2,
+        traps={
+            "subtracts_the_smaller_digit_in_each_column": fmt_dec(
+                round(int(v1) - int(v2) + abs(d1 - d2) / 10, 2)
+            )
+        },
+        fillers=[
+            fmt_dec(round(v1 - v2 + 0.1, 2)),
+            fmt_dec(round(v1 - v2 - 0.1, 2)),
+        ],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "misaligns_the_second_number_by_one_place",
+    "borrows_but_leaves_nine_in_the_hundredths",
+)
 def dec_sub_2() -> dict | None:
     """Z pożyczaniem (poziom 2)."""
     v1 = random.randint(311, 999) / 100
@@ -42,18 +47,29 @@ def dec_sub_2() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
 
-    t1 = fmt_dec(
-        round(v1 - (v2 / 10), 2)
-    )  # Trap (t1): Zapomniałeś o pożyczaniu z sąsiedniego rzędu
-    t2 = fmt_dec(round(v1 - v2 + 0.09, 2))  # Trap (t2): Błędnie przepisałeś przecinek
-    w1 = fmt_dec(round(v1 - v2 + 1, 2))
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "misaligns_the_second_number_by_one_place": fmt_dec(
+                round(v1 - (v2 / 10), 2)
+            ),
+            "borrows_but_leaves_nine_in_the_hundredths": fmt_dec(
+                round(v1 - v2 + 0.09, 2)
+            ),
+        },
+        fillers=[fmt_dec(round(v1 - v2 + 1, 2))],
+    )
 
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
-
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "mishandles_the_hundredths_when_borrowing",
+    "borrows_over_zero_incorrectly",
+    "off_by_one_tenth_when_borrowing",
+)
 def dec_sub_3() -> dict | None:
     """Z dopisywaniem zer (np. 1 - 0.25) (poziom 3)."""
     v1 = random.randint(31, 99) / 10
@@ -69,20 +85,16 @@ def dec_sub_3() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))
 
-    t1 = fmt_dec(
-        round(v1 - round(v2, 1) + (int(str(v2)[-1]) / 100), 2)
-    )  # Trap (t1): Nie masz od czego odjąć liczby
-    t2 = fmt_dec(
-        round(v1 - v2 - 0.4, 2)
-    )  # Trap (t2): Błąd w rzędzie dziesiątek - gdy pożyczasz nad zerem, to zero staje się...
-    t3 = fmt_dec(round(v1 - v2 + 0.1, 2))  # Trap (t3): Błąd pożyczania
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "mishandles_the_hundredths_when_borrowing": fmt_dec(
+                round(v1 - round(v2, 1) + (int(str(v2)[-1]) / 100), 2)
+            ),
+            "borrows_over_zero_incorrectly": fmt_dec(round(v1 - v2 - 0.4, 2)),
+            "off_by_one_tenth_when_borrowing": fmt_dec(round(v1 - v2 + 0.1, 2)),
+        },
     )
-    if result:
-        return result
+    if problem:
+        return problem

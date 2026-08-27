@@ -1,7 +1,8 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps("rounds_the_wrong_way", "leaves_the_number_unrounded")
 def dec_round_1() -> dict | None:
     """Do całości (poziom 1)."""
     v = random.randint(11, 99) / 10
@@ -10,23 +11,20 @@ def dec_round_1() -> dict | None:
     q_str = rf"\text{{Zaokrąglij do całości: }} {fmt_dec(v)}"
     c_str = str(round(v))
 
-    t1 = (
-        str(int(v)) if round(v) > v else str(int(v) + 1)
-    )  # Trap (t1): Zapomniałeś o regule '5 i więcej'
-    t2 = fmt_dec(v)  # Trap (t2): Pomyłka
-    w1 = str(int(v) + 2) if round(v) > v else str(max(0, int(v) - 1))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "rounds_the_wrong_way": (str(int(v)) if round(v) > v else str(int(v) + 1)),
+            "leaves_the_number_unrounded": fmt_dec(v),
+        },
+        fillers=[str(int(v) + 2) if round(v) > v else str(max(0, int(v) - 1))],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps("rounds_the_wrong_way", "rounds_to_the_wrong_place")
 def dec_round_2() -> dict | None:
     """Do części dziesiątych (poziom 2)."""
     v = random.randint(101, 999) / 100
@@ -37,23 +35,28 @@ def dec_round_2() -> dict | None:
     rounded = round(v, 1)
     c_str = fmt_dec(rounded)
 
-    t1 = (
-        fmt_dec(int(v * 10) / 10) if rounded > v else fmt_dec((int(v * 10) + 1) / 10)
-    )  # Trap (t1): Masz zaokrąglić do części dziesiątych (jedno miejsce po przecinku)
-    t2 = str(round(v))  # Trap (t2): Skreśliłeś źle
-    w1 = fmt_dec(round(v + 0.1, 1))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "rounds_the_wrong_way": (
+                fmt_dec(int(v * 10) / 10)
+                if rounded > v
+                else fmt_dec((int(v * 10) + 1) / 10)
+            ),
+            "rounds_to_the_wrong_place": str(round(v)),
+        },
+        fillers=[fmt_dec(round(v + 0.1, 1))],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "truncates_instead_of_carrying",
+    "drops_the_trailing_zero_after_carrying",
+    "writes_ten_in_the_tenths_place",
+)
 def dec_round_3() -> dict | None:
     """Zdradliwa dziewiątka (poziom 3)."""
     whole = random.randint(1, 8)
@@ -63,13 +66,16 @@ def dec_round_3() -> dict | None:
 
     c_str = f"{whole + 1},0"
 
-    t1 = f"{whole},9"  # Trap (t1): Uwaga
-    t2 = f"{whole + 1}"  # Trap (t2): Zostawiłeś ,9 zamiast przejść do następnej całości z ,0
-    w1 = f"{whole},10"
-
     # Enforce exact match so they don't omit the trailing zero
-    result = build_problem_dict(
-        q_str, c_str, t1=t1, t2=t2, w1=w1, grading_policy="exact_match_only"
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "truncates_instead_of_carrying": f"{whole},9",
+            "drops_the_trailing_zero_after_carrying": f"{whole + 1}",
+            "writes_ten_in_the_tenths_place": f"{whole},10",
+        },
+        grading_policy="exact_match_only",
     )
-    if result:
-        return result
+    if problem:
+        return problem

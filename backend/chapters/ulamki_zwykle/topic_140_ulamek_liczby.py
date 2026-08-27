@@ -3,9 +3,11 @@ from backend.core.utils import (
     format_answers,
     format_fraction_question,
     build_problem_dict,
+    declares_traps,
 )
 
 
+@declares_traps("reads_it_as_a_mixed_number", "swaps_the_numerator_and_denominator")
 def frac_frac_of_int_1() -> dict | None:
     """Całości bez reszty (poziom 1)."""
     d = random.randint(2, 8)
@@ -17,21 +19,23 @@ def frac_frac_of_int_1() -> dict | None:
     )
 
     c_str, _ = format_answers((k // d) * n, 1)
-    t1, _ = format_answers(k * d + n, d)
-    t2, _ = format_answers(k // n * d, 1)
-    w1, _ = format_answers((k // d) * n + 1, 1)
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "reads_it_as_a_mixed_number": format_answers(k * d + n, d)[0],
+            "swaps_the_numerator_and_denominator": format_answers(k // n * d, 1)[0],
+        },
+        fillers=[format_answers((k // d) * n + 1, 1)[0]],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "inverts_the_fraction_before_multiplying", "multiplies_the_denominator_too"
+)
 def frac_frac_of_int_2() -> dict | None:
     """Trudniejsze liczby (poziom 2)."""
     d = random.randint(3, 9)
@@ -45,21 +49,24 @@ def frac_frac_of_int_2() -> dict | None:
     )
 
     c_str, _ = format_answers(n * k, d)
-    t1, _ = format_answers(k * d, n)
-    t2, _ = format_answers(n * k, d * k)
-    w1, _ = format_answers(n * k + 1, d)
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "inverts_the_fraction_before_multiplying": format_answers(k * d, n)[0],
+            "multiplies_the_denominator_too": format_answers(n * k, d * k)[0],
+        },
+        fillers=[format_answers(n * k + 1, d)[0]],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "uses_one_more_than_the_denominator",
+    "applies_the_fraction_again_instead_of_inverting",
+)
 def frac_frac_of_int_3() -> dict | None:
     """Gdy wynik jest ułamkiem (poziom 3)."""
     d = random.randint(3, 8)
@@ -70,23 +77,20 @@ def frac_frac_of_int_3() -> dict | None:
     q_str = rf"\text{{Znajdź liczbę, której }} \frac{{{n}}}{{{d}}} \text{{ wynosi }} {part}."
     c_str = str(whole)
 
-    t1 = str(int((part // n) * (d + 1)))  # Miscalculated the multiplier
-    t2 = str(  # Trap (t2): Podałeś odwrotność
-        int(part * n // d)
-    )  # TRAP: Calculated the fraction OF the number instead of finding the whole
-    w1 = str(whole + d)
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "uses_one_more_than_the_denominator": str(int((part // n) * (d + 1))),
+            "applies_the_fraction_again_instead_of_inverting": str(int(part * n // d)),
+        },
+        fillers=[str(whole + d)],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps("gives_only_the_fraction_not_the_total", "adds_only_the_numerator")
 def frac_frac_of_int_4() -> dict | None:
     """Ułamek z liczby mieszanej (poziom 4)."""
     d = random.randint(3, 6)
@@ -100,22 +104,17 @@ def frac_frac_of_int_4() -> dict | None:
 
     change = (base // d) * n
     c_val = base + change if is_increase else base - change
-    c_str = str(c_val)
 
-    t1 = str(  # Trap (t1): Zamień ułamek na postać niewłaściwą zanim zaczniesz mnożyć
-        change
-    )  # TRAP: Only calculated the fraction, forgot to add/subtract it to the base!
-    t2 = (
-        str(base + n) if is_increase else str(base - n)
-    )  # TRAP: Just added the numerator
-    w1 = str(c_val + 1)
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
-        c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        str(c_val),
+        traps={
+            "gives_only_the_fraction_not_the_total": str(change),
+            "adds_only_the_numerator": (
+                str(base + n) if is_increase else str(base - n)
+            ),
+        },
+        fillers=[str(c_val + 1)],
     )
-    if result:
-        return result
+    if problem:
+        return problem

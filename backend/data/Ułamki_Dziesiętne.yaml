@@ -9,55 +9,54 @@ topics:
         name: "Z ułamka dziesiętnego na zwykły"
         function: "dec_to_frac_1"
         traps:
-          t1:
+          inverts_into_a_unit_fraction:
             misconception: misreads_decimal_place_value_as_denominator
-            explanation: "Zły mianownik! Jedno miejsce po przecinku to 10 na dole. Dwa miejsca to 100, trzy to 1000. Policz zera!"
-          t2:
-            misconception: drops_whole_part
-            explanation: "Zapomniałeś o całościach z przodu!"
-          t3:
+            explanation: "Zapisałeś ułamek jednostkowy. W liczniku ma stać to, co stoi po przecinku."
+          shifts_the_denominator_by_one:
             misconception: misreads_decimal_place_value_as_denominator
-            explanation: "Podałeś złą liczbę w liczniku. Wpisz dokładnie to samo co po przecinku."
+            explanation: "Mianownik ma o jedno zero za dużo. Liczba zer to dokładnie liczba miejsc po przecinku."
+          uses_one_fewer_place_for_the_denominator:
+            misconception: misreads_decimal_place_value_as_denominator
+            explanation: "Zły mianownik! Jedno miejsce po przecinku to 10, dwa to 100, trzy to 1000. Policz zera."
       - level: 2
         name: "Ze zwykłego na dziesiętny (mianowniki 10, 100)"
         function: "dec_to_frac_2"
         traps:
-          t1:
+          shifts_the_point_one_place_too_far:
             misconception: misreads_denominator_zeros_as_decimal_places
-            explanation: "Brakuje zera! Liczba zer w mianowniku to DOKŁADNIE liczba miejsc, które musisz zająć po przecinku."
-          t2:
+            explanation: "Masz o jedno miejsce po przecinku za dużo. Policz zera na dole ułamka."
+          writes_the_denominator_after_the_point:
             misconception: misreads_denominator_zeros_as_decimal_places
-            explanation: "Masz za dużo miejsc po przecinku. Spójrz na ilość zer na dole ułamka zwykłego."
-          t3:
+            explanation: "Wpisałeś po przecinku mianownik zamiast licznika."
+          writes_the_digits_side_by_side:
             misconception: misreads_denominator_zeros_as_decimal_places
-            explanation: "Podałeś błędną cyfrę z licznika."
+            explanation: "Skleiłeś cyfry obok siebie. Liczba zer w mianowniku mówi, ile miejsc ma zająć licznik po przecinku."
       - level: 3
         name: "Ze zwykłego na dziesiętny (rozszerzanie 2, 4, 5)"
         function: "dec_to_frac_3"
         traps:
-          t1:
+          shifts_the_point_one_place_too_far:
             misconception: converts_to_decimal_without_expanding_to_power_of_ten
-            explanation: "Zanim zapiszesz przecinek, musisz rozszerzyć ułamek tak, aby na dole było 10, 100 lub 1000!"
-          t2:
-            misconception: expands_only_one_part
-            explanation: "Zły wynik - zapomniałeś, by pomnożyć też górę!"
-          t3:
+            explanation: "Masz o jedno miejsce po przecinku za dużo. Sprawdź, do jakiej potęgi dziesiątki rozszerzasz mianownik."
+          writes_the_denominator_after_the_point:
             misconception: converts_to_decimal_without_expanding_to_power_of_ten
-            explanation: "Zły wynik - ułamek rozszerza się przez odpowiednią liczbę."
+            explanation: "Po przecinku wpisałeś mianownik. Po rozszerzeniu to licznik ląduje po przecinku."
+          writes_the_digits_side_by_side:
+            misconception: converts_to_decimal_without_expanding_to_power_of_ten
+            explanation: "Skleiłeś cyfry ułamka obok siebie. Najpierw rozszerz go tak, by na dole było 10, 100 lub 1000."
       - level: 4
         name: "Ze zwykłego na dziesiętny (dzielenie)"
         function: "dec_to_frac_4"
         traps:
-          t1:
+          adds_a_leading_zero_before_the_period:
             misconception: omits_repeating_decimal_notation
-            explanation: "Zapomniałeś nawiasów okresu! Ułamek rozwijający się w nieskończoność zapisujemy z nawiasem, np. 0,(3)."
-          t2:
+            explanation: "Dodałeś zbędne zero przed okresem."
+          gets_the_period_digit_wrong:
             misconception: omits_repeating_decimal_notation
-            explanation: "Dodałeś zbędne zero przed okresem lub źle umieściłeś nawias."
-          t3:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
             explanation: "Zła cyfra w okresie — sprawdź wynik dzielenia licznika przez mianownik."
-
+          omits_the_period_brackets:
+            misconception: omits_repeating_decimal_notation
+            explanation: "Zapomniałeś nawiasu okresu! Rozwinięcie nieskończone zapisujemy np. 0,(3)."
   - id: 20
     name: "Porównywanie"
     radio_only: true
@@ -66,52 +65,66 @@ topics:
         name: "Różne cyfry, te same pozycje"
         function: "dec_compare_1"
         traps:
-          t1:
+          compares_by_the_lower_place_digit:
             misconception: compares_decimals_by_wrong_digit_order
-            explanation: "Porównaj cyfry po przecinku od lewej strony."
-          t2:
+            explanation: "Porównałeś dalsze cyfry. Zacznij od pierwszej cyfry po przecinku."
+          reads_unequal_decimals_as_equal:
             misconception: compares_decimals_by_wrong_digit_order
             explanation: "Liczby nie są równe — nie wybieraj znaku równości!"
       - level: 2
         name: "Różna liczba miejsc po przecinku"
         function: "dec_compare_2"
         traps:
-          t1:
+          compares_by_the_number_of_decimal_places:
             misconception: compares_decimals_by_wrong_digit_order
-            explanation: "Porównaj cyfry po przecinku od lewej strony."
-          t2:
+            explanation: "Dłuższa liczba nie znaczy większa! Porównuj cyfry rzędami od lewej."
+          reads_trailing_zero_as_larger:
+            misconception: compares_decimals_by_wrong_digit_order
+            explanation: "Zero na końcu nic nie zmienia — 0,50 to tyle samo co 0,5."
+          reads_trailing_zero_as_smaller:
+            misconception: compares_decimals_by_wrong_digit_order
+            explanation: "Zero na końcu nic nie zmienia — 0,5 to tyle samo co 0,50."
+          reads_unequal_decimals_as_equal:
             misconception: compares_decimals_by_wrong_digit_order
             explanation: "Liczby nie są równe — nie wybieraj znaku równości!"
-          t3:
-            misconception: compares_decimals_by_wrong_digit_order
-            explanation: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
       - level: 3
         name: "Zdradliwe zera"
         function: "dec_compare_3"
         traps:
-          t1:
+          ignores_the_zero_straight_after_the_point:
             misconception: compares_decimals_by_wrong_digit_order
-            explanation: "Porównaj cyfry po przecinku od lewej strony."
-          t2:
+            explanation: "Pominąłeś zero zaraz po przecinku, a ono dziesięciokrotnie zmniejsza liczbę."
+          reads_trailing_zero_as_larger:
+            misconception: compares_decimals_by_wrong_digit_order
+            explanation: "Zero na końcu nic nie zmienia — 0,50 to tyle samo co 0,5."
+          reads_trailing_zero_as_smaller:
+            misconception: compares_decimals_by_wrong_digit_order
+            explanation: "Zero na końcu nic nie zmienia — 0,5 to tyle samo co 0,50."
+          reads_unequal_decimals_as_equal:
             misconception: compares_decimals_by_wrong_digit_order
             explanation: "Liczby nie są równe — nie wybieraj znaku równości!"
-          t3:
-            misconception: compares_decimals_by_wrong_digit_order
-            explanation: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
       - level: 4
         name: "Rozwinięcie nieskończone"
         function: "dec_compare_4"
         traps:
-          t1:
+          compares_a_period_to_a_finite_decimal_by_first_digits:
             misconception: compares_repeating_decimals_incorrectly
-            explanation: "Porównaj cyfry po przecinku od lewej strony."
-          t2:
+            explanation: "Porównałeś tylko pierwsze cyfry. Rozpisz okres na kilka miejsc i dopiero porównuj."
+          compares_two_periods_by_first_digits:
+            misconception: compares_repeating_decimals_incorrectly
+            explanation: "Porównałeś tylko pierwsze cyfry obu okresów. Rozpisz je dalej."
+          reads_different_periods_as_equal:
+            misconception: compares_repeating_decimals_incorrectly
+            explanation: "Okresy są różne, więc liczby nie są równe."
+          reads_the_period_as_its_short_form:
+            misconception: compares_repeating_decimals_incorrectly
+            explanation: "Potraktowałeś 0,(3) jak 0,3. Okres powtarza się bez końca."
+          reads_unequal_decimals_as_equal:
             misconception: compares_repeating_decimals_incorrectly
             explanation: "Liczby nie są równe — nie wybieraj znaku równości!"
-          t3:
+          treats_the_period_as_a_single_digit:
             misconception: compares_repeating_decimals_incorrectly
-            explanation: "Gdy okresy są różne, liczby nie są równe — nie wybieraj znaku równości!"
-
+            explanation: "Potraktowałeś okres jak jedną cyfrę. On powtarza się w nieskończoność."
   - id: 30
     name: "Oś liczbowa"
     levels:
@@ -119,63 +132,80 @@ topics:
         name: "Oś co 0.1"
         function: "dec_number_line_1"
         traps:
-          t1:
+          assumes_a_hundredth_step:
             misconception: assumes_the_tick_value_without_deriving_it
-            explanation: "Pomyłka! Zobacz na przedział i policz wszystkie przerwy. Każdy skok to jedna dziesiąta (0.1)."
-          t2:
+            explanation: "Założyłeś, że jeden skok to setna. Policz przerwy w przedziale — tutaj skok to dziesiąta."
+          counts_gaps_from_the_far_end:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczyłeś przerwy od prawego końca osi. Zacznij od zera."
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Jesteś o jeden skok za daleko lub za blisko — policz przerwy od zera, nie kreski."
+            explanation: "Jesteś o jedną przerwę obok — policz przerwy od zera, nie kreski."
       - level: 2
         name: "Oś co 0.01"
         function: "dec_number_line_2"
         traps:
-          t1:
+          assumes_a_ten_times_smaller_step:
             misconception: assumes_the_tick_value_without_deriving_it
-            explanation: "Pomyłka! Jesteś między 0.1 a 0.2. Każdy mały skok to jedna setna (0.01)."
-          t2:
+            explanation: "Twój skok jest dziesięć razy za mały. Policz przerwy w przedziale i podziel przez nie jego szerokość."
+          counts_gaps_from_the_far_end:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczyłeś przerwy od prawej strony przedziału zamiast od lewej."
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
             explanation: "Wielkość skoku masz dobrą — pomyliłeś się o jedną przerwę."
       - level: 3
         name: "Oś co 0.2 lub podobne"
         function: "dec_number_line_3"
         traps:
-          t1:
+          assumes_a_tenth_step:
             misconception: assumes_the_tick_value_without_deriving_it
-            explanation: "Uwaga! Odstępy na osi nie zawsze wynoszą 1. Zobacz ile kresek dzieli pełną jedność, by odkryć wielkość jednego małego skoku."
-          t2:
+            explanation: "Założyłeś, że jeden skok to dziesiąta. Sprawdź, ile przerw dzieli pełną jedność."
+          counts_gaps_from_the_far_end:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczyłeś przerwy od prawej strony przedziału zamiast od lewej."
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
             explanation: "Wielkość skoku masz dobrą — pomyliłeś się o jedną przerwę."
       - level: 4
         name: "Duży odstęp"
         function: "dec_number_line_4"
         traps:
-          t1:
+          assumes_a_hundredth_step:
             misconception: assumes_the_tick_value_without_deriving_it
-            explanation: "Oblicz szerokość przedziału (np. 1.0 - 0.5) i podziel przez liczbę skoków (odstępów)."
-          t2:
+            explanation: "Założyłeś wielkość skoku. Oblicz szerokość przedziału i podziel ją przez liczbę przerw."
+          counts_gaps_from_the_far_end:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczyłeś od prawej etykiety zamiast od lewej."
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Błąd w liczeniu skoków — o jeden przedział za mało lub za dużo."
+            explanation: "Błąd w liczeniu skoków — o jedną przerwę za mało lub za dużo."
       - level: 5
         name: "Duży odstęp cz. 2"
         function: "dec_number_line_5"
         traps:
-          t1:
+          doubles_the_step_past_the_last_label:
             misconception: assumes_the_tick_value_without_deriving_it
-            explanation: "Najpierw policz odstępy, później odejmij skrajne wartości, na końcu podziel."
-          t2:
+            explanation: "Za ostatnią etykietą wziąłeś dwa razy większy skok. Skok jest na całej osi taki sam."
+          doubles_the_whole_distance:
+            misconception: assumes_the_tick_value_without_deriving_it
+            explanation: "Podwoiłeś całą odległość. Najpierw policz przerwy, potem odejmij skrajne wartości, na końcu podziel."
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
             explanation: "Skok policzyłeś dobrze, ale jesteś o jedną przerwę za daleko."
       - level: 6
         name: "Dziwne przedziały"
         function: "dec_number_line_6"
         traps:
-          t1:
-            misconception: counts_ticks_instead_of_gaps
-            explanation: "Jesteś o jeden skok obok — policz przerwy jeszcze raz, nie kreski."
-          t2:
+          assumes_a_tenth_step:
             misconception: assumes_the_tick_value_without_deriving_it
-            explanation: "Zgadłeś bez obliczenia wartości jednego skoku."
-
+            explanation: "Zgadłeś, że skok to dziesiąta, zamiast go obliczyć."
+          off_by_one_gap:
+            misconception: counts_ticks_instead_of_gaps
+            explanation: "Jesteś o jeden skok w prawo — policz przerwy jeszcze raz, nie kreski."
+          off_by_one_gap_backwards:
+            misconception: counts_ticks_instead_of_gaps
+            explanation: "Jesteś o jeden skok w lewo — policz przerwy jeszcze raz, nie kreski."
   - id: 40
     name: "Zaokrąglanie"
     levels:
@@ -183,33 +213,35 @@ topics:
         name: "Do całości"
         function: "dec_round_1"
         traps:
-          t1:
+          leaves_the_number_unrounded:
             misconception: rounds_using_the_wrong_digit
-            explanation: "Zapomniałeś o regule '5 i więcej'! Spójrz na cyfrę po przecinku. Jeśli to 5, 6, 7, 8 lub 9, musisz powiększyć całość o jeden w górę."
-          t2:
+            explanation: "Nie zaokrągliłeś wcale. Zostaw samą całość, bez części po przecinku."
+          rounds_the_wrong_way:
             misconception: rounds_using_the_wrong_digit
-            explanation: "Pomyłka! Jeśli cyfra to 4, 3, 2, 1, 0 - nic nie powiększamy, po prostu ucina się to, co jest za nią."
+            explanation: "Zapomniałeś o regule '5 i więcej'! Jeśli cyfra po przecinku to 5, 6, 7, 8 lub 9, całość rośnie o jeden."
       - level: 2
         name: "Do części dziesiątych"
         function: "dec_round_2"
         traps:
-          t1:
+          rounds_the_wrong_way:
             misconception: rounds_using_the_wrong_digit
-            explanation: "Masz zaokrąglić do części dziesiątych (jedno miejsce po przecinku)! Zatem patrzysz TYLKO na drugą cyfrę po przecinku, by zdecydować co zrobić z pierwszą."
-          t2:
+            explanation: "Zaokrągliłeś w złą stronę. O kierunku decyduje druga cyfra po przecinku."
+          rounds_to_the_wrong_place:
             misconception: rounds_using_the_wrong_digit
-            explanation: "Skreśliłeś źle. Zostaw tylko jedną cyfrę po przecinku."
+            explanation: "Zaokrągliłeś do złego rzędu. Zostaw dokładnie jedno miejsce po przecinku."
       - level: 3
         name: "Zdradliwa dziewiątka"
         function: "dec_round_3"
         traps:
-          t1:
+          drops_the_trailing_zero_after_carrying:
             misconception: rounds_nine_without_carrying
-            explanation: "Uwaga! Gdy zaokrąglasz 9 w górę, staje się ona dziesiątką, co oznacza, że musisz przepchnąć 'jeden' do jeszcze wyższego rzędu (efekt domina)."
-          t2:
+            explanation: "Po przeniesieniu zgubiłeś zero na końcu."
+          truncates_instead_of_carrying:
             misconception: rounds_nine_without_carrying
-            explanation: "Zostawiłeś ,9 zamiast przejść do następnej całości z ,0."
-
+            explanation: "Zostawiłeś ,9 zamiast przejść do następnej całości."
+          writes_ten_in_the_tenths_place:
+            misconception: rounds_nine_without_carrying
+            explanation: "Wpisałeś 10 w miejscu dziesiątych. Gdy 9 rośnie, przenosisz jeden do wyższego rzędu."
   - id: 50
     name: "Dodawanie"
     levels:
@@ -217,36 +249,35 @@ topics:
         name: "Bez przekroczenia rzędu"
         function: "dec_add_1"
         traps:
-          t1:
+          adds_digits_across_the_point:
             misconception: does_not_align_decimals_before_column_arithmetic
-            explanation: "Źle podstawiłeś przecinek w pamięci! Złota zasada dodawania to: Przecinek pod przecinkiem."
+            explanation: "Źle podstawiłeś przecinek! Złota zasada dodawania to: przecinek pod przecinkiem."
       - level: 2
         name: "Z przekroczeniem rzędu"
         function: "dec_add_2"
         traps:
-          t1:
-            misconception: forgets_to_carry
-            explanation: "Zapomniałeś przenieść '1' do wyższego rzędu!"
-          t2:
-            misconception: forgets_to_carry
-            explanation: "Zamiast przenieść '1', dopisałeś cały wynik po przecinku. Pamiętaj o przenoszeniu w pamięci!"
-          t3:
+          applies_the_multiplication_point_rule:
             misconception: applies_multiplication_decimal_rule_to_addition
             explanation: "Zastosowałeś zasadę z mnożenia! Przy dodawaniu przecinek opada w dół, nie sumujemy miejsc po przecinku."
+          concatenates_the_two_sums:
+            misconception: forgets_to_carry
+            explanation: "Zamiast przenieść '1', dopisałeś cały wynik po przecinku."
+          forgets_the_carry:
+            misconception: forgets_to_carry
+            explanation: "Zapomniałeś przenieść '1' do wyższego rzędu!"
       - level: 3
         name: "Różna liczba miejsc (np. 1.2 + 0.05)"
         function: "dec_add_3"
         traps:
-          t1:
+          aligns_the_last_digits_instead_of_the_point:
             misconception: does_not_align_decimals_before_column_arithmetic
-            explanation: "Błąd dodawania różnej długości liczb! Zanim dodasz, wyrównaj je. Dopisz '0' na końcu krótszej liczby (np. zrób z 1.2 -> 1.20)."
-          t2:
+            explanation: "Wyrównałeś liczby do prawej. Dopisz '0' na końcu krótszej (1,2 na 1,20) i wyrównaj przecinki."
+          drops_the_hundredths_digit:
             misconception: does_not_align_decimals_before_column_arithmetic
-            explanation: "Przecinek jest ułożony źle. W działaniach pisemnych przecinek absolutnie musi stać nad przecinkiem."
-          t3:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Błąd sumowania."
-
+            explanation: "Zgubiłeś cyfrę setnych. Dodawaj wszystkie rzędy, także te, których w krótszej liczbie nie widać."
+          shifts_the_point_when_adding:
+            misconception: does_not_align_decimals_before_column_arithmetic
+            explanation: "Przecinek jest ułożony źle. W działaniach pisemnych przecinek musi stać nad przecinkiem."
   - id: 60
     name: "Odejmowanie"
     levels:
@@ -254,33 +285,32 @@ topics:
         name: "Bez pożyczania"
         function: "dec_sub_1"
         traps:
-          t1:
-            misconception: does_not_align_decimals_before_column_arithmetic
-            explanation: "Przecinek uciekł w złe miejsce! W odejmowaniu pisemnym zasada to przecinek idealnie pod przecinkiem."
+          subtracts_the_smaller_digit_in_each_column:
+            misconception: forgets_to_borrow
+            explanation: "W każdej kolumnie odjąłeś mniejszą cyfrę od większej. Odejmuj z góry na dół i pożycz, gdy trzeba."
       - level: 2
         name: "Z pożyczaniem"
         function: "dec_sub_2"
         traps:
-          t1:
+          borrows_but_leaves_nine_in_the_hundredths:
             misconception: forgets_to_borrow
-            explanation: "Zapomniałeś o pożyczaniu z sąsiedniego rzędu!"
-          t2:
+            explanation: "Pożyczyłeś, ale zostawiłeś 9 w setnych. Sprawdź ten rząd jeszcze raz."
+          misaligns_the_second_number_by_one_place:
             misconception: does_not_align_decimals_before_column_arithmetic
-            explanation: "Błędnie przepisałeś przecinek. Przecinek opada równo na dół."
+            explanation: "Przesunąłeś drugą liczbę o jedno miejsce. Przecinek opada równo na dół."
       - level: 3
         name: "Z dopisywaniem zer (np. 1 - 0.25)"
         function: "dec_sub_3"
         traps:
-          t1:
-            misconception: does_not_align_decimals_before_column_arithmetic
-            explanation: "Nie masz od czego odjąć liczby! Najpierw dopisz pożyczkowe zera na górze (zrób z 1 -> 1.00) i dopiero wtedy pożyczaj."
-          t2:
+          borrows_over_zero_incorrectly:
             misconception: borrows_across_zero_incorrectly
-            explanation: "Błąd w rzędzie dziesiątek - gdy pożyczasz nad zerem, to zero staje się 9."
-          t3:
+            explanation: "Gdy pożyczasz nad zerem, to zero staje się 9."
+          mishandles_the_hundredths_when_borrowing:
             misconception: forgets_to_borrow
-            explanation: "Błąd pożyczania."
-
+            explanation: "Błąd w rzędzie setnych przy pożyczaniu. Dopisz zera na górze (1 na 1,00) i pożyczaj po kolei."
+          off_by_one_tenth_when_borrowing:
+            misconception: forgets_to_borrow
+            explanation: "Pomyliłeś się o jedną dziesiątą przy pożyczaniu."
   - id: 70
     name: "Przesuwanie przecinka"
     levels:
@@ -288,29 +318,28 @@ topics:
         name: "Mnożenie przez 10, 100..."
         function: "dec_comma_1"
         traps:
-          t1:
+          appends_zeros_without_moving_the_point:
             misconception: shifts_decimal_point_incorrectly
-            explanation: "Przesunąłeś przecinek w lewą stronę! Mnożenie robi liczbę WIEKSZĄ, więc przecinek maszeruje w PRAWO."
-          t2:
+            explanation: "Dopisałeś zera, ale przecinka nie ruszyłeś."
+          shifts_by_the_wrong_number_of_places:
             misconception: shifts_decimal_point_incorrectly
             explanation: "Przesunąłeś o złą liczbę miejsc. Mnożąc przez 100 masz dwa zera, więc dwa skoki."
-          t3:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Brak wykreślenia jedynek. Ułamek jest przesunięty, ale format dziwny."
+          shifts_the_point_the_wrong_way:
+            misconception: shifts_decimal_point_incorrectly
+            explanation: "Przesunąłeś przecinek w lewo! Mnożenie powiększa liczbę, więc przecinek maszeruje w PRAWO."
       - level: 2
         name: "Dzielenie przez 10, 100..."
         function: "dec_comma_2"
         traps:
-          t1:
+          shifts_by_the_wrong_number_of_places:
             misconception: shifts_decimal_point_incorrectly
-            explanation: "Przesunąłeś przecinek w prawą stronę! Dzielenie robi liczbę MNIEJSZĄ, więc przecinek ucieka w LEWO."
-          t2:
+            explanation: "Przesunąłeś o złą liczbę miejsc. Dzieląc przez 100 robisz dwa skoki w lewo."
+          shifts_one_place_too_far:
             misconception: shifts_decimal_point_incorrectly
-            explanation: "Przesunąłeś o złą liczbę miejsc. Dzieląc przez 100 masz dwa zera, więc robisz dwa skoki w lewo."
-          t3:
-            misconception: omits_leading_zero
-            explanation: "Brakuje zera z przodu po przecinku."
-
+            explanation: "Przesunąłeś o jedno miejsce za daleko."
+          shifts_the_point_the_wrong_way:
+            misconception: shifts_decimal_point_incorrectly
+            explanation: "Przesunąłeś przecinek w prawo! Dzielenie zmniejsza liczbę, więc przecinek ucieka w LEWO."
   - id: 80
     name: "Mnożenie"
     levels:
@@ -318,36 +347,35 @@ topics:
         name: "Przez liczbę jednocyfrową"
         function: "dec_mult_1"
         traps:
-          t1:
+          ignores_the_point_in_the_factor:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Źle wstawiony przecinek w wyniku! Wymnóż liczby jakby przecinka nie było, a potem wstaw go tak, by po przecinku było tyle samo miejsc co w pytaniu."
-          t2:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Zły wynik mnożenia."
+            explanation: "Pominąłeś przecinek w mnożonej liczbie."
+          puts_two_places_too_many_in_the_product:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Za dużo miejsc po przecinku. Wynik ma ich tyle, ile jest łącznie w mnożonych liczbach."
       - level: 2
         name: "Ułamek przez ułamek"
         function: "dec_mult_2"
         traps:
-          t1:
+          ignores_both_points_in_the_factors:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Pomyłka z przecinkiem! Policz wszystkie miejsca po przecinku w OBU mnożonych liczbach. Twój wynik musi mieć ich sumę!"
-          t2:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Błąd w obliczeniach."
-          t3:
+            explanation: "Pominąłeś przecinki w obu liczbach. Policz je i tyle miejsc zostaw po przecinku w wyniku."
+          puts_one_place_too_few_in_the_product:
             misconception: misplaces_decimal_point_in_product
             explanation: "Za mało miejsc po przecinku w wyniku."
+          puts_one_place_too_many_in_the_product:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Za dużo miejsc po przecinku w wyniku."
       - level: 3
         name: "Z dużą ilością zer"
         function: "dec_mult_3"
         traps:
-          t1:
+          puts_one_place_too_few_in_the_product:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Brak przecinka lub w złym miejscu! Pamiętaj, jeśli z przodu wychodzą zera, też je liczysz przy przesuwaniu."
-          t2:
+            explanation: "Za mało miejsc po przecinku — pamiętaj, że zera z przodu też się liczą."
+          puts_one_place_too_many_in_the_product:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Zgubiłeś zera po przecinku przed samą liczbą."
-
+            explanation: "Za dużo miejsc po przecinku — policz je w obu mnożonych liczbach."
   - id: 90
     name: "Dzielenie"
     levels:
@@ -355,46 +383,45 @@ topics:
         name: "Przez liczbę całkowitą (bez reszty)"
         function: "dec_div_1"
         traps:
-          t1:
+          ignores_the_point_in_the_dividend:
             misconception: misplaces_decimal_point_in_quotient
-            explanation: "Zgubiłeś przecinek! Podczas dzielenia pisemnego, wstawiasz przecinek w wyniku DOKŁADNIE w tym samym miejscu, co w dolnej liczbie."
-          t2:
+            explanation: "Zgubiłeś przecinek w dzielnej. Przecinek w wyniku stawiasz dokładnie nad przecinkiem dzielnej."
+          puts_one_place_too_many_in_the_quotient:
             misconception: misplaces_decimal_point_in_quotient
-            explanation: "Błędnie przesunąłeś przecinek w wyniku — policz miejsca po przecinku w dzielnej."
+            explanation: "Wynik ma o jedno miejsce po przecinku za dużo."
       - level: 2
         name: "Przez liczbę całkowitą (z resztą)"
         function: "dec_div_2"
         traps:
-          t1:
-            misconception: stops_division_at_remainder
-            explanation: "Wynik wyszedł z resztą! Pamiętaj, że w ułamkach dziesiętnych zawsze możesz dopisać darmowe '0' na samym końcu i ciągnąć dzielenie dalej."
-          t2:
-            misconception: omits_leading_zero
-            explanation: "Brakuje zera w wyniku przed cyframi!"
-          t3:
+          puts_one_place_too_few_in_the_quotient:
             misconception: misplaces_decimal_point_in_quotient
-            explanation: "Przecinek w złym miejscu."
+            explanation: "Wynik ma o jedno miejsce po przecinku za mało."
+          puts_one_place_too_many_in_the_quotient:
+            misconception: misplaces_decimal_point_in_quotient
+            explanation: "Wynik ma o jedno miejsce po przecinku za dużo."
+          sums_the_decimal_places_as_in_multiplication:
+            misconception: misplaces_decimal_point_in_quotient
+            explanation: "Zsumowałeś miejsca po przecinku jak przy mnożeniu. Przy dzieleniu ta zasada nie działa."
       - level: 3
         name: "Przez ułamek dziesiętny (proste)"
         function: "dec_div_3"
         traps:
-          t1:
+          shifts_only_the_dividend:
             misconception: divides_by_decimal_without_clearing_the_divisor
-            explanation: "Nie wolno dzielić przez ułamek! Najpierw pozbądź się przecinka z dzielnika, przesuwając go w prawo w OBU liczbach, np. 2,4 : 0,2 = 24 : 2"
-          t2:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Błąd mnożenia licznika i dzielnika po przesunięciu przecinka."
+            explanation: "Przesunąłeś przecinek tylko w dzielnej. Przesuwaj go w OBU liczbach o tyle samo."
+          shifts_the_dividend_two_places_the_wrong_way:
+            misconception: divides_by_decimal_without_clearing_the_divisor
+            explanation: "Przesunąłeś dzielną o dwa miejsca w złą stronę."
       - level: 4
         name: "Przez ułamek dziesiętny (zaawansowane)"
         function: "dec_div_4"
         traps:
-          t1:
-            misconception: divides_by_decimal_without_clearing_the_divisor
-            explanation: "Przesunąłeś przecinek tylko w jednej liczbie. Pamiętaj, jeśli dzielnik przesuwasz o 2 w prawo, pierwszą liczbę (dzielną) TEŻ musisz przesunąć o 2."
-          t2:
+          shifts_the_divisor_instead_of_appending_a_zero:
             misconception: stops_division_at_remainder
-            explanation: "Nie masz już gdzie przesunąć? Zamiast kroku dodawaj na końcu zera (np. z 5 robisz 50)."
-
+            explanation: "Zamiast dopisać zero na końcu dzielnej, ruszyłeś dzielnik. Dopisz '0' i dziel dalej."
+          skips_the_decimal_shift:
+            misconception: divides_by_decimal_without_clearing_the_divisor
+            explanation: "Nie przesunąłeś przecinka wcale. Najpierw pozbądź się przecinka z dzielnika."
   - id: 100
     name: "Potęgowanie"
     levels:
@@ -402,16 +429,15 @@ topics:
         name: "Kwadrat ułamka dziesiętnego"
         function: "dec_pow_1"
         traps:
-          t1:
-            misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Mnożysz to przez 2, a to jest kwadrat (do potęgi drugiej). Mnożymy liczbę przez SAMĄ SIEBIE (np. 0.3 * 0.3)."
-          t2:
+          ignores_the_point_before_squaring:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Błąd w stawianiu przecinka. 0.3 ma 1 miejsce. 0.3 * 0.3 musi mieć 1+1=2 miejsca po przecinku (czyli np. 0.09)."
-          t3:
-            misconception: omits_leading_zero
-            explanation: "Zapomniałeś zera z przodu (np. 0.04 to nie to samo co 0.4)."
-
+            explanation: "Pominąłeś przecinek przed potęgowaniem. 0,3 ma jedno miejsce, więc wynik ma dwa."
+          multiplies_by_the_exponent:
+            misconception: multiplies_by_exponent_instead_of_powering
+            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (np. 0,3 razy 0,3)."
+          one_hundredth_too_large:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
   - id: 110
     name: "Kolejność wykonywania działań"
     levels:
@@ -419,81 +445,134 @@ topics:
         name: "Kolejność Podstawowa"
         function: "dec_order_1"
         traps:
-          t1:
+          adds_before_multiplying:
             misconception: ignores_the_order_of_operations
-            explanation: "Policzyłeś od lewej do prawej. Zawsze najpierw mnożenie i dzielenie!"
-          t2:
+            explanation: "Dodałeś przed mnożeniem! Mnożenie i dzielenie wykonujemy przed dodawaniem."
+          flattens_to_all_addition:
             misconception: ignores_the_order_of_operations
-            explanation: "Dodałeś lub odjąłeś wszystkie liczby, zapominając o mnożeniu."
-          t3:
+            explanation: "Dodałeś wszystkie liczby po kolei, ignorując pozostałe działania."
+          flattens_to_all_multiplication:
             misconception: ignores_the_order_of_operations
-            explanation: "Ostatnie działanie wykonałeś przed pierwszym - zła kolejność!"
+            explanation: "Pomnożyłeś wszystkie liczby przez siebie, ignorując dodawanie."
+          flattens_to_all_subtraction:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś wszystko po kolei od lewej do prawej, ignorując dzielenie."
+          multiplies_the_wrong_pair:
+            misconception: ignores_the_order_of_operations
+            explanation: "Pomnożyłeś nie tę parę liczb co trzeba. Mnożenie łączy liczby stojące po obu stronach znaku mnożenia."
+          replaces_division_with_multiplication:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś dzielenie na mnożenie."
+          replaces_subtraction_with_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś odejmowanie na dodawanie."
+          subtracts_before_dividing:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed dzieleniem! Dzielenie wykonujemy najpierw."
       - level: 2
         name: "Pojedyncze Nawiasy"
         function: "dec_order_2"
         traps:
-          t1:
+          flattens_to_all_multiplication:
             misconception: ignores_the_order_of_operations
-            explanation: "Zignorowałeś nawias! Wykonaj go w pierwszej kolejności."
-          t2:
+            explanation: "Pomnożyłeś wszystkie liczby przez siebie, ignorując dodawanie."
+          flips_the_sign_inside_the_bracket:
             misconception: uses_wrong_sign_after_brackets
-            explanation: "Pomyliłeś znak na samym końcu działania."
-          t3:
+            explanation: "Pomyliłeś znak wewnątrz nawiasu."
+          ignores_the_brackets:
             misconception: ignores_the_order_of_operations
-            explanation: "Policzyłeś od lewej do prawej ignorując nawias."
+            explanation: "Zignorowałeś nawias! Nawias zawsze idzie na pierwszy ogień."
+          replaces_division_with_multiplication:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś dzielenie na mnożenie."
+          replaces_division_with_subtraction:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś dzielenie na odejmowanie."
+          replaces_multiplication_with_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś mnożenie na dodawanie."
       - level: 3
         name: "Potęgi i Podstawy"
         function: "dec_order_3"
         traps:
-          t1:
+          adds_before_multiplying:
             misconception: ignores_the_order_of_operations
-            explanation: "Zrobiłeś mnożenie przed potęgowaniem! Najpierw potęguj."
-          t2:
+            explanation: "Dodałeś przed mnożeniem! Mnożenie i dzielenie wykonujemy przed dodawaniem."
+          adds_before_squaring:
+            misconception: ignores_the_order_of_operations
+            explanation: "Dodałeś przed potęgowaniem! Potęga wygrywa z dodawaniem."
+          flips_the_final_sign:
+            misconception: uses_wrong_sign_after_brackets
+            explanation: "Pomyliłeś znak na samym końcu działania."
+          ignores_the_exponent:
+            misconception: ignores_the_order_of_operations
+            explanation: "Pominąłeś potęgowanie i przepisałeś liczbę bez zmian."
+          multiplies_before_squaring:
+            misconception: ignores_the_order_of_operations
+            explanation: "Pomnożyłeś przed potęgowaniem! Najpierw potęga, potem mnożenie."
+          multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
             explanation: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
-          t3:
+          replaces_addition_with_multiplication:
             misconception: ignores_the_order_of_operations
-            explanation: "Zignorowałeś potęgę i po prostu przepisałeś liczbę."
+            explanation: "Zamieniłeś dodawanie na mnożenie."
+          replaces_multiplication_with_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś mnożenie na dodawanie."
+          subtracts_before_squaring:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed potęgowaniem! Potęga wygrywa z odejmowaniem."
       - level: 4
         name: "Złożone Działania"
         function: "dec_order_4"
         traps:
-          t1:
+          flattens_to_all_addition:
             misconception: ignores_the_order_of_operations
-            explanation: "Rozwiązałeś nawiasy, ale policzyłeś resztę w złej kolejności."
-          t2:
+            explanation: "Dodałeś wszystkie liczby po kolei, ignorując pozostałe działania."
+          ignores_both_brackets:
             misconception: ignores_the_order_of_operations
-            explanation: "Zignorowałeś kolejność działań i połączyłeś liczby błędnie."
-          t3:
+            explanation: "Zignorowałeś oba nawiasy i policzyłeś od lewej do prawej."
+          ignores_the_first_bracket:
             misconception: ignores_the_order_of_operations
-            explanation: "Skupiłeś się na drugiej części i zapomniałeś o pierwszej."
+            explanation: "Rozwiązałeś drugi nawias, ale pierwszy zignorowałeś."
+          ignores_the_second_bracket:
+            misconception: ignores_the_order_of_operations
+            explanation: "Rozwiązałeś pierwszy nawias, ale drugi zignorowałeś."
+          invents_a_bracket_around_the_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Wstawiłeś nawias, którego nie ma, wokół dodawania w środku działania."
+          invents_a_bracket_around_the_left_side:
+            misconception: ignores_the_order_of_operations
+            explanation: "Wstawiłeś nawias, którego nie ma, wokół lewej części działania."
       - level: 5
         name: "Potęgowanie Nawiasu"
         function: "dec_order_5"
         traps:
-          t1:
-            misconception: distributes_power_over_bracket_terms
-            explanation: "Podniosłeś do kwadratu obie liczby osobno! Najpierw środek, potem potęga."
-          t2:
-            misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś wynik nawiasu przez 2 zamiast potęgować."
-          t3:
+          flips_the_final_sign:
             misconception: uses_wrong_sign_after_brackets
-            explanation: "Pomyliłeś znak poza nawiasem."
+            explanation: "Pomyliłeś znak na samym końcu działania."
+          multiplies_by_the_exponent:
+            misconception: multiplies_by_exponent_instead_of_powering
+            explanation: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
+          squares_the_bracket_terms_separately:
+            misconception: distributes_power_over_bracket_terms
+            explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
+          subtracts_before_squaring:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed potęgowaniem! Potęga wygrywa z odejmowaniem."
       - level: 6
         name: "Boss Level"
         function: "dec_order_6"
         traps:
-          t1:
+          multiplies_before_squaring:
             misconception: ignores_the_order_of_operations
-            explanation: "Zrobiłeś mnożenie przed potęgą nawiasu! Najpierw potęga, potem mnożenie."
-          t2:
+            explanation: "Pomnożyłeś przed potęgowaniem! Najpierw potęga, potem mnożenie."
+          multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś nawias przez 2 zamiast potęgować."
-          t3:
+            explanation: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
+          squares_the_bracket_terms_separately:
             misconception: distributes_power_over_bracket_terms
-            explanation: "Podniosłeś do kwadratu liczby z nawiasu osobno."
-
+            explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
   - id: 120
     name: "Jednostki"
     levels:
@@ -501,39 +580,38 @@ topics:
         name: "Zamiana na mniejsze (mm, cm)"
         function: "dec_unit_1"
         traps:
-          t1:
+          divides_by_one_power_too_many:
             misconception: converts_units_incorrectly
-            explanation: "Zamieniasz duże na małe (np. z centymetrów na milimetry), powinieneś POMNOŻYĆ przez odpowiednią liczbę."
-          t2:
-            misconception: shifts_decimal_point_incorrectly
-            explanation: "Błąd przesuwania przecinka - np. 1cm to 10mm, więc przesuwasz o jedno w prawo."
-          t3:
+            explanation: "Podzieliłeś o jedno zero za dużo."
+          divides_by_the_wrong_power_of_ten:
             misconception: converts_units_incorrectly
-            explanation: "Zła wielkość jednostki konwersyjnej."
+            explanation: "Podzieliłeś przez złą potęgę dziesiątki. Sprawdź przelicznik: 1 cm to 10 mm, 1 m to 100 cm."
+          multiplies_instead_of_dividing:
+            misconception: converts_units_incorrectly
+            explanation: "Pomnożyłeś zamiast podzielić. Z mniejszej jednostki na większą zawsze dzielimy."
       - level: 2
         name: "Zamiana na większe (g, kg)"
         function: "dec_unit_2"
         traps:
-          t1:
+          divides_by_one_power_too_few:
             misconception: converts_units_incorrectly
-            explanation: "Zamieniasz z małych na duże, tu trzeba PODZIELIĆ przez odpowiednią wielkość (np. kg to 1000g)."
-          t2:
-            misconception: shifts_decimal_point_incorrectly
-            explanation: "Przesunięty przecinek w złą stronę (np. na prawo). Dzieląc zawsze idziemy w lewo."
-          t3:
+            explanation: "Podzieliłeś o jedno zero za mało."
+          divides_by_one_power_too_many:
             misconception: converts_units_incorrectly
-            explanation: "Pomyłka w rzędach jednostek (np. myślisz że to 100, a to 1000)."
+            explanation: "Podzieliłeś o jedno zero za dużo."
+          multiplies_instead_of_dividing:
+            misconception: converts_units_incorrectly
+            explanation: "Pomnożyłeś zamiast podzielić. Z gramów na kilogramy dzielimy przez 1000."
       - level: 3
         name: "Jednostki pieniężne i wagowe (mieszane)"
         function: "dec_unit_3"
         traps:
-          t1:
+          writes_grosze_as_tens_of_grosze:
             misconception: converts_units_incorrectly
-            explanation: "1 złoty to 100 groszy. Oznacza to dwa miejsca po przecinku (np. 20gr = 0.20 zł)."
-          t2:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Podałeś złą ilość wagową."
-
+            explanation: "Zapisałeś grosze jako dziesiątki groszy. 8 gr to 0,08 zł, a nie 0,80 zł."
+          writes_grosze_in_the_tenths_place:
+            misconception: converts_units_incorrectly
+            explanation: "Grosze wpisałeś w miejsce dziesiątych. 1 zł to 100 gr, więc grosze zajmują dwa miejsca po przecinku."
   - id: 130
     name: "Działania mieszane"
     levels:
@@ -541,29 +619,29 @@ topics:
         name: "Zwykłe dziesiętne jako ułamek"
         function: "dec_mix_1"
         traps:
-          t1:
-            misconception: mixes_fraction_and_decimal_forms_without_converting
-            explanation: "Gdy masz zmieszane ułamki zwykłe i dziesiętne w jednym działaniu, zamień wszystkie na jeden z tych typów, najlepiej ułamek zwykły."
-          t2:
+          adds_numerators_and_denominators:
             misconception: operates_on_unlike_fractions_directly
-            explanation: "Dodałeś liczniki i mianowniki osobno zamiast sprowadzić do wspólnego mianownika."
+            explanation: "Dodałeś liczniki i mianowniki osobno. Najpierw sprowadź oba ułamki do wspólnego mianownika."
+          adds_numerators_without_scaling:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Wspólny mianownik masz dobry, ale liczników nie rozszerzyłeś."
       - level: 2
         name: "Ułamki w dzieleniu dziesiętnym"
         function: "dec_mix_2"
         traps:
-          t1:
-            misconception: mixes_fraction_and_decimal_forms_without_converting
-            explanation: "Podpowiedź: zamień ułamek zwykły na dziesiętny - tu powinno się dać prosto."
-          t2:
+          adds_numerators_and_denominators:
             misconception: operates_on_unlike_fractions_directly
-            explanation: "Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zwykłej."
+            explanation: "Dodałeś liczniki i mianowniki osobno. Najpierw sprowadź oba ułamki do wspólnego mianownika."
+          rounds_to_a_decimal_instead_of_an_exact_fraction:
+            misconception: mixes_fraction_and_decimal_forms_without_converting
+            explanation: "Policzyłeś w dziesiętnych i zaokrągliłeś. Ten ułamek nie ma skończonego rozwinięcia — licz na ułamkach zwykłych."
       - level: 3
         name: "Z nawiasami i różnymi typami"
         function: "dec_mix_3"
         traps:
-          t1:
+          adds_numerators_instead_of_multiplying:
             misconception: mixes_fraction_and_decimal_forms_without_converting
-            explanation: "Uporządkuj! Najpierw nawiasy, najlepiej wykonane wewnątrz jednego typu np. ułamków zwykłych."
-          t2:
+            explanation: "Dodałeś zamiast pomnożyć. Zamień dziesiętny na zwykły i mnóż: góra z górą, dół z dołem."
+          multiplies_instead_of_dividing:
             misconception: mixes_fraction_and_decimal_forms_without_converting
-            explanation: "Pomnożyłeś lub podzieliłeś bez zamiany ułamka zwykłego na wspólny format."
+            explanation: "Pomnożyłeś zamiast podzielić. Dzielenie to mnożenie przez odwrotność drugiego ułamka."

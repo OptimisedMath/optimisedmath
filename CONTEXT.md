@@ -116,6 +116,14 @@ Mathematically right answer for this problem.
 An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error no walkthrough could address references none and is Wrong. An answer matching no Trap is Wrong too, but unanticipated.
 _Avoid_: distractor, diagnostic answer
 
+**Trap slug**:
+The name a Trap is known by within one generator — one slug per wrong rule the generator can compute, declared up front so a Level's authored prose can be checked against what its templates actually emit. Slugs are unique within a generator, not across the curriculum: the same wrong rule appearing in two generators may share a name without being the same Trap.
+_Avoid_: t1, t2, t3 (positional slots, not identities)
+
+**Filler**:
+A wrong option that exists only to fill a radio button when a Level has fewer Traps than slots — an arbitrary near miss with no anticipated rule behind it, so it carries no prose and no Misconception. A Filler grades as Wrong with the generic message, exactly as an unanticipated answer does. Once we can say how the mistake was made, it is a Trap, not a Filler.
+_Avoid_: w1, w2 (positional slots), padding option
+
 **Misconception**:
 A named, recurring error in a Student's mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
 _Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)

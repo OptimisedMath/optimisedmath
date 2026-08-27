@@ -1,6 +1,6 @@
 # Misconception catalogue — the named, global set of wrong rules a Student may be following.
 #
-# Schema (see issue #168):
+# Schema:
 #   <english_id>:
 #     name:           Polish display name, in the "rule the student is following" register (ADR-0001: English ids, Polish prose).
 #     explanation:    Polish fallback prose — used where a Level does not override, as the telemetry label,
@@ -10,7 +10,7 @@
 # A Trap references exactly one entry; many Traps map to one entry. A Trap that no walkthrough
 # could address carries no `misconception:` at all — it is Wrong, not a Misconception.
 #
-# --- Which entries get a `deconstruction:` (see issue #171) ---
+# --- Whether an entry earns a `deconstruction:` ---
 #
 # Only a handful are authored. Judge a candidate in this order:
 #
@@ -18,31 +18,9 @@
 #      repeat the same error? A Deconstruction only ever fires on the second hit, so an
 #      entry whose one sentence already fixes the error can never usefully have one.
 #   2. VETO — tractability. Does a fixed step sequence over the Problem's `parameters`
-#      plausibly exist for EVERY Trap referencing the entry? This is #168's authorability
-#      test again; failing it means the entry should be split, not deconstructed.
+#      plausibly exist for EVERY Trap referencing the entry? Failing it means the entry
+#      should be split, not deconstructed.
 #   3. TIE-BREAK — reach. Trap count and Levels spanned. Never a nomination on its own.
-#
-# The first batch is chosen as a PORTFOLIO, not a top-N: five distinct structural shapes,
-# so the step-sequence signature is specified by a spread of clients rather than overfitted
-# to one. Batch one, in order:
-#
-#   operates_on_unlike_fractions_directly              multi-step procedure (cross-Chapter)
-#   does_not_align_decimals_before_column_arithmetic   column layout
-#   operates_on_mixed_number_without_converting        precondition conversion
-#   compares_decimals_by_wrong_digit_order             comparison, not computation
-#   expands_to_target_denominator_without_finding_factor   hidden operand
-#
-# Deliberately held back despite high reach, because the bar is stuckness and not reach:
-# does_not_reduce_to_lowest_terms (13 Traps) and multiplies_by_exponent_instead_of_powering
-# (10 Traps, both Chapters). Both are one-sentence rules. If telemetry later shows either
-# repeating heavily after its trap prose, the BAR above is wrong and needs revisiting —
-# that is this rule's own falsification condition, not a reason to bend the shortlist.
-#
-# ignores_the_order_of_operations is excluded on the VETO as a suspected over-cluster,
-# awaiting re-clustering. misreads_number_line_scale was the other; issue #180 split it into
-# assumes_the_tick_value_without_deriving_it, counts_ticks_instead_of_gaps, and
-# counts_from_the_axis_edge_not_the_label. None of the three is nominated for batch one —
-# the shortlist stays at five until the step-sequence signature exists.
 
 # --- Zapis i znaczenie ułamka ---
 
@@ -89,10 +67,6 @@ operates_on_mixed_number_without_converting:
 drops_whole_part:
   name: "Gubi całości z przodu"
   explanation: "Liczba mieszana ma dwie części. Całości też biorą udział w działaniu i muszą znaleźć się w wyniku."
-
-leaves_improper_fraction_in_result:
-  name: "Zostawia ułamek niewłaściwy w wyniku"
-  explanation: "Jeśli licznik wyszedł większy od mianownika, wyłącz z niego całości."
 
 # --- Porównywanie ---
 
@@ -287,10 +261,6 @@ misplaces_decimal_point_in_product:
 misplaces_decimal_point_in_quotient:
   name: "Źle stawia przecinek w ilorazie"
   explanation: "W dzieleniu pisemnym przecinek w wyniku stawiasz dokładnie nad przecinkiem w dzielnej."
-
-omits_leading_zero:
-  name: "Gubi zero na początku liczby"
-  explanation: "Zera zaraz po przecinku trzymają miejsce i zmieniają wartość — 0,04 to nie to samo co 0,4."
 
 stops_division_at_remainder:
   name: "Przerywa dzielenie na reszcie"

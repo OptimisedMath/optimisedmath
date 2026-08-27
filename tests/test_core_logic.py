@@ -153,15 +153,15 @@ class TestParseToFraction:
 
 class TestBuildProblemDict:
     def test_duplicate_options_returns_none(self):
-        assert build_problem_dict("q", "1/2", t1="1/2", t2="3/4") is None
+        assert build_problem_dict("q", "1/2", traps={"a": "1/2", "b": "3/4"}) is None
 
     def test_comparison_symbol_ordering(self):
-        problem = build_problem_dict("q", "<", t1=">", t2="=")
+        problem = build_problem_dict("q", "<", traps={"a": ">", "b": "="})
         assert problem is not None
         assert problem["options"] == ["<", "=", ">"]
 
     def test_no_improper_unsimplified_keys(self):
-        problem = build_problem_dict("q", "1/2", t1="2/3")
+        problem = build_problem_dict("q", "1/2", traps={"a": "2/3"})
         assert problem is not None
         assert "improper" not in problem
         assert "unsimplified" not in problem

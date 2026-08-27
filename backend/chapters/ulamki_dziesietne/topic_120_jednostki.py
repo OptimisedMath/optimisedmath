@@ -1,7 +1,12 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps(
+    "divides_by_the_wrong_power_of_ten",
+    "multiplies_instead_of_dividing",
+    "divides_by_one_power_too_many",
+)
 def dec_unit_1() -> dict | None:
     """Zamiana na mniejsze (mm, cm) (poziom 1)."""
     v = random.randint(2, 99)
@@ -13,21 +18,26 @@ def dec_unit_1() -> dict | None:
     )
     c_str = fmt_dec(round(v / factor, 4))
 
-    t1 = fmt_dec(round(v / (factor / 10 if factor > 10 else 100), 4))
-    t2 = fmt_dec(round(v * factor, 2))
-    t3 = fmt_dec(round(v / (factor * 10), 4))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "divides_by_the_wrong_power_of_ten": fmt_dec(
+                round(v / (factor / 10 if factor > 10 else 100), 4)
+            ),
+            "multiplies_instead_of_dividing": fmt_dec(round(v * factor, 2)),
+            "divides_by_one_power_too_many": fmt_dec(round(v / (factor * 10), 4)),
+        },
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "multiplies_instead_of_dividing",
+    "divides_by_one_power_too_many",
+    "divides_by_one_power_too_few",
+)
 def dec_unit_2() -> dict | None:
     """Zamiana na większe (g, kg) (poziom 2)."""
     v = random.randint(2, 99)
@@ -39,17 +49,24 @@ def dec_unit_2() -> dict | None:
     )
     c_str = fmt_dec(round(v / factor, 4))
 
-    # FIX: Mathematically distinct traps that will never equal each other
-    t1 = fmt_dec(round(v * factor, 4))  # Trap: Multiplied instead of divided
-    t2 = fmt_dec(round(v / (factor * 10), 4))  # Trap: One zero too many
-    t3 = fmt_dec(round(v / (factor / 10), 4))  # Trap: One zero too few
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "multiplies_instead_of_dividing": fmt_dec(round(v * factor, 4)),
+            "divides_by_one_power_too_many": fmt_dec(round(v / (factor * 10), 4)),
+            "divides_by_one_power_too_few": fmt_dec(round(v / (factor / 10), 4)),
+        },
+    )
 
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
-
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "writes_grosze_in_the_tenths_place",
+    "writes_grosze_as_tens_of_grosze",
+)
 def dec_unit_3() -> dict | None:
     """Jednostki pieniężne i wagowe (mieszane) (poziom 3)."""
     zl = random.randint(2, 15)
@@ -58,12 +75,17 @@ def dec_unit_3() -> dict | None:
     q_str = rf"\text{{Zamień na złote: }} {zl} \text{{ zł }} {gr} \text{{ gr}}"
     c_str = fmt_dec(zl + (gr / 100))
 
-    t1 = fmt_dec(zl + (gr / 10))  # Trap: 5.8 instead of 5.08
     # Bulletproof: ensure gr stays single-digit even if logic changes
     ones_digit = gr % 10
-    t2 = f"{zl},{ones_digit}0"  # Trap (t2): Podałeś złą ilość wagową
-    w1 = fmt_dec(zl + ((gr + 1) / 100))
 
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, w1=w1)
-    if result:
-        return result
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "writes_grosze_in_the_tenths_place": fmt_dec(zl + (gr / 10)),
+            "writes_grosze_as_tens_of_grosze": f"{zl},{ones_digit}0",
+        },
+        fillers=[fmt_dec(zl + ((gr + 1) / 100))],
+    )
+    if problem:
+        return problem

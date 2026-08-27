@@ -1,8 +1,13 @@
 import random
 from fractions import Fraction
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps(
+    "uses_one_fewer_place_for_the_denominator",
+    "inverts_into_a_unit_fraction",
+    "shifts_the_denominator_by_one",
+)
 def dec_to_frac_1() -> dict | None:
     """Z ułamka dziesiętnego na zwykły (poziom 1)."""
     denominators = [4, 5, 20, 25, 50]
@@ -19,18 +24,28 @@ def dec_to_frac_1() -> dict | None:
     raw_d = 10**decimals
     raw_n = int(val * raw_d)
 
-    t1 = rf"\frac{{{raw_n}}}{{{raw_d // 10}}}"  # Trap (t1): zły mianownik względem miejsc po przecinku
-    t2 = rf"\frac{{{1}}}{{{raw_n}}}"  # Trap (t2): pominięcie całości
     wrong_d = d + random.choice([-1, 1])
     if wrong_d < 2:
         wrong_d = d + 2
-    t3 = rf"\frac{{{n}}}{{{wrong_d}}}"  # Trap (t3): zły licznik
 
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
-    if result:
-        return result
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "uses_one_fewer_place_for_the_denominator": rf"\frac{{{raw_n}}}{{{raw_d // 10}}}",
+            "inverts_into_a_unit_fraction": rf"\frac{{{1}}}{{{raw_n}}}",
+            "shifts_the_denominator_by_one": rf"\frac{{{n}}}{{{wrong_d}}}",
+        },
+    )
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "writes_the_digits_side_by_side",
+    "shifts_the_point_one_place_too_far",
+    "writes_the_denominator_after_the_point",
+)
 def dec_to_frac_2() -> dict | None:
     """Ze zwykłego na dziesiętny (mianowniki 10, 100) (poziom 2)."""
     d = random.choice([4, 5, 20, 25])
@@ -42,15 +57,24 @@ def dec_to_frac_2() -> dict | None:
     val = n / d
     c_str = fmt_dec(val)
 
-    t1 = f"0,{n}{d}"  # Trap (t1): za mało miejsc po przecinku
-    t2 = fmt_dec(val / 10)  # Trap (t2): za dużo miejsc po przecinku
-    t3 = fmt_dec(n + (d / 10))  # Trap (t3): błędna cyfra z licznika
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "writes_the_digits_side_by_side": f"0,{n}{d}",
+            "shifts_the_point_one_place_too_far": fmt_dec(val / 10),
+            "writes_the_denominator_after_the_point": fmt_dec(n + (d / 10)),
+        },
+    )
+    if problem:
+        return problem
 
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
-    if result:
-        return result
 
-
+@declares_traps(
+    "writes_the_digits_side_by_side",
+    "shifts_the_point_one_place_too_far",
+    "writes_the_denominator_after_the_point",
+)
 def dec_to_frac_3() -> dict | None:
     """Ze zwykłego na dziesiętny (rozszerzanie 2, 4, 5) (poziom 3)."""
     w = random.randint(1, 5)
@@ -63,15 +87,24 @@ def dec_to_frac_3() -> dict | None:
     val = w + (n / d)
     c_str = fmt_dec(val)
 
-    t1 = f"{w},{n}{d}"  # Trap (t1): brak rozszerzenia przed przecinkiem
-    t2 = fmt_dec(val / 10)  # Trap (t2): pominięcie licznika przy rozszerzaniu
-    t3 = f"{w},{d}"  # Trap (t3): błąd przy rozszerzaniu
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "writes_the_digits_side_by_side": f"{w},{n}{d}",
+            "shifts_the_point_one_place_too_far": fmt_dec(val / 10),
+            "writes_the_denominator_after_the_point": f"{w},{d}",
+        },
+    )
+    if problem:
+        return problem
 
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
-    if result:
-        return result
 
-
+@declares_traps(
+    "omits_the_period_brackets",
+    "adds_a_leading_zero_before_the_period",
+    "gets_the_period_digit_wrong",
+)
 def dec_to_frac_4() -> dict | None:
     """Ze zwykłego na dziesiętny (dzielenie) (poziom 4)."""
     d = random.choice([3, 9])
@@ -82,10 +115,14 @@ def dec_to_frac_4() -> dict | None:
     val = int((n / d) * 10)
     c_str = f"0,({val})"
 
-    t1 = f"0,{val}"  # Trap (t1): brak nawiasów okresu
-    t2 = f"0,0({val})"  # Trap (t2): zbędne zero przed okresem
-    t3 = f"0,({val + 1})"  # Trap (t3): zła cyfra w okresie
-
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
-    if result:
-        return result
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "omits_the_period_brackets": f"0,{val}",
+            "adds_a_leading_zero_before_the_period": f"0,0({val})",
+            "gets_the_period_digit_wrong": f"0,({val + 1})",
+        },
+    )
+    if problem:
+        return problem

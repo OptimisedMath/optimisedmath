@@ -1,11 +1,17 @@
 import random
 from backend.core.utils import (
     build_problem_dict,
+    declares_traps,
     generate_universal_number_line,
     format_answers,
 )
 
 
+@declares_traps(
+    "counts_ticks_for_both_parts",
+    "counts_ticks_for_the_denominator",
+    "counts_gaps_from_the_far_end",
+)
 def frac_number_line_1() -> dict | None:
     """Jeden skok = 1/x (poziom 1)."""
     d = random.randint(3, 8)
@@ -16,16 +22,15 @@ def frac_number_line_1() -> dict | None:
     svg_graphic = generate_universal_number_line(d, {0: "0", d: "1"}, n)
 
     c_str, _ = format_answers(n, d)
-    t1, _ = format_answers(n + 1, d + 1)
-    t2, _ = format_answers(n, d + 1)
-    w1, _ = format_answers(d - n, d)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "counts_ticks_for_both_parts": format_answers(n + 1, d + 1)[0],
+            "counts_ticks_for_the_denominator": format_answers(n, d + 1)[0],
+            "counts_gaps_from_the_far_end": format_answers(d - n, d)[0],
+        },
         image_html=svg_graphic,
         grading_policy="equivalent_accepted",
     )
@@ -33,6 +38,11 @@ def frac_number_line_1() -> dict | None:
         return result
 
 
+@declares_traps(
+    "counts_ticks_for_both_parts",
+    "reads_the_wrong_whole_interval",
+    "counts_gaps_from_the_far_end",
+)
 def frac_number_line_2() -> dict | None:
     """Jeden skok to wielokrotność (poziom 2)."""
     d = random.randint(3, 8)
@@ -44,16 +54,15 @@ def frac_number_line_2() -> dict | None:
     svg_graphic = generate_universal_number_line(d, {0: str(W), d: str(W + 1)}, n)
 
     c_str, _ = format_answers(n, d, W)
-    t1, _ = format_answers(n + 1, d + 1, W)
-    t2, _ = format_answers(n, d, W + 1)
-    w1, _ = format_answers(d - n, d, W)
 
     result = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "counts_ticks_for_both_parts": format_answers(n + 1, d + 1, W)[0],
+            "reads_the_wrong_whole_interval": format_answers(n, d, W + 1)[0],
+            "counts_gaps_from_the_far_end": format_answers(d - n, d, W)[0],
+        },
         image_html=svg_graphic,
         grading_policy="equivalent_accepted",
     )
@@ -61,6 +70,11 @@ def frac_number_line_2() -> dict | None:
         return result
 
 
+@declares_traps(
+    "assumes_the_labels_are_one_apart",
+    "off_by_one_gap",
+    "reads_the_wrong_whole_interval",
+)
 def frac_number_line_3() -> dict | None:
     """Wskazywanie liczby mieszanej (poziom 3)."""
     # Level 3: Decrypt the Axis (Gap > 1)
@@ -96,33 +110,35 @@ def frac_number_line_3() -> dict | None:
 
     c_str, _ = format_answers(num, d, whole)
 
-    # Trap 1: Assumed the gap between the two labels is just "1" whole number
-    t1_num = ticks_from_W
-    t1_whole = W
-    if t1_num > gap:
-        t1_whole += t1_num // gap
-        t1_num = t1_num % gap
-    t1, _ = format_answers(t1_num, gap, t1_whole)
+    # Treated the span between the two labels as a single whole number
+    span_num = ticks_from_W
+    span_whole = W
+    if span_num > gap:
+        span_whole += span_num // gap
+        span_num = span_num % gap
+    span_str, _ = format_answers(span_num, gap, span_whole)
 
-    # Trap 2: Off by one tick
+    # Landed one gap past (or short of) the target
     num2 = num + 1
     whole2 = whole
     if num2 == d:
         num2 = 1
         whole2 += 1
-    t2, _ = format_answers(num2, d, whole2)
+    off_by_one_str, _ = format_answers(num2, d, whole2)
 
-    # Trap 3: Guessed the wrong whole number
-    w1_whole = W if whole != W else W + 1
-    w1, _ = format_answers(num, d, w1_whole)
+    # Took the whole part from the wrong labelled interval
+    wrong_whole = W if whole != W else W + 1
+    wrong_whole_str, _ = format_answers(num, d, wrong_whole)
 
-    if len({c_str, t1, t2, w1}) == 4:
+    if len({c_str, span_str, off_by_one_str, wrong_whole_str}) == 4:
         result = build_problem_dict(
             q_str,
             c_str,
-            t1=t1,
-            t2=t2,
-            w1=w1,
+            traps={
+                "assumes_the_labels_are_one_apart": span_str,
+                "off_by_one_gap": off_by_one_str,
+                "reads_the_wrong_whole_interval": wrong_whole_str,
+            },
             image_html=svg_graphic,
             grading_policy="equivalent_accepted",
         )
@@ -130,6 +146,11 @@ def frac_number_line_3() -> dict | None:
             return result
 
 
+@declares_traps(
+    "counts_from_the_axis_edge_not_the_label",
+    "off_by_one_gap",
+    "uses_total_ticks_as_the_denominator",
+)
 def frac_number_line_4() -> dict | None:
     """Trudne przedziały (poziom 4)."""
     # Level 4: Extrapolation (Target is outside the labeled bounds)
@@ -160,35 +181,36 @@ def frac_number_line_4() -> dict | None:
 
     c_str, _ = format_answers(num, d, whole)
 
-    # Trap 1: Started counting from the visual start of the axis instead of idx1
-    t1_whole = W + (target // d)
-    t1_num = target % d
-    if t1_num == 0:
-        t1_num = 1
-    t1, _ = format_answers(t1_num, d, t1_whole)
+    # Started counting from the visual start of the axis instead of idx1
+    edge_whole = W + (target // d)
+    edge_num = target % d
+    if edge_num == 0:
+        edge_num = 1
+    edge_str, _ = format_answers(edge_num, d, edge_whole)
 
-    # Trap 2: Off by one tick
+    # Landed one gap past (or short of) the target
     num2 = num + 1
     whole2 = whole
     if num2 == d:
         num2 = 1
         whole2 += 1
-    t2, _ = format_answers(num2, d, whole2)
+    off_by_one_str, _ = format_answers(num2, d, whole2)
 
-    # Trap 3: Used total ticks on screen as denominator
-    t3_num = num
-    t3_whole = whole
-    if t3_num >= total_ticks:
-        t3_num = total_ticks - 1
-    w1, _ = format_answers(t3_num, total_ticks, t3_whole)
+    # Used total ticks on screen as the denominator
+    total_num = num
+    if total_num >= total_ticks:
+        total_num = total_ticks - 1
+    total_ticks_str, _ = format_answers(total_num, total_ticks, whole)
 
-    if len({c_str, t1, t2, w1}) == 4:
+    if len({c_str, edge_str, off_by_one_str, total_ticks_str}) == 4:
         result = build_problem_dict(
             q_str,
             c_str,
-            t1=t1,
-            t2=t2,
-            w1=w1,
+            traps={
+                "counts_from_the_axis_edge_not_the_label": edge_str,
+                "off_by_one_gap": off_by_one_str,
+                "uses_total_ticks_as_the_denominator": total_ticks_str,
+            },
             image_html=svg_graphic,
             grading_policy="equivalent_accepted",
         )

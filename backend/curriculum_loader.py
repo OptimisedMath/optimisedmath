@@ -10,6 +10,8 @@ from typing import Any, Callable, TypedDict
 
 import yaml
 
+from backend.core.utils import FILLER_SLUG, declared_trap_slugs
+
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -172,6 +174,45 @@ def _derive_topic_name_by_id(topics_meta: list[TopicDict]) -> dict[int, str]:
 # --- Validation ---
 
 
+def _validate_trap_slugs(
+    file_name: str, chapter_name: str, topic_name: str, level_entry: dict[str, Any]
+) -> None:
+    """Assert a Level's Trap slugs match exactly what its generator declares.
+
+    Both directions matter: a YAML slug the generator cannot emit is prose no Student
+    will ever see, and an emitted slug with no YAML entry falls back to the generic
+    wrong-answer message, silently losing the targeted feedback a Trap exists for.
+    """
+    if _function_registry is None:
+        return
+
+    generator = _function_registry.get(str(level_entry["function"]))
+    if generator is None:
+        return
+
+    declared = declared_trap_slugs(generator)
+    authored = {str(slug) for slug in level_entry.get("traps", {})}
+    where = f"{file_name}: {chapter_name} / {topic_name} / level {level_entry['level']}"
+
+    if FILLER_SLUG in authored:
+        raise CurriculumLoadError(
+            f"{where}: '{FILLER_SLUG}' is not a Trap slug — a Filler carries no prose"
+        )
+
+    unauthored = sorted(declared - authored)
+    if unauthored:
+        raise CurriculumLoadError(
+            f"{where}: generator emits Trap slugs with no 'traps' entry: "
+            f"{', '.join(unauthored)}"
+        )
+
+    unreachable = sorted(authored - declared)
+    if unreachable:
+        raise CurriculumLoadError(
+            f"{where}: 'traps' entries no template can emit: {', '.join(unreachable)}"
+        )
+
+
 def _validate_topics(file_name: str, chapter_name: str, data: dict[str, Any]) -> None:
     chapter_topics = data.get("topics")
     if not isinstance(chapter_topics, list):
@@ -229,6 +270,9 @@ def _validate_topics(file_name: str, chapter_name: str, data: dict[str, Any]) ->
                         f"{file_name}: function '{func_name}' not found in "
                         f"FUNCTION_REGISTRY ({chapter_name} / {topic_entry['name']})"
                     )
+                _validate_trap_slugs(
+                    file_name, chapter_name, topic_entry["name"], level_entry
+                )
 
         if not has_published:
             logger.warning(

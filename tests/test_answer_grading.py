@@ -3,6 +3,7 @@
 import pytest
 
 from backend.answer_grading import grade
+from backend.core.utils import FILLER_SLUG
 from backend.problem_generation import (
     GeneratorRegistryError,
     ProblemGenerationError,
@@ -140,7 +141,7 @@ class TestTextGrading:
         problem = _sample_problem()
         del problem["options_map"]
         result = grade("9", problem, is_input_mode=True)
-        assert result["answer_outcome"] == "w1"
+        assert result["answer_outcome"] == FILLER_SLUG
 
 
 class TestFormatMismatch:

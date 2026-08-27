@@ -1,7 +1,12 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps(
+    "shifts_the_point_the_wrong_way",
+    "shifts_by_the_wrong_number_of_places",
+    "appends_zeros_without_moving_the_point",
+)
 def dec_comma_1() -> dict | None:
     """Mnożenie przez 10, 100... (poziom 1)."""
     v = random.randint(111, 999) / 100
@@ -10,26 +15,27 @@ def dec_comma_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v)} \cdot {zeros}"
     c_str = fmt_dec(round(v * zeros, 2))
 
-    t1 = fmt_dec(round(v / zeros, 4))  # Trap (t1): Przesunąłeś przecinek w lewą stronę
     wrong_zeros = zeros * 10 if zeros < 1000 else 100
-    t2 = fmt_dec(
-        round(v * wrong_zeros, 2)
-    )  # Trap (t2): Przesunąłeś o złą liczbę miejsc
-    # Trap: Append zeros matching the magnitude of the multiplier
     num_zeros = len(str(zeros)) - 1
-    t3 = fmt_dec(v) + "0" * num_zeros  # Trap (t3): Brak wykreślenia jedynek
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "shifts_the_point_the_wrong_way": fmt_dec(round(v / zeros, 4)),
+            "shifts_by_the_wrong_number_of_places": fmt_dec(round(v * wrong_zeros, 2)),
+            "appends_zeros_without_moving_the_point": fmt_dec(v) + "0" * num_zeros,
+        },
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "shifts_the_point_the_wrong_way",
+    "shifts_by_the_wrong_number_of_places",
+    "shifts_one_place_too_far",
+)
 def dec_comma_2() -> dict | None:
     """Dzielenie przez 10, 100... (poziom 2)."""
     v = random.randint(111, 999) / 10
@@ -38,21 +44,16 @@ def dec_comma_2() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v)} : {zeros}"
     c_str = fmt_dec(round(v / zeros, 5))
 
-    t1 = fmt_dec(round(v * zeros, 2))  # Trap (t1): Przesunąłeś przecinek w prawą stronę
     wrong_zeros = zeros / 10 if zeros > 10 else 100
-    t2 = fmt_dec(
-        round(v / wrong_zeros, 4)
-    )  # Trap (t2): Przesunąłeś o złą liczbę miejsc
-    t3 = fmt_dec(
-        round(v / (zeros * 10), 6)
-    )  # Trap (t3): Brakuje zera z przodu po przecinku
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "shifts_the_point_the_wrong_way": fmt_dec(round(v * zeros, 2)),
+            "shifts_by_the_wrong_number_of_places": fmt_dec(round(v / wrong_zeros, 4)),
+            "shifts_one_place_too_far": fmt_dec(round(v / (zeros * 10), 6)),
+        },
     )
-    if result:
-        return result
+    if problem:
+        return problem

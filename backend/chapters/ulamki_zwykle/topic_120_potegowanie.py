@@ -3,9 +3,11 @@ from backend.core.utils import (
     format_answers,
     format_fraction_question,
     build_problem_dict,
+    declares_traps,
 )
 
 
+@declares_traps("raises_only_the_numerator", "multiplies_by_the_exponent")
 def frac_pow_1() -> dict | None:
     """Kwadrat ułamka (poziom 1)."""
     d = random.randint(3, 8)
@@ -18,23 +20,20 @@ def frac_pow_1() -> dict | None:
 
     c_str, _ = format_answers(n**p, d**p)
 
-    # Trap 1: Squared only numerator
-    t1, _ = format_answers(n**p, d)
-    # Trap 2: Multiplied by 2 instead of squaring
-    t2, _ = format_answers(n * p, d * p)
-    w1, _ = format_answers((n**p) + 1, d**p)
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "raises_only_the_numerator": format_answers(n**p, d)[0],
+            "multiplies_by_the_exponent": format_answers(n * p, d * p)[0],
+        },
+        fillers=[format_answers((n**p) + 1, d**p)[0]],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps("raises_only_the_numerator", "multiplies_by_the_exponent")
 def frac_pow_2() -> dict | None:
     """Sześcian ułamka (poziom 2)."""
     # Keeping denominator up to 5 so cubes don't get absurdly large
@@ -48,23 +47,20 @@ def frac_pow_2() -> dict | None:
 
     c_str, _ = format_answers(n**p, d**p)
 
-    # Trap 1: Cubed only numerator
-    t1, _ = format_answers(n**p, d)
-    # Trap 2: Multiplied by 3 instead of cubing
-    t2, _ = format_answers(n * p, d * p)
-    w1, _ = format_answers((n**p) + 1, d**p)
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "raises_only_the_numerator": format_answers(n**p, d)[0],
+            "multiplies_by_the_exponent": format_answers(n * p, d * p)[0],
+        },
+        fillers=[format_answers((n**p) + 1, d**p)[0]],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps("raises_the_parts_separately", "raises_only_the_numerator")
 def frac_pow_3() -> dict | None:
     """Potęgowanie liczby mieszanej (poziom 3)."""
     w = random.randint(1, 2)
@@ -80,18 +76,14 @@ def frac_pow_3() -> dict | None:
     num = (w * d) + n
     c_str, _ = format_answers(num**p, d**p)
 
-    # Trap 1: Applied power to whole number and fraction separately
-    t1, _ = format_answers(n**p, d**p, w**p)
-    # Trap 2: Applied power to numerator but forgot denominator
-    t2, _ = format_answers(num**p, d)
-    w1, _ = format_answers(num**p + 1, d**p)
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "raises_the_parts_separately": format_answers(n**p, d**p, w**p)[0],
+            "raises_only_the_numerator": format_answers(num**p, d)[0],
+        },
+        fillers=[format_answers(num**p + 1, d**p)[0]],
     )
-    if result:
-        return result
+    if problem:
+        return problem

@@ -1,7 +1,11 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps(
+    "ignores_the_point_in_the_dividend",
+    "puts_one_place_too_many_in_the_quotient",
+)
 def dec_div_1() -> dict | None:
     """Przez liczbę całkowitą (bez reszty) (poziom 1)."""
     c = random.randint(2, 9)
@@ -11,23 +15,24 @@ def dec_div_1() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} : {d}"
     c_str = fmt_dec(round(v1 / d, 2))
 
-    t1 = fmt_dec(round((v1 * 10) / d, 2))  # Trap (t1): Zgubiłeś przecinek
-    t2 = fmt_dec(
-        round(v1 / (d * 10), 3)
-    )  # Trap (t2): Błędnie przesunąłeś przecinek w wyniku — policz miejsca po przecinku w...
-    w1 = fmt_dec(round((v1 / d) + 0.1, 2))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "ignores_the_point_in_the_dividend": fmt_dec(round((v1 * 10) / d, 2)),
+            "puts_one_place_too_many_in_the_quotient": fmt_dec(round(v1 / (d * 10), 3)),
+        },
+        fillers=[fmt_dec(round((v1 / d) + 0.1, 2))],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "puts_one_place_too_many_in_the_quotient",
+    "puts_one_place_too_few_in_the_quotient",
+    "sums_the_decimal_places_as_in_multiplication",
+)
 def dec_div_2() -> dict | None:
     """Przez liczbę całkowitą (z resztą) (poziom 2)."""
     c = random.randint(2, 9)
@@ -38,24 +43,27 @@ def dec_div_2() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} : {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 / v2, 2))
 
-    t1 = fmt_dec(round(v1 / (v2 * 10), 3))  # Trap (t1): Wynik wyszedł z resztą
-    t2 = fmt_dec(
-        round((v1 / v2) * 10, 2)
-    )  # Trap (t2): Brakuje zera w wyniku przed cyframi
-    # FIX: Simulate student improperly summing the decimal places (3 total places instead of 1)
-    t3 = fmt_dec(round((v1 / v2) / 100, 3))  # Trap (t3): Przecinek w złym miejscu
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        t3=t3,
+        traps={
+            "puts_one_place_too_many_in_the_quotient": fmt_dec(
+                round(v1 / (v2 * 10), 3)
+            ),
+            "puts_one_place_too_few_in_the_quotient": fmt_dec(round((v1 / v2) * 10, 2)),
+            "sums_the_decimal_places_as_in_multiplication": fmt_dec(
+                round((v1 / v2) / 100, 3)
+            ),
+        },
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "shifts_only_the_dividend",
+    "shifts_the_dividend_two_places_the_wrong_way",
+)
 def dec_div_3() -> dict | None:
     """Przez ułamek dziesiętny (proste) (poziom 3)."""
     c = random.randint(2, 9)
@@ -66,23 +74,25 @@ def dec_div_3() -> dict | None:
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} : {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 / v2, 2))
 
-    t1 = fmt_dec(round((v1 / 10) / v2, 2))  # Trap (t1): Nie wolno dzielić przez ułamek
-    t2 = fmt_dec(
-        round((v1 / 100) / v2, 3)
-    )  # Trap (t2): Błąd mnożenia licznika i dzielnika po przesunięciu przecinka
-    w1 = fmt_dec(round((v1 / v2) + 1, 2))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "shifts_only_the_dividend": fmt_dec(round((v1 / 10) / v2, 2)),
+            "shifts_the_dividend_two_places_the_wrong_way": fmt_dec(
+                round((v1 / 100) / v2, 3)
+            ),
+        },
+        fillers=[fmt_dec(round((v1 / v2) + 1, 2))],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "skips_the_decimal_shift",
+    "shifts_the_divisor_instead_of_appending_a_zero",
+)
 def dec_div_4() -> dict | None:
     """Przez ułamek dziesiętny (zaawansowane) (poziom 4)."""
     # Generate divisions like 0.3 : 2 = 0.15 where student must append a 0
@@ -94,18 +104,16 @@ def dec_div_4() -> dict | None:
     q_str = rf"\text{{Oblicz (dopisz zero na końcu dzielnej): }} {fmt_dec(v1)} : {d}"
     c_str = fmt_dec(round(v1 / d, 3))
 
-    t1 = fmt_dec(round((v1 * 10) / d, 3))  # Forgot the decimal shift
-    t2 = fmt_dec(
-        round(v1 / (d * 10), 4)
-    )  # Trap (t2): Nie masz już gdzie przesunąć? Zamiast kroku dodawaj na końcu zera (np
-    w1 = fmt_dec(round((v1 / d) + 0.1, 3))
-
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "skips_the_decimal_shift": fmt_dec(round((v1 * 10) / d, 3)),
+            "shifts_the_divisor_instead_of_appending_a_zero": fmt_dec(
+                round(v1 / (d * 10), 4)
+            ),
+        },
+        fillers=[fmt_dec(round((v1 / d) + 0.1, 3))],
     )
-    if result:
-        return result
+    if problem:
+        return problem

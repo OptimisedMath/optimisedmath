@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import backend.config as config
-from backend.core.utils import ProblemDict
+from backend.core.utils import FILLER_SLUG, ProblemDict, declared_trap_slugs
 from backend.curriculum import Curriculum
 from backend.curriculum_loader import set_function_registry
 
@@ -131,11 +131,9 @@ def generate_level_problem(
     problem_dict["problem_id"] = str(uuid.uuid4())
 
     default_msg = config.DEFAULT_WRONG_MESSAGE
-    traps = level_config.traps
-    yaml_messages = {
-        "t1": traps.get("t1") or default_msg,
-        "t2": traps.get("t2") or default_msg,
-        "t3": traps.get("t3") or default_msg,
+    yaml_messages: dict[str, str] = {FILLER_SLUG: default_msg}
+    yaml_messages |= {
+        slug: prose or default_msg for slug, prose in level_config.traps.items()
     }
     gen_messages = problem_dict.pop("messages", {})
     problem_dict["messages"] = yaml_messages | gen_messages

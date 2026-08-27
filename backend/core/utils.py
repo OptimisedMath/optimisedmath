@@ -61,30 +61,53 @@ def format_fraction_answer(
     return str(num) if den == 1 else rf"\frac{{{num}}}{{{den}}}"
 
 
+# --- Trap slugs ---
+
+# Every Filler shares one label: `answer + 1` has no rule behind it to name.
+FILLER_SLUG = "filler"
+
+
+def declares_traps(*slugs: str) -> Any:
+    """Declare the full Trap-slug vocabulary a generator can emit, across all templates.
+
+    A generator picks its template at random, so no single call reveals the whole
+    vocabulary — but the curriculum loader has to validate the YAML against it at
+    load time. This attribute is that static declaration; `tests/test_trap_slugs.py`
+    runs each generator repeatedly to prove the declaration and the body agree.
+    """
+
+    def decorate(func: Any) -> Any:
+        func.trap_slugs = frozenset(slugs)
+        return func
+
+    return decorate
+
+
+def declared_trap_slugs(func: Any) -> frozenset[str]:
+    """The Trap slugs a generator declares, or an empty set if it declares none."""
+    return getattr(func, "trap_slugs", frozenset())
+
+
 # --- Problem dict builder ---
 
 
 def build_problem_dict(
     q_str: str,
     c_str: str,
-    t1: str | None = None,
-    t2: str | None = None,
-    t3: str | None = None,
-    w1: str | None = None,
-    w2: str | None = None,
+    traps: dict[str, str | None] | None = None,
+    fillers: list[str | None] | None = None,
     grading_policy: str = "standard",
     image_html: str | None = None,
-    deconstruction: str | None = None,
 ) -> ProblemDict | None:
-    """Build the canonical problem dict with options, options_map, and grading_policy."""
-    option_entries = [
-        (c_str, "correct"),
-        (t1, "t1"),
-        (t2, "t2"),
-        (t3, "t3"),
-        (w1, "w1"),
-        (w2, "w2"),
-    ]
+    """Build the canonical problem dict with options, options_map, and grading_policy.
+
+    `traps` maps Trap slug -> answer string; `fillers` are padding options that carry
+    no rule and all share `FILLER_SLUG`. A `None` value is skipped, so a generator may
+    offer a Trap conditionally. Returns None when two options collide.
+    """
+    option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
+    option_entries += [(value, slug) for slug, value in (traps or {}).items()]
+    option_entries += [(value, FILLER_SLUG) for value in (fillers or [])]
 
     options_map: dict[str, str] = {}
     for value, label in option_entries:
@@ -110,7 +133,6 @@ def build_problem_dict(
         "options": options,
         "options_map": options_map,
         "grading_policy": grading_policy,
-        "deconstruction": deconstruction,
     }
 
 

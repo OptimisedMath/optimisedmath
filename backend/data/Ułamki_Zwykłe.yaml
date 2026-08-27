@@ -9,13 +9,15 @@ topics:
         name: "Dzielenie jako ułamek"
         function: "frac_write_1"
         traps:
-          t1:
+          copies_the_divisor_off_by_one:
             misconception: misreads_the_fraction_bar_as_division
-            explanation: "Odwróciłeś liczby! Pierwsza liczba (dzielna) zawsze wędruje na górę do licznika, a druga (dzielnik) na dół do mianownika."
-          t2:
+            explanation: "Mianownik jest o jeden obok — przepisz dzielnik dokładnie tak, jak stoi w działaniu."
+          sums_operands_into_the_denominator:
             misconception: misreads_the_fraction_bar_as_division
-            explanation: "Zsumowałeś liczby w mianowniku! Kreska ułamkowa to po prostu inny zapis znaku dzielenia, nie dodawania."
-
+            explanation: "Zsumowałeś liczby w mianowniku! Kreska ułamkowa to inny zapis dzielenia, nie dodawania."
+          swaps_dividend_and_divisor:
+            misconception: misreads_the_fraction_bar_as_division
+            explanation: "Odwróciłeś liczby! Pierwsza liczba (dzielna) wędruje na górę do licznika, a druga (dzielnik) na dół do mianownika."
   - id: 20
     name: "Rozszerzanie i skracanie"
     levels:
@@ -23,52 +25,54 @@ topics:
         name: "Rozszerzanie przez liczbę"
         function: "frac_exp_1"
         traps:
-          t1:
-            misconception: expands_only_one_part
-            explanation: "Pomnożyłeś tylko licznik! Przy rozszerzaniu musisz pomnożyć przez tę samą liczbę zarówno górę, jak i dół."
-          t2:
-            misconception: expands_only_one_part
-            explanation: "Pomnożyłeś tylko mianownik! Przy rozszerzaniu musisz pomnożyć przez tę samą liczbę zarówno górę, jak i dół."
-          t3:
+          adds_the_factor_instead_of_multiplying:
             misconception: adds_or_subtracts_instead_of_scaling
             explanation: "Dodałeś liczbę zamiast pomnożyć! Rozszerzanie to zawsze mnożenie."
+          scales_only_the_denominator:
+            misconception: expands_only_one_part
+            explanation: "Pomnożyłeś tylko mianownik! Przy rozszerzaniu mnożysz przez tę samą liczbę i górę, i dół."
+          scales_only_the_numerator:
+            misconception: expands_only_one_part
+            explanation: "Pomnożyłeś tylko licznik! Przy rozszerzaniu mnożysz przez tę samą liczbę i górę, i dół."
       - level: 2
         name: "Rozszerzanie do mianownika"
         function: "frac_exp_2"
         traps:
-          t1:
+          changes_the_denominator_leaving_the_numerator:
             misconception: expands_to_target_denominator_without_finding_factor
             explanation: "Zapomniałeś pomnożyć licznik! Kiedy zmieniasz dół ułamka, musisz proporcjonalnie zmienić też górę."
-          t2:
+          copies_the_numerator_off_by_one:
             misconception: expands_to_target_denominator_without_finding_factor
-            explanation: "Pomnożyłeś licznik przez złą liczbę. Sprawdź, ile razy zwiększył się mianownik i pomnóż górę przez to samo."
+            explanation: "Licznik jest o jeden obok. Policz mnożnik jeszcze raz: nowy mianownik podzielony przez stary."
+          scales_the_numerator_by_the_wrong_factor:
+            misconception: expands_to_target_denominator_without_finding_factor
+            explanation: "Pomnożyłeś licznik przez złą liczbę. Sprawdź, ile razy zwiększył się mianownik, i pomnóż górę przez to samo."
       - level: 3
         name: "Skracanie przez liczbę"
         function: "frac_exp_3"
         traps:
-          t1:
+          divides_only_the_denominator:
             misconception: reduces_only_one_part
-            explanation: "Podzieliłeś tylko licznik! Przy skracaniu musisz podzielić przez tę samą liczbę zarówno górę, jak i dół."
-          t2:
+            explanation: "Podzieliłeś tylko mianownik! Przy skracaniu dzielisz przez tę samą liczbę i górę, i dół."
+          divides_only_the_numerator:
             misconception: reduces_only_one_part
-            explanation: "Podzieliłeś tylko mianownik! Przy skracaniu musisz podzielić przez tę samą liczbę zarówno górę, jak i dół."
-          t3:
+            explanation: "Podzieliłeś tylko licznik! Przy skracaniu dzielisz przez tę samą liczbę i górę, i dół."
+          subtracts_the_factor_instead_of_dividing:
             misconception: adds_or_subtracts_instead_of_scaling
             explanation: "Odjąłeś liczbę zamiast podzielić! Skracanie to zawsze dzielenie."
       - level: 4
         name: "Postać nieskracalna"
         function: "frac_exp_4"
         traps:
-          t1:
+          reduces_the_denominator_further_than_the_numerator:
             misconception: does_not_reduce_to_lowest_terms
-            explanation: "Twój ułamek jest skrócony, ale można go skrócić JESZCZE BARDZIEJ. Szukaj wspólnych dzielników aż do skutku!"
-          t2:
+            explanation: "Skróciłeś dół bardziej niż górę! Obie liczby dziel przez tę samą wartość."
+          reduces_the_numerator_further_than_the_denominator:
             misconception: does_not_reduce_to_lowest_terms
-            explanation: "Skróciłeś tylko dół! Pamiętaj o podzieleniu licznika."
-          t3:
+            explanation: "Skróciłeś górę bardziej niż dół! Obie liczby dziel przez tę samą wartość."
+          stops_before_lowest_terms:
             misconception: does_not_reduce_to_lowest_terms
-            explanation: "Skróciłeś tylko górę! Pamiętaj o podzieleniu mianownika."
-
+            explanation: "Twój ułamek jest skrócony, ale można go skrócić jeszcze bardziej. Szukaj wspólnych dzielników aż do skutku!"
   - id: 30
     name: "Liczby mieszane"
     levels:
@@ -76,26 +80,25 @@ topics:
         name: "Zamiana na ułamek niewłaściwy"
         function: "frac_imp_1"
         traps:
-          t1:
+          adds_the_whole_without_multiplying_by_the_denominator:
+            misconception: mixed_to_improper_miscombines_parts
+            explanation: "Dodałeś wszystkie liczby do siebie! Całości najpierw mnożymy przez mianownik, a dopiero potem dodajemy licznik."
+          also_multiplies_the_denominator_by_the_whole:
+            misconception: mixed_to_improper_miscombines_parts
+            explanation: "Zmieniłeś mianownik! Przy zamianie mianownik zawsze zostaje ten sam."
+          multiplies_the_numerator_instead_of_adding:
             misconception: mixed_to_improper_miscombines_parts
             explanation: "Pomnożyłeś licznik zamiast go dodać! Złota zasada: dół razy bok, PLUS góra."
-          t2:
-            misconception: mixed_to_improper_miscombines_parts
-            explanation: "Dodałeś wszystkie liczby do siebie! Pamiętaj: mianownik mnożymy przez całości, a potem dodajemy licznik."
-          t3:
-            misconception: mixed_to_improper_miscombines_parts
-            explanation: "Zmieniłeś mianownik! Mianownik przy zamianie zawsze pozostaje ten sam."
       - level: 2
         name: "Wyłączanie całości"
         function: "frac_imp_2"
         traps:
-          t1:
+          gives_only_the_whole_part:
             misconception: improper_to_mixed_mishandles_remainder
-            explanation: "Gdzie podział się ułamek? Wyciągnąłeś całości poprawnie, ale zapomniałeś zapisać to, co zostało jako reszta."
-          t2:
+            explanation: "Gdzie podział się ułamek? Całości wyciągnąłeś dobrze, ale zapomniałeś zapisać reszty."
+          swaps_the_remainder_and_the_denominator:
             misconception: improper_to_mixed_mishandles_remainder
-            explanation: "Odwróciłeś ułamek! Mianownik zawsze zostaje ten sam, a reszta ląduje w liczniku."
-
+            explanation: "Odwróciłeś ułamek! Mianownik zostaje ten sam, a reszta ląduje w liczniku."
   - id: 40
     name: "Porównywanie"
     radio_only: true
@@ -104,30 +107,26 @@ topics:
         name: "Ten sam mianownik"
         function: "frac_comp_1"
         traps:
-          t1:
+          reverses_the_sign_with_equal_denominators:
             misconception: compares_wrong_when_denominators_equal
             explanation: "Zły znak! Kiedy mianowniki są takie same, większy jest ten ułamek, który ma większy licznik."
       - level: 2
         name: "Ten sam licznik"
         function: "frac_comp_2"
         traps:
-          t1:
+          assumes_the_bigger_denominator_is_the_bigger_fraction:
             misconception: assumes_bigger_denominator_means_bigger_fraction
-            explanation: "Zły znak! Kiedy liczniki są takie same, większy jest ten ułamek, który ma mniejszy mianownik (kawałki są większe!)."
+            explanation: "Zły znak! Kiedy liczniki są takie same, większy jest ten ułamek, który ma mniejszy mianownik — kawałki są większe!"
       - level: 3
         name: "Różne ułamki"
         function: "frac_comp_3"
         traps:
-          t1:
+          reads_equal_fractions_as_greater_than:
             misconception: compares_unlike_fractions_without_common_denominator
-            explanation: "Zły znak! Aby porównać te ułamki bezpiecznie, rozszerz je najpierw do wspólnego mianownika."
-          t2:
+            explanation: "Te ułamki są równe! Skróć oba do najprostszej postaci — wyjdzie dokładnie ten sam ułamek."
+          reads_equal_fractions_as_less_than:
             misconception: compares_unlike_fractions_without_common_denominator
-            explanation: "Liczby są równe — wybierz znak równości!"
-          t3:
-            misconception: compares_unlike_fractions_without_common_denominator
-            explanation: "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
-
+            explanation: "Te ułamki są równe! Rozszerz je do wspólnego mianownika, a zobaczysz tę samą liczbę."
   - id: 50
     name: "Oś liczbowa"
     levels:
@@ -135,43 +134,54 @@ topics:
         name: "Jeden skok = 1/x"
         function: "frac_number_line_1"
         traps:
-          t1:
+          counts_gaps_from_the_far_end:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczyłeś przerwy od prawego końca osi. Zacznij od zera i idź w prawo."
+          counts_ticks_for_both_parts:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Pomyłka! Zobacz na mianownik i policz wszystkie przerwy między 0 a 1. To jest twój 'skok'."
-          t2:
+            explanation: "Policzyłeś kreski i w liczniku, i w mianowniku. Licz przerwy — kreska na zerze się nie liczy."
+          counts_ticks_for_the_denominator:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Jesteś o jeden skok za daleko lub za blisko."
+            explanation: "Policzyłeś kreski zamiast przerw. Mianownik to liczba przerw między 0 a 1."
       - level: 2
         name: "Jeden skok to wielokrotność"
         function: "frac_number_line_2"
         traps:
-          t1:
+          counts_gaps_from_the_far_end:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Liczyłeś przerwy od prawego końca osi zamiast od zera."
+          counts_ticks_for_both_parts:
             misconception: counts_ticks_instead_of_gaps
             explanation: "Policzyłeś kreski zamiast przerw — dlatego mianownik wyszedł o jeden za duży."
-          t2:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Zapomniałeś skrócić ułamka na końcu."
+          reads_the_wrong_whole_interval:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Wziąłeś złą całość. Sprawdź, między którymi podpisanymi liczbami leży punkt."
       - level: 3
         name: "Wskazywanie liczby mieszanej"
         function: "frac_number_line_3"
         traps:
-          t1:
-            misconception: drops_whole_part
-            explanation: "Zapomniałeś o całościach z przodu!"
-          t2:
+          assumes_the_labels_are_one_apart:
+            misconception: assumes_the_tick_value_without_deriving_it
+            explanation: "Założyłeś, że podpisane kreski dzieli 1. Sprawdź to — odstęp może być inny."
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Źle policzyłeś 'skoki' między całościami."
+            explanation: "Jesteś o jedną przerwę obok. Policz skoki jeszcze raz."
+          reads_the_wrong_whole_interval:
+            misconception: counts_from_the_axis_edge_not_the_label
+            explanation: "Wziąłeś złą liczbę całości. Spójrz, między którymi pełnymi liczbami stoi punkt."
       - level: 4
         name: "Trudne przedziały"
         function: "frac_number_line_4"
         traps:
-          t1:
+          counts_from_the_axis_edge_not_the_label:
             misconception: counts_from_the_axis_edge_not_the_label
             explanation: "Liczysz od lewego końca osi. Zacznij od podpisanej kreski i od jej wartości."
-          t2:
+          off_by_one_gap:
             misconception: counts_ticks_instead_of_gaps
-            explanation: "Błąd w liczeniu skoków między etykietami."
-
+            explanation: "Pomyliłeś się o jedną przerwę między etykietami."
+          uses_total_ticks_as_the_denominator:
+            misconception: counts_ticks_instead_of_gaps
+            explanation: "Wziąłeś wszystkie kreski na osi jako mianownik. Mianownik to liczba przerw w jednym przedziale."
   - id: 60
     name: "Dodawanie"
     levels:
@@ -179,56 +189,49 @@ topics:
         name: "Ten sam mianownik"
         function: "frac_add_1"
         traps:
-          t1:
+          adds_the_denominators:
             misconception: adds_denominators_with_like_fractions
-            explanation: "Dodałeś do siebie mianowniki! Przy dodawaniu ułamków mianownik ZAWSZE przepisujemy bez zmian."
+            explanation: "Dodałeś do siebie mianowniki! Przy dodawaniu ułamków mianownik zawsze przepisujemy bez zmian."
       - level: 2
         name: "Skracanie wyniku"
         function: "frac_add_2"
         traps:
-          t1:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Twój wynik jest dobry, ale NIE JEST skrócony! Zawsze podawaj ułamek w najprostszej postaci."
-          t2:
+          adds_numerators_without_expanding:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Dodałeś liczniki, choć mianowniki są różne. Najpierw sprowadź ułamki do wspólnego mianownika."
+          adds_the_denominators:
             misconception: adds_denominators_with_like_fractions
-            explanation: "Dodałeś mianowniki do siebie! Pamiętaj: mianownik przepisujemy, dodajemy tylko górę."
-          t3:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Skróciłeś źle! Pamiętaj, żeby podzielić górę i dół przez tę samą liczbę."
+            explanation: "Dodałeś mianowniki do siebie! Mianownik przepisujemy, dodajemy tylko górę."
       - level: 3
         name: "Liczby mieszane z wyłączaniem"
         function: "frac_add_3"
         traps:
-          t1:
-            misconception: leaves_improper_fraction_in_result
-            explanation: "Zostawiłeś ułamek niewłaściwy! Jeśli licznik jest większy od mianownika, zamień go na kolejną całość."
-          t2:
-            misconception: drops_whole_part
-            explanation: "Zapomniałeś dodać całości do siebie! Najpierw dodaj duże liczby z przodu, potem ułamki."
-          t3:
+          adds_the_denominators:
             misconception: adds_denominators_with_like_fractions
             explanation: "Dodałeś do siebie mianowniki! Mianownik zawsze przepisujemy."
+          multiplies_the_scaled_numerators_instead_of_adding:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Rozszerzyłeś dobrze, ale liczniki pomnożyłeś zamiast dodać."
+          uses_the_product_denominator_without_scaling_numerators:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Wziąłeś iloczyn mianowników, ale liczników nie rozszerzyłeś. Każdy licznik mnożymy przez mianownik drugiego ułamka."
       - level: 4
         name: "Różne mianowniki - wstęp"
         function: "frac_add_4"
         traps:
-          t1:
+          adds_the_denominators:
             misconception: operates_on_unlike_fractions_directly
-            explanation: "Dodałeś mianowniki! Zanim dodasz, musisz sprowadzić oba ułamki do wspolnego mianownika."
+            explanation: "Dodałeś mianowniki! Zanim dodasz, sprowadź oba ułamki do wspólnego mianownika."
       - level: 5
         name: "Różne mianowniki - zaawansowane"
         function: "frac_add_5"
         traps:
-          t1:
+          adds_the_denominators:
             misconception: operates_on_unlike_fractions_directly
-            explanation: "Zły wspólny mianownik! Znajdź najmniejszą wspólną wielokrotność obu liczb z dołu."
-          t2:
-            misconception: drops_whole_part
-            explanation: "Zapomniałeś dodać całości! Zrobiłeś trudną część z ułamkami, ale zgubiłeś liczby z przodu."
-          t3:
-            misconception: leaves_improper_fraction_in_result
-            explanation: "Nie wyciągnąłeś całości z wyniku! Na końcu powstał ułamek niewłaściwy."
-
+            explanation: "Dodałeś mianowniki do siebie zamiast znaleźć wspólny mianownik."
+          uses_the_product_denominator_without_scaling_numerators:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Wspólny mianownik masz dobry, ale liczników nie rozszerzyłeś proporcjonalnie."
   - id: 70
     name: "Odejmowanie"
     levels:
@@ -236,59 +239,55 @@ topics:
         name: "Ten sam mianownik"
         function: "frac_sub_1"
         traps:
-          t1:
+          adds_instead_of_subtracting:
             misconception: adds_instead_of_subtracting
             explanation: "Zamiast odjąć, dodałeś liczniki — sprawdź znak działania."
       - level: 2
         name: "Liczby mieszane"
         function: "frac_sub_2"
         traps:
-          t1:
-            misconception: drops_whole_part
-            explanation: "Odjąłeś ułamki, ale zapomniałeś odjąć od siebie całości (duże liczby z przodu)!"
-          t2:
-            misconception: adds_instead_of_subtracting
-            explanation: "Odjąłeś całości, ale dodałeś ułamki! Pamiętaj, tu mamy odejmowanie."
+          subtracts_numerators_without_expanding:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Odjąłeś liczniki mimo różnych mianowników. Najpierw wspólny mianownik."
+          subtracts_the_denominators:
+            misconception: adds_denominators_with_like_fractions
+            explanation: "Odjąłeś mianowniki od siebie! Mianownik przy odejmowaniu przepisujemy bez zmian."
       - level: 3
         name: "Zabieranie całości"
         function: "frac_sub_3"
         traps:
-          t1:
-            misconception: subtracts_without_borrowing_from_whole
-            explanation: "Odjąłeś ułamek od całości tak, jakby był całością! Musisz 'rozmienić' jedną całość na ułamek."
-          t2:
-            misconception: subtracts_without_borrowing_from_whole
-            explanation: "Źle rozmieniłeś całość! 1 całość to ułamek, który ma na górze i na dole tę samą liczbę (np. 5/5)."
-          t3:
+          adds_instead_of_subtracting:
             misconception: adds_instead_of_subtracting
             explanation: "Zamiast odjąć, dodałeś liczniki — sprawdź znak działania."
+          subtracts_the_denominators:
+            misconception: adds_denominators_with_like_fractions
+            explanation: "Odjąłeś mianowniki! Mianownik zostaje bez zmian."
+          uses_the_product_denominator_without_scaling_numerators:
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Wziąłeś iloczyn mianowników, ale liczników nie rozszerzyłeś."
       - level: 4
         name: "Zabieranie całości w liczbie mieszanej"
         function: "frac_sub_4"
         traps:
-          t1:
+          drops_the_denominator_after_subtracting:
             misconception: borrows_incorrectly_in_mixed_subtraction
-            explanation: "Zgubiłeś 'pożyczoną' całość! Kiedy rozmieniasz 1 całość na ułamek, musisz dodać go do tego ułamka, który już tam był."
-          t2:
-            misconception: borrows_incorrectly_in_mixed_subtraction
-            explanation: "Zapomniałeś, że pożyczyłeś! Musisz zmniejszyć liczbę całości o 1."
-          t3:
-            misconception: borrows_incorrectly_in_mixed_subtraction
-            explanation: "Odjąłeś ułamki w złą stronę (zamiast pożyczyć)! Nie wolno zamieniać kolejności odejmowania."
+            explanation: "Zgubiłeś mianownik po odjęciu. Mianownik zostaje ten sam przez całe działanie."
+          drops_the_whole_parts:
+            misconception: drops_whole_part
+            explanation: "Zgubiłeś całości! Odejmij też duże liczby stojące z przodu."
       - level: 5
         name: "Różne mianowniki"
         function: "frac_sub_5"
         traps:
-          t1:
-            misconception: operates_on_unlike_fractions_directly
-            explanation: "Odjąłeś mianowniki od siebie! Najpierw musisz znaleźć wspólny mianownik."
-          t2:
-            misconception: expands_only_one_part
-            explanation: "Rozszerzyłeś dół, ale zapomniałeś o górze! Mnożymy proporcjonalnie."
-          t3:
-            misconception: operates_on_unlike_fractions_directly
-            explanation: "Zły znak! Najpierw sprowadź do wspólnego mianownika."
-
+          borrows_ten_instead_of_the_denominator:
+            misconception: borrows_incorrectly_in_mixed_subtraction
+            explanation: "Pożyczyłeś 10 zamiast mianownika. Jedna całość to tyle części, ile wynosi mianownik."
+          borrows_without_decrementing_the_whole:
+            misconception: borrows_incorrectly_in_mixed_subtraction
+            explanation: "Zapomniałeś, że pożyczyłeś! Liczbę całości trzeba zmniejszyć o 1."
+          subtracts_the_fractions_in_reverse_to_avoid_borrowing:
+            misconception: subtracts_without_borrowing_from_whole
+            explanation: "Odjąłeś ułamki w odwrotnej kolejności, żeby uniknąć pożyczania. Nie wolno zamieniać kolejności — trzeba pożyczyć całość."
   - id: 80
     name: "Mnożenie przez liczbę"
     levels:
@@ -296,42 +295,32 @@ topics:
         name: "Mnożenie ułamka przez liczbę"
         function: "frac_mult_num_1"
         traps:
-          t1:
+          multiplies_only_the_denominator:
             misconception: multiplies_fraction_by_whole_number_wrongly
-            explanation: "Pomnożyłeś licznik ORAZ mianownik! Przy mnożeniu przez liczbę, mnożymy TYLKO licznik, mianownik zostaje."
-          t2:
+            explanation: "Pomnożyłeś tylko mianownik! Liczba całkowita mnoży górę ułamka."
+          multiplies_the_denominator_too:
             misconception: multiplies_fraction_by_whole_number_wrongly
-            explanation: "Pomnożyłeś tylko mianownik! Liczba całkowita mnoży tylko górę ułamka."
-          t3:
-            misconception: multiplies_fraction_by_whole_number_wrongly
-            explanation: "Zamiast pomnożyć, dodałeś liczbę do licznika!"
+            explanation: "Pomnożyłeś licznik ORAZ mianownik! Przy mnożeniu przez liczbę mnożymy tylko licznik."
       - level: 2
         name: "Skracanie na krzyż z liczbą"
         function: "frac_mult_num_2"
         traps:
-          t1:
+          cancels_the_numerator_away:
+            misconception: does_not_reduce_to_lowest_terms
+            explanation: "Skracając, zgubiłeś licznik. Skracamy liczbę całkowitą z mianownikiem, licznik zostaje."
+          stops_before_lowest_terms:
             misconception: does_not_reduce_to_lowest_terms
             explanation: "Wynik jest dobry, ale nieskrócony! Przed mnożeniem spróbuj skrócić liczbę całkowitą z mianownikiem."
-          t2:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Skróciłeś ułamek przez złą liczbę!"
-          t3:
-            misconception: multiplies_fraction_by_whole_number_wrongly
-            explanation: "Zamiast skrócić, pomnożyłeś liczbę przez mianownik! Pamiętaj, dół zawsze dzieli."
       - level: 3
         name: "Mnożenie liczby mieszanej"
         function: "frac_mult_num_3"
         traps:
-          t1:
+          multiplies_only_the_fraction_part:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Pomnożyłeś całości, ale ułamek zostawiłeś! Liczba z przodu mnoży i całości, i ułamek."
-          t2:
+            explanation: "Pomnożyłeś tylko ułamek, a całości zostawiłeś! Liczba z przodu mnoży całą liczbę mieszaną."
+          multiplies_the_denominator_too:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Najbezpieczniej jest zamienić liczbę mieszaną na ułamek niewłaściwy, a dopiero potem mnożyć!"
-          t3:
-            misconception: operates_on_mixed_number_without_converting
-            explanation: "Wciągnąłeś liczbę całkowitą na dół ułamka! Całości zostają u góry."
-
+            explanation: "Wciągnąłeś liczbę całkowitą na dół ułamka! Mianownik zostaje bez zmian."
   - id: 90
     name: "Mnożenie ułamków"
     levels:
@@ -339,49 +328,45 @@ topics:
         name: "Proste mnożenie"
         function: "frac_mult_1"
         traps:
-          t1:
-            misconception: misapplies_fraction_multiplication_rule
-            explanation: "Pomnożyłeś na krzyż! Przy mnożeniu ułamków zasada to: 'Góra z górą, dół z dołem'."
-          t2:
-            misconception: misapplies_fraction_multiplication_rule
-            explanation: "Zostawiłeś mianownik bez zmian! Tu się nie szuka wspólnego mianownika, tu się go mnoży!"
-          t3:
+          adds_instead_of_multiplying:
             misconception: misapplies_fraction_multiplication_rule
             explanation: "Dodałeś zamiast pomnożyć!"
+          keeps_the_first_denominator:
+            misconception: misapplies_fraction_multiplication_rule
+            explanation: "Zostawiłeś mianownik bez zmian! Tu nie szukamy wspólnego mianownika — mnożymy go."
+          multiplies_crosswise:
+            misconception: misapplies_fraction_multiplication_rule
+            explanation: "Pomnożyłeś na krzyż! Zasada mnożenia ułamków to: góra z górą, dół z dołem."
       - level: 2
         name: "Skracanie na krzyż"
         function: "frac_mult_2"
         traps:
-          t1:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Pominąłeś skracanie! Szukaj pary na krzyż (jeden z góry, jeden z dołu) do podzielenia przez tę samą liczbę."
-          t2:
+          cancels_the_numerators_away:
             misconception: cancels_horizontally
-            explanation: "Skróciłeś poziomo! Skracać wolno tylko górę z dołem (często na krzyż), nigdy dwa liczniki ze sobą."
-          t3:
-            misconception: inverts_fraction_unnecessarily
-            explanation: "Podałeś ułamek odwrotny!"
+            explanation: "Skróciłeś poziomo! Skracać wolno tylko górę z dołem, nigdy dwóch liczników ze sobą."
+          stops_before_lowest_terms:
+            misconception: does_not_reduce_to_lowest_terms
+            explanation: "Pominąłeś skracanie! Szukaj pary na krzyż do podzielenia przez tę samą liczbę."
       - level: 3
         name: "Mnożenie liczb mieszanych"
         function: "frac_mult_3"
         traps:
-          t1:
+          adds_instead_of_multiplying:
+            misconception: misapplies_fraction_multiplication_rule
+            explanation: "Dodałeś zamiast pomnożyć!"
+          multiplies_without_converting_the_mixed_number:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Pomnożyłeś osobno całości i osobno ułamki! TO PUŁAPKA. Musisz najpierw zamienić wszystko na ułamki niewłaściwe."
-          t2:
-            misconception: leaves_improper_fraction_in_result
-            explanation: "Zapomniałeś wyciągnąć całości z wyniku na samym końcu."
+            explanation: "Pomnożyłeś osobno całości i osobno ułamki! Najpierw zamień wszystko na ułamki niewłaściwe."
       - level: 4
         name: "Wielkie skracanie"
         function: "frac_mult_4"
         traps:
-          t1:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Zapomniałeś skrócić! Przy dużych liczbach zawsze najpierw skracaj na krzyż, inaczej powstanie gigant."
-          t2:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Skróciłeś źle! Pamiętaj, że obie liczby na krzyż musisz podzielić przez TO SAMO."
-
+          multiplies_fractions_and_adds_the_wholes:
+            misconception: operates_on_mixed_number_without_converting
+            explanation: "Ułamki pomnożyłeś, ale całości dodałeś. Zamień liczby mieszane na niewłaściwe i pomnóż wszystko naraz."
+          multiplies_wholes_and_fractions_separately:
+            misconception: operates_on_mixed_number_without_converting
+            explanation: "Pomnożyłeś całości z całościami, a ułamki z ułamkami. Tak się nie da — zamień na ułamki niewłaściwe."
   - id: 100
     name: "Dzielenie przez liczbę"
     levels:
@@ -389,33 +374,32 @@ topics:
         name: "Dzielenie licznika"
         function: "frac_div_num_1"
         traps:
-          t1:
+          leaves_the_fraction_unchanged:
             misconception: divides_denominator_instead_of_numerator
-            explanation: "Podzieliłeś mianownik! Gdy ułamek dzielimy przez liczbę całkowitą, to dzielimy tylko licznik (jeśli się da)."
-          t2:
-            misconception: divides_denominator_instead_of_numerator
-            explanation: "Pomnożyłeś ułamek zamiast podzielić!"
+            explanation: "Przepisałeś ułamek bez zmian. Dzielenie przez liczbę musi go zmniejszyć."
+          multiplies_the_numerator_instead_of_dividing:
+            misconception: divides_denominator_instead_of_multiplying_it
+            explanation: "Pomnożyłeś licznik zamiast podzielić ułamek! Dzielenie przez liczbę powiększa mianownik."
       - level: 2
         name: "Gdy licznik się nie dzieli"
         function: "frac_div_num_2"
         traps:
-          t1:
+          inverts_the_wrong_way_round:
             misconception: divides_fractions_without_inverting_the_second
-            explanation: "Odwróciłeś pierwszy ułamek! Pierwszy zostaje bez zmian, mnożymy zawsze przez odwrotność drugiego (czyli z liczby robimy '1/liczba')."
-          t2:
-            misconception: divides_denominator_instead_of_multiplying_it
-            explanation: "Podzieliłeś mianownik! W tym przypadku musisz pomnożyć mianownik przez tę liczbę całkowitą."
+            explanation: "Odwróciłeś pierwszy ułamek! Pierwszy zostaje bez zmian, odwracamy zawsze drugi."
+          multiplies_without_inverting:
+            misconception: divides_fractions_without_inverting_the_second
+            explanation: "Pomnożyłeś bez odwracania! Dzielenie to mnożenie przez odwrotność drugiej liczby."
       - level: 3
         name: "Dzielenie liczby mieszanej"
         function: "frac_div_num_3"
         traps:
-          t1:
+          divides_only_the_whole_part:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Podzieliłeś tylko ułamek, a zapomniałeś o całościach!"
-          t2:
+            explanation: "Podzieliłeś tylko całości, a ułamek zostawiłeś. Najpierw zamień na ułamek niewłaściwy."
+          multiplies_the_numerator_instead_of_dividing:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Musisz ZAWSZE najpierw zamienić liczbę mieszaną na ułamek niewłaściwy, a dopiero potem odwracać do mnożenia."
-
+            explanation: "Pomnożyłeś licznik zamiast podzielić. Zamień liczbę mieszaną na niewłaściwą i pomnóż przez odwrotność."
   - id: 110
     name: "Dzielenie ułamków"
     levels:
@@ -423,33 +407,32 @@ topics:
         name: "Proste odwracanie"
         function: "frac_div_frac_1"
         traps:
-          t1:
+          inverts_the_whole_answer:
+            misconception: inverts_fraction_unnecessarily
+            explanation: "Odwróciłeś cały wynik zamiast drugiego ułamka. Odwracamy przed mnożeniem, nie po."
+          multiplies_without_inverting:
             misconception: divides_fractions_without_inverting_the_second
-            explanation: "Zapomniałeś odwrócić! Dzielenie ułamków to to samo co MNOŻENIE pierwszego przez ODWROTNOŚĆ drugiego."
-          t2:
-            misconception: divides_fractions_without_inverting_the_second
-            explanation: "Odwróciłeś PIERWSZY ułamek zamiast drugiego! Zawsze kręci się tylko drugi ułamek."
+            explanation: "Zapomniałeś odwrócić! Dzielenie ułamków to mnożenie pierwszego przez odwrotność drugiego."
       - level: 2
         name: "Odwracanie i skracanie"
         function: "frac_div_frac_2"
         traps:
-          t1:
+          cancels_before_inverting:
             misconception: cancels_before_inverting
-            explanation: "Skróciłeś PRZED odwróceniem! Kategoryczny błąd. Najpierw obróć drugi ułamek i zmień znak na mnożenie, dopiero potem wolno skracać."
-          t2:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Zapomniałeś skrócić! Po odwróceniu szukaj wspólnych dzielników na krzyż."
+            explanation: "Skróciłeś PRZED odwróceniem! Najpierw obróć drugi ułamek i zmień znak na mnożenie, dopiero potem skracaj."
+          multiplies_without_inverting:
+            misconception: divides_fractions_without_inverting_the_second
+            explanation: "Pomnożyłeś bez odwracania drugiego ułamka."
       - level: 3
         name: "Dzielenie z liczbami mieszanymi"
         function: "frac_div_frac_3"
         traps:
-          t1:
+          inverts_only_the_fraction_part:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Najpierw bezwzględnie zamień wszystkie liczby na ułamki niewłaściwe. Dopiero potem obróć drugi ułamek!"
-          t2:
-            misconception: operates_on_mixed_number_without_converting
-            explanation: "Odwróciłeś tylko część ułamkową liczby mieszanej! Musisz wciągnąć całości do ułamka zanim go odwrócisz."
-
+            explanation: "Odwróciłeś tylko część ułamkową liczby mieszanej! Wciągnij całości do ułamka, zanim go odwrócisz."
+          multiplies_without_inverting:
+            misconception: divides_fractions_without_inverting_the_second
+            explanation: "Najpierw zamień liczby mieszane na ułamki niewłaściwe, a potem obróć drugi ułamek i mnóż."
   - id: 120
     name: "Potęgowanie"
     levels:
@@ -457,33 +440,32 @@ topics:
         name: "Kwadrat ułamka"
         function: "frac_pow_1"
         traps:
-          t1:
+          multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Potęgowanie to MNOŻENIE ułamka przez samego siebie, a nie mnożenie go przez 2!"
-          t2:
+            explanation: "Potęgowanie to mnożenie ułamka przez samego siebie, a nie mnożenie go przez 2!"
+          raises_only_the_numerator:
             misconception: raises_only_one_part_to_power
-            explanation: "Podniosłeś do kwadratu tylko górę! Musisz podnieść zarówno licznik, jak i mianownik."
+            explanation: "Podniosłeś do kwadratu tylko górę! Potęgujesz i licznik, i mianownik."
       - level: 2
         name: "Sześcian ułamka"
         function: "frac_pow_2"
         traps:
-          t1:
-            misconception: raises_only_one_part_to_power
-            explanation: "Podniosłeś do trzeciej potęgi tylko górę! Licznik i mianownik trzeba potęgować osobno."
-          t2:
+          multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś przez 3! Do sześcianu oznacza liczbę mnożoną przez samą siebie TRZY RAZY."
+            explanation: "Pomnożyłeś przez 3! Sześcian to liczba pomnożona przez samą siebie trzy razy."
+          raises_only_the_numerator:
+            misconception: raises_only_one_part_to_power
+            explanation: "Podniosłeś do trzeciej potęgi tylko górę! Licznik i mianownik potęgujemy osobno."
       - level: 3
         name: "Potęgowanie liczby mieszanej"
         function: "frac_pow_3"
         traps:
-          t1:
+          raises_only_the_numerator:
+            misconception: raises_only_one_part_to_power
+            explanation: "Podniosłeś do potęgi tylko licznik. Mianownik też trzeba spotęgować."
+          raises_the_parts_separately:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Podniosłeś do potęgi osobno całości i ułamek! BŁĄD. Zanim użyjesz potęgi, ZAWSZE wciągaj całości do ułamka niewłaściwego."
-          t2:
-            misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś przez 2 zamiast potęgować!"
-
+            explanation: "Podniosłeś do potęgi osobno całości i osobno ułamek! Najpierw wciągnij całości do ułamka niewłaściwego."
   - id: 130
     name: "Kolejność wykonywania działań"
     levels:
@@ -491,81 +473,110 @@ topics:
         name: "Kolejność Podstawowa"
         function: "frac_ord_1"
         traps:
-          t1:
+          adds_before_multiplying:
             misconception: ignores_the_order_of_operations
-            explanation: "Policzyłeś od lewej do prawej! Mnożenie i dzielenie mają pierwszeństwo."
-          t2:
+            explanation: "Dodałeś przed mnożeniem! Mnożenie i dzielenie wykonujemy przed dodawaniem."
+          flattens_to_all_addition:
             misconception: ignores_the_order_of_operations
-            explanation: "Pomyliłeś mnożenie z dodawaniem we wszystkich liczbach."
-          t3:
+            explanation: "Dodałeś wszystkie liczby po kolei, ignorując pozostałe działania."
+          flattens_to_all_multiplication:
             misconception: ignores_the_order_of_operations
-            explanation: "Skupiłeś się na złym działaniu jako pierwszym."
+            explanation: "Pomnożyłeś wszystkie liczby przez siebie, ignorując dodawanie."
+          flattens_to_all_subtraction:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś wszystko po kolei od lewej do prawej, ignorując dzielenie."
+          replaces_multiplication_with_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś mnożenie na dodawanie."
+          subtracts_before_multiplying:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed mnożeniem! Mnożenie ma pierwszeństwo przed odejmowaniem."
       - level: 2
         name: "Siła Nawiasów"
         function: "frac_ord_2"
         traps:
-          t1:
+          flattens_to_all_multiplication:
+            misconception: ignores_the_order_of_operations
+            explanation: "Pomnożyłeś wszystkie liczby przez siebie, ignorując dodawanie."
+          flips_the_sign_inside_the_bracket:
+            misconception: uses_wrong_sign_after_brackets
+            explanation: "Pomyliłeś znak wewnątrz nawiasu."
+          ignores_the_brackets:
             misconception: ignores_the_order_of_operations
             explanation: "Zignorowałeś nawias! Nawias zawsze idzie na pierwszy ogień."
-          t2:
-            misconception: uses_wrong_sign_after_brackets
-            explanation: "Pomyliłeś znak poza nawiasem."
-          t3:
+          replaces_division_with_multiplication:
             misconception: ignores_the_order_of_operations
-            explanation: "Pomnożyłeś lub podzieliłeś na krzyż bez rozwiązania nawiasu."
+            explanation: "Zamieniłeś dzielenie na mnożenie."
+          replaces_multiplication_with_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś mnożenie na dodawanie."
       - level: 3
         name: "Dwa Zestawy"
         function: "frac_ord_3"
         traps:
-          t1:
+          ignores_the_brackets:
             misconception: ignores_the_order_of_operations
-            explanation: "Zignorowałeś kolejność w jednym z dwóch zestawów liczb."
-          t2:
+            explanation: "Zignorowałeś nawias! Nawias zawsze idzie na pierwszy ogień."
+          ignores_the_second_bracket:
             misconception: ignores_the_order_of_operations
-            explanation: "Wymnożyłeś/Podzieliłeś liczby z różnych nawiasów ze sobą!"
-          t3:
-            misconception: uses_wrong_sign_after_brackets
-            explanation: "Rozwiązałeś nawiasy, ale odjąłeś zamiast dodać (lub odwrotnie)."
+            explanation: "Rozwiązałeś pierwszy nawias, ale drugi zignorowałeś."
+          invents_a_bracket_around_the_first_addition:
+            misconception: ignores_the_order_of_operations
+            explanation: "Wstawiłeś nawias, którego nie ma, wokół pierwszego dodawania."
+          invents_brackets_around_both_additions:
+            misconception: ignores_the_order_of_operations
+            explanation: "Wstawiłeś nawiasy, których nie ma, wokół obu dodawań."
+          replaces_addition_with_multiplication:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś dodawanie na mnożenie."
+          replaces_division_with_multiplication:
+            misconception: ignores_the_order_of_operations
+            explanation: "Zamieniłeś dzielenie na mnożenie."
       - level: 4
         name: "Potęgi i Ułamki"
         function: "frac_ord_4"
         traps:
-          t1:
+          adds_before_multiplying:
             misconception: ignores_the_order_of_operations
-            explanation: "Mnożenie przed potęgowaniem to błąd. Potęgowanie wygrywa!"
-          t2:
+            explanation: "Dodałeś przed mnożeniem! Mnożenie i dzielenie wykonujemy przed dodawaniem."
+          ignores_the_exponent:
             misconception: ignores_the_order_of_operations
-            explanation: "Pominąłeś potęgowanie całkowicie."
-          t3:
+            explanation: "Pominąłeś potęgowanie i przepisałeś liczbę bez zmian."
+          multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś przez 2 zamiast podnieść licznik i mianownik do kwadratu."
+            explanation: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
+          subtracts_before_squaring:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed potęgowaniem! Potęga wygrywa z odejmowaniem."
       - level: 5
         name: "Potęgowanie Nawiasu"
         function: "frac_ord_5"
         traps:
-          t1:
-            misconception: distributes_power_over_bracket_terms
-            explanation: "Podniosłeś do kwadratu osobno obie liczby w nawiasie!"
-          t2:
-            misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś nawias przez 2 zamiast go spotęgować."
-          t3:
+          flips_the_final_sign:
+            misconception: uses_wrong_sign_after_brackets
+            explanation: "Pomyliłeś znak na samym końcu działania."
+          multiplies_before_squaring:
             misconception: ignores_the_order_of_operations
-            explanation: "Podniosłeś do potęgi na samym końcu zamiast na początku."
+            explanation: "Pomnożyłeś przed potęgowaniem! Najpierw potęga, potem mnożenie."
+          multiplies_by_the_exponent:
+            misconception: multiplies_by_exponent_instead_of_powering
+            explanation: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
+          squares_the_bracket_terms_separately:
+            misconception: distributes_power_over_bracket_terms
+            explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
       - level: 6
         name: "Boss Level"
         function: "frac_ord_6"
         traps:
-          t1:
+          multiplies_before_squaring:
             misconception: ignores_the_order_of_operations
-            explanation: "Wymnożyłeś najpierw ułamek przed nawiasem! 1. Nawias, 2. Potęga, 3. Mnożenie."
-          t2:
+            explanation: "Pomnożyłeś przed potęgowaniem! Najpierw potęga, potem mnożenie."
+          multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś nawias przez 2 zamiast potęgować."
-          t3:
+            explanation: "Pomnożyłeś przez 2 zamiast podnieść do kwadratu!"
+          squares_the_bracket_terms_separately:
             misconception: distributes_power_over_bracket_terms
-            explanation: "Podniosłeś do kwadratu ułamki w nawiasie osobno zamiast zsumować."
-
+            explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
   - id: 140
     name: "Ułamek z liczby"
     levels:
@@ -573,36 +584,39 @@ topics:
         name: "Całości bez reszty"
         function: "frac_frac_of_int_1"
         traps:
-          t1:
+          reads_it_as_a_mixed_number:
             misconception: does_not_read_fraction_of_as_multiplication
-            explanation: "Ułamek z liczby to nic innego jak matematyczne MNOŻENIE. Zastąp słowo 'z' kropeczką i pomnóż!"
-          t2:
-            # Wrong: no walkthrough could address this — a calculation slip, not a Misconception.
-            explanation: "Zły mianownik."
+            explanation: "Potraktowałeś zapis jak liczbę mieszaną. Słowo 'z' oznacza mnożenie."
+          swaps_the_numerator_and_denominator:
+            misconception: does_not_read_fraction_of_as_multiplication
+            explanation: "Odwróciłeś ułamek. 'Ułamek z liczby' to mnożenie przez ten ułamek, nie przez jego odwrotność."
       - level: 2
         name: "Trudniejsze liczby"
         function: "frac_frac_of_int_2"
         traps:
-          t1:
+          inverts_the_fraction_before_multiplying:
             misconception: does_not_read_fraction_of_as_multiplication
-            explanation: "Najszybsza droga: najpierw PODZIEL liczbę całkowitą przez dół ułamka, a wynik POMNÓŻ przez górę!"
-          t2:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Błąd skracania."
+            explanation: "Odwróciłeś ułamek przed mnożeniem. Najszybciej: podziel liczbę przez mianownik, a wynik pomnóż przez licznik."
+          multiplies_the_denominator_too:
+            misconception: does_not_read_fraction_of_as_multiplication
+            explanation: "Pomnożyłeś także mianownik. Liczba całkowita mnoży tylko licznik."
       - level: 3
         name: "Gdy wynik jest ułamkiem"
         function: "frac_frac_of_int_3"
         traps:
-          t1:
+          applies_the_fraction_again_instead_of_inverting:
             misconception: does_not_read_fraction_of_as_multiplication
-            explanation: "Jeśli liczba się nie dzieli ładnie, to po prostu wciągnij ją na samą górę ułamka (pomnóż z licznikiem)."
-          t2:
-            misconception: inverts_fraction_unnecessarily
-            explanation: "Podałeś odwrotność."
+            explanation: "Zastosowałeś ułamek drugi raz zamiast dokończyć obliczenie."
+          uses_one_more_than_the_denominator:
+            misconception: does_not_read_fraction_of_as_multiplication
+            explanation: "Wziąłeś mianownik o jeden za duży. Przepisz go dokładnie z ułamka."
       - level: 4
         name: "Ułamek z liczby mieszanej"
         function: "frac_frac_of_int_4"
         traps:
-          t1:
+          adds_only_the_numerator:
             misconception: operates_on_mixed_number_without_converting
-            explanation: "Zamień ułamek na postać niewłaściwą zanim zaczniesz mnożyć!"
+            explanation: "Dodałeś sam licznik. Przy zamianie całości mnożymy przez mianownik i dopiero dodajemy licznik."
+          gives_only_the_fraction_not_the_total:
+            misconception: operates_on_mixed_number_without_converting
+            explanation: "Podałeś sam ułamek zamiast całej wartości. Zamień liczbę mieszaną na niewłaściwą i pomnóż."

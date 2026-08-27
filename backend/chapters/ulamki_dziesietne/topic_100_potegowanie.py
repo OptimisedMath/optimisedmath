@@ -1,7 +1,12 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+@declares_traps(
+    "multiplies_by_the_exponent",
+    "ignores_the_point_before_squaring",
+    "one_hundredth_too_large",
+)
 def dec_pow_1() -> dict | None:
     """Kwadrat ułamka dziesiętnego (poziom 1)."""
     v = random.randint(2, 9) / 10
@@ -9,13 +14,14 @@ def dec_pow_1() -> dict | None:
 
     c_str = fmt_dec(round(v**2, 2))
 
-    t1 = fmt_dec(
-        round(v * 2, 1)
-    )  # Trap (t1): Mnożysz to przez 2, a to jest kwadrat (do potęgi drugiej)
-
-    t2 = fmt_dec(round(v * 10) ** 2)  # Trap (t2): Błąd w stawianiu przecinka
-    t3 = fmt_dec(round(v**2 + 0.01, 2))  # Trap (t3): Zapomniałeś zera z przodu
-
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2, t3=t3)
-    if result:
-        return result
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "multiplies_by_the_exponent": fmt_dec(round(v * 2, 1)),
+            "ignores_the_point_before_squaring": fmt_dec(round(v * 10) ** 2),
+            "one_hundredth_too_large": fmt_dec(round(v**2 + 0.01, 2)),
+        },
+    )
+    if problem:
+        return problem

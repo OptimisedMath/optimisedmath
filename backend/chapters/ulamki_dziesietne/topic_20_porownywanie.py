@@ -1,5 +1,5 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
 def _repeating_decimal_str(n: int, d: int) -> tuple[str, float]:
@@ -8,9 +8,9 @@ def _repeating_decimal_str(n: int, d: int) -> tuple[str, float]:
     return f"0,({period})", val
 
 
-def _with_messages(result: dict, **msgs: str) -> dict:
-    result["messages"] = msgs
-    return result
+def _with_messages(problem: dict, **msgs: str) -> dict:
+    problem["messages"] = msgs
+    return problem
 
 
 _MSG_EQUAL_TRAILING = "Liczby są równe — zera na końcu nie zmieniają wartości!"
@@ -18,6 +18,7 @@ _MSG_EQUAL_WRONG_SIGN = "Gdy liczby są równe, nie wybieraj '<' ani '>'!"
 _MSG_NOT_EQUAL = "Liczby nie są równe — nie wybieraj znaku równości!"
 
 
+@declares_traps("compares_by_the_lower_place_digit", "reads_unequal_decimals_as_equal")
 def dec_compare_1() -> dict | None:
     """Różne cyfry, te same pozycje (poziom 1)."""
     n1 = random.randint(11, 99)
@@ -27,22 +28,33 @@ def dec_compare_1() -> dict | None:
 
     v1, v2 = n1 / 100, n2 / 100
     q_str = rf"\text{{Wybierz znak: }} {fmt_dec(v1)} \text{{ \_\_\_ }} {fmt_dec(v2)}"
-    c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
+    c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
-    t2 = "="  # Trap (t2): znak równości przy nierównych liczbach
-
-    result = build_problem_dict(q_str, c_str, t1=t1, t2=t2)
-    if result:
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "compares_by_the_lower_place_digit": wrong_sign,
+            "reads_unequal_decimals_as_equal": "=",
+        },
+    )
+    if problem:
         return _with_messages(
-            result,
-            t1=(
+            problem,
+            compares_by_the_lower_place_digit=(
                 "Spójrz najpierw na najwyższy rząd (całości, potem części dziesiąte). "
                 "Cyfra z przodu ma zawsze największą wagę!"
             ),
-            t2=_MSG_NOT_EQUAL,
+            reads_unequal_decimals_as_equal=_MSG_NOT_EQUAL,
         )
 
 
+@declares_traps(
+    "reads_trailing_zero_as_smaller",
+    "reads_trailing_zero_as_larger",
+    "compares_by_the_number_of_decimal_places",
+    "reads_unequal_decimals_as_equal",
+)
 def dec_compare_2() -> dict | None:
     """Różna liczba miejsc po przecinku (poziom 2)."""
     if random.random() < 0.2:
@@ -53,15 +65,19 @@ def dec_compare_2() -> dict | None:
             s1, s2 = s2, s1
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
 
-        t2 = "<"  # Trap (t2): znak mniejszości przy równych liczbach
-        t3 = ">"  # Trap (t3): znak większości przy równych liczbach
-
-        result = build_problem_dict(q_str, "=", t2=t2, t3=t3)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            "=",
+            traps={
+                "reads_trailing_zero_as_smaller": "<",
+                "reads_trailing_zero_as_larger": ">",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t2=_MSG_EQUAL_TRAILING,
-                t3=_MSG_EQUAL_WRONG_SIGN,
+                problem,
+                reads_trailing_zero_as_smaller=_MSG_EQUAL_TRAILING,
+                reads_trailing_zero_as_larger=_MSG_EQUAL_WRONG_SIGN,
             )
     else:
         v1 = random.randint(2, 9) / 10
@@ -74,21 +90,33 @@ def dec_compare_2() -> dict | None:
         q_str = (
             rf"\text{{Wybierz znak: }} {fmt_dec(v1)} \text{{ \_\_\_ }} {fmt_dec(v2)}"
         )
-        c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
-        t2 = "="  # Trap (t2): znak równości przy nierównych liczbach
+        c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "compares_by_the_number_of_decimal_places": wrong_sign,
+                "reads_unequal_decimals_as_equal": "=",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t1=(
+                problem,
+                compares_by_the_number_of_decimal_places=(
                     "Dopisz niewidzialne zera, aby obie liczby miały tyle samo miejsc "
                     "po przecinku (np. 0,1 to 0,10), i porównaj jeszcze raz."
                 ),
-                t2=_MSG_NOT_EQUAL,
+                reads_unequal_decimals_as_equal=_MSG_NOT_EQUAL,
             )
 
 
+@declares_traps(
+    "reads_trailing_zero_as_smaller",
+    "reads_trailing_zero_as_larger",
+    "ignores_the_zero_straight_after_the_point",
+    "reads_unequal_decimals_as_equal",
+)
 def dec_compare_3() -> dict | None:
     """Zdradliwe zera (poziom 3)."""
     if random.random() < 0.2:
@@ -100,15 +128,19 @@ def dec_compare_3() -> dict | None:
             s1, s2 = s2, s1
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
 
-        t2 = "<"  # Trap (t2): znak mniejszości przy równych liczbach
-        t3 = ">"  # Trap (t3): znak większości przy równych liczbach
-
-        result = build_problem_dict(q_str, "=", t2=t2, t3=t3)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            "=",
+            traps={
+                "reads_trailing_zero_as_smaller": "<",
+                "reads_trailing_zero_as_larger": ">",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t2=_MSG_EQUAL_TRAILING,
-                t3=_MSG_EQUAL_WRONG_SIGN,
+                problem,
+                reads_trailing_zero_as_smaller=_MSG_EQUAL_TRAILING,
+                reads_trailing_zero_as_larger=_MSG_EQUAL_WRONG_SIGN,
             )
     else:
         whole = random.randint(1, 5)
@@ -121,21 +153,35 @@ def dec_compare_3() -> dict | None:
         q_str = (
             rf"\text{{Wybierz znak: }} {fmt_dec(v1)} \text{{ \_\_\_ }} {fmt_dec(v2)}"
         )
-        c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
-        t2 = "="  # Trap (t2): znak równości przy nierównych liczbach
+        c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "ignores_the_zero_straight_after_the_point": wrong_sign,
+                "reads_unequal_decimals_as_equal": "=",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t1=(
+                problem,
+                ignores_the_zero_straight_after_the_point=(
                     "Pamiętaj, zero zaraz po przecinku jest bardzo ważne (zmniejsza ułamek), "
                     "ale zera na samym końcu można wykreślić!"
                 ),
-                t2=_MSG_NOT_EQUAL,
+                reads_unequal_decimals_as_equal=_MSG_NOT_EQUAL,
             )
 
 
+@declares_traps(
+    "compares_a_period_to_a_finite_decimal_by_first_digits",
+    "reads_unequal_decimals_as_equal",
+    "compares_two_periods_by_first_digits",
+    "reads_different_periods_as_equal",
+    "treats_the_period_as_a_single_digit",
+    "reads_the_period_as_its_short_form",
+)
 def dec_compare_4() -> dict | None:
     """Rozwinięcie nieskończone (poziom 4)."""
     roll = random.random()
@@ -157,18 +203,24 @@ def dec_compare_4() -> dict | None:
             v1, v2 = v2, v1
 
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
-        c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
-        t2 = "="  # Trap (t2): znak równości przy nierównych liczbach
+        c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "compares_a_period_to_a_finite_decimal_by_first_digits": wrong_sign,
+                "reads_unequal_decimals_as_equal": "=",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t1=(
+                problem,
+                compares_a_period_to_a_finite_decimal_by_first_digits=(
                     "Okres rozwija się w nieskończoność — porównaj wartości dokładniej "
                     "niż tylko pierwsze cyfry po przecinku."
                 ),
-                t2=_MSG_NOT_EQUAL,
+                reads_unequal_decimals_as_equal=_MSG_NOT_EQUAL,
             )
     elif roll < 0.85:
         d1 = random.choice([3, 9])
@@ -185,15 +237,25 @@ def dec_compare_4() -> dict | None:
             v1, v2 = v2, v1
 
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
-        c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
-        t2 = "="  # Trap (t2): znak równości przy nierównych liczbach
+        c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "compares_two_periods_by_first_digits": wrong_sign,
+                "reads_different_periods_as_equal": "=",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t1="Porównaj wartości ułamków — różne okresy oznaczają różne liczby.",
-                t2="Gdy okresy są różne, liczby nie są równe — nie wybieraj znaku równości!",
+                problem,
+                compares_two_periods_by_first_digits=(
+                    "Porównaj wartości ułamków — różne okresy oznaczają różne liczby."
+                ),
+                reads_different_periods_as_equal=(
+                    "Gdy okresy są różne, liczby nie są równe — nie wybieraj znaku równości!"
+                ),
             )
     else:
         digit = random.randint(1, 8)
@@ -208,18 +270,24 @@ def dec_compare_4() -> dict | None:
             v1, v2 = v2, v1
 
         q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
-        c_str, t1 = ("<", ">") if v1 < v2 else (">", "<")
-        t2 = "="  # Trap (t2): znak równości przy nierównych liczbach
+        c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
-        result = build_problem_dict(q_str, c_str, t1=t1, t2=t2)
-        if result:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "treats_the_period_as_a_single_digit": wrong_sign,
+                "reads_the_period_as_its_short_form": "=",
+            },
+        )
+        if problem:
             return _with_messages(
-                result,
-                t1=(
+                problem,
+                treats_the_period_as_a_single_digit=(
                     "0,(…) rozwija się dalej niż pierwsza cyfra po przecinku — "
                     "porównaj pełne wartości."
                 ),
-                t2=(
+                reads_the_period_as_its_short_form=(
                     "Ułamek okresowy nie jest równy skróconemu zapisowi! "
                     f"Np. 0,({digit}) to 0,{digit}{digit}{digit}…, a nie 0,{digit}."
                 ),

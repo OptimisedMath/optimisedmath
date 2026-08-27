@@ -1,7 +1,16 @@
 import random
-from backend.core.utils import build_problem_dict, fmt_dec, format_answers
+from backend.core.utils import (
+    build_problem_dict,
+    declares_traps,
+    fmt_dec,
+    format_answers,
+)
 
 
+@declares_traps(
+    "adds_numerators_and_denominators",
+    "adds_numerators_without_scaling",
+)
 def dec_mix_1() -> dict | None:
     """Zwykłe dziesiętne jako ułamek (poziom 1)."""
     d = random.choice([2, 4, 5, 10])
@@ -17,21 +26,27 @@ def dec_mix_1() -> dict | None:
     c_den = d * d2
     c_str, _ = format_answers(c_num, c_den)
 
-    t1, _ = format_answers(n + n2, d + d2)
-    t2, _ = format_answers(n + n2, d * d2)
-    w1, _ = format_answers(c_num + 1, c_den)
+    both_summed, _ = format_answers(n + n2, d + d2)
+    numerators_summed, _ = format_answers(n + n2, d * d2)
+    one_too_many, _ = format_answers(c_num + 1, c_den)
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "adds_numerators_and_denominators": both_summed,
+            "adds_numerators_without_scaling": numerators_summed,
+        },
+        fillers=[one_too_many],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "adds_numerators_and_denominators",
+    "rounds_to_a_decimal_instead_of_an_exact_fraction",
+)
 def dec_mix_2() -> dict | None:
     """Ułamki w dzieleniu dziesiętnym (poziom 2)."""
     # Denominators that create infinite decimals (1/3, 1/6) forcing fraction math
@@ -48,23 +63,28 @@ def dec_mix_2() -> dict | None:
     c_den = d1 * d2
     c_str, _ = format_answers(c_num, c_den)
 
-    t1, _ = format_answers(n1 + n2, d1 + 10)
-    t2 = fmt_dec(
-        round(n1 / d1 + dec_val, 2)
-    )  # Trap (t2): Zsumowałeś ułamki w dziesiętnych bez wspólnego mianownika w postaci zw...
-    w1, _ = format_answers(c_num + 1, c_den)
+    both_summed, _ = format_answers(n1 + n2, d1 + 10)
+    one_too_many, _ = format_answers(c_num + 1, c_den)
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps={
+            "adds_numerators_and_denominators": both_summed,
+            "rounds_to_a_decimal_instead_of_an_exact_fraction": fmt_dec(
+                round(n1 / d1 + dec_val, 2)
+            ),
+        },
+        fillers=[one_too_many],
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
+@declares_traps(
+    "adds_numerators_instead_of_multiplying",
+    "multiplies_instead_of_dividing",
+)
 def dec_mix_3() -> dict | None:
     """Z nawiasami i różnymi typami (poziom 3)."""
     d1 = random.choice([3, 4, 5, 6, 7])
@@ -78,23 +98,24 @@ def dec_mix_3() -> dict | None:
         q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} \cdot {fmt_dec(dec_val)}"
         c_num = n1 * n2
         c_den = d1 * d2
-        t1, _ = format_answers(n1 + n2, d1 * d2)
+        wrong_rule, _ = format_answers(n1 + n2, d1 * d2)
+        traps = {"adds_numerators_instead_of_multiplying": wrong_rule}
     else:
         q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} : {fmt_dec(dec_val)}"
         c_num = n1 * d2
         c_den = d1 * n2
-        t1, _ = format_answers(n1 * n2, d1 * d2)
+        wrong_rule, _ = format_answers(n1 * n2, d1 * d2)
+        traps = {"multiplies_instead_of_dividing": wrong_rule}
 
     c_str, _ = format_answers(c_num, c_den)
-    t2, _ = format_answers(c_num + 1, c_den)
-    w1, _ = format_answers(c_num, c_den + 1)
+    numerator_off_by_one, _ = format_answers(c_num + 1, c_den)
+    denominator_off_by_one, _ = format_answers(c_num, c_den + 1)
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
-        t1=t1,
-        t2=t2,
-        w1=w1,
+        traps=traps,
+        fillers=[numerator_off_by_one, denominator_off_by_one],
     )
-    if result:
-        return result
+    if problem:
+        return problem

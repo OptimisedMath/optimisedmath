@@ -826,10 +826,17 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     branch_message = "branch-specific trap feedback"
 
     def fake_compare():
-        result = build_problem_dict(r"\text{q}", "<", t1=">", t2="=")
-        assert result is not None
-        result["messages"] = {"t1": branch_message}
-        return result
+        problem = build_problem_dict(
+            r"\text{q}",
+            "<",
+            traps={
+                "compares_by_the_lower_place_digit": ">",
+                "reads_unequal_decimals_as_equal": "=",
+            },
+        )
+        assert problem is not None
+        problem["messages"] = {"compares_by_the_lower_place_digit": branch_message}
+        return problem
 
     monkeypatch.setitem(
         problem_generation.FUNCTION_REGISTRY, "dec_compare_1", fake_compare
@@ -839,14 +846,14 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
     problem = problem_generation.generate_level_problem(resolve_curriculum(), 20, 20, 1)
     assert problem is not None
-    assert problem["messages"]["t1"] == branch_message
+    assert problem["messages"]["compares_by_the_lower_place_digit"] == branch_message
     assert (
-        problem["messages"]["t2"]
+        problem["messages"]["reads_unequal_decimals_as_equal"]
         == "Liczby nie są równe — nie wybieraj znaku równości!"
     )
 
     eval_result = grade(">", problem, is_input_mode=False)
-    assert eval_result.get("answer_outcome") == "t1"
+    assert eval_result.get("answer_outcome") == "compares_by_the_lower_place_digit"
     assert eval_result.get("feedback_msg") == branch_message
 
 

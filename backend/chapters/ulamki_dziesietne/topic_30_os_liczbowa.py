@@ -1,11 +1,17 @@
 import random
 from backend.core.utils import (
     build_problem_dict,
+    declares_traps,
     fmt_dec,
     generate_universal_number_line,
 )
 
 
+@declares_traps(
+    "assumes_a_hundredth_step",
+    "off_by_one_gap",
+    "counts_gaps_from_the_far_end",
+)
 def dec_number_line_1() -> dict | None:
     """Oś co 0.1 (poziom 1)."""
     # Level 1: Absolute basics. 10 ticks, whole numbers. Step is always 0.1.
@@ -20,19 +26,31 @@ def dec_number_line_1() -> dict | None:
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 1))
-    t1 = fmt_dec(round(base + target * 0.01, 2))  # Trap: Wrote 2.03 instead of 2.3
-    t2 = fmt_dec(round(c_val + step, 1))  # Trap: Off by one tick
-    w1_target = 10 - target if target != 5 else 6
-    w1 = fmt_dec(round(base + w1_target * step, 1))  # Trap: Counted from the right
+    hundredth_str = fmt_dec(round(base + target * 0.01, 2))
+    off_by_one_str = fmt_dec(round(c_val + step, 1))
+    far_end_target = 10 - target if target != 5 else 6
+    far_end_str = fmt_dec(round(base + far_end_target * step, 1))
 
-    if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(
-            q_str, c_str, t1=t1, t2=t2, w1=w1, image_html=svg_graphic
+    if len({c_str, hundredth_str, off_by_one_str, far_end_str}) == 4:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "assumes_a_hundredth_step": hundredth_str,
+                "off_by_one_gap": off_by_one_str,
+                "counts_gaps_from_the_far_end": far_end_str,
+            },
+            image_html=svg_graphic,
         )
-        if result:
-            return result
+        if problem:
+            return problem
 
 
+@declares_traps(
+    "assumes_a_ten_times_smaller_step",
+    "off_by_one_gap",
+    "counts_gaps_from_the_far_end",
+)
 def dec_number_line_2() -> dict | None:
     """Oś co 0.01 (poziom 2)."""
     # Level 2: 10 ticks, but with decimals (hundredths and thousandths). Step 0.01 or 0.001.
@@ -50,21 +68,31 @@ def dec_number_line_2() -> dict | None:
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 4))
-    t1 = fmt_dec(round(base + target * (step / 10), 5))  # Trap: Wrong magnitude
-    t2 = fmt_dec(
-        round(c_val + step, 4)
-    )  # Trap (t2): Pomyłka w wielkości skoku — to nie dziesiąte, tylko setne
-    w1_target = 10 - target if target != 5 else 6
-    w1 = fmt_dec(round(base + w1_target * step, 4))
+    smaller_step_str = fmt_dec(round(base + target * (step / 10), 5))
+    off_by_one_str = fmt_dec(round(c_val + step, 4))
+    far_end_target = 10 - target if target != 5 else 6
+    far_end_str = fmt_dec(round(base + far_end_target * step, 4))
 
-    if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(
-            q_str, c_str, t1=t1, t2=t2, w1=w1, image_html=svg_graphic
+    if len({c_str, smaller_step_str, off_by_one_str, far_end_str}) == 4:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "assumes_a_ten_times_smaller_step": smaller_step_str,
+                "off_by_one_gap": off_by_one_str,
+                "counts_gaps_from_the_far_end": far_end_str,
+            },
+            image_html=svg_graphic,
         )
-        if result:
-            return result
+        if problem:
+            return problem
 
 
+@declares_traps(
+    "assumes_a_tenth_step",
+    "off_by_one_gap",
+    "counts_gaps_from_the_far_end",
+)
 def dec_number_line_3() -> dict | None:
     """Oś co 0.2 lub podobne (poziom 3)."""
     # Level 3: Easy Scale Intro. 5 ticks, whole numbers. Step is 0.2.
@@ -80,21 +108,31 @@ def dec_number_line_3() -> dict | None:
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 1))
-    t1 = fmt_dec(round(base + target * 0.1, 1))  # Trap: Assumed default 0.1 step
-    t2 = fmt_dec(
-        round(c_val + step, 1)
-    )  # Trap (t2): Założyłeś skok 0,1 — najpierw oblicz szerokość przedziału i liczbę pod...
-    w1_target = ticks - target if ticks - target != target else target + 1
-    w1 = fmt_dec(round(base + w1_target * step, 1))
+    tenth_str = fmt_dec(round(base + target * 0.1, 1))
+    off_by_one_str = fmt_dec(round(c_val + step, 1))
+    far_end_target = ticks - target if ticks - target != target else target + 1
+    far_end_str = fmt_dec(round(base + far_end_target * step, 1))
 
-    if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(
-            q_str, c_str, t1=t1, t2=t2, w1=w1, image_html=svg_graphic
+    if len({c_str, tenth_str, off_by_one_str, far_end_str}) == 4:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "assumes_a_tenth_step": tenth_str,
+                "off_by_one_gap": off_by_one_str,
+                "counts_gaps_from_the_far_end": far_end_str,
+            },
+            image_html=svg_graphic,
         )
-        if result:
-            return result
+        if problem:
+            return problem
 
 
+@declares_traps(
+    "assumes_a_hundredth_step",
+    "off_by_one_gap",
+    "counts_gaps_from_the_far_end",
+)
 def dec_number_line_4() -> dict | None:
     """Duży odstęp (poziom 4)."""
     # Level 4: Advanced Scale. 4 or 5 ticks, decimal numbers.
@@ -113,21 +151,31 @@ def dec_number_line_4() -> dict | None:
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 3))
-    t1 = fmt_dec(round(base + target * 0.01, 3))  # Trap: Assumed default 0.01 step
-    t2 = fmt_dec(
-        round(c_val + step, 3)
-    )  # Trap (t2): Błąd w liczeniu skoków — o jeden przedział za mało lub za dużo
-    w1_target = ticks - target if ticks - target != target else target + 1
-    w1 = fmt_dec(round(base + w1_target * step, 3))
+    hundredth_str = fmt_dec(round(base + target * 0.01, 3))
+    off_by_one_str = fmt_dec(round(c_val + step, 3))
+    far_end_target = ticks - target if ticks - target != target else target + 1
+    far_end_str = fmt_dec(round(base + far_end_target * step, 3))
 
-    if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(
-            q_str, c_str, t1=t1, t2=t2, w1=w1, image_html=svg_graphic
+    if len({c_str, hundredth_str, off_by_one_str, far_end_str}) == 4:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "assumes_a_hundredth_step": hundredth_str,
+                "off_by_one_gap": off_by_one_str,
+                "counts_gaps_from_the_far_end": far_end_str,
+            },
+            image_html=svg_graphic,
         )
-        if result:
-            return result
+        if problem:
+            return problem
 
 
+@declares_traps(
+    "doubles_the_step_past_the_last_label",
+    "off_by_one_gap",
+    "doubles_the_whole_distance",
+)
 def dec_number_line_5() -> dict | None:
     """Duży odstęp cz. 2 (poziom 5)."""
     # Level 5: Extrapolation. 10 ticks, target is outside bounds.
@@ -148,24 +196,32 @@ def dec_number_line_5() -> dict | None:
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 3))
-    t1 = fmt_dec(  # Trap (t1): Najpierw policz odstępy, później odejmij skrajne wartości, na końcu po...
+    doubled_past_str = fmt_dec(
         round(base + idx2 * step + (target - idx2) * step * 2, 3)
-    )  # Miscalculated gap size
-    t2 = fmt_dec(
-        round(c_val + step, 3)
-    )  # Trap (t2): Zła kolejność — najpierw policz liczbę przerw, potem szerokość przedzi...
-    w1 = fmt_dec(
-        round(base + target * step * 2, 3)
-    )  # Added distance from 0 instead of idx1
+    )
+    off_by_one_str = fmt_dec(round(c_val + step, 3))
+    doubled_all_str = fmt_dec(round(base + target * step * 2, 3))
 
-    if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(
-            q_str, c_str, t1=t1, t2=t2, w1=w1, image_html=svg_graphic
+    if len({c_str, doubled_past_str, off_by_one_str, doubled_all_str}) == 4:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "doubles_the_step_past_the_last_label": doubled_past_str,
+                "off_by_one_gap": off_by_one_str,
+                "doubles_the_whole_distance": doubled_all_str,
+            },
+            image_html=svg_graphic,
         )
-        if result:
-            return result
+        if problem:
+            return problem
 
 
+@declares_traps(
+    "off_by_one_gap",
+    "assumes_a_tenth_step",
+    "off_by_one_gap_backwards",
+)
 def dec_number_line_6() -> dict | None:
     """Dziwne przedziały (poziom 6)."""
     # Level 6: Exam Boss. Scattered labels, calculate the step.
@@ -186,15 +242,20 @@ def dec_number_line_6() -> dict | None:
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
     c_str = fmt_dec(round(c_val, 3))
-    t1 = fmt_dec(round(c_val + step, 3))  # Trap (t1): To bardzo podstępna oś
-    t2 = fmt_dec(  # Trap (t2): Zgadłeś bez obliczenia wartości jednego skoku
-        round(base + idx1 * step + (target - idx1) * 0.1, 3)
-    )  # Default step trap
-    w1 = fmt_dec(round(c_val - step, 3))
+    off_by_one_str = fmt_dec(round(c_val + step, 3))
+    tenth_str = fmt_dec(round(base + idx1 * step + (target - idx1) * 0.1, 3))
+    backwards_str = fmt_dec(round(c_val - step, 3))
 
-    if len({c_str, t1, t2, w1}) == 4:
-        result = build_problem_dict(
-            q_str, c_str, t1=t1, t2=t2, w1=w1, image_html=svg_graphic
+    if len({c_str, off_by_one_str, tenth_str, backwards_str}) == 4:
+        problem = build_problem_dict(
+            q_str,
+            c_str,
+            traps={
+                "off_by_one_gap": off_by_one_str,
+                "assumes_a_tenth_step": tenth_str,
+                "off_by_one_gap_backwards": backwards_str,
+            },
+            image_html=svg_graphic,
         )
-        if result:
-            return result
+        if problem:
+            return problem
