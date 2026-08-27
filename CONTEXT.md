@@ -113,8 +113,8 @@ _Avoid_: exercise, item
 Mathematically right answer for this problem.
 
 **Trap**:
-An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error no walkthrough could address references none and is Wrong. An answer matching no Trap is Wrong too, but unanticipated.
-_Avoid_: distractor, diagnostic answer
+An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error is a slip rather than a believed rule references none, and still carries its own prose. An answer matching no Trap is Wrong too, but unanticipated.
+_Avoid_: distractor, diagnostic answer, wrong (a Trap may grade as Wrong; and w1/w2 were Fillers, never Traps)
 
 **Trap slug**:
 The name a Trap is known by within one generator — one slug per wrong rule the generator can compute, declared up front so a Level's authored prose can be checked against what its templates actually emit. Slugs are unique within a generator, not across the curriculum: the same wrong rule appearing in two generators may share a name without being the same Trap.
@@ -125,11 +125,11 @@ A wrong option that exists only to fill a radio button when a Level has fewer Tr
 _Avoid_: w1, w2 (positional slots), padding option
 
 **Misconception**:
-A named, recurring error in a Student's mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
+A wrong rule a Student believes and applies — a named, recurring error in their mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. The belief is what makes it a Misconception: an error with no false rule behind it, such as misreading a symbol or pairing the wrong operands, is a slip, and the Trap carrying it references no Misconception however reliably a walkthrough could correct it. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
 _Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)
 
 **Wrong**:
-An incorrect answer with no misconception behind it — usually a calculation slip, where the method was roughly right but the arithmetic failed. Generic feedback, not misconception-specific. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. A Wrong answer may still be an authored Trap: whether a person anticipated it and whether it maps to a Misconception are separate facts.
+An incorrect answer with no misconception behind it — a slip, where the Student's rules were sound but their execution was not: the arithmetic failed, a symbol was misread, or the wrong operands were paired. Feedback is generic where the answer was unanticipated, and the Trap's own prose where it was. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong is a grading outcome, not a category of authored answer: a Wrong answer is very often an authored Trap with its own prose, because whether a person anticipated it and whether it maps to a Misconception are separate facts.
 _Avoid_: w1, w2 (internal ids)
 
 **Problem fingerprint**:
@@ -141,7 +141,7 @@ The answer could not be read as a maths expression, or used a notation the Probl
 _Avoid_: format error
 
 **Answer Outcome**:
-Which of the above one Submission landed in — what the grader returns alongside its feedback, and what telemetry groups attempts by. Two independent facts: whether a person anticipated the answer (Trap or Wrong), and, separately, which Misconception it maps to, if any. Correct answers have neither.
+Which of the above one Submission landed in — what the grader returns alongside its feedback. Telemetry records it alongside two further independent facts about the same attempt: which Misconception it maps to, if any, and, for a Trap, its Trap slug. Correct answers have none of the three.
 _Avoid_: trap_id, error code, result
 
 ## Session
