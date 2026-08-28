@@ -834,6 +834,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
                 "compares_by_the_lower_place_digit": ">",
                 "reads_unequal_decimals_as_equal": "=",
             },
+            parameters={},
         )
         assert problem is not None
         problem["messages"] = {"compares_by_the_lower_place_digit": branch_message}

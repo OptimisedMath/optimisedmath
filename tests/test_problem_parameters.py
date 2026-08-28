@@ -1,12 +1,12 @@
-"""Every Ułamki zwykłe generator must supply `parameters` to `build_problem_dict`.
+"""Every generator in the curriculum must supply non-empty `parameters`.
 
 A generator picks its template with `random.choice`, so no single call proves every
 branch supplies `parameters` — the same sweep shape as `test_trap_slugs.py`. Running
 each generator many times does: over enough rolls every template fires, and every
 emitted Problem must carry a non-empty `parameters` dict.
 
-Scoped to `backend/chapters/ulamki_zwykle/` — the other chapter migrates on its own
-ticket and is untouched here.
+One sweep over the whole curriculum, not one per chapter — `build_problem_dict` makes
+`parameters` a required argument, so this is the guarantee's only test.
 """
 
 import pytest
@@ -15,21 +15,9 @@ from backend.problem_generation import FUNCTION_REGISTRY
 
 ROLLS = 500
 
-CHAPTER_MODULE_PREFIX = "backend.chapters.ulamki_zwykle"
 
-CHAPTER_GENERATOR_NAMES = sorted(
-    name
-    for name, func in FUNCTION_REGISTRY.items()
-    if func.__module__.startswith(CHAPTER_MODULE_PREFIX)
-)
-
-
-def test_chapter_has_generators_to_sweep():
-    assert CHAPTER_GENERATOR_NAMES
-
-
-@pytest.mark.parametrize("name", CHAPTER_GENERATOR_NAMES)
-def test_generator_always_supplies_parameters(name):
+@pytest.mark.parametrize("name", sorted(FUNCTION_REGISTRY))
+def test_generator_always_supplies_non_empty_parameters(name):
     generator = FUNCTION_REGISTRY[name]
 
     for _ in range(ROLLS):

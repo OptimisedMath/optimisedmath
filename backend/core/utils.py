@@ -94,11 +94,12 @@ def declared_trap_slugs(func: Any) -> frozenset[str]:
 def build_problem_dict(
     q_str: str,
     c_str: str,
+    *,
+    parameters: dict[str, int | float | str],
     traps: dict[str, str | None] | None = None,
     fillers: list[str | None] | None = None,
     grading_policy: str = "standard",
     image_html: str | None = None,
-    parameters: dict[str, int | float | str] | None = None,
 ) -> ProblemDict | None:
     """Build the canonical problem dict with options, options_map, and grading_policy.
 
@@ -107,8 +108,8 @@ def build_problem_dict(
     offer a Trap conditionally. Returns None when two options collide.
 
     `parameters` is the structured values the Problem was generated from, keyed by the
-    generator's own operand names, for a future Deconstruction walkthrough to consume.
-    Omitted when a generator does not supply it.
+    generator's own operand names, for a Deconstruction walkthrough to consume. Required
+    on every call — a generator that omits it fails at call time, not silently.
     """
     option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
     option_entries += [(value, slug) for slug, value in (traps or {}).items()]
@@ -139,8 +140,7 @@ def build_problem_dict(
         "options_map": options_map,
         "grading_policy": grading_policy,
     }
-    if parameters is not None:
-        problem["parameters"] = parameters
+    problem["parameters"] = parameters
     return problem
 
 
