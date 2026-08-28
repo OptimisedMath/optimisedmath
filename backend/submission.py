@@ -107,7 +107,7 @@ def _log_submission_telemetry(
         misconception_slug=misconception_slug,
         trap_slug=trap_slug,
         time_spent_seconds=time_spent,
-        equation_state=_sanitize_problem_for_telemetry(problem),
+        problem_snapshot=_sanitize_problem_for_telemetry(problem),
         problem_id=problem.get("problem_id"),
     )
 
