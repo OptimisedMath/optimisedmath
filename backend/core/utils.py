@@ -139,8 +139,8 @@ def build_problem_dict(
         "options": options,
         "options_map": options_map,
         "grading_policy": grading_policy,
+        "parameters": parameters,
     }
-    problem["parameters"] = parameters
     return problem
 
 
