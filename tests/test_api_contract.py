@@ -1078,8 +1078,8 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
     assert row == ("trap", None, "w1", "p-unmapped-trap")
 
 
-def test_filler_submission_writes_null_misconception_and_slug():
-    """Issue #188: a Filler writes filler + NULL misconception_slug + NULL trap_slug."""
+def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
+    """Issue #215: a Filler pick collapses into wrong + NULL misconception_slug + NULL trap_slug."""
     problem = {
         "problem_id": "p-filler",
         "question": "q",
@@ -1101,7 +1101,7 @@ def test_filler_submission_writes_null_misconception_and_slug():
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("filler", None, None, "p-filler")
+    assert row == ("wrong", None, None, "p-filler")
 
 
 def test_telemetry_problem_id_column_is_indexed():
