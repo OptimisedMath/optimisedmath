@@ -74,6 +74,7 @@ def init_db() -> None:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        _drop_stale_telemetry_table(cursor)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,10 +86,13 @@ def init_db() -> None:
                 level_number INTEGER NOT NULL,
                 is_input_mode BOOLEAN NOT NULL,
                 answer_outcome TEXT,
+                misconception_id TEXT,
+                trap_slug TEXT,
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
                 time_spent_seconds INTEGER,
                 equation_state TEXT,
+                problem_id TEXT,
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         """)
@@ -101,17 +105,26 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_logs(timestamp)"
         )
-        _migrate_telemetry_input_mode_column(cursor)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
+        )
         conn.commit()
 
 
-def _migrate_telemetry_input_mode_column(cursor: sqlite3.Cursor) -> None:
-    """Rename legacy is_text_mode telemetry column to is_input_mode."""
+def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
+    """Drop telemetry_logs if it predates the misconception_id/trap_slug/problem_id columns.
+
+    Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
+    """
+    table_exists = cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
+    ).fetchone()
+    if not table_exists:
+        return
     columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    if "is_text_mode" in columns and "is_input_mode" not in columns:
-        cursor.execute(
-            "ALTER TABLE telemetry_logs RENAME COLUMN is_text_mode TO is_input_mode"
-        )
+    required = {"misconception_id", "trap_slug", "problem_id"}
+    if not required.issubset(columns):
+        cursor.execute("DROP TABLE telemetry_logs")
 
 
 # --- Sessions ---
@@ -247,8 +260,11 @@ def log_telemetry(
     is_correct: bool,
     user_input: str | None = None,
     answer_outcome: str | None = None,
+    misconception_id: str | None = None,
+    trap_slug: str | None = None,
     time_spent_seconds: int | None = None,
     equation_state: str | None = None,
+    problem_id: str | None = None,
 ) -> None:
     """Record one answer attempt for analytics and debugging."""
     with get_connection() as conn:
@@ -257,8 +273,9 @@ def log_telemetry(
             """
             INSERT INTO telemetry_logs (
                 session_id, username, chapter, topic, level_number, is_input_mode,
-                answer_outcome, is_correct, user_input, time_spent_seconds, equation_state
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                answer_outcome, misconception_id, trap_slug, is_correct, user_input,
+                time_spent_seconds, equation_state, problem_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 session_id,
@@ -268,10 +285,13 @@ def log_telemetry(
                 level_number,
                 is_input_mode,
                 answer_outcome,
+                misconception_id,
+                trap_slug,
                 is_correct,
                 str(user_input) if user_input is not None else None,
                 time_spent_seconds,
                 equation_state,
+                problem_id,
             ),
         )
         conn.commit()

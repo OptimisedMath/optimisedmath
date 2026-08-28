@@ -854,7 +854,8 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     )
 
     eval_result = grade(">", problem, is_input_mode=False)
-    assert eval_result.get("answer_outcome") == "compares_by_the_lower_place_digit"
+    assert eval_result.get("answer_outcome") == "trap"
+    assert eval_result.get("trap_slug") == "compares_by_the_lower_place_digit"
     assert eval_result.get("feedback_msg") == branch_message
 
 
@@ -989,3 +990,128 @@ def test_submission_telemetry_records_parameters_when_present():
     assert row[0] is not None
     equation_state = json.loads(row[0])
     assert equation_state["parameters"] == {"n": 1, "d": 2, "op": "+"}
+
+
+def _fetch_last_telemetry_row(session_id):
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        return conn.execute(
+            """
+            SELECT answer_outcome, misconception_id, trap_slug, problem_id
+            FROM telemetry_logs
+            WHERE session_id = ?
+            ORDER BY log_id DESC
+            LIMIT 1
+            """,
+            (session_id,),
+        ).fetchone()
+
+
+def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatch):
+    """Issue #188: a Trap whose slug maps to the catalogue writes trap + both new columns."""
+    import dataclasses
+
+    from backend.curriculum import Curriculum
+
+    original_level_config = Curriculum.level_config
+
+    def fake_level_config(self, chapter_id, topic_id, level):
+        config = original_level_config(self, chapter_id, topic_id, level)
+        if config is None:
+            return config
+        return dataclasses.replace(
+            config,
+            trap_misconceptions={
+                **config.trap_misconceptions,
+                "w1": "test_misconception",
+            },
+        )
+
+    monkeypatch.setattr(Curriculum, "level_config", fake_level_config)
+
+    problem = {
+        "problem_id": "p-mapped-trap",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+    }
+    state = make_state(problem, input_mode="radio")
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-mapped-trap",
+                user_input="3",
+            )
+        )
+    )
+
+    row = _fetch_last_telemetry_row(state.session_id)
+    assert row == ("trap", "test_misconception", "w1", "p-mapped-trap")
+
+
+def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
+    """Issue #188: a Trap whose slug is un-mapped writes trap + trap_slug + NULL misconception_id."""
+    problem = {
+        "problem_id": "p-unmapped-trap",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {"w1": "Try again"},
+    }
+    state = make_state(problem, input_mode="radio")
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-unmapped-trap",
+                user_input="3",
+            )
+        )
+    )
+
+    row = _fetch_last_telemetry_row(state.session_id)
+    assert row == ("trap", None, "w1", "p-unmapped-trap")
+
+
+def test_filler_submission_writes_null_misconception_and_slug():
+    """Issue #188: a Filler writes filler + NULL misconception_id + NULL trap_slug."""
+    problem = {
+        "problem_id": "p-filler",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3", "4"],
+        "options_map": {"2": "correct", "3": "w1", "4": "filler"},
+        "messages": {"w1": "Try again", "filler": "Nope"},
+    }
+    state = make_state(problem, input_mode="radio")
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-filler",
+                user_input="4",
+            )
+        )
+    )
+
+    row = _fetch_last_telemetry_row(state.session_id)
+    assert row == ("filler", None, None, "p-filler")
+
+
+def test_telemetry_problem_id_column_is_indexed():
+    """Issue #188: problem_id is present on telemetry rows and is indexed."""
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        indexes = {row[1] for row in conn.execute("PRAGMA index_list(telemetry_logs)")}
+        index_columns = set()
+        for index_name in indexes:
+            index_columns.update(
+                row[2] for row in conn.execute(f"PRAGMA index_info({index_name})")
+            )
+
+    assert "problem_id" in index_columns

@@ -3,7 +3,6 @@
 import pytest
 
 from backend.answer_grading import grade
-from backend.core.utils import FILLER_SLUG
 from backend.problem_generation import (
     GeneratorRegistryError,
     ProblemGenerationError,
@@ -65,12 +64,14 @@ class TestMultipleChoiceGrading:
     def test_trap_answer(self):
         result = grade(r"\frac{2}{4}", _sample_problem(), is_input_mode=False)
         assert "is_correct" not in result
-        assert result["answer_outcome"] == "t1"
+        assert result["answer_outcome"] == "trap"
+        assert result["trap_slug"] == "t1"
         assert result["feedback_msg"] == "Trap one"
 
     def test_wrong_answer(self):
         result = grade("2", _sample_problem(), is_input_mode=False)
-        assert result["answer_outcome"] == "w1"
+        assert result["answer_outcome"] == "trap"
+        assert result["trap_slug"] == "w1"
         assert result["feedback_msg"] == "Wrong one"
 
 
@@ -128,20 +129,22 @@ class TestTextGrading:
             grading_policy="exact_match_only",
         )
         result = grade("9/21", problem, is_input_mode=True)
-        assert result["answer_outcome"] == "t1"
+        assert result["answer_outcome"] == "trap"
+        assert result["trap_slug"] == "t1"
         assert result["feedback_msg"] == "Partially simplified trap"
         assert "is_correct" not in result
 
     def test_text_trap_match(self):
         problem = _sample_problem(correct="1")
         result = grade("2", problem, is_input_mode=True)
-        assert result["answer_outcome"] == "w1"
+        assert result["answer_outcome"] == "trap"
+        assert result["trap_slug"] == "w1"
 
     def test_missing_options_map_does_not_crash(self):
         problem = _sample_problem()
         del problem["options_map"]
         result = grade("9", problem, is_input_mode=True)
-        assert result["answer_outcome"] == FILLER_SLUG
+        assert result["answer_outcome"] == "wrong"
 
 
 class TestFormatMismatch:
