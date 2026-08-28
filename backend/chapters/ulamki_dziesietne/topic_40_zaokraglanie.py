@@ -19,6 +19,7 @@ def dec_round_1() -> dict | None:
             "leaves_the_number_unrounded": fmt_dec(v),
         },
         fillers=[str(int(v) + 2) if round(v) > v else str(max(0, int(v) - 1))],
+        parameters={"v": v},
     )
     if problem:
         return problem
@@ -47,6 +48,7 @@ def dec_round_2() -> dict | None:
             "rounds_to_the_wrong_place": str(round(v)),
         },
         fillers=[fmt_dec(round(v + 0.1, 1))],
+        parameters={"v": v},
     )
     if problem:
         return problem
@@ -61,7 +63,8 @@ def dec_round_3() -> dict | None:
     """Zdradliwa dziewiątka (poziom 3)."""
     whole = random.randint(1, 8)
     # Force a number like 2.96, 2.97, 2.98
-    v = whole + random.choice([95, 96, 97, 98, 99]) / 100
+    hundredths = random.choice([95, 96, 97, 98, 99])
+    v = whole + hundredths / 100
     q_str = rf"\text{{Zaokrąglij do części dziesiątych: }} {fmt_dec(v)}"
 
     c_str = f"{whole + 1},0"
@@ -76,6 +79,7 @@ def dec_round_3() -> dict | None:
             "writes_ten_in_the_tenths_place": f"{whole},10",
         },
         grading_policy="exact_match_only",
+        parameters={"whole": whole, "hundredths": hundredths},
     )
     if problem:
         return problem

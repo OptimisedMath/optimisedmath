@@ -30,6 +30,7 @@ def dec_sub_1() -> dict | None:
             fmt_dec(round(v1 - v2 + 0.1, 2)),
             fmt_dec(round(v1 - v2 - 0.1, 2)),
         ],
+        parameters={"v1": v1, "v2": v2},
     )
     if problem:
         return problem
@@ -59,6 +60,7 @@ def dec_sub_2() -> dict | None:
             ),
         },
         fillers=[fmt_dec(round(v1 - v2 + 1, 2))],
+        parameters={"v1": v1, "v2": v2},
     )
 
     if problem:
@@ -95,6 +97,7 @@ def dec_sub_3() -> dict | None:
             "borrows_over_zero_incorrectly": fmt_dec(round(v1 - v2 - 0.4, 2)),
             "off_by_one_tenth_when_borrowing": fmt_dec(round(v1 - v2 + 0.1, 2)),
         },
+        parameters={"v1": v1, "v2": v2},
     )
     if problem:
         return problem

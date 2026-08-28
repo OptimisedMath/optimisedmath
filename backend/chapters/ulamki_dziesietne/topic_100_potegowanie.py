@@ -22,6 +22,7 @@ def dec_pow_1() -> dict | None:
             "ignores_the_point_before_squaring": fmt_dec(round(v * 10) ** 2),
             "one_hundredth_too_large": fmt_dec(round(v**2 + 0.01, 2)),
         },
+        parameters={"v": v},
     )
     if problem:
         return problem
