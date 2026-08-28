@@ -74,16 +74,16 @@ def grade(
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
 
-        msg_key = options_map.get(user_input, FILLER_SLUG)
+        msg_key = options_map.get(user_input)
         msg_text = problem.get("messages", {}).get(
-            msg_key, "Niepoprawna odpowiedź, spróbuj ponownie."
+            msg_key or FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
         )
-        if msg_key == FILLER_SLUG:
-            outcome = FILLER_SLUG
-        elif user_input in options_map:
-            outcome = "trap"
-        else:
+        if msg_key is None:
             outcome = "wrong"
+        elif msg_key == FILLER_SLUG:
+            outcome = FILLER_SLUG
+        else:
+            outcome = "trap"
         eval_outcome: EvalResult = {
             "lock_answer": True,
             "feedback_type": "warning",

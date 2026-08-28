@@ -74,6 +74,12 @@ class TestMultipleChoiceGrading:
         assert result["trap_slug"] == "w1"
         assert result["feedback_msg"] == "Wrong one"
 
+    def test_unanticipated_answer_not_in_options_map(self):
+        """An option absent from options_map is unanticipated: Wrong, not Filler."""
+        result = grade("not-an-option", _sample_problem(), is_input_mode=False)
+        assert result["answer_outcome"] == "wrong"
+        assert "trap_slug" not in result
+
 
 class TestTextGrading:
     def test_exact_text_match(self):
