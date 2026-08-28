@@ -114,7 +114,7 @@ Mathematically right answer for this problem.
 
 **Trap**:
 An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error is a slip rather than a believed rule references none, and still carries its own prose. An answer matching no Trap is Wrong too, but unanticipated.
-_Avoid_: distractor, diagnostic answer, wrong (a Trap may grade as Wrong; and w1/w2 were Fillers, never Traps)
+_Avoid_: distractor, diagnostic answer, "wrong" as a Trap's identity (a Trap may grade as Wrong; and w1/w2 were Fillers, never Traps)
 
 **Trap slug**:
 The name a Trap is known by within one generator — one slug per wrong rule the generator can compute, declared up front so a Level's authored prose can be checked against what its templates actually emit. Slugs are unique within a generator, not across the curriculum: the same wrong rule appearing in two generators may share a name without being the same Trap.
