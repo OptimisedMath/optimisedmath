@@ -128,6 +128,10 @@ _Avoid_: w1, w2 (positional slots), padding option
 A wrong rule a Student believes and applies — a named, recurring error in their mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. The belief is what makes it a Misconception: an error with no false rule behind it, such as misreading a symbol or pairing the wrong operands, is a slip, and the Trap carrying it references no Misconception however reliably a walkthrough could correct it. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
 _Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)
 
+**Misconception slug**:
+The name a Misconception is known by in the catalogue — the English key under which it is authored in the global misconceptions list, referenced by every Trap that maps to it. Not a database primary key or a number: it is a stable, human-readable identity, the same way a Trap slug names a Trap. Telemetry records it alongside a Trap's own Trap slug when the Trap maps to one.
+_Avoid_: misconception_id, misconception number
+
 **Wrong**:
 An incorrect answer with no misconception behind it — a slip, where the Student's rules were sound but their execution was not: the arithmetic failed, a symbol was misread, or the wrong operands were paired. Feedback is generic where the answer was unanticipated, and the Trap's own prose where it was. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong is a grading outcome, not a category of authored answer: a Wrong answer is very often an authored Trap with its own prose, because whether a person anticipated it and whether it maps to a Misconception are separate facts.
 _Avoid_: w1, w2 (internal ids)
@@ -141,8 +145,8 @@ The answer could not be read as a maths expression, or used a notation the Probl
 _Avoid_: format error
 
 **Answer Outcome**:
-Which of the above one Submission landed in — what the grader returns alongside its feedback. Telemetry records it alongside two further independent facts about the same attempt: which Misconception it maps to, if any, and, for a Trap, its Trap slug. Correct answers have none of the three.
-_Avoid_: trap_id, error code, result
+Which of the above one Submission landed in — what the grader returns alongside its feedback. Telemetry records it alongside two further independent facts about the same attempt: which Misconception it maps to, if any, by Misconception slug, and, for a Trap, its Trap slug. Correct answers have none of the three.
+_Avoid_: trap_id, misconception_id, error code, result
 
 ## Session
 

@@ -19,6 +19,7 @@ class EvalResult(TypedDict, total=False):
     feedback_type: str
     feedback_msg: str
     answer_outcome: str
+    trap_slug: str
 
 
 def _match_trap_feedback(
@@ -41,7 +42,8 @@ def _match_trap_feedback(
                 "lock_answer": True,
                 "feedback_type": "warning",
                 "feedback_msg": msg_text,
-                "answer_outcome": opt_type,
+                "answer_outcome": "trap",
+                "trap_slug": opt_type,
             }
     return None
 
@@ -72,16 +74,25 @@ def grade(
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
 
-        msg_key = options_map.get(user_input, FILLER_SLUG)
+        msg_key = options_map.get(user_input)
         msg_text = problem.get("messages", {}).get(
-            msg_key, "Niepoprawna odpowiedź, spróbuj ponownie."
+            msg_key or FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
         )
-        return {
+        if msg_key is None:
+            outcome = "wrong"
+        elif msg_key == FILLER_SLUG:
+            outcome = FILLER_SLUG
+        else:
+            outcome = "trap"
+        eval_outcome: EvalResult = {
             "lock_answer": True,
             "feedback_type": "warning",
             "feedback_msg": msg_text,
-            "answer_outcome": msg_key,
+            "answer_outcome": outcome,
         }
+        if outcome == "trap":
+            eval_outcome["trap_slug"] = msg_key
+        return eval_outcome
 
     # --- 2. TEXT INPUT MODE ---
     policy = problem.get("grading_policy", "standard")
@@ -141,5 +152,5 @@ def grade(
         "lock_answer": True,
         "feedback_type": "warning",
         "feedback_msg": msg_text,
-        "answer_outcome": FILLER_SLUG,
+        "answer_outcome": "wrong",
     }

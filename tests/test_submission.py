@@ -36,7 +36,6 @@ _TELEMETRY_STRIP_KEYS = frozenset(
         "level",
         "level_name",
         "level_display",
-        "problem_id",
     }
 )
 
@@ -69,6 +68,8 @@ class ExpectedTelemetry:
     level_number: int
     is_input_mode: bool
     answer_outcome: str | None = None
+    misconception_slug: str | None = None
+    trap_slug: str | None = None
 
 
 def _fresh_state(
@@ -235,7 +236,8 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
         row = conn.execute(
             """
             SELECT equation_state, is_correct, user_input, chapter, topic,
-                   level_number, is_input_mode, answer_outcome
+                   level_number, is_input_mode, answer_outcome, misconception_slug,
+                   trap_slug
             FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
@@ -281,6 +283,8 @@ def _assert_telemetry(
     assert row[5] == expected.level_number
     assert row[6] == (1 if expected.is_input_mode else 0)
     assert row[7] == expected.answer_outcome
+    assert row[8] == expected.misconception_slug
+    assert row[9] == expected.trap_slug
 
 
 def _assert_admin_profile_unchanged(
@@ -412,7 +416,8 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
             topic="Multi Level Topic",
             level_number=1,
             is_input_mode=False,
-            answer_outcome="w1",
+            answer_outcome="trap",
+            trap_slug="w1",
         ),
     )
 
@@ -500,7 +505,8 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
             topic="Multi Level Topic",
             level_number=1,
             is_input_mode=True,
-            answer_outcome="t1",
+            answer_outcome="trap",
+            trap_slug="t1",
         ),
     )
 
@@ -708,7 +714,8 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
             topic="Multi Level Topic",
             level_number=2,
             is_input_mode=False,
-            answer_outcome="w1",
+            answer_outcome="trap",
+            trap_slug="w1",
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)
