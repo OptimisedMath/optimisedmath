@@ -195,7 +195,7 @@ def test_log_telemetry_persists_entry():
         user_input="1/2",
         answer_outcome="t1",
         time_spent_seconds=15,
-        equation_state="1/4 + 1/4",
+        problem_snapshot="1/4 + 1/4",
     )
 
     with db.get_connection() as conn:

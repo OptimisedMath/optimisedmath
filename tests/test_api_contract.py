@@ -953,7 +953,7 @@ def test_parameters_never_reaches_public_problem_payload():
 
 
 def test_submission_telemetry_records_parameters_when_present():
-    """Issue #189: `parameters` rides through equation_state, which strips nothing new."""
+    """Issue #189: `parameters` rides through problem_snapshot, which strips nothing new."""
     problem = {
         "problem_id": "p-parameters-telemetry",
         "question": "q",
@@ -978,7 +978,7 @@ def test_submission_telemetry_records_parameters_when_present():
     with sqlite3.connect(main.db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT equation_state FROM telemetry_logs
+            SELECT problem_snapshot FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
             LIMIT 1
@@ -988,8 +988,8 @@ def test_submission_telemetry_records_parameters_when_present():
 
     assert row is not None
     assert row[0] is not None
-    equation_state = json.loads(row[0])
-    assert equation_state["parameters"] == {"n": 1, "d": 2, "op": "+"}
+    problem_snapshot = json.loads(row[0])
+    assert problem_snapshot["parameters"] == {"n": 1, "d": 2, "op": "+"}
 
 
 def _fetch_last_telemetry_row(session_id):

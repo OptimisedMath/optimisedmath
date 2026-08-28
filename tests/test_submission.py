@@ -235,7 +235,7 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
     with sqlite3.connect(db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT equation_state, is_correct, user_input, chapter, topic,
+            SELECT problem_snapshot, is_correct, user_input, chapter, topic,
                    level_number, is_input_mode, answer_outcome, misconception_slug,
                    trap_slug
             FROM telemetry_logs

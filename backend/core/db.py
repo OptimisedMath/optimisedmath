@@ -91,7 +91,7 @@ def init_db() -> None:
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
                 time_spent_seconds INTEGER,
-                equation_state TEXT,
+                problem_snapshot TEXT,
                 problem_id TEXT,
                 FOREIGN KEY (username) REFERENCES users(username)
             )
@@ -112,7 +112,8 @@ def init_db() -> None:
 
 
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id columns.
+    """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id/
+    problem_snapshot columns.
 
     Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
     """
@@ -122,7 +123,7 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    required = {"misconception_slug", "trap_slug", "problem_id"}
+    required = {"misconception_slug", "trap_slug", "problem_id", "problem_snapshot"}
     if not required.issubset(columns):
         cursor.execute("DROP TABLE telemetry_logs")
 
@@ -263,7 +264,7 @@ def log_telemetry(
     misconception_slug: str | None = None,
     trap_slug: str | None = None,
     time_spent_seconds: int | None = None,
-    equation_state: str | None = None,
+    problem_snapshot: str | None = None,
     problem_id: str | None = None,
 ) -> None:
     """Record one answer attempt for analytics and debugging."""
@@ -274,7 +275,7 @@ def log_telemetry(
             INSERT INTO telemetry_logs (
                 session_id, username, chapter, topic, level_number, is_input_mode,
                 answer_outcome, misconception_slug, trap_slug, is_correct, user_input,
-                time_spent_seconds, equation_state, problem_id
+                time_spent_seconds, problem_snapshot, problem_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
@@ -290,7 +291,7 @@ def log_telemetry(
                 is_correct,
                 str(user_input) if user_input is not None else None,
                 time_spent_seconds,
-                equation_state,
+                problem_snapshot,
                 problem_id,
             ),
         )
