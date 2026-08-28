@@ -996,7 +996,7 @@ def _fetch_last_telemetry_row(session_id):
     with sqlite3.connect(main.db.DB_PATH) as conn:
         return conn.execute(
             """
-            SELECT answer_outcome, misconception_id, trap_slug, problem_id
+            SELECT answer_outcome, misconception_slug, trap_slug, problem_id
             FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
@@ -1053,7 +1053,7 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
 
 
 def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
-    """Issue #188: a Trap whose slug is un-mapped writes trap + trap_slug + NULL misconception_id."""
+    """Issue #188: a Trap whose slug is un-mapped writes trap + trap_slug + NULL misconception_slug."""
     problem = {
         "problem_id": "p-unmapped-trap",
         "question": "q",
@@ -1079,7 +1079,7 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
 
 
 def test_filler_submission_writes_null_misconception_and_slug():
-    """Issue #188: a Filler writes filler + NULL misconception_id + NULL trap_slug."""
+    """Issue #188: a Filler writes filler + NULL misconception_slug + NULL trap_slug."""
     problem = {
         "problem_id": "p-filler",
         "question": "q",

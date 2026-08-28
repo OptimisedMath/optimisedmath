@@ -68,7 +68,7 @@ class ExpectedTelemetry:
     level_number: int
     is_input_mode: bool
     answer_outcome: str | None = None
-    misconception_id: str | None = None
+    misconception_slug: str | None = None
     trap_slug: str | None = None
 
 
@@ -236,7 +236,7 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
         row = conn.execute(
             """
             SELECT equation_state, is_correct, user_input, chapter, topic,
-                   level_number, is_input_mode, answer_outcome, misconception_id,
+                   level_number, is_input_mode, answer_outcome, misconception_slug,
                    trap_slug
             FROM telemetry_logs
             WHERE session_id = ?
@@ -283,7 +283,7 @@ def _assert_telemetry(
     assert row[5] == expected.level_number
     assert row[6] == (1 if expected.is_input_mode else 0)
     assert row[7] == expected.answer_outcome
-    assert row[8] == expected.misconception_id
+    assert row[8] == expected.misconception_slug
     assert row[9] == expected.trap_slug
 
 

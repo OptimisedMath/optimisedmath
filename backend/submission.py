@@ -86,13 +86,13 @@ def _log_submission_telemetry(
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
     trap_slug = eval_result.get("trap_slug")
-    misconception_id = None
+    misconception_slug = None
     if trap_slug is not None:
         level_config = curriculum.level_config(
             chapter_id, topic_id, state.selected_level
         )
         if level_config is not None:
-            misconception_id = level_config.trap_misconceptions.get(trap_slug)
+            misconception_slug = level_config.trap_misconceptions.get(trap_slug)
 
     db.log_telemetry(
         session_id=state.session_id,
@@ -104,7 +104,7 @@ def _log_submission_telemetry(
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_outcome=eval_result.get("answer_outcome"),
-        misconception_id=misconception_id,
+        misconception_slug=misconception_slug,
         trap_slug=trap_slug,
         time_spent_seconds=time_spent,
         equation_state=_sanitize_problem_for_telemetry(problem),
