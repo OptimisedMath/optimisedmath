@@ -38,6 +38,7 @@ def dec_mix_1() -> dict | None:
             "adds_numerators_without_scaling": numerators_summed,
         },
         fillers=[one_too_many],
+        parameters={"n": n, "d": d, "n2": n2, "d2": d2},
     )
     if problem:
         return problem
@@ -76,6 +77,7 @@ def dec_mix_2() -> dict | None:
             ),
         },
         fillers=[one_too_many],
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if problem:
         return problem
@@ -116,6 +118,7 @@ def dec_mix_3() -> dict | None:
         c_str,
         traps=traps,
         fillers=[numerator_off_by_one, denominator_off_by_one],
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if problem:
         return problem

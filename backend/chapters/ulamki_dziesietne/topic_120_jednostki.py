@@ -28,6 +28,7 @@ def dec_unit_1() -> dict | None:
             "multiplies_instead_of_dividing": fmt_dec(round(v * factor, 2)),
             "divides_by_one_power_too_many": fmt_dec(round(v / (factor * 10), 4)),
         },
+        parameters={"v": v, "unit_in": unit_in, "unit_out": unit_out, "factor": factor},
     )
     if problem:
         return problem
@@ -57,6 +58,7 @@ def dec_unit_2() -> dict | None:
             "divides_by_one_power_too_many": fmt_dec(round(v / (factor * 10), 4)),
             "divides_by_one_power_too_few": fmt_dec(round(v / (factor / 10), 4)),
         },
+        parameters={"v": v, "unit_in": unit_in, "unit_out": unit_out, "factor": factor},
     )
 
     if problem:
@@ -86,6 +88,7 @@ def dec_unit_3() -> dict | None:
             "writes_grosze_as_tens_of_grosze": f"{zl},{ones_digit}0",
         },
         fillers=[fmt_dec(zl + ((gr + 1) / 100))],
+        parameters={"zl": zl, "gr": gr},
     )
     if problem:
         return problem

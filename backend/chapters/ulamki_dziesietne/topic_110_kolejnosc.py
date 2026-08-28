@@ -67,6 +67,7 @@ def dec_order_1() -> dict | None:
             q,
             fmt_dec(ans),
             traps={slug: fmt_dec(value) for slug, value in traps.items()},
+            parameters={"a": a, "b": b, "c": c},
         )
 
         # If the dictionary built successfully (no collisions), return it.
@@ -146,6 +147,7 @@ def dec_order_2() -> dict | None:
             q,
             fmt_dec(ans),
             traps={slug: fmt_dec(value) for slug, value in traps.items()},
+            parameters={"a": a, "b": b, "c": c},
         )
 
         if problem is not None:
@@ -172,6 +174,7 @@ def dec_order_3() -> dict | None:
     # Poziom 3: Potęgowanie + Podstawy (4 wariacje)
     template = random.choice(["pow_add", "add_pow", "sub_pow", "pow_mul"])
 
+    parameters = {}
     if template == "pow_add":
         a, b, c = [round(random.randint(2, 5) * 0.1, 1) for _ in range(3)]
         q = f"{fmt_dec(a)}^2 + {fmt_dec(b)} \\cdot {fmt_dec(c)}"
@@ -181,6 +184,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": (a * 2) + (b * c),
             "ignores_the_exponent": a + (b * c),
         }
+        parameters = {"a": a, "b": b, "c": c}
     elif template == "add_pow":
         a, b = [round(random.randint(2, 5) * 0.1, 1) for _ in range(2)]
         q = f"{fmt_dec(a)} + {fmt_dec(b)}^2"
@@ -190,6 +194,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": a + (b * 2),
             "replaces_addition_with_multiplication": a * (b**2),
         }
+        parameters = {"a": a, "b": b}
     elif template == "sub_pow":
         a = round(random.randint(10, 20) * 0.1, 1)
         b = round(random.randint(2, 5) * 0.1, 1)
@@ -200,6 +205,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": a - (b * 2),
             "flips_the_final_sign": a + (b**2),
         }
+        parameters = {"a": a, "b": b}
     else:  # pow_mul
         a, b = [round(random.randint(2, 5) * 0.1, 1) for _ in range(2)]
         q = f"{fmt_dec(a)}^2 \\cdot {fmt_dec(b)}"
@@ -209,11 +215,13 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": (a * 2) * b,
             "replaces_multiplication_with_addition": (a**2) + b,
         }
+        parameters = {"a": a, "b": b}
 
     problem = build_problem_dict(
         q,
         fmt_dec(ans),
         traps={slug: fmt_dec(value) for slug, value in traps.items()},
+        parameters=parameters,
     )
     if problem:
         return problem
@@ -258,6 +266,7 @@ def dec_order_4() -> dict | None:
         q,
         fmt_dec(ans),
         traps={slug: fmt_dec(value) for slug, value in traps.items()},
+        parameters={"a": a, "b": b, "c": c, "d": d},
     )
     if problem:
         return problem
@@ -298,6 +307,7 @@ def dec_order_5() -> dict | None:
         q,
         fmt_dec(ans),
         traps={slug: fmt_dec(value) for slug, value in traps.items()},
+        parameters={"a": a, "b": b, "c": c},
     )
     if problem:
         return problem
@@ -327,6 +337,7 @@ def dec_order_6() -> dict | None:
         q,
         fmt_dec(ans),
         traps={slug: fmt_dec(value) for slug, value in traps.items()},
+        parameters={"a": a, "b": b, "c": c, "d": d},
     )
     if problem:
         return problem

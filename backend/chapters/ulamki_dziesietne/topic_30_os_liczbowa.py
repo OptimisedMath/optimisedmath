@@ -41,6 +41,7 @@ def dec_number_line_1() -> dict | None:
                 "counts_gaps_from_the_far_end": far_end_str,
             },
             image_html=svg_graphic,
+            parameters={"base": base, "target": target},
         )
         if problem:
             return problem
@@ -83,6 +84,7 @@ def dec_number_line_2() -> dict | None:
                 "counts_gaps_from_the_far_end": far_end_str,
             },
             image_html=svg_graphic,
+            parameters={"step": step, "base": base, "target": target},
         )
         if problem:
             return problem
@@ -123,6 +125,7 @@ def dec_number_line_3() -> dict | None:
                 "counts_gaps_from_the_far_end": far_end_str,
             },
             image_html=svg_graphic,
+            parameters={"base": base, "target": target},
         )
         if problem:
             return problem
@@ -166,6 +169,7 @@ def dec_number_line_4() -> dict | None:
                 "counts_gaps_from_the_far_end": far_end_str,
             },
             image_html=svg_graphic,
+            parameters={"ticks": ticks, "base": base, "target": target},
         )
         if problem:
             return problem
@@ -212,6 +216,13 @@ def dec_number_line_5() -> dict | None:
                 "doubles_the_whole_distance": doubled_all_str,
             },
             image_html=svg_graphic,
+            parameters={
+                "step": step,
+                "base": base,
+                "idx1": idx1,
+                "idx2": idx2,
+                "target": target,
+            },
         )
         if problem:
             return problem
@@ -256,6 +267,13 @@ def dec_number_line_6() -> dict | None:
                 "off_by_one_gap_backwards": backwards_str,
             },
             image_html=svg_graphic,
+            parameters={
+                "step": step,
+                "base": base,
+                "idx1": idx1,
+                "idx2": idx2,
+                "target": target,
+            },
         )
         if problem:
             return problem

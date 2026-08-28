@@ -25,6 +25,7 @@ def dec_add_1() -> dict | None:
             )
         },
         fillers=[fmt_dec(v1 + v2 + 0.1), fmt_dec(v1 + v2 + 1)],
+        parameters={"whole1": whole1, "whole2": whole2, "d1": d1, "d2": d2},
     )
     if problem:
         return problem
@@ -67,6 +68,13 @@ def dec_add_2() -> dict | None:
             "applies_the_multiplication_point_rule": fmt_dec(
                 round(correct_answer * (10**-d), d * 2)
             ),
+        },
+        parameters={
+            "d": d,
+            "int_a": int_a,
+            "int_b": int_b,
+            "dec_a": dec_a,
+            "dec_b": dec_b,
         },
     )
     if problem:
@@ -113,6 +121,7 @@ def dec_add_3() -> dict | None:
             ),
             "drops_the_hundredths_digit": fmt_dec(round(v1 + int(v2 * 10) / 10, 2)),
         },
+        parameters={"v1": v1, "v2": v2},
     )
     if problem:
         return problem
