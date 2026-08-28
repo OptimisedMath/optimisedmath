@@ -38,6 +38,7 @@ def frac_imp_1() -> dict | None:
                 (w * d) + n, d * w
             )[1],
         },
+        parameters={"w": w, "n": n, "d": d},
     )
     if result:
         return result
@@ -70,6 +71,7 @@ def frac_imp_2() -> dict | None:
             "swaps_the_remainder_and_the_denominator": format_answers(d, n, w)[0],
         },
         fillers=[format_answers(n, d, w_wrong)[0]],
+        parameters={"w": w, "n": n, "d": d},
     )
     if result:
         return result

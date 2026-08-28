@@ -27,6 +27,7 @@ def frac_add_1() -> dict | None:
             format_answers(n1 + n2 + 1, d)[0],
             format_answers(abs(n1 + n2 - 1), d)[0],
         ],
+        parameters={"n1": n1, "n2": n2, "d": d},
     )
     if result:
         return result
@@ -52,6 +53,7 @@ def frac_add_2() -> dict | None:
             "adds_the_denominators": format_answers(n1 + n2, d1 + d2)[0],
         },
         fillers=[format_answers((n1 * factor) + n2 + 1, d2)[0]],
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2, "factor": factor},
     )
     if result:
         return result
@@ -85,6 +87,7 @@ def frac_add_3() -> dict | None:
                 n1 * d2 * n2 * d1, d1 * d2
             )[0],
         },
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if result:
         return result
@@ -112,6 +115,7 @@ def frac_add_4() -> dict | None:
             format_answers(total + d, d)[0],
             format_answers(total + 1, d)[0],
         ],
+        parameters={"whole1": whole1, "whole2": whole2, "n1": n1, "n2": n2, "d": d},
     )
     if result:
         return result
@@ -147,6 +151,14 @@ def frac_add_5() -> dict | None:
             ],
         },
         fillers=[format_answers(total + 1, d1 * d2)[0]],
+        parameters={
+            "whole1": whole1,
+            "whole2": whole2,
+            "n1": n1,
+            "d1": d1,
+            "n2": n2,
+            "d2": d2,
+        },
     )
     if result:
         return result

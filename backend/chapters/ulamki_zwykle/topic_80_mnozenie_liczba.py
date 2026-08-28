@@ -29,6 +29,7 @@ def frac_mult_num_1() -> dict | None:
             "multiplies_only_the_denominator": format_answers(n, d * k)[0],
         },
         fillers=[format_answers(n * k + 1, d)[0]],
+        parameters={"n": n, "d": d, "k": k},
     )
     if result:
         return result
@@ -56,6 +57,7 @@ def frac_mult_num_2() -> dict | None:
             "cancels_the_numerator_away": format_answers(1, factor)[0],
         },
         fillers=[format_answers(n * k + 1, d)[0]],
+        parameters={"n": n, "d": d, "k": k, "factor": factor},
     )
     if result:
         return result
@@ -82,6 +84,7 @@ def frac_mult_num_3() -> dict | None:
             "multiplies_the_denominator_too": format_answers(total, d * k)[0],
         },
         fillers=[format_answers(total + 1, d)[0]],
+        parameters={"w": w, "n": n, "d": d, "k": k},
     )
     if result:
         return result

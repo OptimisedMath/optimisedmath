@@ -23,6 +23,7 @@ def frac_comp_1() -> dict | None:
         q_str,
         c_str,
         traps={"reverses_the_sign_with_equal_denominators": wrong_sign},
+        parameters={"n1": n1, "n2": n2, "d": d},
     )
     if result:
         return result
@@ -47,6 +48,7 @@ def frac_comp_2() -> dict | None:
         q_str,
         c_str,
         traps={"assumes_the_bigger_denominator_is_the_bigger_fraction": wrong_sign},
+        parameters={"n": n, "d1": d1, "d2": d2},
     )
     if result:
         return result
@@ -86,6 +88,7 @@ def frac_comp_3() -> dict | None:
             "reads_equal_fractions_as_less_than": "<",
             "reads_equal_fractions_as_greater_than": ">",
         },
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if problem:
         return problem
