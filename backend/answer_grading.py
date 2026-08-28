@@ -81,7 +81,7 @@ def grade(
         if msg_key is None:
             outcome = "wrong"
         elif msg_key == FILLER_SLUG:
-            outcome = FILLER_SLUG
+            outcome = "wrong"
         else:
             outcome = "trap"
         eval_outcome: EvalResult = {
