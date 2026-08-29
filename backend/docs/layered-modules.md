@@ -13,6 +13,7 @@ Layers stack top-to-bottom. Each layer may import from layers below, from `model
 | Progression       | `progression.py`                        | Streak, XP, level/topic progression per Submission (pure)                                                             |
 | Access            | `unlock.py`                             | Reachable chapter/topic/level (pure)                                                                                  |
 | Grading           | `answer_grading.py`                     | Correct / Trap / Wrong / soft error (pure)                                                                            |
+| Deconstruction    | `deconstruction.py`                     | Walkthrough registry; `build_steps()` — fixed step sequence per Misconception, from Problem parameters (pure)         |
 | Problems          | `problem_generation.py`                 | Generator registry, level assembly (pure)                                                                             |
 | Navigation        | `navigation_snapshot.py`                | Snapshot and view payload                                                                                             |
 | Navigation        | `navigation_resolve.py`                 | Intent clamping and validate-and-resolve                                                                              |

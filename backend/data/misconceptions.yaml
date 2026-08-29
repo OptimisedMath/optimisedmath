@@ -129,6 +129,7 @@ adds_denominators_with_like_fractions:
 operates_on_unlike_fractions_directly:
   name: "Dodaje lub odejmuje ułamki o różnych mianownikach wprost"
   explanation: "Najpierw znajdź wspólny mianownik i rozszerz oba ułamki, a dopiero potem dodaj lub odejmij liczniki."
+  deconstruction: operates_on_unlike_fractions_directly
 
 adds_instead_of_subtracting:
   name: "Dodaje zamiast odjąć"

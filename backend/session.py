@@ -11,6 +11,7 @@ import backend.navigation_snapshot as navigation_snapshot
 import backend.session_state as session_state
 import backend.submission as submission
 import backend.submission_cycle as submission_cycle
+import backend.deconstruction  # noqa: F401 — registers walkthroughs at import time
 from backend.curriculum import Curriculum, resolve_curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
