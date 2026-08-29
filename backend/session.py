@@ -111,7 +111,10 @@ def public_problem(
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
     if state.problem_answered:
-        public["correct_answer"] = problem.get("correct")
+        if state.deconstruction is None:
+            public["correct_answer"] = problem.get("correct")
+        # else: a triggering Submission withholds it — the walkthrough still
+        # has something to arrive at.
     elif play_mode.reveals_correct_answer:
         correct = problem.get("correct")
         if correct is not None:

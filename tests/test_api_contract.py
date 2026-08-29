@@ -8,10 +8,12 @@ import uuid
 import pytest
 from fastapi import HTTPException
 
+import backend.config as config
 import backend.main as main
 import backend.session as session
 import backend.submission as submission
 from backend.curriculum import resolve_curriculum
+from backend.deconstruction import build_steps
 from backend.models import ChapterFrontier, SessionState
 from backend.play_mode import StudentPlayMode
 
@@ -1116,3 +1118,265 @@ def test_telemetry_problem_id_column_is_indexed():
             )
 
     assert "problem_id" in index_columns
+
+
+# --- Deconstruction trigger (#194) ---
+
+_UNLIKE_FRACTIONS_PARAMETERS = {"n1": 1, "d1": 2, "n2": 1, "d2": 3, "operation": "+"}
+_UNLIKE_FRACTIONS_MISCONCEPTION = "operates_on_unlike_fractions_directly"
+
+
+def _map_traps_to_misconceptions(monkeypatch, mapping):
+    """Monkeypatch `Curriculum.level_config` so each trap slug maps to a Misconception."""
+    import dataclasses
+
+    from backend.curriculum import Curriculum
+
+    original_level_config = Curriculum.level_config
+
+    def fake_level_config(self, chapter_id, topic_id, level):
+        cfg = original_level_config(self, chapter_id, topic_id, level)
+        if cfg is None:
+            return cfg
+        return dataclasses.replace(
+            cfg, trap_misconceptions={**cfg.trap_misconceptions, **mapping}
+        )
+
+    monkeypatch.setattr(Curriculum, "level_config", fake_level_config)
+
+
+def _trap_problem(problem_id, *, trap_slug="w1", parameters=None):
+    return {
+        "problem_id": problem_id,
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": trap_slug},
+        "messages": {trap_slug: "Try again"},
+        "parameters": (
+            _UNLIKE_FRACTIONS_PARAMETERS if parameters is None else parameters
+        ),
+    }
+
+
+def _submit_trap(state, problem_id, *, trap_slug="w1", parameters=None):
+    """Re-arm `state` with a fresh wrong-answer Problem and submit it, like a Next-problem cycle."""
+    state.current_problem = _trap_problem(
+        problem_id, trap_slug=trap_slug, parameters=parameters
+    )
+    state.problem_answered = False
+    state.problem_start_time = 0
+    return run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id=problem_id,
+                user_input="3",
+            )
+        )
+    )
+
+
+def _fetch_last_deconstruction_row(session_id):
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        return conn.execute(
+            """
+            SELECT session_id, username, problem_id, misconception_slug,
+                   chapter, topic, level_number, outcome
+            FROM deconstructions
+            WHERE session_id = ?
+            ORDER BY deconstruction_id DESC
+            LIMIT 1
+            """,
+            (session_id,),
+        ).fetchone()
+
+
+def test_first_hit_of_misconception_does_not_trigger_deconstruction(monkeypatch):
+    """Issue #194: the first hit only grades normally — it does not arm a Deconstruction."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+
+    _submit_trap(state, "p-first-hit")
+
+    assert state.deconstruction is None
+    assert _fetch_last_deconstruction_row(state.session_id) is None
+
+
+def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
+    """Issue #194: the second hit of the same Misconception at a Level arms `state.deconstruction`
+    with steps computed from the triggering Problem's `parameters`."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-second-hit")
+
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+    assert state.deconstruction.step_index == 0
+    assert state.deconstruction.step_attempts == 0
+    assert state.deconstruction.step_revealed is False
+    expected_steps = build_steps(
+        _UNLIKE_FRACTIONS_MISCONCEPTION, _UNLIKE_FRACTIONS_PARAMETERS
+    )
+    assert [s.question for s in state.deconstruction.steps] == [
+        s.question for s in expected_steps
+    ]
+    assert [s.working_line for s in state.deconstruction.steps] == [
+        s.working_line for s in expected_steps
+    ]
+    assert [s.answer for s in state.deconstruction.steps] == [
+        s.answer for s in expected_steps
+    ]
+
+
+def test_repeated_failure_across_different_misconceptions_does_not_trigger(monkeypatch):
+    """Issue #194: generic repeated failure — different Misconceptions — is not a trigger."""
+    _map_traps_to_misconceptions(
+        monkeypatch, {"w1": "misconception_a", "w2": "misconception_b"}
+    )
+    state = make_state(_trap_problem("p-a", trap_slug="w1"), input_mode="radio")
+
+    _submit_trap(state, "p-a", trap_slug="w1")
+    _submit_trap(state, "p-b", trap_slug="w2")
+
+    assert state.deconstruction is None
+
+
+def test_misconception_without_walkthrough_does_not_trigger_or_crash(monkeypatch):
+    """Only a Misconception with an authored walkthrough can ever fire a Deconstruction —
+    hitting the threshold on one of the other 50 must not raise."""
+    _map_traps_to_misconceptions(
+        monkeypatch, {"w1": "misconception_without_walkthrough"}
+    )
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+
+    _submit_trap(state, "p-second-hit")
+
+    assert state.deconstruction is None
+
+
+def test_trigger_count_is_config_tunable(monkeypatch):
+    """Issue #194: the trigger count is read from config, beside MAX_STREAK."""
+    monkeypatch.setattr(config, "DECONSTRUCTION_TRIGGER_COUNT", 1)
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-only-hit"), input_mode="radio")
+
+    _submit_trap(state, "p-only-hit")
+
+    assert state.deconstruction is not None
+
+
+def test_triggering_submission_grades_streak_xp_flawless_normally(monkeypatch):
+    """Issue #194: the triggering Submission is graded exactly like any other wrong Trap."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), streak=2, input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    assert state.streak == 1
+    assert state.flawless_eligible is False
+
+    response = _submit_trap(state, "p-second-hit")
+
+    assert state.deconstruction is not None
+    assert response.is_correct is False
+    assert state.streak == 0
+    assert state.flawless_eligible is False
+    assert state.xp == 0
+    assert state.problem_answered is True
+
+
+def test_correct_answer_withheld_only_on_triggering_submission(monkeypatch):
+    """Issue #194: correct_answer is withheld on a triggering Submission and present on
+    every other Submission — the premise-level spoiler bug fixed here."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+
+    first_response = _submit_trap(state, "p-first-hit")
+    assert first_response.state.current_problem["correct_answer"] == "2"
+
+    second_response = _submit_trap(state, "p-second-hit")
+
+    assert state.deconstruction is not None
+    assert "correct_answer" not in second_response.state.current_problem
+
+
+def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
+    monkeypatch,
+):
+    """Issue #194: the `deconstructions` header row exists after trigger detection,
+    before the pause, with `outcome` NULL."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    assert _fetch_last_deconstruction_row(state.session_id) is None
+
+    _submit_trap(state, "p-second-hit")
+
+    row = _fetch_last_deconstruction_row(state.session_id)
+    assert row is not None
+    (
+        session_id,
+        username,
+        problem_id,
+        misconception_slug,
+        chapter,
+        topic,
+        level_number,
+        outcome,
+    ) = row
+    assert session_id == state.session_id
+    assert username == state.username
+    assert problem_id == "p-second-hit"
+    assert misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+    assert level_number == 1
+    assert outcome is None
+
+
+def test_deconstruction_survives_sqlite_reload(monkeypatch):
+    """Issue #194: `active_deconstruction` survives re-reading the Session from SQLite."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+
+    main.ACTIVE_SESSIONS.clear()
+    recovered = session.get_session(state.session_id)
+
+    assert recovered.deconstruction is not None
+    assert (
+        recovered.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+    )
+    assert recovered.deconstruction.step_index == 0
+    assert recovered.deconstruction.step_attempts == 0
+    assert recovered.deconstruction.step_revealed is False
+    assert [s.answer for s in recovered.deconstruction.steps] == [
+        s.answer for s in state.deconstruction.steps
+    ]
+
+
+def test_problem_start_time_not_paused_by_trigger(monkeypatch):
+    """Issue #194: problem_start_time keeps running unpaused through trigger detection."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+
+    state.current_problem = _trap_problem("p-second-hit")
+    state.problem_answered = False
+    state.problem_start_time = 12345.0
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-second-hit",
+                user_input="3",
+            )
+        )
+    )
+
+    assert state.deconstruction is not None
+    assert state.problem_start_time == 12345.0

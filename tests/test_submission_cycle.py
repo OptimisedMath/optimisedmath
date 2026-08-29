@@ -8,7 +8,12 @@ import backend.config as config
 import backend.navigation_snapshot as navigation_snapshot
 import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
-from backend.models import ChapterFrontier, SessionState
+from backend.models import (
+    ChapterFrontier,
+    DeconstructionState,
+    DeconstructionStep,
+    SessionState,
+)
 from backend.play_mode import PlayMode, StudentPlayMode
 import backend.session_state as session_state
 from tests.support.fixture_curriculum import (
@@ -50,6 +55,32 @@ def test_reset_submission_cycle_clears_problem_and_feedback(
     assert state.feedback_msg == ""
     assert state.current_problem is None
     assert state.current_input_mode == "radio"
+
+
+def test_reset_submission_cycle_does_not_clear_deconstruction_fields(
+    fixture_curriculum: Curriculum,
+):
+    """Issue #194: Deconstruction fields are structurally separate from the cycle flags."""
+    state = _fresh_state(fixture_curriculum)
+    state.deconstruction = DeconstructionState(
+        misconception_slug="test_misconception",
+        steps=[DeconstructionStep(question="q", working_line=None, answer="a")],
+        step_index=1,
+        step_attempts=2,
+        step_revealed=True,
+    )
+    state.deconstructed = ["test_misconception:100:101:1"]
+    state.discounted_problem_id = "p-discounted"
+
+    session_state.reset_submission_cycle(state)
+
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == "test_misconception"
+    assert state.deconstruction.step_index == 1
+    assert state.deconstruction.step_attempts == 2
+    assert state.deconstruction.step_revealed is True
+    assert state.deconstructed == ["test_misconception:100:101:1"]
+    assert state.discounted_problem_id == "p-discounted"
 
 
 def test_navigate_to_updates_selection_and_resets_submission_cycle(

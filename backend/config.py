@@ -19,6 +19,11 @@ MAX_STREAK = 3
 # Streak count required to enable input mode (instead of radio mode)
 STREAK_THRESHOLD_FOR_INPUT_MODE = 1
 
+# --- GAME MECHANICS: DECONSTRUCTION ---
+# Hits on the same Misconception at the current Level before a Deconstruction
+# triggers. Generic repeated failure is deliberately not a trigger.
+DECONSTRUCTION_TRIGGER_COUNT = 2
+
 # --- GAME MECHANICS: REWARDS ---
 # XP (Experience Points) awarded for correct answers by level
 XP_REWARDS = {

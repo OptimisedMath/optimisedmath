@@ -62,6 +62,24 @@ class NavigationView(BaseModel):
 # --- Session state ---
 
 
+class DeconstructionStep(BaseModel):
+    """One computed walkthrough question, mirroring `deconstruction.Step`."""
+
+    question: str
+    working_line: Optional[str] = None
+    answer: str
+
+
+class DeconstructionState(BaseModel):
+    """Persisted progress through an active Deconstruction's fixed step sequence."""
+
+    misconception_slug: str
+    steps: list[DeconstructionStep]
+    step_index: int = 0
+    step_attempts: int = 0
+    step_revealed: bool = False
+
+
 class SessionState(BaseModel):
     """Persisted Session — identity, progression, selection, submission cycle, Frontier, problem plumbing."""
 
@@ -92,6 +110,23 @@ class SessionState(BaseModel):
     recent_problem_fingerprints: list[str] = Field(
         default_factory=list,
         description="Recent generated problem fingerprints for duplicate avoidance",
+    )
+
+    deconstruction: Optional[DeconstructionState] = Field(
+        default=None,
+        description="The Deconstruction taking over the Session right now, if any",
+    )
+    deconstructed: list[str] = Field(
+        default_factory=list,
+        description=(
+            "(Misconception, Level) pairs already deconstructed this Session — "
+            "deliberately not folded into the per-Level hit counter, which Level "
+            "changes reset"
+        ),
+    )
+    discounted_problem_id: Optional[str] = Field(
+        default=None,
+        description="Problem available for a second, discounted-XP attempt after completion",
     )
 
     model_config = ConfigDict(

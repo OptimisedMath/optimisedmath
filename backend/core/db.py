@@ -108,6 +108,27 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS deconstructions (
+                deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                username TEXT NOT NULL,
+                problem_id TEXT,
+                misconception_slug TEXT NOT NULL,
+                chapter TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                level_number INTEGER NOT NULL,
+                outcome TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (username) REFERENCES users(username)
+            )
+        """)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_deconstructions_session_id ON deconstructions(session_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_deconstructions_problem_id ON deconstructions(problem_id)"
+        )
         conn.commit()
 
 
@@ -292,6 +313,70 @@ def log_telemetry(
                 time_spent_seconds,
                 equation_state,
                 problem_id,
+            ),
+        )
+        conn.commit()
+
+
+# --- Deconstructions ---
+
+
+def count_misconception_hits(
+    session_id: str,
+    misconception_slug: str,
+    chapter_name: str,
+    topic_name: str,
+    level_number: int,
+) -> int:
+    """Count this Session's telemetry hits for one Misconception at one Level.
+
+    The per-Level hit counter the trigger reads is derived from `telemetry_logs`
+    rather than stored on `SessionState` — a Level change naturally starts it
+    fresh, since rows for a different Level never match this query.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM telemetry_logs
+            WHERE session_id = ? AND misconception_slug = ?
+              AND chapter = ? AND topic = ? AND level_number = ?
+            """,
+            (session_id, misconception_slug, chapter_name, topic_name, level_number),
+        )
+        return int(cursor.fetchone()[0])
+
+
+def create_deconstruction(
+    session_id: str,
+    username: str,
+    problem_id: str | None,
+    misconception_slug: str,
+    chapter_name: str,
+    topic_name: str,
+    level_number: int,
+) -> None:
+    """Write the `deconstructions` header row at trigger detection, before the pause.
+
+    `outcome` starts NULL so a Student who leaves during the pause is still counted.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO deconstructions (
+                session_id, username, problem_id, misconception_slug,
+                chapter, topic, level_number, outcome
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+        """,
+            (
+                session_id,
+                username,
+                problem_id,
+                misconception_slug,
+                chapter_name,
+                topic_name,
+                level_number,
             ),
         )
         conn.commit()

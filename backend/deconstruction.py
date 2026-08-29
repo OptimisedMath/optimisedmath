@@ -54,6 +54,11 @@ def declares_deconstruction(
     return decorate
 
 
+def has_walkthrough(misconception_slug: str) -> bool:
+    """Whether a walkthrough is registered for a Misconception — batch one is five of 55."""
+    return misconception_slug in _STEP_BUILDERS
+
+
 def build_steps(misconception_slug: str, parameters: StepParameters) -> list[Step]:
     """Build the fixed step sequence for a Misconception from a Problem's parameters."""
     builder = _STEP_BUILDERS.get(misconception_slug)
