@@ -99,6 +99,18 @@ def set_function_registry(registry: dict[str, Callable[..., Any]]) -> None:
     _load_store.cache_clear()
 
 
+# --- Deconstruction walkthrough registry hook ---
+
+_deconstruction_registry: dict[str, Callable[..., Any]] | None = None
+
+
+def set_deconstruction_registry(registry: dict[str, Callable[..., Any]]) -> None:
+    """Provide walkthrough registry for `deconstruction:` name validation."""
+    global _deconstruction_registry
+    _deconstruction_registry = registry
+    _load_store.cache_clear()
+
+
 # --- Derivation helpers ---
 
 
@@ -379,6 +391,17 @@ def _load_misconception_catalogue(data_dir: Path) -> dict[str, Any]:
                 raise CurriculumLoadError(
                     f"{MISCONCEPTIONS_FILE}: '{entry_id}' missing '{key}'"
                 )
+
+        deconstruction = entry.get("deconstruction")
+        if (
+            deconstruction is not None
+            and _deconstruction_registry is not None
+            and deconstruction not in _deconstruction_registry
+        ):
+            raise CurriculumLoadError(
+                f"{MISCONCEPTIONS_FILE}: '{entry_id}' deconstruction "
+                f"'{deconstruction}' not found in the walkthrough registry"
+            )
 
     return catalogue
 

@@ -3,6 +3,7 @@
 import pytest
 
 import backend.curriculum_loader as loader
+import backend.deconstruction  # noqa: F401 — registers walkthroughs
 from backend.curriculum import get_curriculum_response, resolve_curriculum
 from backend.problem_generation import FUNCTION_REGISTRY
 
@@ -81,6 +82,43 @@ topics:
     monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
 
     with pytest.raises(loader.CurriculumLoadError, match="nonexistent_generator"):
+        loader.load_curriculum_store()
+
+
+def test_rejects_unregistered_deconstruction_function(tmp_path, monkeypatch):
+    chapter_yaml = tmp_path / "Bad_Topic.yaml"
+    chapter_yaml.write_text(
+        """
+chapter: "Bad Topic"
+id: 1
+keyboard_type: "default"
+topics:
+  - id: 10
+    name: "Broken"
+    levels:
+      - level: 1
+        name: "Lvl 1"
+        function: "frac_add_4"
+        traps:
+          adds_the_denominators:
+            misconception: some_misconception
+            explanation: "Some trap explanation."
+""",
+        encoding="utf-8",
+    )
+    misconceptions_yaml = tmp_path / "misconceptions.yaml"
+    misconceptions_yaml.write_text(
+        """
+some_misconception:
+  name: "Some misconception"
+  explanation: "Some misconception explanation."
+  deconstruction: nonexistent_walkthrough
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(loader, "DATA_DIR", tmp_path)
+
+    with pytest.raises(loader.CurriculumLoadError, match="nonexistent_walkthrough"):
         loader.load_curriculum_store()
 
 
