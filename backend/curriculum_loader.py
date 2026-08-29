@@ -78,6 +78,7 @@ class CurriculumStore:
     chapters: list[ChapterSummary]
     bundles_by_chapter_id: dict[int, ChapterBundle]
     chapter_name_by_id: dict[int, str]
+    misconception_names: dict[str, str] = field(default_factory=dict)
 
 
 _EMPTY_STORE = CurriculumStore(
@@ -347,11 +348,16 @@ def _validate_file(file_path: Path, data: Any) -> ChapterBundle:
 # --- Loading & cache ---
 
 
-def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
+def _build_store(
+    bundles: list[ChapterBundle], catalogue: dict[str, Any] | None = None
+) -> CurriculumStore:
     bundles.sort(key=lambda bundle: (bundle.chapter_id, bundle.chapter_name))
     bundle_tuple = tuple(bundles)
     chapter_name_by_id = {
         bundle.chapter_id: bundle.chapter_name for bundle in bundle_tuple
+    }
+    misconception_names = {
+        slug: str(entry["name"]) for slug, entry in (catalogue or {}).items()
     }
     return CurriculumStore(
         bundles=bundle_tuple,
@@ -361,6 +367,7 @@ def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
         ],
         bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundle_tuple},
         chapter_name_by_id=chapter_name_by_id,
+        misconception_names=misconception_names,
     )
 
 
@@ -464,7 +471,7 @@ def _load_store(data_dir: Path) -> CurriculumStore:
         bundles.append(bundle)
 
     _validate_misconceptions(data_dir, bundles)
-    return _build_store(bundles)
+    return _build_store(bundles, _load_misconception_catalogue(data_dir))
 
 
 # --- Public API ---

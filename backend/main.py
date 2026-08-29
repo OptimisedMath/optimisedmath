@@ -11,6 +11,9 @@ from backend.core import db
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
+    DeconstructionStepResponse,
+    DeconstructionSubmissionRequest,
+    DeconstructionSubmissionResponse,
     SessionResponse,
     ProblemResponse,
     ProblemSubmissionRequest,
@@ -24,10 +27,12 @@ from backend.session import (
     ACTIVE_SESSIONS,
     SessionError,
     auto_solve_problem,
+    get_deconstruction_step,
     navigate_session,
     next_problem,
     reset_session,
     start_session,
+    submit_deconstruction_step,
     submit_problem,
 )
 
@@ -156,6 +161,37 @@ async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
     """Dev-tools shortcut: submit the correct answer without UI fill-then-submit."""
     try:
         return auto_solve_problem(request)
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
+
+
+# --- Deconstruction endpoints ---
+
+
+@app.get(
+    "/deconstruction/next",
+    response_model=DeconstructionStepResponse,
+    tags=["Deconstruction"],
+)
+async def deconstruction_next(session_id: str) -> DeconstructionStepResponse:
+    """Return the Student's current Deconstruction step."""
+    try:
+        return get_deconstruction_step(session_id)
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
+
+
+@app.post(
+    "/deconstruction/submit",
+    response_model=DeconstructionSubmissionResponse,
+    tags=["Deconstruction"],
+)
+async def deconstruction_submit(
+    request: DeconstructionSubmissionRequest,
+) -> DeconstructionSubmissionResponse:
+    """Grade an answer for the current Deconstruction step."""
+    try:
+        return submit_deconstruction_step(request)
     except SessionError as exc:
         raise _map_session_error(exc) from exc
 

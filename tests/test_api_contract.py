@@ -14,7 +14,12 @@ import backend.session as session
 import backend.submission as submission
 from backend.curriculum import resolve_curriculum
 from backend.deconstruction import build_steps
-from backend.models import ChapterFrontier, SessionState
+from backend.models import (
+    ChapterFrontier,
+    DeconstructionState,
+    DeconstructionStep,
+    SessionState,
+)
 from backend.play_mode import StudentPlayMode
 
 
@@ -1380,3 +1385,251 @@ def test_problem_start_time_not_paused_by_trigger(monkeypatch):
 
     assert state.deconstruction is not None
     assert state.problem_start_time == 12345.0
+
+
+# --- Deconstruction step routes, grading, and the Reveal (#195) ---
+
+
+def _arm_deconstruction(
+    state, steps, *, misconception_slug=None, deconstruction_id=None
+):
+    """Directly arm `state.deconstruction`, bypassing the trigger — mirrors `make_state`
+    setting `current_problem` directly rather than driving a whole Submission cycle."""
+    state.deconstruction = DeconstructionState(
+        misconception_slug=misconception_slug or _UNLIKE_FRACTIONS_MISCONCEPTION,
+        steps=steps,
+        deconstruction_id=deconstruction_id,
+    )
+    main.session_state.persist(state, StudentPlayMode())
+    return state.deconstruction
+
+
+def _submit_step(state, user_input):
+    return run(
+        main.deconstruction_submit(
+            main.DeconstructionSubmissionRequest(
+                session_id=state.session_id, user_input=user_input
+            )
+        )
+    )
+
+
+def _fetch_deconstruction_step_rows(deconstruction_id):
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        return conn.execute(
+            """
+            SELECT step_index, attempts, revealed FROM deconstruction_steps
+            WHERE deconstruction_id = ?
+            ORDER BY step_index
+            """,
+            (deconstruction_id,),
+        ).fetchall()
+
+
+def test_deconstruction_next_returns_full_step_payload_with_null_working_line():
+    """Issue #195: `working_line: null` is load-bearing — some walkthroughs author none."""
+    problem = _trap_problem("p-step-payload")
+    state = make_state(problem, input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [DeconstructionStep(question="Ile to jest?", working_line=None, answer="5")],
+    )
+
+    response = run(main.deconstruction_next(state.session_id))
+
+    assert response.question == "Ile to jest?"
+    assert response.working_line is None
+    assert response.step_index == 0
+    assert response.total_steps == 1
+    assert response.misconception_name == resolve_curriculum().misconception_name(
+        _UNLIKE_FRACTIONS_MISCONCEPTION
+    )
+    assert response.revealed_answer is None
+
+
+def test_deconstruction_next_returns_authored_working_line():
+    state = make_state(_trap_problem("p-working-line"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [DeconstructionStep(question="q", working_line=r"\frac{1}{2}", answer="5")],
+    )
+
+    response = run(main.deconstruction_next(state.session_id))
+
+    assert response.working_line == r"\frac{1}{2}"
+
+
+def test_no_attempt_counter_on_the_wire():
+    """Issue #195: no attempt count appears anywhere on the wire — ADR-0004."""
+    state = make_state(_trap_problem("p-no-counter"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    step_response = run(main.deconstruction_next(state.session_id))
+    submit_response = _submit_step(state, "wrong")
+
+    assert "attempts" not in step_response.model_dump()
+    assert "attempts" not in submit_response.model_dump()
+
+
+def test_wrong_answer_leaves_step_index_unchanged():
+    state = make_state(_trap_problem("p-wrong-step"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(question="q1", working_line=None, answer="5"),
+            DeconstructionStep(question="q2", working_line=None, answer="7"),
+        ],
+    )
+
+    response = _submit_step(state, "999")
+
+    assert response.is_correct is False
+    assert state.deconstruction.step_index == 0
+    assert state.deconstruction.step_attempts == 1
+
+
+def test_correct_answer_advances_step_index_and_resets_attempts():
+    state = make_state(_trap_problem("p-correct-step"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(question="q1", working_line=None, answer="5"),
+            DeconstructionStep(question="q2", working_line=None, answer="7"),
+        ],
+    )
+    _submit_step(state, "999")
+    assert state.deconstruction.step_attempts == 1
+
+    response = _submit_step(state, "5")
+
+    assert response.is_correct is True
+    assert state.deconstruction.step_index == 1
+    assert state.deconstruction.step_attempts == 0
+    assert state.deconstruction.step_revealed is False
+
+
+def test_soft_error_does_not_count_toward_the_reveal():
+    """Issue #195: a mistyped or wrongly-notated answer costs nothing toward the Reveal."""
+    state = make_state(_trap_problem("p-soft-error"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    response = _submit_step(state, "not a number")
+
+    assert response.is_correct is False
+    assert response.feedback_msg
+    assert state.deconstruction.step_index == 0
+    assert state.deconstruction.step_attempts == 0
+    assert state.deconstruction.step_revealed is False
+
+
+def test_reveal_fires_at_threshold_without_advancing_the_step(monkeypatch):
+    monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
+    state = make_state(_trap_problem("p-reveal"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    _submit_step(state, "999")
+    _submit_step(state, "999")
+    assert state.deconstruction.step_revealed is False
+
+    response = _submit_step(state, "999")
+
+    assert response.is_correct is False
+    assert state.deconstruction.step_index == 0
+    assert state.deconstruction.step_revealed is True
+
+    step_response = run(main.deconstruction_next(state.session_id))
+    assert step_response.revealed_answer == "5"
+
+
+def test_entering_the_revealed_answer_advances_the_step(monkeypatch):
+    monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
+    state = make_state(_trap_problem("p-reveal-enter"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(question="q1", working_line=None, answer="5"),
+            DeconstructionStep(question="q2", working_line=None, answer="7"),
+        ],
+    )
+    for _ in range(3):
+        _submit_step(state, "999")
+    assert state.deconstruction.step_revealed is True
+
+    response = _submit_step(state, "5")
+
+    assert response.is_correct is True
+    assert state.deconstruction.step_index == 1
+    assert state.deconstruction.step_revealed is False
+    assert state.deconstruction.step_attempts == 0
+
+
+def test_post_reveal_wrong_answers_retry_indefinitely(monkeypatch):
+    monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
+    state = make_state(_trap_problem("p-reveal-retry"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+    for _ in range(3):
+        _submit_step(state, "999")
+    assert state.deconstruction.step_revealed is True
+
+    for _ in range(5):
+        response = _submit_step(state, "999")
+        assert response.is_correct is False
+        assert state.deconstruction.step_index == 0
+        assert state.deconstruction.step_revealed is True
+
+
+def test_step_revealed_survives_sqlite_reload(monkeypatch):
+    monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
+    state = make_state(_trap_problem("p-reveal-reload"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+    for _ in range(3):
+        _submit_step(state, "999")
+    assert state.deconstruction.step_revealed is True
+
+    main.ACTIVE_SESSIONS.clear()
+    recovered = session.get_session(state.session_id)
+
+    assert recovered.deconstruction is not None
+    assert recovered.deconstruction.step_revealed is True
+    assert recovered.deconstruction.step_index == 0
+
+
+def test_deconstruction_steps_row_tracks_attempts_and_revealed(monkeypatch):
+    """Issue #195: one `deconstruction_steps` row per step carries step_index, attempts, revealed."""
+    monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    deconstruction_id = state.deconstruction.deconstruction_id
+    assert deconstruction_id is not None
+
+    rows = _fetch_deconstruction_step_rows(deconstruction_id)
+    assert len(rows) == len(state.deconstruction.steps)
+    assert all(row == (index, 0, 0) for index, row in enumerate(rows))
+
+    _submit_step(state, "999")
+    _submit_step(state, "999")
+    _submit_step(state, "999")
+
+    rows = _fetch_deconstruction_step_rows(deconstruction_id)
+    assert rows[0] == (0, 3, 1)
+    assert rows[1] == (1, 0, 0)
+
+
+def test_deconstruction_next_raises_when_none_running():
+    state = make_state(_trap_problem("p-no-deconstruction"), input_mode="radio")
+
+    with pytest.raises(HTTPException):
+        run(main.deconstruction_next(state.session_id))

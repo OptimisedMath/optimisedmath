@@ -182,6 +182,16 @@ def _maybe_trigger_deconstruction(
     steps = deconstruction.build_steps(
         misconception_slug, problem.get("parameters") or {}
     )
+    deconstruction_id = db.create_deconstruction(
+        session_id=state.session_id,
+        username=username,
+        problem_id=problem.get("problem_id"),
+        misconception_slug=misconception_slug,
+        chapter_name=chapter_name,
+        topic_name=topic_name,
+        level_number=level,
+    )
+    db.create_deconstruction_steps(deconstruction_id, len(steps))
     state.deconstruction = DeconstructionState(
         misconception_slug=misconception_slug,
         steps=[
@@ -192,15 +202,7 @@ def _maybe_trigger_deconstruction(
             )
             for step in steps
         ],
-    )
-    db.create_deconstruction(
-        session_id=state.session_id,
-        username=username,
-        problem_id=problem.get("problem_id"),
-        misconception_slug=misconception_slug,
-        chapter_name=chapter_name,
-        topic_name=topic_name,
-        level_number=level,
+        deconstruction_id=deconstruction_id,
     )
 
 

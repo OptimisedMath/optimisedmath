@@ -129,6 +129,16 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_deconstructions_problem_id ON deconstructions(problem_id)"
         )
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS deconstruction_steps (
+                deconstruction_id INTEGER NOT NULL,
+                step_index INTEGER NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                revealed BOOLEAN NOT NULL DEFAULT 0,
+                PRIMARY KEY (deconstruction_id, step_index),
+                FOREIGN KEY (deconstruction_id) REFERENCES deconstructions(deconstruction_id)
+            )
+        """)
         conn.commit()
 
 
@@ -355,10 +365,11 @@ def create_deconstruction(
     chapter_name: str,
     topic_name: str,
     level_number: int,
-) -> None:
+) -> int:
     """Write the `deconstructions` header row at trigger detection, before the pause.
 
     `outcome` starts NULL so a Student who leaves during the pause is still counted.
+    Returns the new row's id, so the caller can key its `deconstruction_steps` rows.
     """
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -378,5 +389,42 @@ def create_deconstruction(
                 topic_name,
                 level_number,
             ),
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+        assert new_id is not None
+        return new_id
+
+
+def create_deconstruction_steps(deconstruction_id: int, step_count: int) -> None:
+    """Write one `deconstruction_steps` row per step at trigger detection.
+
+    `attempts` and `revealed` start at zero — a Step-submit updates them as the
+    Student answers, so the row tracks the whole escalation, not just its end state.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.executemany(
+            """
+            INSERT INTO deconstruction_steps (deconstruction_id, step_index, attempts, revealed)
+            VALUES (?, ?, 0, 0)
+            """,
+            [(deconstruction_id, step_index) for step_index in range(step_count)],
+        )
+        conn.commit()
+
+
+def update_deconstruction_step(
+    deconstruction_id: int, step_index: int, *, attempts: int, revealed: bool
+) -> None:
+    """Sync one step's attempt count and Reveal state after a Deconstruction submit."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE deconstruction_steps SET attempts = ?, revealed = ?
+            WHERE deconstruction_id = ? AND step_index = ?
+            """,
+            (attempts, revealed, deconstruction_id, step_index),
         )
         conn.commit()

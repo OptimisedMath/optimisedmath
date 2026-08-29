@@ -12,6 +12,7 @@ import backend.session_state as session_state
 import backend.submission as submission
 import backend.submission_cycle as submission_cycle
 import backend.deconstruction  # noqa: F401 — registers walkthroughs at import time
+import backend.deconstruction_step as deconstruction_step
 from backend.curriculum import Curriculum, resolve_curriculum
 from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
@@ -20,6 +21,9 @@ from backend.problem_generation import ProblemGenerationError
 from backend.progression import resolve_streak_meter
 from backend.models import (
     AutoSolveRequest,
+    DeconstructionStepResponse,
+    DeconstructionSubmissionRequest,
+    DeconstructionSubmissionResponse,
     SessionResponse,
     SessionState,
     ProblemResponse,
@@ -378,6 +382,28 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
         user_input=user_input,
         is_input_mode=is_input_mode,
     )
+
+
+def get_deconstruction_step(session_id: str) -> DeconstructionStepResponse:
+    """Return the Student's current Deconstruction step — mirrors `next_problem()`."""
+    state = get_session(session_id)
+    curriculum = resolve_curriculum()
+    try:
+        return deconstruction_step.next_step_response(state, curriculum)
+    except deconstruction_step.DeconstructionNotRunningError as exc:
+        raise SessionError("No Deconstruction is running for this session") from exc
+
+
+def submit_deconstruction_step(
+    request: DeconstructionSubmissionRequest,
+) -> DeconstructionSubmissionResponse:
+    """Grade one Deconstruction step submission — mirrors `submit_problem()`."""
+    state = get_session(request.session_id)
+    play_mode = resolve_play_mode(state.username)
+    try:
+        return deconstruction_step.submit_step(state, request.user_input, play_mode)
+    except deconstruction_step.DeconstructionNotRunningError as exc:
+        raise SessionError("No Deconstruction is running for this session") from exc
 
 
 def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:

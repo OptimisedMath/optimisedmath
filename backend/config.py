@@ -24,6 +24,11 @@ STREAK_THRESHOLD_FOR_INPUT_MODE = 1
 # triggers. Generic repeated failure is deliberately not a trigger.
 DECONSTRUCTION_TRIGGER_COUNT = 2
 
+# Wrong (non-soft) answers on the same Deconstruction step before the Reveal.
+# Global — per-step and per-Misconception thresholds are rejected, since no
+# author has evidence to set them.
+DECONSTRUCTION_REVEAL_THRESHOLD = 3
+
 # --- GAME MECHANICS: REWARDS ---
 # XP (Experience Points) awarded for correct answers by level
 XP_REWARDS = {

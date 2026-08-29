@@ -196,6 +196,24 @@ def generate_universal_number_line(
     return svg
 
 
+# --- Format-mismatch soft error ---
+
+
+def check_format_mismatch(user_text: str, correct_latex: str) -> str | None:
+    """Intercept answers that are mathematically correct but use the wrong notation.
+
+    Shared by `answer_grading.grade()` and `step_grading.grade_step()` — a Deconstruction
+    step needs the same forgiving-notation check a Problem does, without the Trap/
+    options_map machinery around it.
+    """
+    user_str = str(user_text)
+    if "/" in user_str and "," in correct_latex:
+        return "Wynik poprawny matematycznie, ale to jest zadanie z ułamków dziesiętnych! Zapisz odpowiedź używając przecinka, a nie ułamka zwykłego."
+    if ("," in user_str or "." in user_str) and "\\frac" in correct_latex:
+        return "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"
+    return None
+
+
 # --- LaTeX normalization & answer checking ---
 
 

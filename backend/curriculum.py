@@ -83,6 +83,10 @@ class Curriculum:
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
         return bundle.keyboard_type if bundle is not None else "default"
 
+    def misconception_name(self, misconception_slug: str) -> str | None:
+        """Display name for a Misconception slug, from the global catalogue."""
+        return self._store.misconception_names.get(misconception_slug)
+
 
 def curriculum_from_yaml() -> Curriculum:
     """Build a Curriculum wrapping the YAML-backed store (lru_cache stays in the loader)."""

@@ -78,6 +78,10 @@ class DeconstructionState(BaseModel):
     step_index: int = 0
     step_attempts: int = 0
     step_revealed: bool = False
+    deconstruction_id: Optional[int] = Field(
+        default=None,
+        description="Row id of the `deconstructions` header, for updating deconstruction_steps",
+    )
 
 
 class SessionState(BaseModel):
@@ -286,6 +290,13 @@ class ProblemSubmissionRequest(BaseModel):
     problem_id: Optional[str] = None
 
 
+class DeconstructionSubmissionRequest(BaseModel):
+    """Submit an answer for the current Deconstruction step."""
+
+    session_id: str
+    user_input: str
+
+
 # --- Response models ---
 
 
@@ -325,3 +336,30 @@ class SubmissionResponse(BaseModel):
     state: SessionResponse
     is_correct: bool
     feedback: str
+
+
+class DeconstructionStepResponse(BaseModel):
+    """Current Deconstruction step's wire payload for `GET /deconstruction/next`.
+
+    `working_line: None` is load-bearing — some Misconceptions author no working line.
+    `revealed_answer` is populated only once the Reveal threshold is hit, and the
+    Student still has to type it in to advance.
+    """
+
+    question: str
+    working_line: Optional[str] = None
+    step_index: int
+    total_steps: int
+    misconception_name: str
+    revealed_answer: Optional[str] = None
+
+
+class DeconstructionSubmissionResponse(BaseModel):
+    """Grading outcome for one Deconstruction step submission.
+
+    No attempt counter on the wire (ADR-0004) — a visible "one try left" makes
+    the walkthrough feel like a test.
+    """
+
+    is_correct: bool
+    feedback_msg: Optional[str] = None
