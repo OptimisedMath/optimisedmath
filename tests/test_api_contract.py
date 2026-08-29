@@ -1336,7 +1336,7 @@ def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
 
 
 def test_deconstruction_survives_sqlite_reload(monkeypatch):
-    """Issue #194: `active_deconstruction` survives re-reading the Session from SQLite."""
+    """Issue #194: `state.deconstruction` survives re-reading the Session from SQLite."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
