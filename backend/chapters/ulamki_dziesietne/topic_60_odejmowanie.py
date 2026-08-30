@@ -60,7 +60,7 @@ def dec_sub_2() -> dict | None:
             ),
         },
         fillers=[fmt_dec(round(v1 - v2 + 1, 2))],
-        parameters={"v1": v1, "v2": v2},
+        parameters={"v1": v1, "v2": v2, "operation": "-"},
     )
 
     if problem:

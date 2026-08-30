@@ -267,6 +267,7 @@ rounds_nine_without_carrying:
 does_not_align_decimals_before_column_arithmetic:
   name: "Nie wyrównuje przecinków przed liczeniem pisemnym"
   explanation: "Przecinek stoi dokładnie pod przecinkiem, a krótszą liczbę uzupełnij zerami na końcu (np. 1,2 to 1,20)."
+  deconstruction: does_not_align_decimals_before_column_arithmetic
 
 forgets_to_carry:
   name: "Zapomina przenieść jeden do wyższego rzędu"

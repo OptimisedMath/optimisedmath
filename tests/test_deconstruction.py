@@ -139,3 +139,67 @@ class TestExpandsToTargetDenominatorWithoutFindingFactor:
 
         assert all(step.working_line is not None for step in steps)
         assert all(step.question for step in steps)
+
+
+class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
+    """Table-driven: representative `parameters` shapes for the column-layout walkthrough.
+
+    The three shapes mirror the three generators that reference this Misconception —
+    the second operand carrying more decimal places (dec_add_3), the first carrying
+    more (dec_sub_2), and both already tied (dec_add_1) — normalised to a shared
+    `v1`/`v2`/`operation` contract (#199).
+    """
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected_places", "expected_combined"),
+        [
+            pytest.param(
+                {"v1": 1.2, "v2": 0.05, "operation": "+"},
+                2,
+                "1,25",
+                id="second-operand-has-more-decimal-places",
+            ),
+            pytest.param(
+                {"v1": 5.43, "v2": 2.1, "operation": "-"},
+                2,
+                "3,33",
+                id="first-operand-has-more-decimal-places",
+            ),
+            pytest.param(
+                {"v1": 2.3, "v2": 1.5, "operation": "+"},
+                1,
+                "3,8",
+                id="decimal-places-already-tied",
+            ),
+        ],
+    )
+    def test_step_sequence(self, parameters, expected_places, expected_combined):
+        steps = build_steps(
+            "does_not_align_decimals_before_column_arithmetic", parameters
+        )
+
+        assert len(steps) == 2
+        assert all(isinstance(step, Step) for step in steps)
+
+        find_places_step, compute_step = steps
+
+        assert find_places_step.answer == str(expected_places)
+        assert compute_step.answer == expected_combined
+
+        # The column-layout shape (#187, #199): each working line is a laid-out
+        # LaTeX array, not a single inline expression, and the second step's
+        # array carries the zero-padded operands the first step found the count for.
+        assert find_places_step.working_line is not None
+        assert compute_step.working_line is not None
+        assert r"\begin{array}" in find_places_step.working_line
+        assert r"\begin{array}" in compute_step.working_line
+        assert find_places_step.working_line != compute_step.working_line
+
+        assert all(step.question for step in steps)
+
+    def test_rejects_unsupported_operation(self):
+        with pytest.raises(ValueError):
+            build_steps(
+                "does_not_align_decimals_before_column_arithmetic",
+                {"v1": 1.2, "v2": 0.05, "operation": "*"},
+            )

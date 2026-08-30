@@ -10,9 +10,10 @@ Session, state, or HTTP imports; nothing here reads or writes a Session.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Callable
 
-from backend.core.utils import format_answers
+from backend.core.utils import fmt_dec, format_answers
 from backend.curriculum_loader import set_deconstruction_registry
 
 StepParameters = dict[str, int | float | str]
@@ -134,6 +135,82 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
                 f"{_frac(scaled_n1, common)} {operation} {_frac(scaled_n2, common)}"
             ),
             answer=final_answer,
+        ),
+    ]
+
+
+# --- Batch one, walkthrough 2: does_not_align_decimals_before_column_arithmetic ---
+#
+# Column-layout shape (#187): the working line carries a vertical column arrangement
+# (a LaTeX `array`) rather than a single inline expression — this is the walkthrough
+# that establishes how a laid-out form survives the one-line-replacing-the-last
+# pacing device. Parameters contract: `v1`, `v2` (the two decimal operands) and
+# `operation` ("+" or "-"), supplied uniformly by every generator whose Traps
+# reference this Misconception (dec_add_1, dec_add_3, dec_sub_2 — normalised to this
+# shared shape here, regardless of how many decimal places each operand happens to
+# carry on its own).
+
+
+def _decimal_places(value: int | float) -> int:
+    exponent = Decimal(str(value)).as_tuple().exponent
+    return max(0, -exponent) if isinstance(exponent, int) else 0
+
+
+def _padded_dec(value: int | float, places: int) -> str:
+    quantum = Decimal(1).scaleb(-places) if places else Decimal(1)
+    return format(Decimal(str(value)).quantize(quantum), "f").replace(".", ",")
+
+
+def _column(top: str, operation: str, bottom: str, *, answer_row: bool = False) -> str:
+    """`answer_row` reserves a blank `?` line under the rule, never the value itself.
+
+    Padding to a shared decimal-place count is a no-op whenever the two operands
+    already have equal places (every dec_add_1 Problem, by construction) — without
+    this row, step two's working line would render byte-for-byte identical to
+    step one's, and the frontend's flash-on-change (keyed by the working line's
+    text) would silently fail to replay.
+    """
+    tail = r"?\end{array}" if answer_row else r"\end{array}"
+    return rf"\begin{{array}}{{r}} {top} \\ {operation}\ {bottom} \\ \hline " + tail
+
+
+@declares_deconstruction("does_not_align_decimals_before_column_arithmetic")
+def does_not_align_decimals_before_column_arithmetic(
+    parameters: StepParameters,
+) -> list[Step]:
+    """2-step walkthrough: find the shared decimal-place count, then compute aligned."""
+    v1, v2 = float(parameters["v1"]), float(parameters["v2"])
+    operation = str(parameters["operation"])
+    if operation not in ("+", "-"):
+        raise ValueError(f"Unsupported operation '{operation}'")
+
+    places = max(_decimal_places(v1), _decimal_places(v2))
+    raw_v1, raw_v2 = fmt_dec(v1), fmt_dec(v2)
+    padded_v1, padded_v2 = _padded_dec(v1, places), _padded_dec(v2, places)
+    combined = (
+        Decimal(str(v1)) + Decimal(str(v2))
+        if operation == "+"
+        else Decimal(str(v1)) - Decimal(str(v2))
+    )
+
+    return [
+        Step(
+            question=(
+                "Żeby policzyć to w kolumnie, przecinek musi stać dokładnie pod "
+                f"przecinkiem. Ile miejsc po przecinku muszą mieć obie liczby — "
+                f"{raw_v1} i {raw_v2} — żeby to zrobić?"
+            ),
+            working_line=_column(raw_v1, operation, raw_v2),
+            answer=str(places),
+        ),
+        Step(
+            question=(
+                f"Dopisz zera tam, gdzie trzeba, aż obie liczby będą miały "
+                f"{places} miejsc po przecinku, i policz wynik w kolumnie. "
+                f"Ile wynosi {raw_v1} {operation} {raw_v2}?"
+            ),
+            working_line=_column(padded_v1, operation, padded_v2, answer_row=True),
+            answer=fmt_dec(combined),
         ),
     ]
 

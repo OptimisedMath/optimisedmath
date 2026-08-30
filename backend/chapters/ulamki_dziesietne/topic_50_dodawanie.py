@@ -25,7 +25,7 @@ def dec_add_1() -> dict | None:
             )
         },
         fillers=[fmt_dec(v1 + v2 + 0.1), fmt_dec(v1 + v2 + 1)],
-        parameters={"whole1": whole1, "whole2": whole2, "d1": d1, "d2": d2},
+        parameters={"v1": v1, "v2": v2, "operation": "+"},
     )
     if problem:
         return problem
@@ -121,7 +121,7 @@ def dec_add_3() -> dict | None:
             ),
             "drops_the_hundredths_digit": fmt_dec(round(v1 + int(v2 * 10) / 10, 2)),
         },
-        parameters={"v1": v1, "v2": v2},
+        parameters={"v1": v1, "v2": v2, "operation": "+"},
     )
     if problem:
         return problem
