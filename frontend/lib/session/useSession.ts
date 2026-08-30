@@ -8,7 +8,9 @@ import {
 } from './projectSessionState';
 import { useSessionBootstrap } from './useSessionBootstrap';
 import { useProblemLifecycle } from './useProblemLifecycle';
+import { useDeconstruction } from './useDeconstruction';
 import type {
+  DeconstructionView,
   Feedback,
   FeedbackPhase,
   SessionActions,
@@ -39,10 +41,56 @@ export function useSession() {
     onSessionStarted: fetchNextProblem,
   });
 
+  const deconstruction = useDeconstruction({ sessionState, setSessionState, setError });
+  const { reset: resetDeconstruction } = deconstruction;
+
+  const navigate = useCallback(
+    async (intent: Parameters<typeof handleNavigate>[0]) => {
+      resetDeconstruction();
+      await handleNavigate(intent);
+    },
+    [handleNavigate, resetDeconstruction]
+  );
+
+  const resetProgress = useCallback(async () => {
+    resetDeconstruction();
+    await handleReset();
+  }, [handleReset, resetDeconstruction]);
+
   const clearErrorAndReload = useCallback(() => {
     setError(null);
     window.location.reload();
   }, []);
+
+  const deconstructionView = useMemo((): DeconstructionView => {
+    const step = deconstruction.step;
+    return {
+      phase: deconstruction.phase,
+      misconceptionName: step?.misconception_name ?? null,
+      headerQuestion: deconstruction.triggerProblem?.question ?? null,
+      step: step
+        ? {
+            question: step.question,
+            workingLine: step.working_line,
+            stepIndex: step.step_index,
+            totalSteps: step.total_steps,
+            revealedAnswer: step.revealed_answer,
+          }
+        : null,
+      stepFeedback: deconstruction.stepFeedback,
+      handbackQuestion: deconstruction.handbackQuestion,
+      isLoadingStep: deconstruction.isLoadingStep,
+      isSubmittingStep: deconstruction.isSubmittingStep,
+    };
+  }, [
+    deconstruction.phase,
+    deconstruction.triggerProblem,
+    deconstruction.step,
+    deconstruction.stepFeedback,
+    deconstruction.handbackQuestion,
+    deconstruction.isLoadingStep,
+    deconstruction.isSubmittingStep,
+  ]);
 
   const view = useMemo((): SessionView => {
     const session = sessionState;
@@ -92,6 +140,7 @@ export function useSession() {
       topicName: navigation?.current_topic_name || MISSING_TOPIC_NAME,
       adminMode: session?.admin_mode ?? false,
       ...display,
+      deconstruction: deconstructionView,
     };
   }, [
     sessionState,
@@ -101,15 +150,41 @@ export function useSession() {
     isLoadingNextProblem,
     needsLogin,
     problem,
+    deconstructionView,
   ]);
+
+  const deconstructionActions = useMemo(
+    () => ({
+      endPause: deconstruction.endPause,
+      begin: deconstruction.begin,
+      submitStep: deconstruction.submitStep,
+      exit: deconstruction.exit,
+      returnToProblem: deconstruction.returnToProblem,
+    }),
+    [
+      deconstruction.endPause,
+      deconstruction.begin,
+      deconstruction.submitStep,
+      deconstruction.exit,
+      deconstruction.returnToProblem,
+    ]
+  );
 
   const actions = useMemo((): SessionActions => ({
     submit: handleSubmit,
-    navigate: handleNavigate,
+    navigate,
     nextProblem: handleNextProblem,
-    reset: handleReset,
+    reset: resetProgress,
     clearErrorAndReload,
-  }), [handleSubmit, handleNavigate, handleNextProblem, handleReset, clearErrorAndReload]);
+    deconstruction: deconstructionActions,
+  }), [
+    handleSubmit,
+    navigate,
+    handleNextProblem,
+    resetProgress,
+    clearErrorAndReload,
+    deconstructionActions,
+  ]);
 
   return { view, actions };
 }

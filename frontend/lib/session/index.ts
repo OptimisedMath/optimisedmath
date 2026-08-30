@@ -18,6 +18,10 @@ export {
 export type { SessionDisplayProjection } from './projectSessionState';
 export type {
   ChapterFrontier,
+  DeconstructionActions,
+  DeconstructionPhase,
+  DeconstructionStepView,
+  DeconstructionView,
   Feedback,
   FeedbackPhase,
   NavigateIntent,

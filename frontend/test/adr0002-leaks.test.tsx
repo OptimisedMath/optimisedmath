@@ -3,11 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionClient } from '@/lib/session';
 import {
+  baseDeconstructionStep,
   baseProblem,
   baseSession,
   createFakeSessionClient,
   defaultNavigation,
   wireArenaFlow,
+  withoutCorrectAnswer,
+  withProblem,
 } from './fakeBackend';
 import { renderArena } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
@@ -590,5 +593,113 @@ describe('ADR-0002 leak locks', () => {
       problem_id: problem.problem_id,
       user_input: '12',
     });
+  });
+});
+
+describe('ADR-0002 Deconstruction outcome computed only by the backend', () => {
+  beforeEach(() => {
+    resetStoredSession();
+    seedStoredSession();
+  });
+
+  /** Drives a fresh arena through a triggering Submission into the running step. */
+  async function reachDeconstructionStep(
+    step: ReturnType<typeof baseDeconstructionStep>,
+    handlers: Partial<SessionClient> = {}
+  ): Promise<SessionClient> {
+    const session = baseSession();
+    const initialProblem = baseProblem();
+    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
+
+    const client = createFakeSessionClient({
+      startSession: async () => session,
+      getNextProblem: async () => ({
+        problem: initialProblem,
+        state: {
+          ...withProblem(session, initialProblem),
+          can_submit: true,
+          can_next_problem: false,
+        },
+      }),
+      submitAnswer: async () => {
+        const locked = {
+          ...session,
+          can_submit: false,
+          can_next_problem: true,
+          feedback_type: 'warning',
+          feedback_msg: 'Trap feedback',
+        };
+        return { is_correct: false, feedback: 'Trap feedback', state: withProblem(locked, triggerProblem) };
+      },
+      getDeconstructionStep: async () => step,
+      ...handlers,
+    });
+
+    renderArena(client);
+    await waitFor(() => {
+      expect(client.startSession).toHaveBeenCalled();
+      expect(client.getNextProblem).toHaveBeenCalled();
+    });
+    await submitTypedAnswer('3/4');
+    await screen.findByText('Trap feedback');
+
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText('Przejdź dalej'));
+    await screen.findByText(step.misconception_name);
+    await user.click(screen.getByRole('button', { name: /Zaczynajmy/ }));
+    await screen.findByText(`krok ${step.step_index + 1} z ${step.total_steps}`);
+
+    return client;
+  }
+
+  it('advances the running step purely from the server is_correct verdict, on any typed input', async () => {
+    const step = baseDeconstructionStep({ step_index: 0, total_steps: 2 });
+    const nextStep = baseDeconstructionStep({
+      step_index: 1,
+      total_steps: 2,
+      question: 'Kolejny krok',
+    });
+    let deconstructionCall = 0;
+    const getDeconstructionStep = vi.fn(async () =>
+      deconstructionCall++ === 0 ? step : nextStep
+    );
+    const submitDeconstructionStep = vi.fn(async () => ({
+      is_correct: true,
+      feedback_msg: null,
+      handback_question: null,
+    }));
+
+    await reachDeconstructionStep(step, { getDeconstructionStep, submitDeconstructionStep });
+
+    // There is no correct-answer field on the wire for a step — nothing for
+    // the client to compare against — so a nonsense answer still advances
+    // once the (mocked) server calls it correct.
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText('?'), 'nonsense');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+
+    await screen.findByText('Kolejny krok');
+    expect(submitDeconstructionStep).toHaveBeenCalledWith({
+      session_id: expect.any(String),
+      user_input: 'nonsense',
+    });
+  });
+
+  it('does not advance the step when the server marks it incorrect, showing only the server-provided feedback_msg', async () => {
+    const step = baseDeconstructionStep({ step_index: 0, total_steps: 2 });
+    const submitDeconstructionStep = vi.fn(async () => ({
+      is_correct: false,
+      feedback_msg: 'Jeszcze nie — spróbuj ponownie.',
+      handback_question: null,
+    }));
+
+    await reachDeconstructionStep(step, { submitDeconstructionStep });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText('?'), '5/12');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+
+    await screen.findByText('Jeszcze nie — spróbuj ponownie.');
+    expect(screen.getByText(`krok ${step.step_index + 1} z ${step.total_steps}`)).toBeInTheDocument();
   });
 });

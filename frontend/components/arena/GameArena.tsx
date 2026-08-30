@@ -12,6 +12,8 @@ import TextAnswerInput from './TextAnswerInput';
 import FeedbackCard from './FeedbackCard';
 import ProgressBar from './ProgressBar';
 import MasteryScoreboard from './MasteryScoreboard';
+import DeconstructionPause from './DeconstructionPause';
+import DeconstructionTakeover from './DeconstructionTakeover';
 
 export default function GameArena() {
   const { view, actions } = useSession();
@@ -65,8 +67,19 @@ export default function GameArena() {
     );
   }
 
+  if (
+    view.deconstruction.phase === 'intro' ||
+    view.deconstruction.phase === 'step' ||
+    view.deconstruction.phase === 'handback'
+  ) {
+    return <DeconstructionTakeover view={view.deconstruction} actions={actions.deconstruction} />;
+  }
+
   return (
     <div className="gradient-bg relative min-h-screen overflow-hidden p-3 pb-6 text-slate-900 sm:p-6 lg:p-8 dark:text-white font-sans flex flex-col items-center">
+      {view.deconstruction.phase === 'pause' && (
+        <DeconstructionPause onTap={actions.deconstruction.endPause} />
+      )}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 border-b border-white/50 bg-white/30 backdrop-blur-3xl dark:border-white/5 dark:bg-white/5" />
       <div className="relative z-10 flex w-full flex-col items-center">
       <div className="animate-fade-slide-up w-full flex flex-col items-center" style={{ animationDelay: '0ms' }}>
