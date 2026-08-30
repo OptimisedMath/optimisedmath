@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DECONSTRUCTION_ORDERING_SEPARATOR } from '@/lib/session';
 import {
+  ORDERING_STEP_ITEMS,
   TRAP_FEEDBACK,
   baseDeconstructionStep,
   baseOrderingDeconstructionStep,
@@ -238,8 +239,8 @@ describe('Deconstruction ordering-input step (#198)', () => {
 
     expect(screen.queryByPlaceholderText('?')).not.toBeInTheDocument();
     const renderedItems = document.querySelectorAll('[data-deconstruction-ordering-item]');
-    expect(renderedItems.length).toBe(step.items?.length);
-    step.items?.forEach((label) => {
+    expect(renderedItems.length).toBe(ORDERING_STEP_ITEMS.length);
+    ORDERING_STEP_ITEMS.forEach((label) => {
       expect(screen.getByText(label)).toBeInTheDocument();
     });
   });
@@ -262,7 +263,7 @@ describe('Deconstruction ordering-input step (#198)', () => {
     await user.click(upButtons[1]);
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
 
-    const [first, second, ...rest] = step.items ?? [];
+    const [first, second, ...rest] = ORDERING_STEP_ITEMS;
     const expected = [second, first, ...rest].join(DECONSTRUCTION_ORDERING_SEPARATOR);
 
     await waitFor(() => {
@@ -274,18 +275,15 @@ describe('Deconstruction ordering-input step (#198)', () => {
   });
 
   it('shows the revealed order without auto-advancing, same as a typed step', async () => {
-    const step = baseOrderingDeconstructionStep({
-      revealed_answer: ['nawiasy', 'potęgi', 'mnożenie i dzielenie', 'dodawanie i odejmowanie'].join(
-        DECONSTRUCTION_ORDERING_SEPARATOR
-      ),
-    });
+    const revealedOrder = ORDERING_STEP_ITEMS.join(DECONSTRUCTION_ORDERING_SEPARATOR);
+    const step = baseOrderingDeconstructionStep({ revealed_answer: revealedOrder });
     const client = wireDeconstructionTriggerFlow({ step });
 
     await reachStep(client, step);
 
-    expect(screen.getByText(step.revealed_answer as string)).toBeInTheDocument();
+    expect(screen.getByText(revealedOrder)).toBeInTheDocument();
     expect(document.querySelectorAll('[data-deconstruction-ordering-item]').length).toBe(
-      step.items?.length
+      ORDERING_STEP_ITEMS.length
     );
   });
 });

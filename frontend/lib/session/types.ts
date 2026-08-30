@@ -117,14 +117,6 @@ export interface DeconstructionStepResponse {
   items: string[] | null;
 }
 
-/**
- * Joins/splits an ordering step's submitted order on the wire — `user_input`
- * stays a plain string (matching the typed-answer wire shape), carrying the
- * ordered items joined by this separator. Mirrors
- * `backend/step_grading.ORDERING_ANSWER_SEPARATOR`.
- */
-export const DECONSTRUCTION_ORDERING_SEPARATOR = '|';
-
 export interface DeconstructionSubmissionRequest {
   session_id: string;
   user_input: string;

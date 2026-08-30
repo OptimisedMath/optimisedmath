@@ -21,6 +21,7 @@ from backend.models import (
     SessionState,
 )
 from backend.play_mode import StudentPlayMode
+from backend.step_grading import ORDERING_ANSWER_SEPARATOR
 
 
 def run(coro):
@@ -1611,23 +1612,22 @@ def test_step_revealed_survives_sqlite_reload(monkeypatch):
 # the real priority-ladder labels.
 
 _ORDERING_ITEMS = ["a", "b", "c", "d"]
-_ORDERING_ANSWER = "|".join(_ORDERING_ITEMS)
+_ORDERING_ANSWER = ORDERING_ANSWER_SEPARATOR.join(_ORDERING_ITEMS)
+
+
+def _ordering_step(question="q"):
+    return DeconstructionStep(
+        question=question,
+        working_line=None,
+        answer=_ORDERING_ANSWER,
+        input_type="ordering",
+        items=_ORDERING_ITEMS,
+    )
 
 
 def test_deconstruction_next_returns_ordering_step_payload():
     state = make_state(_trap_problem("p-ordering-payload"), input_mode="radio")
-    _arm_deconstruction(
-        state,
-        [
-            DeconstructionStep(
-                question="Ułóż w kolejności.",
-                working_line=None,
-                answer=_ORDERING_ANSWER,
-                input_type="ordering",
-                items=_ORDERING_ITEMS,
-            )
-        ],
-    )
+    _arm_deconstruction(state, [_ordering_step("Ułóż w kolejności.")])
 
     response = run(main.deconstruction_next(state.session_id))
 
@@ -1652,13 +1652,7 @@ def test_ordering_step_grades_correct_and_incorrect_order():
     _arm_deconstruction(
         state,
         [
-            DeconstructionStep(
-                question="q1",
-                working_line=None,
-                answer=_ORDERING_ANSWER,
-                input_type="ordering",
-                items=_ORDERING_ITEMS,
-            ),
+            _ordering_step("q1"),
             DeconstructionStep(question="q2", working_line=None, answer="5"),
         ],
     )
@@ -1680,13 +1674,7 @@ def test_reveal_fires_on_an_ordering_step_same_as_typed(monkeypatch):
     _arm_deconstruction(
         state,
         [
-            DeconstructionStep(
-                question="q",
-                working_line=None,
-                answer=_ORDERING_ANSWER,
-                input_type="ordering",
-                items=_ORDERING_ITEMS,
-            ),
+            _ordering_step(),
             DeconstructionStep(question="q2", working_line=None, answer="5"),
         ],
     )

@@ -77,6 +77,13 @@ export function baseDeconstructionStep(
   };
 }
 
+export const ORDERING_STEP_ITEMS = [
+  'nawiasy',
+  'potęgi',
+  'mnożenie i dzielenie',
+  'dodawanie i odejmowanie',
+];
+
 /** A stand-in ordering step (#198) — no batch-two walkthrough is authored here. */
 export function baseOrderingDeconstructionStep(
   overrides: Partial<DeconstructionStepResponse> = {}
@@ -85,7 +92,7 @@ export function baseOrderingDeconstructionStep(
     question: 'Ułóż drabinkę priorytetów w poprawnej kolejności.',
     working_line: null,
     input_type: 'ordering',
-    items: ['nawiasy', 'potęgi', 'mnożenie i dzielenie', 'dodawanie i odejmowanie'],
+    items: [...ORDERING_STEP_ITEMS],
     ...overrides,
   });
 }

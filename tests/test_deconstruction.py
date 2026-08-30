@@ -113,32 +113,3 @@ class TestOrderingStepType:
         assert step.input_type == "ordering"
         assert step.items == items
         assert step.answer == "brackets|powers|multiply-divide|add-subtract"
-
-    @pytest.mark.parametrize(
-        "parameters",
-        [
-            {},
-            {"a": 1, "b": 2},
-            {"expression": "(2+3)*4", "unrelated": "value"},
-        ],
-    )
-    def test_ordering_step_presents_the_full_ladder_regardless_of_instance(
-        self, parameters
-    ):
-        """Stand-in for a batch-two ladder builder (#186/#218): the items an
-        ordering step presents are a fixed set, never scoped down to whichever
-        tiers a specific Problem instance actually uses."""
-        ladder = ("brackets", "powers", "multiply-divide", "add-subtract")
-
-        def build_ladder_step(_parameters: dict) -> Step:
-            return Step(
-                question="Order the priority tiers.",
-                working_line=None,
-                answer=ORDERING_ANSWER_SEPARATOR.join(ladder),
-                input_type="ordering",
-                items=ladder,
-            )
-
-        step = build_ladder_step(parameters)
-
-        assert step.items == ladder

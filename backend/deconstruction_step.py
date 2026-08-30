@@ -129,7 +129,7 @@ def next_step_response(
         misconception_name=misconception_name,
         revealed_answer=step.answer if deconstruction.step_revealed else None,
         input_type=step.input_type,
-        items=list(step.items) if step.items is not None else None,
+        items=step.items,
     )
 
 

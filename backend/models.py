@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -62,13 +62,18 @@ class NavigationView(BaseModel):
 # --- Session state ---
 
 
+# Wire mirror of `deconstruction.StepInputType`, redeclared rather than imported so
+# `models.py` stays the shared leaf every layer may import (import rule 2).
+DeconstructionStepInputType = Literal["typed", "ordering"]
+
+
 class DeconstructionStep(BaseModel):
     """One computed walkthrough question, mirroring `deconstruction.Step`."""
 
     question: str
     working_line: Optional[str] = None
     answer: str
-    input_type: str = "typed"
+    input_type: DeconstructionStepInputType = "typed"
     items: Optional[list[str]] = None
 
 
@@ -360,7 +365,7 @@ class DeconstructionStepResponse(BaseModel):
     total_steps: int
     misconception_name: str
     revealed_answer: Optional[str] = None
-    input_type: str = "typed"
+    input_type: DeconstructionStepInputType = "typed"
     items: Optional[list[str]] = None
 
 

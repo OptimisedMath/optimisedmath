@@ -32,6 +32,11 @@ export default function DeconstructionOrderingInput({
 }: DeconstructionOrderingInputProps) {
   const [order, setOrder] = useState(items);
 
+  const moveUp = (index: number) =>
+    setOrder((current) => swapWithNeighbour(current, index, -1));
+  const moveDown = (index: number) =>
+    setOrder((current) => swapWithNeighbour(current, index, 1));
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit(order.join(DECONSTRUCTION_ORDERING_SEPARATOR));
@@ -52,7 +57,7 @@ export default function DeconstructionOrderingInput({
               type="button"
               aria-label="Przesuń w górę"
               disabled={disabled || index === 0}
-              onClick={() => setOrder((current) => swapWithNeighbour(current, index, -1))}
+              onClick={() => moveUp(index)}
               className="text-slate-400 transition hover:text-white disabled:opacity-30"
             >
               ▲
@@ -61,7 +66,7 @@ export default function DeconstructionOrderingInput({
               type="button"
               aria-label="Przesuń w dół"
               disabled={disabled || index === order.length - 1}
-              onClick={() => setOrder((current) => swapWithNeighbour(current, index, 1))}
+              onClick={() => moveDown(index)}
               className="text-slate-400 transition hover:text-white disabled:opacity-30"
             >
               ▼
