@@ -141,12 +141,11 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
 # --- Batch one, walkthrough 5: expands_to_target_denominator_without_finding_factor ---
 #
 # Hidden-operand shape (#187): the multiplier the Student needs — how many times the
-# denominator grew — never appears as a written number in the Problem's question text,
-# only implicitly inside the target denominator (`d * factor`). It reaches this
-# walkthrough purely via `parameters["factor"]`, proving `parameters` earns its keep —
-# no walkthrough for this Misconception could be authored from the screen text alone.
-# Parameters contract: `n`, `d`, `factor` (`frac_exp_2`'s target denominator, `d *
-# factor`, is itself never a parameter).
+# denominator grew — is never written as its own number in the Problem's question
+# text (`frac_exp_2` states only the target denominator, `d * factor`). The
+# walkthrough reaches it via `parameters["factor"]` rather than deriving it from what
+# is on screen, which is what proves `parameters` earns its keep. Parameters
+# contract: `n`, `d`, `factor`; the target denominator is recomputed here, never passed.
 
 
 @declares_deconstruction("expands_to_target_denominator_without_finding_factor")
@@ -154,11 +153,8 @@ def expands_to_target_denominator_without_finding_factor(
     parameters: StepParameters,
 ) -> list[Step]:
     """2-step walkthrough: find the hidden factor, then scale the numerator by it."""
-    n, d, factor = (
-        int(parameters["n"]),
-        int(parameters["d"]),
-        int(parameters["factor"]),
-    )
+    n, d = int(parameters["n"]), int(parameters["d"])
+    factor = int(parameters["factor"])
     target_d = d * factor
     scaled_n = n * factor
 
