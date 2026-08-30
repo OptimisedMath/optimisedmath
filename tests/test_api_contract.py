@@ -1604,6 +1604,109 @@ def test_step_revealed_survives_sqlite_reload(monkeypatch):
     assert recovered.deconstruction.step_index == 0
 
 
+# --- Ordering-input step type (#198) ---
+#
+# The wire contract and control only — `ignores_the_order_of_operations` (#186)
+# is batch two and not authored here, so these use stand-in items rather than
+# the real priority-ladder labels.
+
+_ORDERING_ITEMS = ["a", "b", "c", "d"]
+_ORDERING_ANSWER = "|".join(_ORDERING_ITEMS)
+
+
+def test_deconstruction_next_returns_ordering_step_payload():
+    state = make_state(_trap_problem("p-ordering-payload"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(
+                question="Ułóż w kolejności.",
+                working_line=None,
+                answer=_ORDERING_ANSWER,
+                input_type="ordering",
+                items=_ORDERING_ITEMS,
+            )
+        ],
+    )
+
+    response = run(main.deconstruction_next(state.session_id))
+
+    assert response.input_type == "ordering"
+    assert response.items == _ORDERING_ITEMS
+
+
+def test_deconstruction_next_defaults_to_typed_input():
+    state = make_state(_trap_problem("p-typed-default"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    response = run(main.deconstruction_next(state.session_id))
+
+    assert response.input_type == "typed"
+    assert response.items is None
+
+
+def test_ordering_step_grades_correct_and_incorrect_order():
+    state = make_state(_trap_problem("p-ordering-grade"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(
+                question="q1",
+                working_line=None,
+                answer=_ORDERING_ANSWER,
+                input_type="ordering",
+                items=_ORDERING_ITEMS,
+            ),
+            DeconstructionStep(question="q2", working_line=None, answer="5"),
+        ],
+    )
+
+    wrong = _submit_step(state, "b|a|c|d")
+    assert wrong.is_correct is False
+    assert state.deconstruction.step_index == 0
+    assert state.deconstruction.step_attempts == 1
+
+    correct = _submit_step(state, "a|b|c|d")
+    assert correct.is_correct is True
+    assert state.deconstruction.step_index == 1
+    assert state.deconstruction.step_attempts == 0
+
+
+def test_reveal_fires_on_an_ordering_step_same_as_typed(monkeypatch):
+    monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
+    state = make_state(_trap_problem("p-ordering-reveal"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(
+                question="q",
+                working_line=None,
+                answer=_ORDERING_ANSWER,
+                input_type="ordering",
+                items=_ORDERING_ITEMS,
+            ),
+            DeconstructionStep(question="q2", working_line=None, answer="5"),
+        ],
+    )
+
+    _submit_step(state, "d|c|b|a")
+    _submit_step(state, "d|c|b|a")
+    assert state.deconstruction.step_revealed is False
+
+    response = _submit_step(state, "d|c|b|a")
+    assert response.is_correct is False
+    assert state.deconstruction.step_revealed is True
+
+    step_response = run(main.deconstruction_next(state.session_id))
+    assert step_response.revealed_answer == _ORDERING_ANSWER
+
+    response = _submit_step(state, _ORDERING_ANSWER)
+    assert response.is_correct is True
+    assert state.deconstruction.step_index == 1
+
+
 def test_deconstruction_steps_row_tracks_attempts_and_revealed(monkeypatch):
     """Issue #195: one `deconstruction_steps` row per step carries step_index, attempts, revealed."""
     monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)

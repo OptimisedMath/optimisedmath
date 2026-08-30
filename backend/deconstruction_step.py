@@ -20,7 +20,7 @@ from backend.models import (
     SessionState,
 )
 from backend.play_mode import PlayMode
-from backend.step_grading import grade_step
+from backend.step_grading import grade_ordering_step, grade_step
 
 
 class DeconstructionNotRunningError(Exception):
@@ -128,6 +128,8 @@ def next_step_response(
         total_steps=len(deconstruction.steps),
         misconception_name=misconception_name,
         revealed_answer=step.answer if deconstruction.step_revealed else None,
+        input_type=step.input_type,
+        items=list(step.items) if step.items is not None else None,
     )
 
 
@@ -149,7 +151,8 @@ def submit_step(
     deconstruction, step = _require_deconstruction_step(state)
     answered_step_index = deconstruction.step_index
 
-    eval_result = grade_step(user_input, step.answer)
+    grade = grade_ordering_step if step.input_type == "ordering" else grade_step
+    eval_result = grade(user_input, step.answer)
     is_correct = bool(eval_result.get("is_correct"))
 
     if not is_correct and not eval_result.get("soft_error"):

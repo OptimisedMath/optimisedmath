@@ -104,6 +104,8 @@ export interface SubmissionResponse {
   feedback: string;
 }
 
+export type DeconstructionStepInputType = 'typed' | 'ordering';
+
 export interface DeconstructionStepResponse {
   question: string;
   working_line: string | null;
@@ -111,7 +113,17 @@ export interface DeconstructionStepResponse {
   total_steps: number;
   misconception_name: string;
   revealed_answer: string | null;
+  input_type: DeconstructionStepInputType;
+  items: string[] | null;
 }
+
+/**
+ * Joins/splits an ordering step's submitted order on the wire — `user_input`
+ * stays a plain string (matching the typed-answer wire shape), carrying the
+ * ordered items joined by this separator. Mirrors
+ * `backend/step_grading.ORDERING_ANSWER_SEPARATOR`.
+ */
+export const DECONSTRUCTION_ORDERING_SEPARATOR = '|';
 
 export interface DeconstructionSubmissionRequest {
   session_id: string;
@@ -155,6 +167,8 @@ export interface DeconstructionStepView {
   stepIndex: number;
   totalSteps: number;
   revealedAnswer: string | null;
+  inputType: DeconstructionStepInputType;
+  items: string[] | null;
 }
 
 /** Render model for the takeover — a pure projection of DeconstructionStepResponse plus local phase. */

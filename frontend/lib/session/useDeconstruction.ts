@@ -206,6 +206,8 @@ export function useDeconstruction({
             stepIndex: step.step_index,
             totalSteps: step.total_steps,
             revealedAnswer: step.revealed_answer,
+            inputType: step.input_type,
+            items: step.items,
           }
         : null,
       stepFeedback,

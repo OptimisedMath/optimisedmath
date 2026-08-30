@@ -1,9 +1,11 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DECONSTRUCTION_ORDERING_SEPARATOR } from '@/lib/session';
 import {
   TRAP_FEEDBACK,
   baseDeconstructionStep,
+  baseOrderingDeconstructionStep,
   baseProblem,
   baseSession,
   wireDeconstructionTriggerFlow,
@@ -215,5 +217,75 @@ describe('Deconstruction takeover', () => {
 
     await screen.findByPlaceholderText('Wpisz wynik...');
     expect(screen.queryByText('Rozłożone na kroki')).not.toBeInTheDocument();
+  });
+});
+
+describe('Deconstruction ordering-input step (#198)', () => {
+  beforeEach(() => {
+    resetStoredSession();
+    seedStoredSession();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('renders the ordering control with every item instead of the typed input', async () => {
+    const step = baseOrderingDeconstructionStep();
+    const client = wireDeconstructionTriggerFlow({ step });
+
+    await reachStep(client, step);
+
+    expect(screen.queryByPlaceholderText('?')).not.toBeInTheDocument();
+    const renderedItems = document.querySelectorAll('[data-deconstruction-ordering-item]');
+    expect(renderedItems.length).toBe(step.items?.length);
+    step.items?.forEach((label) => {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    });
+  });
+
+  it('submits the reordered items joined by the ordering separator', async () => {
+    const session = baseSession();
+    const step = baseOrderingDeconstructionStep();
+    const submitDeconstructionStep = vi.fn(async () => ({
+      is_correct: true,
+      feedback_msg: null,
+      handback_question: null,
+    }));
+    const client = wireDeconstructionTriggerFlow({ session, step, submitDeconstructionStep });
+
+    await reachStep(client, step);
+
+    const user = userEvent.setup();
+    const upButtons = screen.getAllByLabelText('Przesuń w górę');
+    // Swap the first two tiers by moving the second one up.
+    await user.click(upButtons[1]);
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+
+    const [first, second, ...rest] = step.items ?? [];
+    const expected = [second, first, ...rest].join(DECONSTRUCTION_ORDERING_SEPARATOR);
+
+    await waitFor(() => {
+      expect(submitDeconstructionStep).toHaveBeenCalledWith({
+        session_id: session.session_id,
+        user_input: expected,
+      });
+    });
+  });
+
+  it('shows the revealed order without auto-advancing, same as a typed step', async () => {
+    const step = baseOrderingDeconstructionStep({
+      revealed_answer: ['nawiasy', 'potęgi', 'mnożenie i dzielenie', 'dodawanie i odejmowanie'].join(
+        DECONSTRUCTION_ORDERING_SEPARATOR
+      ),
+    });
+    const client = wireDeconstructionTriggerFlow({ step });
+
+    await reachStep(client, step);
+
+    expect(screen.getByText(step.revealed_answer as string)).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-deconstruction-ordering-item]').length).toBe(
+      step.items?.length
+    );
   });
 });

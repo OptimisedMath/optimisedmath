@@ -12,6 +12,7 @@ export {
 } from './storage';
 export { useSession } from './useSession';
 export { isTakeoverPhase } from './useDeconstruction';
+export { DECONSTRUCTION_ORDERING_SEPARATOR } from './types';
 export {
   emptySessionDisplayProjection,
   projectSessionState,

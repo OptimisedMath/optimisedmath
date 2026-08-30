@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { DeconstructionStepView } from '@/lib/session';
 import DeconstructionExitControl from './DeconstructionExitControl';
+import DeconstructionOrderingInput from './DeconstructionOrderingInput';
 import 'katex/dist/katex.min.css';
 
 interface DeconstructionStepProps {
@@ -99,19 +100,27 @@ export default function DeconstructionStep({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
-          <Input
-            autoFocus
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
+        {step.inputType === 'ordering' && step.items ? (
+          <DeconstructionOrderingInput
+            items={step.items}
             disabled={isSubmitting}
-            className="w-40 border-white/15 bg-black/40 text-lg font-bold text-white placeholder:text-slate-500 focus-visible:ring-sky-500/40"
-            placeholder="?"
+            onSubmit={onSubmit}
           />
-          <Button type="submit" size="lg" disabled={isSubmitting || value.trim() === ''}>
-            Sprawdź
-          </Button>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
+            <Input
+              autoFocus
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              disabled={isSubmitting}
+              className="w-40 border-white/15 bg-black/40 text-lg font-bold text-white placeholder:text-slate-500 focus-visible:ring-sky-500/40"
+              placeholder="?"
+            />
+            <Button type="submit" size="lg" disabled={isSubmitting || value.trim() === ''}>
+              Sprawdź
+            </Button>
+          </form>
+        )}
 
         {feedback && <p className="mt-4 text-sm font-semibold text-amber-300">{feedback}</p>}
       </div>

@@ -231,6 +231,8 @@ def _maybe_trigger_deconstruction(
                 question=step.question,
                 working_line=step.working_line,
                 answer=step.answer,
+                input_type=step.input_type,
+                items=list(step.items) if step.items is not None else None,
             )
             for step in steps
         ],

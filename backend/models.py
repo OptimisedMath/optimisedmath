@@ -68,6 +68,8 @@ class DeconstructionStep(BaseModel):
     question: str
     working_line: Optional[str] = None
     answer: str
+    input_type: str = "typed"
+    items: Optional[list[str]] = None
 
 
 class DeconstructionState(BaseModel):
@@ -358,6 +360,8 @@ class DeconstructionStepResponse(BaseModel):
     total_steps: int
     misconception_name: str
     revealed_answer: Optional[str] = None
+    input_type: str = "typed"
+    items: Optional[list[str]] = None
 
 
 class DeconstructionSubmissionResponse(BaseModel):
