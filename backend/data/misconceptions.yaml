@@ -21,6 +21,16 @@
 # Slips include misreading a symbol (computing a - b*c where a - b:c is written), pairing the
 # wrong operands, and dropping an operation outright.
 #
+# AMBIGUOUS EVIDENCE does not disqualify an entry (#210). Some answers are produced both by a
+# believed rule and by a plain slip — an area given as `24 cm` may be the rule "the unit comes
+# from the ruler", or a mistyped unit. Ask whether a believed rule exists whose NATURAL OUTPUT
+# is this answer, not whether this Student can be shown to have held it: membership is a
+# property of the answer. A Trap may therefore reference a Misconception whose evidence really
+# lives in a SEQUENCE of Submissions (the same wrong unit, repeatedly) even though a Trap is
+# matched per-Submission and has no memory. This costs nothing when the guess is wrong, because
+# nothing acts on one Submission — telemetry is aggregate, and a Deconstruction already requires
+# repetition. See CONTEXT.md, Misconception.
+#
 # This test is about CAUSE, not capability, and it replaces the earlier "a Trap that no
 # walkthrough could address is Wrong" (#168, amended by #183). The two disagree: a walkthrough
 # easily could say "look at the symbol again", but a Deconstruction fired on a misread would
