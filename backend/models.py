@@ -297,6 +297,12 @@ class DeconstructionSubmissionRequest(BaseModel):
     user_input: str
 
 
+class DeconstructionAbandonRequest(BaseModel):
+    """End the running Deconstruction via its exit control, forfeiting the retry."""
+
+    session_id: str
+
+
 # --- Response models ---
 
 
@@ -358,8 +364,11 @@ class DeconstructionSubmissionResponse(BaseModel):
     """Grading outcome for one Deconstruction step submission.
 
     No attempt counter on the wire (ADR-0004) — a visible "one try left" makes
-    the walkthrough feel like a test.
+    the walkthrough feel like a test. `handback_question` carries the original
+    Problem's question text, and is populated only on the submission that
+    completes the final step — Handback has no separate endpoint.
     """
 
     is_correct: bool
     feedback_msg: Optional[str] = None
+    handback_question: Optional[str] = None

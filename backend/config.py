@@ -29,6 +29,11 @@ DECONSTRUCTION_TRIGGER_COUNT = 2
 # author has evidence to set them.
 DECONSTRUCTION_REVEAL_THRESHOLD = 3
 
+# XP multiplier for the discounted second attempt a completed Deconstruction
+# unlocks on its triggering Problem. Streak, Flawless, and the Frontier are
+# untouched by that attempt — only XP scores, and at a discount.
+DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER = 0.5
+
 # --- GAME MECHANICS: REWARDS ---
 # XP (Experience Points) awarded for correct answers by level
 XP_REWARDS = {

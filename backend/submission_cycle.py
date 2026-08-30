@@ -3,6 +3,7 @@
 import time
 
 import backend.config as config
+import backend.deconstruction_step as deconstruction_step
 import backend.navigation_resolve as navigation_resolve
 import backend.navigation_snapshot as navigation_snapshot
 from backend.core.utils import ProblemDict
@@ -94,7 +95,13 @@ def navigate_to(
     ``persist=False`` lets a caller that persists once for a larger unit of work
     (e.g. Session start) update Selected chapter/topic/level without an
     intermediate DB write.
+
+    A running Deconstruction ends here first, via ``abandon_via_navigation`` —
+    toolbar Navigation is one of the two doors Abandonment can walk through,
+    the other being the Deconstruction's own exit control.
     """
+    if state.deconstruction is not None:
+        deconstruction_step.abandon_via_navigation(state, play_mode)
     if chapter_id is not None:
         state.selected_chapter_id = chapter_id
     if topic_id is not None:

@@ -21,6 +21,7 @@ from backend.problem_generation import ProblemGenerationError
 from backend.progression import resolve_streak_meter
 from backend.models import (
     AutoSolveRequest,
+    DeconstructionAbandonRequest,
     DeconstructionStepResponse,
     DeconstructionSubmissionRequest,
     DeconstructionSubmissionResponse,
@@ -280,8 +281,18 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
 
 
 def next_problem(session_id: str) -> ProblemResponse:
-    """Generate the next problem, dedupe recent instances, and update input mode."""
+    """Generate the next problem, dedupe recent instances, and update input mode.
+
+    Not a door out of a running Deconstruction: dismissing Feedback here would
+    otherwise keep everything the Problem was worth while skipping the
+    walkthrough entirely, so this raises while one is running rather than
+    serving a fresh Problem.
+    """
     state = get_session(session_id)
+    if state.deconstruction is not None:
+        raise ForbiddenError(
+            "Next problem is unavailable while a Deconstruction is active"
+        )
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
     chapter_id = state.selected_chapter_id
@@ -400,10 +411,32 @@ def submit_deconstruction_step(
     """Grade one Deconstruction step submission — mirrors `submit_problem()`."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
+    curriculum = resolve_curriculum()
     try:
-        return deconstruction_step.submit_step(state, request.user_input, play_mode)
+        return deconstruction_step.submit_step(
+            state, request.user_input, curriculum, play_mode
+        )
     except deconstruction_step.DeconstructionNotRunningError as exc:
         raise SessionError("No Deconstruction is running for this session") from exc
+
+
+def abandon_deconstruction(request: DeconstructionAbandonRequest) -> SessionResponse:
+    """End the running Deconstruction via its exit control.
+
+    The other door — toolbar Navigation — runs through `submission_cycle.navigate_to`
+    instead; the two differ only in the `outcome` recorded.
+    """
+    state = get_session(request.session_id)
+    play_mode = resolve_play_mode(state.username)
+    curriculum = resolve_curriculum()
+    try:
+        deconstruction_step.abandon_via_control(state, play_mode)
+    except deconstruction_step.DeconstructionNotRunningError as exc:
+        raise SessionError("No Deconstruction is running for this session") from exc
+    nav_snapshot = navigation_snapshot.build_navigation_snapshot(
+        state, curriculum, play_mode
+    )
+    return build_session_response(state, play_mode, nav_snapshot)
 
 
 def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:

@@ -36,6 +36,82 @@ def _require_deconstruction_step(
     return deconstruction, deconstruction.steps[deconstruction.step_index]
 
 
+def deconstruction_key(
+    misconception_slug: str, chapter_id: int, topic_id: int, level: int
+) -> str:
+    """Stable identity for one (Misconception, Level) pair in `state.deconstructed`.
+
+    Shared with `submission.py`'s trigger check, so an armed Deconstruction and
+    its own ending agree on exactly the same key.
+    """
+    return f"{misconception_slug}:{chapter_id}:{topic_id}:{level}"
+
+
+def _disarm(state: SessionState, deconstruction: DeconstructionState) -> None:
+    """Record this (Misconception, Level) pair as deconstructed — either ending
+    keeps it from firing again for the rest of the Session."""
+    chapter_id = state.selected_chapter_id
+    topic_id = state.selected_topic_id
+    assert chapter_id is not None and topic_id is not None
+    key = deconstruction_key(
+        deconstruction.misconception_slug, chapter_id, topic_id, state.selected_level
+    )
+    if key not in state.deconstructed:
+        state.deconstructed.append(key)
+
+
+def _abandon(state: SessionState, play_mode: PlayMode, *, outcome: str) -> None:
+    deconstruction = state.deconstruction
+    if deconstruction is None:
+        raise DeconstructionNotRunningError()
+    if deconstruction.deconstruction_id is not None:
+        db.set_deconstruction_outcome(deconstruction.deconstruction_id, outcome)
+    _disarm(state, deconstruction)
+    state.deconstruction = None
+    session_state.persist(state, play_mode)
+
+
+def abandon_via_control(state: SessionState, play_mode: PlayMode) -> None:
+    """End a running Deconstruction via its always-present exit control.
+
+    Available from any step — restricting it to appear only after the Reveal
+    was rejected, since that would price leaving at three deliberate wrong
+    answers. The triggering Problem stays exactly as Abandonment leaves it:
+    under Answer lock, its answer revealed, nothing earned.
+    """
+    _abandon(state, play_mode, outcome="abandoned_via_control")
+
+
+def abandon_via_navigation(state: SessionState, play_mode: PlayMode) -> None:
+    """End a running Deconstruction because toolbar Navigation moved the Session away.
+
+    Same ending as `abandon_via_control` — differs only in the `outcome`
+    recorded, the only telemetry evidence distinguishing the two doors.
+    """
+    _abandon(state, play_mode, outcome="abandoned_via_navigation")
+
+
+def _finish(
+    state: SessionState, curriculum: Curriculum, deconstruction: DeconstructionState
+) -> str:
+    """Reach the final step: record completion, disarm the Misconception, and
+    reopen the triggering Problem for a discounted retry.
+
+    Handback has no separate endpoint — the caller carries the returned
+    question text back on the same step-submit response. Returns the
+    triggering Problem's question text.
+    """
+    if deconstruction.deconstruction_id is not None:
+        db.set_deconstruction_outcome(deconstruction.deconstruction_id, "completed")
+    _disarm(state, deconstruction)
+    problem = state.current_problem
+    assert problem is not None
+    state.discounted_problem_id = problem.get("problem_id")
+    state.deconstruction = None
+    session_state.lift_answer_lock(state, curriculum)
+    return str(problem.get("question", ""))
+
+
 def next_step_response(
     state: SessionState, curriculum: Curriculum
 ) -> DeconstructionStepResponse:
@@ -56,7 +132,10 @@ def next_step_response(
 
 
 def submit_step(
-    state: SessionState, user_input: str, play_mode: PlayMode
+    state: SessionState,
+    user_input: str,
+    curriculum: Curriculum,
+    play_mode: PlayMode,
 ) -> DeconstructionSubmissionResponse:
     """Grade one Deconstruction step and advance on a correct answer.
 
@@ -65,6 +144,7 @@ def submit_step(
     `config.DECONSTRUCTION_REVEAL_THRESHOLD` the answer is revealed but the step
     does not advance; the Student still has to type it. Post-Reveal retry is
     infinite, so a correct answer always advances regardless of `step_revealed`.
+    A correct answer on the final step ends the Deconstruction — see `_finish`.
     """
     deconstruction, step = _require_deconstruction_step(state)
     answered_step_index = deconstruction.step_index
@@ -85,14 +165,18 @@ def submit_step(
             revealed=deconstruction.step_revealed,
         )
 
+    handback_question: str | None = None
     if is_correct:
         deconstruction.step_index += 1
         deconstruction.step_attempts = 0
         deconstruction.step_revealed = False
+        if deconstruction.step_index >= len(deconstruction.steps):
+            handback_question = _finish(state, curriculum, deconstruction)
 
     session_state.persist(state, play_mode)
 
     return DeconstructionSubmissionResponse(
         is_correct=is_correct,
         feedback_msg=eval_result.get("feedback_msg"),
+        handback_question=handback_question,
     )

@@ -11,6 +11,7 @@ from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
+import backend.deconstruction_step as deconstruction_step
 from backend.models import DeconstructionState, DeconstructionStep, SessionState
 from backend.play_mode import PlayMode
 from backend.progression import (
@@ -41,13 +42,23 @@ def run_submission_cycle(
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> EvalResult:
-    """Grade, log telemetry, apply progression, and persist one Submission."""
+    """Grade, log telemetry, apply progression, and persist one Submission.
+
+    A discounted retry — the one case where `problem["problem_id"]` matches
+    `state.discounted_problem_id`, set by a just-finished Deconstruction — is
+    graded and logged exactly like any other Submission, but skips the trigger
+    check and scores XP through `_apply_discounted_retry_outcome` instead of
+    the normal progression rules, so it can never touch Streak, Flawless, or
+    the Frontier (ADR-0004).
+    """
     if (
         state.username is None
         or state.selected_chapter_id is None
         or state.selected_topic_id is None
     ):
         raise RuntimeError("Session missing required context for submission")
+
+    is_discounted_retry = problem.get("problem_id") == state.discounted_problem_id
 
     eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
@@ -62,10 +73,36 @@ def run_submission_cycle(
         curriculum,
         misconception_slug,
     )
-    _maybe_trigger_deconstruction(state, problem, curriculum, misconception_slug)
-    _run_progression_step(state, eval_result, curriculum, play_mode)
+    if is_discounted_retry:
+        _apply_discounted_retry_outcome(state, eval_result)
+        is_soft_error = eval_result.get("feedback_type") == "info"
+        if not is_soft_error:
+            state.discounted_problem_id = None
+    else:
+        _maybe_trigger_deconstruction(state, problem, curriculum, misconception_slug)
+        _run_progression_step(state, eval_result, curriculum, play_mode)
     session_state.persist(state, play_mode)
     return eval_result
+
+
+def _apply_discounted_retry_outcome(
+    state: SessionState, eval_result: EvalResult
+) -> None:
+    """Score a Deconstruction's discounted retry — XP only, at
+    `config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER`. Streak, Flawless, and the
+    Frontier are untouched: a Streak discount would let a Deconstruction gate
+    Level completion, which would contradict ADR-0004.
+    """
+    feedback_type = eval_result.get("feedback_type")
+    feedback_msg = eval_result.get("feedback_msg", "")
+    if eval_result.get("is_correct"):
+        base_xp = config.XP_REWARDS.get(state.selected_level, config.DEFAULT_XP_REWARD)
+        discounted_xp = round(base_xp * config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER)
+        state.xp += discounted_xp
+        feedback_type = "success"
+        feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{discounted_xp} XP)"
+    state.feedback_type = feedback_type
+    state.feedback_msg = feedback_msg
 
 
 def _sanitize_problem_for_telemetry(problem: ProblemDict) -> str:
@@ -132,13 +169,6 @@ def _log_submission_telemetry(
     )
 
 
-def _deconstruction_key(
-    misconception_slug: str, chapter_id: int, topic_id: int, level: int
-) -> str:
-    """Stable identity for one (Misconception, Level) pair in `state.deconstructed`."""
-    return f"{misconception_slug}:{chapter_id}:{topic_id}:{level}"
-
-
 def _maybe_trigger_deconstruction(
     state: SessionState,
     problem: ProblemDict,
@@ -167,7 +197,9 @@ def _maybe_trigger_deconstruction(
     username = state.username
     assert chapter_id is not None and topic_id is not None and username is not None
 
-    key = _deconstruction_key(misconception_slug, chapter_id, topic_id, level)
+    key = deconstruction_step.deconstruction_key(
+        misconception_slug, chapter_id, topic_id, level
+    )
     if key in state.deconstructed:
         return
 

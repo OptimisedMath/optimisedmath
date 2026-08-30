@@ -1633,3 +1633,264 @@ def test_deconstruction_next_raises_when_none_running():
 
     with pytest.raises(HTTPException):
         run(main.deconstruction_next(state.session_id))
+
+
+# --- Deconstruction endings: completion, handback, discounted retry, Abandonment (#196) ---
+
+
+def test_final_step_completion_returns_handback_question():
+    """Issue #196: the final step's submit response carries the original Problem's
+    question text, and only that submission — Handback has no separate endpoint."""
+    problem = _trap_problem("p-handback")
+    state = make_state(problem, input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    response = _submit_step(state, "5")
+
+    assert response.is_correct is True
+    assert response.handback_question == problem["question"]
+    assert state.deconstruction is None
+
+
+def test_non_final_step_completion_leaves_handback_question_none():
+    state = make_state(_trap_problem("p-not-yet"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            DeconstructionStep(question="q1", working_line=None, answer="5"),
+            DeconstructionStep(question="q2", working_line=None, answer="7"),
+        ],
+    )
+
+    response = _submit_step(state, "5")
+
+    assert response.is_correct is True
+    assert response.handback_question is None
+    assert state.deconstruction is not None
+
+
+def test_completion_reopens_same_problem_with_answer_withheld():
+    """Issue #196: after completion the triggering Problem is answerable again on
+    the same problem_id, with `correct_answer` still withheld."""
+    problem = _trap_problem("p-reopen")
+    state = make_state(problem, input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    _submit_step(state, "5")
+
+    assert state.discounted_problem_id == "p-reopen"
+    assert state.current_problem is not None
+    assert state.current_problem.get("problem_id") == "p-reopen"
+    revealed = session.public_problem(state.current_problem, state, StudentPlayMode())
+    assert "correct_answer" not in revealed
+
+
+def test_discounted_retry_scores_xp_multiplier_streak_and_flawless_untouched(
+    monkeypatch,
+):
+    """Issue #196: a correct second attempt scores XP at the config multiplier
+    and leaves Streak and Flawless untouched — a Streak discount would let a
+    Deconstruction gate Level completion, contradicting ADR-0004."""
+    monkeypatch.setattr(config, "DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER", 0.5)
+    problem = _trap_problem("p-discounted")
+    state = make_state(problem, input_mode="radio")
+    state.streak = 0
+    state.flawless_eligible = False
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+    _submit_step(state, "5")
+    assert state.discounted_problem_id == "p-discounted"
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-discounted",
+                user_input="2",
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    expected_xp = round(config.XP_REWARDS[1] * 0.5)
+    assert state.xp == expected_xp
+    assert state.streak == 0
+    assert state.flawless_eligible is False
+    assert state.discounted_problem_id is None
+
+
+def test_next_problem_rejected_while_deconstruction_active():
+    """Issue #196: Next problem is not a door — it is rejected backend-side while
+    a Deconstruction is running, rather than serving a fresh Problem."""
+    state = make_state(_trap_problem("p-next-rejected"), input_mode="radio")
+    _arm_deconstruction(
+        state, [DeconstructionStep(question="q", working_line=None, answer="5")]
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        run(main.problem_next(state.session_id))
+    assert exc_info.value.status_code == 403
+
+
+def test_exit_control_abandons_from_any_step_and_writes_outcome(monkeypatch):
+    """Issue #196: the exit control ends the Deconstruction, writing
+    `abandoned_via_control`."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-abandon-control")
+    assert state.deconstruction is not None
+
+    run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=state.session_id)
+        )
+    )
+
+    assert state.deconstruction is None
+    row = _fetch_last_deconstruction_row(state.session_id)
+    assert row is not None
+    assert row[-1] == "abandoned_via_control"
+
+
+def test_abandon_via_control_leaves_problem_locked_revealed_nothing_earned(
+    monkeypatch,
+):
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-abandon-locked")
+    assert state.deconstruction is not None
+    xp_before = state.xp
+
+    response = run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=state.session_id)
+        )
+    )
+
+    assert state.xp == xp_before
+    assert response.can_submit is False
+    assert response.current_problem is not None
+    assert response.current_problem.get("correct_answer") == "2"
+
+
+def test_navigation_abandons_running_deconstruction_and_writes_outcome(monkeypatch):
+    """Issue #196: toolbar Navigation ends a running Deconstruction cleanly,
+    writing `abandoned_via_navigation` — the second of the two doors."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-abandon-nav")
+    assert state.deconstruction is not None
+    chapter_id = state.selected_chapter_id
+    topic_id = state.selected_topic_id
+
+    run(
+        main.session_navigate(
+            main.SessionNavigateRequest(
+                session_id=state.session_id,
+                selected_chapter_id=chapter_id,
+                selected_topic_id=topic_id,
+                selected_level=1,
+            )
+        )
+    )
+
+    assert state.deconstruction is None
+    row = _fetch_last_deconstruction_row(state.session_id)
+    assert row is not None
+    assert row[-1] == "abandoned_via_navigation"
+
+
+def test_misconception_does_not_retrigger_after_abandonment_via_control(monkeypatch):
+    """Issue #196: either ending disarms the (Misconception, Level) pair for the
+    rest of the Session."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=state.session_id)
+        )
+    )
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-third-hit")
+
+    assert state.deconstruction is None
+
+
+def test_misconception_does_not_retrigger_after_completion(monkeypatch):
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    steps = list(state.deconstruction.steps)
+    for step in steps:
+        _submit_step(state, step.answer)
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-third-hit")
+
+    assert state.deconstruction is None
+
+
+def test_completed_deconstruction_correct_retry_discoverable_by_joining_on_problem_id(
+    monkeypatch,
+):
+    """Issue #196: joining `deconstructions` to `telemetry_logs` on `problem_id`
+    answers whether the Student then solved the triggering Problem — never
+    denormalised onto the `deconstructions` row itself."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-join")
+    assert state.deconstruction is not None
+    deconstruction_id = state.deconstruction.deconstruction_id
+    assert deconstruction_id is not None
+
+    steps = list(state.deconstruction.steps)
+    for step in steps:
+        _submit_step(state, step.answer)
+    assert state.deconstruction is None
+    assert state.discounted_problem_id == "p-join"
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id, problem_id="p-join", user_input="2"
+            )
+        )
+    )
+
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        row = conn.execute(
+            """
+            SELECT tl.is_correct FROM deconstructions d
+            JOIN telemetry_logs tl ON tl.problem_id = d.problem_id
+            WHERE d.deconstruction_id = ? AND tl.is_correct = 1
+            """,
+            (deconstruction_id,),
+        ).fetchone()
+    assert row is not None
+    assert row[0] == 1
+
+
+def test_deconstruction_abandon_raises_when_none_running():
+    state = make_state(_trap_problem("p-no-deconstruction-abandon"), input_mode="radio")
+
+    with pytest.raises(HTTPException):
+        run(
+            main.deconstruction_abandon(
+                main.DeconstructionAbandonRequest(session_id=state.session_id)
+            )
+        )

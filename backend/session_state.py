@@ -101,6 +101,20 @@ def reset_submission_cycle(
         state.current_input_mode = "radio"
 
 
+def lift_answer_lock(state: SessionState, curriculum: Curriculum | None = None) -> None:
+    """Reopen the triggering Problem for the discounted retry a completed
+    Deconstruction earns — CONTEXT.md's Answer lock, "lifted once, exceptionally".
+
+    Delegates to `reset_submission_cycle` (keeping the running streak, mirroring
+    `begin_problem`) rather than writing the cycle flags directly, then restores
+    `current_problem` to the same instance so the Student answers the Problem
+    they were on rather than a freshly generated one.
+    """
+    problem = state.current_problem
+    reset_submission_cycle(state, curriculum, reset_streak=False)
+    state.current_problem = problem
+
+
 def mark_level_and_topic_completion(
     state: SessionState, *, level_completed: bool, topic_completed: bool
 ) -> None:

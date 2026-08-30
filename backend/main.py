@@ -11,6 +11,7 @@ from backend.core import db
 from backend.models import (
     AutoSolveRequest,
     CurriculumResponse,
+    DeconstructionAbandonRequest,
     DeconstructionStepResponse,
     DeconstructionSubmissionRequest,
     DeconstructionSubmissionResponse,
@@ -26,6 +27,7 @@ from backend.curriculum import get_curriculum_response, resolve_curriculum
 from backend.session import (
     ACTIVE_SESSIONS,
     SessionError,
+    abandon_deconstruction,
     auto_solve_problem,
     get_deconstruction_step,
     navigate_session,
@@ -192,6 +194,21 @@ async def deconstruction_submit(
     """Grade an answer for the current Deconstruction step."""
     try:
         return submit_deconstruction_step(request)
+    except SessionError as exc:
+        raise _map_session_error(exc) from exc
+
+
+@app.post(
+    "/deconstruction/abandon",
+    response_model=SessionResponse,
+    tags=["Deconstruction"],
+)
+async def deconstruction_abandon(
+    request: DeconstructionAbandonRequest,
+) -> SessionResponse:
+    """End the running Deconstruction via its exit control."""
+    try:
+        return abandon_deconstruction(request)
     except SessionError as exc:
         raise _map_session_error(exc) from exc
 

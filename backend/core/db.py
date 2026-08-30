@@ -414,6 +414,21 @@ def create_deconstruction_steps(deconstruction_id: int, step_count: int) -> None
         conn.commit()
 
 
+def set_deconstruction_outcome(deconstruction_id: int, outcome: str) -> None:
+    """Write the terminal `outcome` on a `deconstructions` header row.
+
+    Called once, whichever way the Deconstruction ends: `completed`,
+    `abandoned_via_control`, or `abandoned_via_navigation`.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE deconstructions SET outcome = ? WHERE deconstruction_id = ?",
+            (outcome, deconstruction_id),
+        )
+        conn.commit()
+
+
 def update_deconstruction_step(
     deconstruction_id: int, step_index: int, *, attempts: int, revealed: bool
 ) -> None:
