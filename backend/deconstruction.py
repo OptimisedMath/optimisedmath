@@ -138,4 +138,48 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
     ]
 
 
+# --- Batch one, walkthrough 5: expands_to_target_denominator_without_finding_factor ---
+#
+# Hidden-operand shape (#187): the multiplier the Student needs — how many times the
+# denominator grew — never appears as a written number in the Problem's question text,
+# only implicitly inside the target denominator (`d * factor`). It reaches this
+# walkthrough purely via `parameters["factor"]`, proving `parameters` earns its keep —
+# no walkthrough for this Misconception could be authored from the screen text alone.
+# Parameters contract: `n`, `d`, `factor` (`frac_exp_2`'s target denominator, `d *
+# factor`, is itself never a parameter).
+
+
+@declares_deconstruction("expands_to_target_denominator_without_finding_factor")
+def expands_to_target_denominator_without_finding_factor(
+    parameters: StepParameters,
+) -> list[Step]:
+    """2-step walkthrough: find the hidden factor, then scale the numerator by it."""
+    n, d, factor = (
+        int(parameters["n"]),
+        int(parameters["d"]),
+        int(parameters["factor"]),
+    )
+    target_d = d * factor
+    scaled_n = n * factor
+
+    return [
+        Step(
+            question=(
+                f"Mianownik ma urosnąć z {d} do {target_d}. "
+                "Ile razy większy jest nowy mianownik od starego?"
+            ),
+            working_line=_frac(n, d),
+            answer=str(factor),
+        ),
+        Step(
+            question=(
+                "Ten sam mnożnik działa na obie części ułamka. "
+                f"Pomnóż licznik {n} przez {factor}. Ile wynosi nowy licznik?"
+            ),
+            working_line=rf"{_frac(n, d)} \times {factor}",
+            answer=str(scaled_n),
+        ),
+    ]
+
+
 set_deconstruction_registry(_STEP_BUILDERS)

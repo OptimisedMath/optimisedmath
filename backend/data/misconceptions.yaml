@@ -75,6 +75,7 @@ reduces_only_one_part:
 expands_to_target_denominator_without_finding_factor:
   name: "Rozszerza do danego mianownika bez wyznaczenia mnożnika"
   explanation: "Gdy mianownik jest z góry zadany, najpierw sprawdź, ile razy urósł, i przez tę samą liczbę pomnóż licznik."
+  deconstruction: expands_to_target_denominator_without_finding_factor
 
 adds_or_subtracts_instead_of_scaling:
   name: "Dodaje lub odejmuje zamiast mnożyć i dzielić"

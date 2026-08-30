@@ -85,3 +85,53 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 "operates_on_unlike_fractions_directly",
                 {"n1": 1, "d1": 2, "n2": 1, "d2": 3, "operation": "*"},
             )
+
+
+class TestExpandsToTargetDenominatorWithoutFindingFactor:
+    """Table-driven: representative `parameters` shapes for the hidden-operand walkthrough."""
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected_factor", "expected_scaled_n"),
+        [
+            pytest.param(
+                {"n": 2, "d": 3, "factor": 4},
+                4,
+                8,
+                id="simple-scale-up",
+            ),
+            pytest.param(
+                {"n": 1, "d": 5, "factor": 2},
+                2,
+                2,
+                id="small-factor",
+            ),
+            pytest.param(
+                {"n": 7, "d": 9, "factor": 6},
+                6,
+                42,
+                id="larger-numerator-and-factor",
+            ),
+        ],
+    )
+    def test_step_sequence(self, parameters, expected_factor, expected_scaled_n):
+        steps = build_steps(
+            "expands_to_target_denominator_without_finding_factor", parameters
+        )
+
+        assert len(steps) == 2
+        assert all(isinstance(step, Step) for step in steps)
+
+        find_factor_step, scale_numerator_step = steps
+
+        assert find_factor_step.answer == str(expected_factor)
+        assert scale_numerator_step.answer == str(expected_scaled_n)
+
+        # The multiplier is never written as its own number in the first step's
+        # question — only the starting and target denominators are, which is the
+        # hidden-operand shape this walkthrough proves (#187, #202). It only
+        # surfaces once the second step names it, having been found in the first.
+        assert str(expected_factor) not in find_factor_step.question
+        assert str(expected_factor) in scale_numerator_step.question
+
+        assert all(step.working_line is not None for step in steps)
+        assert all(step.question for step in steps)
