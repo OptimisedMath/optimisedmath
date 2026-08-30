@@ -167,3 +167,98 @@ class TestOrderingStepType:
         assert step.input_type == "ordering"
         assert step.items == items
         assert step.answer == "brackets|powers|multiply-divide|add-subtract"
+
+
+class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
+    """Table-driven: representative `parameters` shapes for the column-layout walkthrough.
+
+    The three shapes mirror the three generators that reference this Misconception —
+    the second operand carrying more decimal places (dec_add_3), the first carrying
+    more (dec_sub_2), and both already tied (dec_add_1) — normalised to a shared
+    `v1`/`v2`/`operation` contract (#199).
+    """
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected_places", "expected_padded", "expected_combined"),
+        [
+            pytest.param(
+                {"v1": 1.2, "v2": 0.05, "operation": "+"},
+                2,
+                ("1,20", "0,05"),
+                "1,25",
+                id="second-operand-has-more-decimal-places",
+            ),
+            pytest.param(
+                {"v1": 5.43, "v2": 2.1, "operation": "-"},
+                2,
+                ("5,43", "2,10"),
+                "3,33",
+                id="first-operand-has-more-decimal-places",
+            ),
+            pytest.param(
+                {"v1": 2.3, "v2": 1.5, "operation": "+"},
+                1,
+                ("2,3", "1,5"),
+                "3,8",
+                id="decimal-places-already-tied",
+            ),
+        ],
+    )
+    def test_step_sequence(
+        self, parameters, expected_places, expected_padded, expected_combined
+    ):
+        steps = build_steps(
+            "does_not_align_decimals_before_column_arithmetic", parameters
+        )
+
+        assert len(steps) == 2
+        assert all(isinstance(step, Step) for step in steps)
+
+        find_places_step, compute_step = steps
+
+        assert find_places_step.answer == str(expected_places)
+        assert compute_step.answer == expected_combined
+
+        # The column-layout shape (#187, #199): each working line is a laid-out
+        # LaTeX array, not a single inline expression, and the second step's
+        # array carries the zero-padded operands the first step found the count for.
+        assert find_places_step.working_line is not None
+        assert compute_step.working_line is not None
+        assert r"\begin{array}" in find_places_step.working_line
+        assert r"\begin{array}" in compute_step.working_line
+        assert all(operand in compute_step.working_line for operand in expected_padded)
+
+        # Distinct working lines even when padding is a no-op, so the frontend's
+        # flash-on-change still fires on the second step.
+        assert find_places_step.working_line != compute_step.working_line
+
+        assert all(step.question for step in steps)
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected_phrase"),
+        [
+            pytest.param(
+                {"v1": 2.3, "v2": 1.5, "operation": "+"},
+                "1 miejsce",
+                id="singular",
+            ),
+            pytest.param(
+                {"v1": 1.2, "v2": 0.05, "operation": "+"},
+                "2 miejsca",
+                id="plural-two-to-four",
+            ),
+        ],
+    )
+    def test_place_count_is_declined_for_the_numeral(self, parameters, expected_phrase):
+        _, compute_step = build_steps(
+            "does_not_align_decimals_before_column_arithmetic", parameters
+        )
+
+        assert expected_phrase in compute_step.question
+
+    def test_rejects_unsupported_operation(self):
+        with pytest.raises(ValueError):
+            build_steps(
+                "does_not_align_decimals_before_column_arithmetic",
+                {"v1": 1.2, "v2": 0.05, "operation": "*"},
+            )

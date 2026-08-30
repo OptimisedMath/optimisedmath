@@ -10,9 +10,10 @@ Session, state, or HTTP imports; nothing here reads or writes a Session.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Callable, Literal
 
-from backend.core.utils import format_answers
+from backend.core.utils import fmt_dec, format_answers
 from backend.curriculum_loader import set_deconstruction_registry
 
 StepParameters = dict[str, int | float | str]
@@ -144,6 +145,98 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
                 f"{_frac(scaled_n1, common)} {operation} {_frac(scaled_n2, common)}"
             ),
             answer=final_answer,
+        ),
+    ]
+
+
+# --- Batch one, walkthrough 2: does_not_align_decimals_before_column_arithmetic ---
+#
+# Column-layout shape (#187): the working line carries a vertical column arrangement
+# (a LaTeX `array`) rather than a single inline expression — this is the walkthrough
+# that establishes how a laid-out form survives the one-line-replacing-the-last
+# pacing device. Parameters contract: `v1`, `v2` (the two decimal operands) and
+# `operation` ("+" or "-"), supplied uniformly by every generator whose Traps
+# reference this Misconception (dec_add_1, dec_add_3, dec_sub_2 — normalised to this
+# shared shape here, regardless of how many decimal places each operand happens to
+# carry on its own).
+
+
+def _as_decimal(value: int | float | str) -> Decimal:
+    """Exact Decimal for a Problem parameter, via `str` so 0.1 stays 0.1."""
+    return Decimal(str(float(value)))
+
+
+def _decimal_places(value: Decimal) -> int:
+    exponent = value.as_tuple().exponent
+    # NaN and infinity report a str sentinel instead of an int exponent. No
+    # generator produces either; count them as whole numbers rather than crash.
+    return max(0, -exponent) if isinstance(exponent, int) else 0
+
+
+def _pad_to_places(value: Decimal, places: int) -> str:
+    """Render `value` with exactly `places` digits after the Polish decimal comma."""
+    return format(value.quantize(Decimal(1).scaleb(-places)), "f").replace(".", ",")
+
+
+def _places_noun(places: int) -> str:
+    """Polish declension after a numeral: 1 miejsce, 2-4 miejsca, 5+ miejsc."""
+    if places == 1:
+        return "miejsce"
+    if places in (2, 3, 4):
+        return "miejsca"
+    return "miejsc"
+
+
+def _column(top: str, operation: str, bottom: str, *, answer_row: bool = False) -> str:
+    """A written-arithmetic column: two operands, an operator, and a rule beneath.
+
+    `answer_row` adds a bare `?` under the rule, never the value itself. It is
+    also what keeps step two's column textually distinct from step one's when
+    both operands already share a decimal-place count and the padding is a no-op
+    (every dec_add_1 Problem, by construction). The frontend keys its
+    flash-on-change on the working line's text, so two byte-identical lines
+    would silently skip the replay.
+    """
+    answer = "?" if answer_row else ""
+    return (
+        rf"\begin{{array}}{{r}} {top} \\ {operation}\ {bottom} \\ \hline "
+        rf"{answer}\end{{array}}"
+    )
+
+
+@declares_deconstruction("does_not_align_decimals_before_column_arithmetic")
+def does_not_align_decimals_before_column_arithmetic(
+    parameters: StepParameters,
+) -> list[Step]:
+    """2-step walkthrough: find the shared decimal-place count, then compute aligned."""
+    v1, v2 = _as_decimal(parameters["v1"]), _as_decimal(parameters["v2"])
+    operation = str(parameters["operation"])
+    if operation not in ("+", "-"):
+        raise ValueError(f"Unsupported operation '{operation}'")
+
+    places = max(_decimal_places(v1), _decimal_places(v2))
+    raw_v1, raw_v2 = fmt_dec(v1), fmt_dec(v2)
+    padded_v1, padded_v2 = _pad_to_places(v1, places), _pad_to_places(v2, places)
+    combined = v1 + v2 if operation == "+" else v1 - v2
+
+    return [
+        Step(
+            question=(
+                "Żeby policzyć to w kolumnie, przecinek musi stać dokładnie pod "
+                "przecinkiem. Ile miejsc po przecinku muszą mieć obie liczby — "
+                f"{raw_v1} i {raw_v2} — żeby to zrobić?"
+            ),
+            working_line=_column(raw_v1, operation, raw_v2),
+            answer=str(places),
+        ),
+        Step(
+            question=(
+                "Dopisz zera tam, gdzie trzeba, aż obie liczby będą miały "
+                f"{places} {_places_noun(places)} po przecinku, i policz wynik "
+                f"w kolumnie. Ile wynosi {raw_v1} {operation} {raw_v2}?"
+            ),
+            working_line=_column(padded_v1, operation, padded_v2, answer_row=True),
+            answer=fmt_dec(combined),
         ),
     ]
 
