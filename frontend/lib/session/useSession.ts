@@ -8,6 +8,7 @@ import {
 } from './projectSessionState';
 import { useSessionBootstrap } from './useSessionBootstrap';
 import { useProblemLifecycle } from './useProblemLifecycle';
+import { useDeconstruction } from './useDeconstruction';
 import type {
   Feedback,
   FeedbackPhase,
@@ -38,6 +39,25 @@ export function useSession() {
     setError,
     onSessionStarted: fetchNextProblem,
   });
+
+  const {
+    view: deconstructionView,
+    actions: deconstructionActions,
+    reset: resetDeconstruction,
+  } = useDeconstruction({ sessionState, setSessionState, setError });
+
+  const navigate = useCallback(
+    async (intent: Parameters<typeof handleNavigate>[0]) => {
+      resetDeconstruction();
+      await handleNavigate(intent);
+    },
+    [handleNavigate, resetDeconstruction]
+  );
+
+  const resetProgress = useCallback(async () => {
+    resetDeconstruction();
+    await handleReset();
+  }, [handleReset, resetDeconstruction]);
 
   const clearErrorAndReload = useCallback(() => {
     setError(null);
@@ -92,6 +112,7 @@ export function useSession() {
       topicName: navigation?.current_topic_name || MISSING_TOPIC_NAME,
       adminMode: session?.admin_mode ?? false,
       ...display,
+      deconstruction: deconstructionView,
     };
   }, [
     sessionState,
@@ -101,15 +122,24 @@ export function useSession() {
     isLoadingNextProblem,
     needsLogin,
     problem,
+    deconstructionView,
   ]);
 
   const actions = useMemo((): SessionActions => ({
     submit: handleSubmit,
-    navigate: handleNavigate,
+    navigate,
     nextProblem: handleNextProblem,
-    reset: handleReset,
+    reset: resetProgress,
     clearErrorAndReload,
-  }), [handleSubmit, handleNavigate, handleNextProblem, handleReset, clearErrorAndReload]);
+    deconstruction: deconstructionActions,
+  }), [
+    handleSubmit,
+    navigate,
+    handleNextProblem,
+    resetProgress,
+    clearErrorAndReload,
+    deconstructionActions,
+  ]);
 
   return { view, actions };
 }

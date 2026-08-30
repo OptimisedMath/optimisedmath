@@ -11,6 +11,7 @@ export {
   setStoredSessionId,
 } from './storage';
 export { useSession } from './useSession';
+export { isTakeoverPhase } from './useDeconstruction';
 export {
   emptySessionDisplayProjection,
   projectSessionState,
@@ -18,6 +19,10 @@ export {
 export type { SessionDisplayProjection } from './projectSessionState';
 export type {
   ChapterFrontier,
+  DeconstructionActions,
+  DeconstructionPhase,
+  DeconstructionStepView,
+  DeconstructionView,
   Feedback,
   FeedbackPhase,
   NavigateIntent,

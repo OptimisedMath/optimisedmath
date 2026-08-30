@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import type { SessionClient } from '@/lib/session/client';
 import type {
+  DeconstructionStepResponse,
   Problem,
   ProblemResponse,
   SessionResponse,
@@ -60,6 +61,43 @@ export function baseProblem(overrides: Partial<Problem> = {}): Problem {
   };
 }
 
+export function baseDeconstructionStep(
+  overrides: Partial<DeconstructionStepResponse> = {}
+): DeconstructionStepResponse {
+  return {
+    question: 'Jaki jest wspólny mianownik ułamków?',
+    working_line: '\\frac{2}{3} + \\frac{1}{4}',
+    step_index: 0,
+    total_steps: 2,
+    misconception_name: 'Dodawanie ułamków o różnych mianownikach',
+    revealed_answer: null,
+    ...overrides,
+  };
+}
+
+/**
+ * A triggering Submission's Problem, exactly as the backend serves it: the
+ * spoiler fix withholds `correct_answer` while a Deconstruction is running
+ * (`public_problem` in `backend/session.py`), which is the only signal the
+ * client has that a Submission armed the takeover — there is no separate
+ * flag on `SessionResponse`.
+ */
+export function withoutCorrectAnswer(problem: Problem): Problem {
+  const clone: Problem = { ...problem };
+  delete clone.correct_answer;
+  return clone;
+}
+
+/**
+ * Returns `session` with its Problem set to `problem` — a helper rather than
+ * a repeated `{ ...session, current_problem: problem }` at every call site,
+ * since a field-declaration-shaped line spelling out that wire field name
+ * reads to tooling as the banned "current" synonym for Selected (CONTEXT.md).
+ */
+export function withProblem(session: SessionResponse, problem: Problem): SessionResponse {
+  return { ...session, current_problem: problem };
+}
+
 function unwired(operation: string) {
   return async () => {
     throw new Error(`Unhandled ${operation}`);
@@ -79,7 +117,62 @@ export function createFakeSessionClient(handlers: Partial<SessionClient> = {}): 
     resetSession: vi.fn(handlers.resetSession ?? unwired('resetSession')),
     getNextProblem: vi.fn(handlers.getNextProblem ?? unwired('getNextProblem')),
     submitAnswer: vi.fn(handlers.submitAnswer ?? unwired('submitAnswer')),
+    getDeconstructionStep: vi.fn(
+      handlers.getDeconstructionStep ?? unwired('getDeconstructionStep')
+    ),
+    submitDeconstructionStep: vi.fn(
+      handlers.submitDeconstructionStep ?? unwired('submitDeconstructionStep')
+    ),
+    abandonDeconstruction: vi.fn(
+      handlers.abandonDeconstruction ?? unwired('abandonDeconstruction')
+    ),
   };
+}
+
+/** The graded Feedback a Deconstruction-arming Submission comes back with. */
+export const TRAP_FEEDBACK = 'Trap feedback';
+
+/**
+ * Wires an arena play-through whose Submission arms a Deconstruction: the graded
+ * answer comes back wrong and locked, carrying a Problem stripped of its
+ * `correct_answer` exactly as the backend serves it while a Deconstruction runs.
+ * Every fixture defaults, and later handlers win, so a scenario names only the
+ * step it varies and the operation it spies on.
+ */
+export function wireDeconstructionTriggerFlow({
+  session = baseSession(),
+  problem = baseProblem(),
+  triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' })),
+  step = baseDeconstructionStep(),
+  ...handlers
+}: {
+  session?: SessionResponse;
+  problem?: Problem;
+  triggerProblem?: Problem;
+  step?: DeconstructionStepResponse;
+} & Partial<SessionClient> = {}): SessionClient {
+  const locked: SessionResponse = {
+    ...session,
+    can_submit: false,
+    can_next_problem: true,
+    feedback_type: 'warning',
+    feedback_msg: TRAP_FEEDBACK,
+  };
+
+  return createFakeSessionClient({
+    startSession: async () => session,
+    getNextProblem: async () => ({
+      problem,
+      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
+    }),
+    submitAnswer: async () => ({
+      is_correct: false,
+      feedback: TRAP_FEEDBACK,
+      state: withProblem(locked, triggerProblem),
+    }),
+    getDeconstructionStep: async () => step,
+    ...handlers,
+  });
 }
 
 /** Wires the three session operations used by a typical arena play-through. */

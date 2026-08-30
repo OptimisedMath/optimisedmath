@@ -2,13 +2,17 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionClient } from '@/lib/session';
+import type { DeconstructionStepResponse } from '@/lib/session/types';
 import {
+  baseDeconstructionStep,
   baseProblem,
   baseSession,
   createFakeSessionClient,
   defaultNavigation,
   wireArenaFlow,
+  wireDeconstructionTriggerFlow,
 } from './fakeBackend';
+import { reachStep } from './deconstructionFlow';
 import { renderArena } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
 
@@ -590,5 +594,73 @@ describe('ADR-0002 leak locks', () => {
       problem_id: problem.problem_id,
       user_input: '12',
     });
+  });
+});
+
+describe('ADR-0002 Deconstruction outcome computed only by the backend', () => {
+  beforeEach(() => {
+    resetStoredSession();
+    seedStoredSession();
+  });
+
+  /** Drives a fresh arena through a triggering Submission into the running step. */
+  async function reachDeconstructionStep(
+    step: DeconstructionStepResponse,
+    handlers: Partial<SessionClient> = {}
+  ): Promise<SessionClient> {
+    const client = wireDeconstructionTriggerFlow({ step, ...handlers });
+    await reachStep(client, step);
+    return client;
+  }
+
+  it('advances the running step purely from the server is_correct verdict, on any typed input', async () => {
+    const step = baseDeconstructionStep({ step_index: 0, total_steps: 2 });
+    const nextStep = baseDeconstructionStep({
+      step_index: 1,
+      total_steps: 2,
+      question: 'Kolejny krok',
+    });
+    let deconstructionCall = 0;
+    const getDeconstructionStep = vi.fn(async () =>
+      deconstructionCall++ === 0 ? step : nextStep
+    );
+    const submitDeconstructionStep = vi.fn(async () => ({
+      is_correct: true,
+      feedback_msg: null,
+      handback_question: null,
+    }));
+
+    await reachDeconstructionStep(step, { getDeconstructionStep, submitDeconstructionStep });
+
+    // There is no correct-answer field on the wire for a step — nothing for
+    // the client to compare against — so a nonsense answer still advances
+    // once the (mocked) server calls it correct.
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText('?'), 'nonsense');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+
+    await screen.findByText('Kolejny krok');
+    expect(submitDeconstructionStep).toHaveBeenCalledWith({
+      session_id: expect.any(String),
+      user_input: 'nonsense',
+    });
+  });
+
+  it('does not advance the step when the server marks it incorrect, showing only the server-provided feedback_msg', async () => {
+    const step = baseDeconstructionStep({ step_index: 0, total_steps: 2 });
+    const submitDeconstructionStep = vi.fn(async () => ({
+      is_correct: false,
+      feedback_msg: 'Jeszcze nie — spróbuj ponownie.',
+      handback_question: null,
+    }));
+
+    await reachDeconstructionStep(step, { submitDeconstructionStep });
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText('?'), '5/12');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+
+    await screen.findByText('Jeszcze nie — spróbuj ponownie.');
+    expect(screen.getByText(`krok ${step.step_index + 1} z ${step.total_steps}`)).toBeInTheDocument();
   });
 });
