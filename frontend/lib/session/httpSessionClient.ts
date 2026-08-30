@@ -38,9 +38,9 @@ export const httpSessionClient: SessionClient = {
   },
 
   getDeconstructionStep: async (sessionId) => {
-    const response = await api.get<DeconstructionStepResponse>(
-      `/deconstruction/next?session_id=${encodeURIComponent(sessionId)}`
-    );
+    const response = await api.get<DeconstructionStepResponse>('/deconstruction/next', {
+      params: { session_id: sessionId },
+    });
     return response.data;
   },
 

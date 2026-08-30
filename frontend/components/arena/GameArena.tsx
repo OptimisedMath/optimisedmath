@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useSession } from '@/lib/session';
+import { isTakeoverPhase, useSession } from '@/lib/session';
 import { scrollElementClearOfMobileChrome } from '@/lib/scroll';
 import { Spinner } from '@/components/ui/spinner';
 import XPBar from './XPBar';
@@ -67,11 +67,7 @@ export default function GameArena() {
     );
   }
 
-  if (
-    view.deconstruction.phase === 'intro' ||
-    view.deconstruction.phase === 'step' ||
-    view.deconstruction.phase === 'handback'
-  ) {
+  if (isTakeoverPhase(view.deconstruction.phase)) {
     return <DeconstructionTakeover view={view.deconstruction} actions={actions.deconstruction} />;
   }
 

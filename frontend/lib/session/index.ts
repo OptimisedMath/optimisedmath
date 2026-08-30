@@ -11,6 +11,7 @@ export {
   setStoredSessionId,
 } from './storage';
 export { useSession } from './useSession';
+export { isTakeoverPhase } from './useDeconstruction';
 export {
   emptySessionDisplayProjection,
   projectSessionState,

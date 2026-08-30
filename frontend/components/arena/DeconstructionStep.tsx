@@ -18,6 +18,13 @@ interface DeconstructionStepProps {
   onExit: () => void;
 }
 
+/** Done / current / still to come, in the dot row that paces the walkthrough. */
+function progressDotClass(dotIndex: number, stepIndex: number): string {
+  if (dotIndex < stepIndex) return 'w-2 bg-emerald-400';
+  if (dotIndex === stepIndex) return 'w-8 bg-sky-400';
+  return 'w-2 bg-white/20';
+}
+
 /**
  * One Deconstruction step, alone — no scrolling thread of past steps. The
  * working line above it is the sole pacing device: each state replaces the
@@ -54,6 +61,7 @@ export default function DeconstructionStep({
         )}
       </header>
 
+      {/* Keyed by its text so a changed working line remounts and replays the flash. */}
       {step.workingLine !== null && (
         <div
           key={step.workingLine}
@@ -65,21 +73,16 @@ export default function DeconstructionStep({
       )}
 
       <div className="mt-4 flex justify-center gap-2">
-        {Array.from({ length: step.totalSteps }).map((_, i) => (
+        {Array.from({ length: step.totalSteps }).map((_, dotIndex) => (
           <span
-            key={i}
+            key={dotIndex}
             data-deconstruction-dot
-            className={`h-2 rounded-full transition-all ${
-              i < step.stepIndex
-                ? 'w-2 bg-emerald-400'
-                : i === step.stepIndex
-                  ? 'w-8 bg-sky-400'
-                  : 'w-2 bg-white/20'
-            }`}
+            className={`h-2 rounded-full transition-all ${progressDotClass(dotIndex, step.stepIndex)}`}
           />
         ))}
       </div>
 
+      {/* Keyed by step so each question card remounts and replays its entrance. */}
       <div
         key={step.stepIndex}
         className="animate-fade-slide-up mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6 sm:p-8"

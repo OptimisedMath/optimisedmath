@@ -1,98 +1,18 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Problem, SessionClient, SessionResponse } from '@/lib/session';
 import {
+  TRAP_FEEDBACK,
   baseDeconstructionStep,
   baseProblem,
   baseSession,
-  createFakeSessionClient,
-  withoutCorrectAnswer,
+  wireDeconstructionTriggerFlow,
   withProblem,
+  withoutCorrectAnswer,
 } from './fakeBackend';
+import { reachPause, reachStep } from './deconstructionFlow';
 import { renderArena } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
-
-async function waitForArenaReady(client: SessionClient) {
-  await waitFor(() => {
-    expect(client.startSession).toHaveBeenCalled();
-    expect(client.getNextProblem).toHaveBeenCalled();
-  });
-  await waitFor(() => {
-    expect(screen.queryByText('Ładowanie zadania...')).not.toBeInTheDocument();
-  });
-}
-
-async function submitTypedAnswer(answer: string) {
-  const user = userEvent.setup();
-  const input = await screen.findByPlaceholderText('Wpisz wynik...');
-  await user.clear(input);
-  await user.type(input, answer);
-  await user.click(screen.getByRole('button', { name: /Sprawdź odpowiedź/ }));
-}
-
-function triggeringState(session: SessionResponse, triggerProblem: Problem): SessionResponse {
-  const locked = {
-    ...session,
-    can_submit: false,
-    can_next_problem: true,
-    feedback_type: 'warning',
-    feedback_msg: 'Trap feedback',
-  };
-  return withProblem(locked, triggerProblem);
-}
-
-/** Wires a full arena flow up through a triggering (Deconstruction-arming) Submission. */
-function wireTriggeringFlow({
-  session,
-  initialProblem,
-  triggerProblem,
-  step,
-  ...handlers
-}: {
-  session: SessionResponse;
-  initialProblem: Problem;
-  triggerProblem: Problem;
-  step: ReturnType<typeof baseDeconstructionStep>;
-} & Partial<SessionClient>): SessionClient {
-  return createFakeSessionClient({
-    startSession: async () => session,
-    getNextProblem: async () => ({
-      problem: initialProblem,
-      state: {
-        ...withProblem(session, initialProblem),
-        can_submit: true,
-        can_next_problem: false,
-      },
-    }),
-    submitAnswer: async () => ({
-      is_correct: false,
-      feedback: 'Trap feedback',
-      state: triggeringState(session, triggerProblem),
-    }),
-    getDeconstructionStep: async () => step,
-    ...handlers,
-  });
-}
-
-/** Drives the arena from a fresh session through a triggering Submission into the pause. */
-async function reachPause(client: SessionClient) {
-  renderArena(client);
-  await waitForArenaReady(client);
-  await submitTypedAnswer('3/4');
-  await screen.findByText('Trap feedback');
-}
-
-/** Drives the arena all the way to the 'step' phase (taps through pause and intro). */
-async function reachStep(client: SessionClient, step: ReturnType<typeof baseDeconstructionStep>) {
-  await reachPause(client);
-
-  const user = userEvent.setup();
-  await user.click(screen.getByLabelText('Przejdź dalej'));
-  await screen.findByText(step.misconception_name);
-  await user.click(screen.getByRole('button', { name: /Zaczynajmy/ }));
-  await screen.findByText(`krok ${step.step_index + 1} z ${step.total_steps}`);
-}
 
 describe('Deconstruction takeover', () => {
   beforeEach(() => {
@@ -105,12 +25,7 @@ describe('Deconstruction takeover', () => {
   });
 
   it('holds the Trap prose on screen during the pause and taps through to the takeover', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
-    const step = baseDeconstructionStep();
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow();
 
     await reachPause(client);
     expect(screen.getByLabelText('Przejdź dalej')).toBeInTheDocument();
@@ -119,19 +34,17 @@ describe('Deconstruction takeover', () => {
     await user.click(screen.getByLabelText('Przejdź dalej'));
 
     await screen.findByText('Zatrzymajmy się na chwilę');
-    expect(screen.queryByText('Trap feedback')).not.toBeInTheDocument();
+    expect(screen.queryByText(TRAP_FEEDBACK)).not.toBeInTheDocument();
   });
 
   it('auto-advances from the pause to the takeover after 4 seconds without a tap', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
-    const step = baseDeconstructionStep();
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow();
 
     renderArena(client);
-    await waitForArenaReady(client);
+    await waitFor(() => {
+      expect(client.startSession).toHaveBeenCalled();
+      expect(client.getNextProblem).toHaveBeenCalled();
+    });
 
     const user = userEvent.setup();
     const input = await screen.findByPlaceholderText('Wpisz wynik...');
@@ -153,12 +66,8 @@ describe('Deconstruction takeover', () => {
   });
 
   it('names the Misconception on the intro screen and disclaims points and streak', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep({ misconception_name: 'Dodawanie ułamków wprost' });
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow({ step });
 
     await reachPause(client);
     await userEvent.setup().click(screen.getByLabelText('Przejdź dalej'));
@@ -168,12 +77,8 @@ describe('Deconstruction takeover', () => {
   });
 
   it('hides the original Problem behind a small header echo during the walkthrough', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep();
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow({ step });
 
     await reachStep(client, step);
 
@@ -186,16 +91,12 @@ describe('Deconstruction takeover', () => {
   });
 
   it('renders exactly one step with progress dots and a working line that updates in place', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep({
       step_index: 0,
       total_steps: 3,
       working_line: '\\frac{2}{3}+\\frac{1}{4}',
     });
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow({ step });
 
     await reachStep(client, step);
 
@@ -205,12 +106,8 @@ describe('Deconstruction takeover', () => {
   });
 
   it('renders a step without a working line rather than padding it with an empty device', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep({ working_line: null });
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow({ step });
 
     await reachStep(client, step);
 
@@ -219,24 +116,14 @@ describe('Deconstruction takeover', () => {
 
   it('renders the Reveal in place and still requires the Student to type the answer', async () => {
     const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep({ revealed_answer: '5/12' });
-
     const submitDeconstructionStep = vi.fn(async () => ({
       is_correct: true,
       feedback_msg: null,
       handback_question: null,
     }));
 
-    const client = wireTriggeringFlow({
-      session,
-      initialProblem,
-      triggerProblem,
-      step,
-      submitDeconstructionStep,
-      getDeconstructionStep: vi.fn(async () => step),
-    });
+    const client = wireDeconstructionTriggerFlow({ session, step, submitDeconstructionStep });
 
     await reachStep(client, step);
 
@@ -257,12 +144,8 @@ describe('Deconstruction takeover', () => {
   });
 
   it('keeps the exit control present on every step and visually recessive', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep();
-
-    const client = wireTriggeringFlow({ session, initialProblem, triggerProblem, step });
+    const client = wireDeconstructionTriggerFlow({ step });
 
     await reachStep(client, step);
 
@@ -273,29 +156,21 @@ describe('Deconstruction takeover', () => {
 
   it('abandoning via the exit control returns to the arena with the Problem locked and revealed', async () => {
     const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const step = baseDeconstructionStep();
+    const revealedTriggerProblem = baseProblem({ problem_id: 'prob-trigger', correct_answer: '4' });
 
-    const revealedTriggerProblem = { ...triggerProblem, correct_answer: '4' };
     const abandonDeconstruction = vi.fn(async () => {
       const locked = {
         ...session,
         can_submit: false,
         can_next_problem: true,
         feedback_type: 'warning',
-        feedback_msg: 'Trap feedback',
+        feedback_msg: TRAP_FEEDBACK,
       };
       return withProblem(locked, revealedTriggerProblem);
     });
 
-    const client = wireTriggeringFlow({
-      session,
-      initialProblem,
-      triggerProblem,
-      step,
-      abandonDeconstruction,
-    });
+    const client = wireDeconstructionTriggerFlow({ session, step, abandonDeconstruction });
 
     await reachStep(client, step);
 
@@ -306,14 +181,12 @@ describe('Deconstruction takeover', () => {
       expect(abandonDeconstruction).toHaveBeenCalledWith({ session_id: session.session_id });
     });
 
-    await screen.findByText('Trap feedback');
+    await screen.findByText(TRAP_FEEDBACK);
     expect(screen.queryByText('Rozkładamy zadanie')).not.toBeInTheDocument();
     expect(screen.getByText('Poprawna odpowiedź:')).toBeInTheDocument();
   });
 
   it('restates the Problem on the handback screen and re-enables the same Problem on return', async () => {
-    const session = baseSession();
-    const initialProblem = baseProblem();
     const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
     const finalStep = baseDeconstructionStep({ step_index: 1, total_steps: 2 });
 
@@ -323,9 +196,7 @@ describe('Deconstruction takeover', () => {
       handback_question: triggerProblem.question,
     }));
 
-    const client = wireTriggeringFlow({
-      session,
-      initialProblem,
+    const client = wireDeconstructionTriggerFlow({
       triggerProblem,
       step: finalStep,
       submitDeconstructionStep,

@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionClient } from '@/lib/session';
+import type { DeconstructionStepResponse } from '@/lib/session/types';
 import {
   baseDeconstructionStep,
   baseProblem,
@@ -9,9 +10,9 @@ import {
   createFakeSessionClient,
   defaultNavigation,
   wireArenaFlow,
-  withoutCorrectAnswer,
-  withProblem,
+  wireDeconstructionTriggerFlow,
 } from './fakeBackend';
+import { reachStep } from './deconstructionFlow';
 import { renderArena } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
 
@@ -604,51 +605,11 @@ describe('ADR-0002 Deconstruction outcome computed only by the backend', () => {
 
   /** Drives a fresh arena through a triggering Submission into the running step. */
   async function reachDeconstructionStep(
-    step: ReturnType<typeof baseDeconstructionStep>,
+    step: DeconstructionStepResponse,
     handlers: Partial<SessionClient> = {}
   ): Promise<SessionClient> {
-    const session = baseSession();
-    const initialProblem = baseProblem();
-    const triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' }));
-
-    const client = createFakeSessionClient({
-      startSession: async () => session,
-      getNextProblem: async () => ({
-        problem: initialProblem,
-        state: {
-          ...withProblem(session, initialProblem),
-          can_submit: true,
-          can_next_problem: false,
-        },
-      }),
-      submitAnswer: async () => {
-        const locked = {
-          ...session,
-          can_submit: false,
-          can_next_problem: true,
-          feedback_type: 'warning',
-          feedback_msg: 'Trap feedback',
-        };
-        return { is_correct: false, feedback: 'Trap feedback', state: withProblem(locked, triggerProblem) };
-      },
-      getDeconstructionStep: async () => step,
-      ...handlers,
-    });
-
-    renderArena(client);
-    await waitFor(() => {
-      expect(client.startSession).toHaveBeenCalled();
-      expect(client.getNextProblem).toHaveBeenCalled();
-    });
-    await submitTypedAnswer('3/4');
-    await screen.findByText('Trap feedback');
-
-    const user = userEvent.setup();
-    await user.click(screen.getByLabelText('Przejdź dalej'));
-    await screen.findByText(step.misconception_name);
-    await user.click(screen.getByRole('button', { name: /Zaczynajmy/ }));
-    await screen.findByText(`krok ${step.step_index + 1} z ${step.total_steps}`);
-
+    const client = wireDeconstructionTriggerFlow({ step, ...handlers });
+    await reachStep(client, step);
     return client;
   }
 

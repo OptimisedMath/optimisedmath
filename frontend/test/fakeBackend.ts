@@ -129,6 +129,52 @@ export function createFakeSessionClient(handlers: Partial<SessionClient> = {}): 
   };
 }
 
+/** The graded Feedback a Deconstruction-arming Submission comes back with. */
+export const TRAP_FEEDBACK = 'Trap feedback';
+
+/**
+ * Wires an arena play-through whose Submission arms a Deconstruction: the graded
+ * answer comes back wrong and locked, carrying a Problem stripped of its
+ * `correct_answer` exactly as the backend serves it while a Deconstruction runs.
+ * Every fixture defaults, and later handlers win, so a scenario names only the
+ * step it varies and the operation it spies on.
+ */
+export function wireDeconstructionTriggerFlow({
+  session = baseSession(),
+  problem = baseProblem(),
+  triggerProblem = withoutCorrectAnswer(baseProblem({ problem_id: 'prob-trigger' })),
+  step = baseDeconstructionStep(),
+  ...handlers
+}: {
+  session?: SessionResponse;
+  problem?: Problem;
+  triggerProblem?: Problem;
+  step?: DeconstructionStepResponse;
+} & Partial<SessionClient> = {}): SessionClient {
+  const locked: SessionResponse = {
+    ...session,
+    can_submit: false,
+    can_next_problem: true,
+    feedback_type: 'warning',
+    feedback_msg: TRAP_FEEDBACK,
+  };
+
+  return createFakeSessionClient({
+    startSession: async () => session,
+    getNextProblem: async () => ({
+      problem,
+      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
+    }),
+    submitAnswer: async () => ({
+      is_correct: false,
+      feedback: TRAP_FEEDBACK,
+      state: withProblem(locked, triggerProblem),
+    }),
+    getDeconstructionStep: async () => step,
+    ...handlers,
+  });
+}
+
 /** Wires the three session operations used by a typical arena play-through. */
 export function wireArenaFlow({
   session,

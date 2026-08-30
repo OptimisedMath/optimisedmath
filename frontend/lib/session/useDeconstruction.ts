@@ -1,12 +1,40 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
-import type { DeconstructionPhase, DeconstructionStepResponse, Problem, SessionResponse } from './types';
+import type {
+  DeconstructionActions,
+  DeconstructionPhase,
+  DeconstructionStepResponse,
+  DeconstructionView,
+  Problem,
+  SessionResponse,
+} from './types';
 
 const DECONSTRUCTION_PAUSE_MS = 4000;
+
+/** Phases that replace the whole arena; 'idle' and 'pause' leave it on screen. */
+export function isTakeoverPhase(phase: DeconstructionPhase): boolean {
+  return phase === 'intro' || phase === 'step' || phase === 'handback';
+}
+
+/**
+ * The Problem of a Submission that arms the takeover, or null for every other
+ * Submission. `SessionResponse` has no field naming a running Deconstruction
+ * (see `docs/session.md`), so the trigger is derived purely from the wire shape
+ * the backend serves: a wrong, locked answer whose Problem is missing
+ * `correct_answer` — withheld only while a Deconstruction is running.
+ */
+function takeoverArmingProblem(session: SessionResponse | null): Problem | null {
+  if (!session?.can_next_problem) return null;
+  if (session.feedback_type === null || session.feedback_type === 'success') return null;
+
+  const problem = session.current_problem;
+  if (!problem || problem.correct_answer !== undefined) return null;
+  return problem;
+}
 
 interface UseDeconstructionOptions {
   sessionState: SessionResponse | null;
@@ -16,12 +44,11 @@ interface UseDeconstructionOptions {
 
 /**
  * Owns the Deconstruction takeover's local phase machine: pause -> intro -> step
- * (looping) -> handback, plus Abandonment via the exit control. `SessionResponse`
- * has no field naming a running Deconstruction (see `docs/session.md`) — the
- * trigger is derived purely from the triggering Submission's own wire shape: a
- * wrong, locked answer whose Problem is missing `correct_answer` (withheld by
- * the backend only while a Deconstruction is running). Internal to lib/session/
- * — composed by useSession().
+ * (looping) -> handback, plus Abandonment via the exit control. Returns the
+ * takeover's slice of the render model and its handlers, ready to hang off
+ * `SessionView`/`SessionActions`. Internal to lib/session/ — composed by
+ * useSession(), which also calls `reset` whenever the Student leaves the
+ * triggering Problem behind.
  */
 export function useDeconstruction({
   sessionState,
@@ -36,41 +63,30 @@ export function useDeconstruction({
   const [handbackQuestion, setHandbackQuestion] = useState<string | null>(null);
   const [isLoadingStep, setIsLoadingStep] = useState(false);
   const [isSubmittingStep, setIsSubmittingStep] = useState(false);
-  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sessionId = sessionState?.session_id;
-  const problem = sessionState?.current_problem ?? null;
-
-  const isTriggeringSubmission =
-    phase === 'idle' &&
-    !!sessionState &&
-    sessionState.can_next_problem &&
-    sessionState.feedback_type !== null &&
-    sessionState.feedback_type !== 'success' &&
-    !!problem &&
-    problem.correct_answer === undefined;
+  const armingProblem = phase === 'idle' ? takeoverArmingProblem(sessionState) : null;
 
   useEffect(() => {
-    if (!isTriggeringSubmission || !problem) return;
+    if (!armingProblem) return;
     // Arms the takeover once, in response to a Submission response newly
     // arriving from the backend, not a plain prop-to-state mirror.
     /* eslint-disable react-hooks/set-state-in-effect */
-    setTriggerProblem(problem);
+    setTriggerProblem(armingProblem);
     setPhase('pause');
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [isTriggeringSubmission, problem]);
+  }, [armingProblem]);
 
+  // Leaving 'pause' — by tap, by Abandonment, or by unmount — runs this
+  // cleanup, so the timer needs no cancelling anywhere else.
   useEffect(() => {
     if (phase !== 'pause') return undefined;
-    pauseTimeoutRef.current = setTimeout(() => setPhase('intro'), DECONSTRUCTION_PAUSE_MS);
-    return () => {
-      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-    };
+    const timeout = setTimeout(() => setPhase('intro'), DECONSTRUCTION_PAUSE_MS);
+    return () => clearTimeout(timeout);
   }, [phase]);
 
   const endPause = useCallback(() => {
     if (phase !== 'pause') return;
-    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     setPhase('intro');
   }, [phase]);
 
@@ -81,7 +97,12 @@ export function useDeconstruction({
       const response = await client.getDeconstructionStep(sessionId);
       setStep(response);
     } catch (err) {
-      reportError(setError, err, 'Failed to load Deconstruction step', 'Error loading Deconstruction step:');
+      reportError(
+        setError,
+        err,
+        'Failed to load Deconstruction step',
+        'Error loading Deconstruction step:'
+      );
     } finally {
       setIsLoadingStep(false);
     }
@@ -126,7 +147,12 @@ export function useDeconstruction({
           setStepFeedback(response.feedback_msg);
         }
       } catch (err) {
-        reportError(setError, err, 'Failed to submit Deconstruction step', 'Error submitting Deconstruction step:');
+        reportError(
+          setError,
+          err,
+          'Failed to submit Deconstruction step',
+          'Error submitting Deconstruction step:'
+        );
       } finally {
         setIsSubmittingStep(false);
       }
@@ -135,7 +161,6 @@ export function useDeconstruction({
   );
 
   const reset = useCallback(() => {
-    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     setPhase('idle');
     setTriggerProblem(null);
     setStep(null);
@@ -169,19 +194,40 @@ export function useDeconstruction({
     reset();
   }, [setSessionState, reset]);
 
-  return {
-    phase,
-    triggerProblem,
-    step,
-    stepFeedback,
-    handbackQuestion,
-    isLoadingStep,
-    isSubmittingStep,
-    endPause,
-    begin,
-    submitStep,
-    exit,
-    returnToProblem,
-    reset,
-  };
+  const view = useMemo(
+    (): DeconstructionView => ({
+      phase,
+      misconceptionName: step?.misconception_name ?? null,
+      headerQuestion: triggerProblem?.question ?? null,
+      step: step
+        ? {
+            question: step.question,
+            workingLine: step.working_line,
+            stepIndex: step.step_index,
+            totalSteps: step.total_steps,
+            revealedAnswer: step.revealed_answer,
+          }
+        : null,
+      stepFeedback,
+      handbackQuestion,
+      isLoadingStep,
+      isSubmittingStep,
+    }),
+    [
+      phase,
+      triggerProblem,
+      step,
+      stepFeedback,
+      handbackQuestion,
+      isLoadingStep,
+      isSubmittingStep,
+    ]
+  );
+
+  const actions = useMemo(
+    (): DeconstructionActions => ({ endPause, begin, submitStep, exit, returnToProblem }),
+    [endPause, begin, submitStep, exit, returnToProblem]
+  );
+
+  return { view, actions, reset };
 }
