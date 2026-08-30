@@ -74,10 +74,10 @@ def _abandon(state: SessionState, play_mode: PlayMode, *, outcome: str) -> None:
 def abandon_via_control(state: SessionState, play_mode: PlayMode) -> None:
     """End a running Deconstruction via its always-present exit control.
 
-    Available from any step — restricting it to appear only after the Reveal
-    was rejected, since that would price leaving at three deliberate wrong
-    answers. The triggering Problem stays exactly as Abandonment leaves it:
-    under Answer lock, its answer revealed, nothing earned.
+    Available from any step — not restricted to appear only after the Reveal
+    was rejected, which would price leaving at three deliberate wrong answers.
+    The triggering Problem stays exactly as Abandonment leaves it: under Answer
+    lock, its answer revealed, nothing earned.
     """
     _abandon(state, play_mode, outcome="abandoned_via_control")
 
