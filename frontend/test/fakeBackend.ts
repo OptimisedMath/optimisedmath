@@ -71,8 +71,30 @@ export function baseDeconstructionStep(
     total_steps: 2,
     misconception_name: 'Dodawanie ułamków o różnych mianownikach',
     revealed_answer: null,
+    input_type: 'typed',
+    items: null,
     ...overrides,
   };
+}
+
+export const ORDERING_STEP_ITEMS = [
+  'nawiasy',
+  'potęgi',
+  'mnożenie i dzielenie',
+  'dodawanie i odejmowanie',
+];
+
+/** A stand-in ordering step (#198) — no batch-two walkthrough is authored here. */
+export function baseOrderingDeconstructionStep(
+  overrides: Partial<DeconstructionStepResponse> = {}
+): DeconstructionStepResponse {
+  return baseDeconstructionStep({
+    question: 'Ułóż drabinkę priorytetów w poprawnej kolejności.',
+    working_line: null,
+    input_type: 'ordering',
+    items: [...ORDERING_STEP_ITEMS],
+    ...overrides,
+  });
 }
 
 /**

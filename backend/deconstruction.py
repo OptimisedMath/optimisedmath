@@ -10,21 +10,31 @@ Session, state, or HTTP imports; nothing here reads or writes a Session.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Literal
 
 from backend.core.utils import format_answers
 from backend.curriculum_loader import set_deconstruction_registry
 
 StepParameters = dict[str, int | float | str]
 
+StepInputType = Literal["typed", "ordering"]
+
 
 @dataclass(frozen=True, slots=True)
 class Step:
-    """One question within a Deconstruction, derived from Problem parameters."""
+    """One question within a Deconstruction, derived from Problem parameters.
+
+    `input_type` defaults to a typed answer graded against `answer`. An
+    `"ordering"` step instead carries `items` — the choices the Student
+    arranges — and `answer` holds their correct order, joined with
+    `step_grading.ORDERING_ANSWER_SEPARATOR` (see #186's priority-ladder step).
+    """
 
     question: str
     working_line: str | None
     answer: str
+    input_type: StepInputType = "typed"
+    items: tuple[str, ...] | None = None
 
 
 StepBuilder = Callable[[StepParameters], list[Step]]

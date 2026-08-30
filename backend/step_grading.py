@@ -23,6 +23,9 @@ class StepEvalResult(TypedDict, total=False):
     soft_error: bool
 
 
+ORDERING_ANSWER_SEPARATOR = "|"
+
+
 def grade_step(user_input: str, answer: str) -> StepEvalResult:
     """Grade one Deconstruction step answer against its fixed target.
 
@@ -52,3 +55,17 @@ def grade_step(user_input: str, answer: str) -> StepEvalResult:
         return {"is_correct": True}
 
     return {"is_correct": False}
+
+
+def _split_order(order: str) -> list[str]:
+    return [item.strip() for item in order.split(ORDERING_ANSWER_SEPARATOR)]
+
+
+def grade_ordering_step(user_input: str, answer: str) -> StepEvalResult:
+    """Grade an ordering step: exact match of the submitted order against the target.
+
+    Both sides are `ORDERING_ANSWER_SEPARATOR`-joined item lists. There is no
+    format-mismatch notion here — unlike a typed numeric answer, an ordering
+    has no equivalent notation to fumble, so a mismatch is simply wrong.
+    """
+    return {"is_correct": _split_order(user_input) == _split_order(answer)}

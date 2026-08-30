@@ -7,6 +7,7 @@ from backend.deconstruction import (
     UnregisteredDeconstructionError,
     build_steps,
 )
+from backend.step_grading import ORDERING_ANSWER_SEPARATOR
 
 
 def test_build_steps_raises_for_unregistered_misconception():
@@ -139,3 +140,30 @@ class TestExpandsToTargetDenominatorWithoutFindingFactor:
 
         assert all(step.working_line is not None for step in steps)
         assert all(step.question for step in steps)
+
+
+class TestOrderingStepType:
+    """Pure coverage for the ordering-input step type (#198): the wire contract
+    and control only. #186's priority-ladder walkthrough for
+    `ignores_the_order_of_operations` is batch two and not authored here, so
+    these exercise the type mechanism with stand-in items."""
+
+    def test_typed_step_defaults(self):
+        step = Step(question="q", working_line=None, answer="5")
+
+        assert step.input_type == "typed"
+        assert step.items is None
+
+    def test_ordering_step_carries_its_items_and_delimited_answer(self):
+        items = ("brackets", "powers", "multiply-divide", "add-subtract")
+        step = Step(
+            question="Order the priority tiers.",
+            working_line=None,
+            answer=ORDERING_ANSWER_SEPARATOR.join(items),
+            input_type="ordering",
+            items=items,
+        )
+
+        assert step.input_type == "ordering"
+        assert step.items == items
+        assert step.answer == "brackets|powers|multiply-divide|add-subtract"

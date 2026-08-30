@@ -104,6 +104,8 @@ export interface SubmissionResponse {
   feedback: string;
 }
 
+export type DeconstructionStepInputType = 'typed' | 'ordering';
+
 export interface DeconstructionStepResponse {
   question: string;
   working_line: string | null;
@@ -111,6 +113,8 @@ export interface DeconstructionStepResponse {
   total_steps: number;
   misconception_name: string;
   revealed_answer: string | null;
+  input_type: DeconstructionStepInputType;
+  items: string[] | null;
 }
 
 export interface DeconstructionSubmissionRequest {
@@ -155,6 +159,8 @@ export interface DeconstructionStepView {
   stepIndex: number;
   totalSteps: number;
   revealedAnswer: string | null;
+  inputType: DeconstructionStepInputType;
+  items: string[] | null;
 }
 
 /** Render model for the takeover — a pure projection of DeconstructionStepResponse plus local phase. */
