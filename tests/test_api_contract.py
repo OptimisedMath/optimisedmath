@@ -1851,6 +1851,28 @@ def test_next_problem_rejected_while_deconstruction_active():
     assert exc_info.value.status_code == 403
 
 
+def test_next_problem_gate_shut_while_deconstruction_active(monkeypatch):
+    """The 403 is a backstop, not the Student's experience: `can_next_problem`
+    closes while a Deconstruction runs, so the client never offers a door the
+    backend would only refuse."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+
+    first_response = _submit_trap(state, "p-first-hit")
+    assert first_response.state.can_next_problem is True
+
+    second_response = _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    assert second_response.state.can_next_problem is False
+
+    abandoned = run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=state.session_id)
+        )
+    )
+    assert abandoned.can_next_problem is True
+
+
 def test_exit_control_abandons_from_any_step_and_writes_outcome(monkeypatch):
     """Issue #196: the exit control ends the Deconstruction, writing
     `abandoned_via_control`."""

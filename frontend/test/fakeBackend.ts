@@ -176,7 +176,8 @@ export function wireDeconstructionTriggerFlow({
   const locked: SessionResponse = {
     ...session,
     can_submit: false,
-    can_next_problem: true,
+    // The backend shuts the next-problem gate while a Deconstruction runs.
+    can_next_problem: false,
     deconstruction_running: true,
     feedback_type: 'warning',
     feedback_msg: TRAP_FEEDBACK,

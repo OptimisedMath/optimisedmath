@@ -148,7 +148,10 @@ def build_session_response(
         else None
     )
     can_submit = bool(current_problem and not state.problem_answered)
-    can_next_problem = bool(state.problem_answered)
+    # A running Deconstruction owns the Student's next move: the walkthrough
+    # hands the Problem back itself, so the gate stays shut rather than
+    # offering a door `next_problem()` would only refuse.
+    can_next_problem = bool(state.problem_answered and state.deconstruction is None)
     navigation_view = navigation_snapshot.build_navigation_view(nav_snapshot)
     return SessionResponse.from_state(
         state,
