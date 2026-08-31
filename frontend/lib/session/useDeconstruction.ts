@@ -141,6 +141,10 @@ export function useDeconstruction({
           await fetchStep();
         } else {
           setStepFeedback(response.feedback_msg);
+          // The submit response carries no reveal flag — the backend flips the
+          // Reveal on the threshold-th wrong answer and says so only in the next
+          // step payload, so a wrong answer has to re-read the step too.
+          await fetchStep();
         }
       } catch (err) {
         reportError(

@@ -174,6 +174,54 @@ describe('Deconstruction takeover', () => {
     });
   });
 
+  it('surfaces the Reveal after the third wrong answer without leaving the step', async () => {
+    // The backend flips the Reveal on the third genuine wrong answer and says so
+    // only in the next step payload — the submit response carries no reveal flag —
+    // so the walkthrough has to re-read the step to put the answer on screen.
+    const session = baseSession();
+    const step = baseDeconstructionStep({ revealed_answer: null });
+    let wrongAnswers = 0;
+
+    const submitDeconstructionStep = vi.fn(async () => {
+      wrongAnswers += 1;
+      return { is_correct: false, feedback_msg: 'Spróbuj jeszcze raz.', handback_question: null };
+    });
+    const getDeconstructionStep = vi.fn(async () => ({
+      ...step,
+      revealed_answer: wrongAnswers >= 3 ? '5/12' : null,
+    }));
+
+    const client = wireDeconstructionTriggerFlow({
+      session,
+      step,
+      getDeconstructionStep,
+      submitDeconstructionStep,
+    });
+
+    await reachStep(client, step);
+
+    const user = userEvent.setup();
+    const submitWrong = async () => {
+      const input = screen.getByPlaceholderText('?');
+      await user.clear(input);
+      await user.type(input, '999');
+      await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    };
+
+    await submitWrong();
+    await submitWrong();
+    expect(screen.queryByText('5/12')).not.toBeInTheDocument();
+
+    await submitWrong();
+
+    await screen.findByText('5/12');
+    // Still the same step, still awaiting the Student's own typing.
+    expect(
+      screen.getByText(`krok ${step.step_index + 1} z ${step.total_steps}`)
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('?')).toBeInTheDocument();
+  });
+
   it('keeps the exit control present on every step and visually recessive', async () => {
     const step = baseDeconstructionStep();
     const client = wireDeconstructionTriggerFlow({ step });
