@@ -358,4 +358,58 @@ def expands_to_target_denominator_without_finding_factor(
     ]
 
 
+# --- Batch one, walkthrough 4: compares_decimals_by_wrong_digit_order ---
+#
+# No-working-line shape (#187): there is no expression to transform when comparing
+# two decimals, so every step here authors `working_line: null` — the walkthrough
+# that proves the nullable working line is load-bearing rather than decorative.
+# Parameters contract: `s1`, `s2`, the two decimal strings exactly as shown in the
+# Problem (Polish comma, trailing zeros preserved where the generator deliberately
+# carries them), normalised across dec_compare_1/2/3, the three generators whose
+# Traps reference this Misconception.
+
+
+def _decimal_from_display(value: str) -> Decimal:
+    """Exact Decimal for a decimal string as shown on screen (Polish comma).
+
+    Trailing zeros survive the parse, so `_decimal_places` still reports the
+    place count the Student sees: `Decimal("0.50")` keeps its two places.
+    """
+    return Decimal(value.replace(",", "."))
+
+
+@declares_deconstruction("compares_decimals_by_wrong_digit_order")
+def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[Step]:
+    """2-step walkthrough: how many places to align to, then compare left to right."""
+    s1, s2 = str(parameters["s1"]), str(parameters["s2"])
+    v1, v2 = _decimal_from_display(s1), _decimal_from_display(s2)
+    places = max(_decimal_places(v1), _decimal_places(v2))
+    if v1 < v2:
+        sign = "<"
+    elif v1 > v2:
+        sign = ">"
+    else:
+        sign = "="
+
+    return [
+        Step(
+            question=(
+                f"Uzupełnij {s1} i {s2} zerami, aby obie liczby miały tyle samo "
+                "miejsc po przecinku. Ile miejsc po przecinku będą miały wtedy "
+                "obie liczby?"
+            ),
+            working_line=None,
+            answer=str(places),
+        ),
+        Step(
+            question=(
+                "Teraz porównaj cyfry po przecinku od lewej strony — pierwsza "
+                f"różnica rozstrzyga. Jaki znak (<, > czy =) łączy {s1} i {s2}?"
+            ),
+            working_line=None,
+            answer=sign,
+        ),
+    ]
+
+
 set_deconstruction_registry(_STEP_BUILDERS)

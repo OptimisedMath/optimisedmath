@@ -248,6 +248,7 @@ mixes_fraction_and_decimal_forms_without_converting:
 compares_decimals_by_wrong_digit_order:
   name: "Porównuje ułamki dziesiętne nie od lewej strony"
   explanation: "Wyrównaj liczby zerami, a potem porównuj cyfry po przecinku od lewej — pierwsza różnica rozstrzyga. Jeśli wszystkie są równe, liczby są równe."
+  deconstruction: compares_decimals_by_wrong_digit_order
 
 compares_repeating_decimals_incorrectly:
   name: "Źle porównuje rozwinięcia nieskończone"
