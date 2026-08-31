@@ -262,3 +262,69 @@ class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
                 "does_not_align_decimals_before_column_arithmetic",
                 {"v1": 1.2, "v2": 0.05, "operation": "*"},
             )
+
+
+class TestComparesDecimalsByWrongDigitOrder:
+    """Table-driven: representative `parameters` shapes for the no-working-line
+    comparison walkthrough. The shapes mirror dec_compare_1/2/3, normalised to a
+    shared `s1`/`s2` contract — the two decimal strings exactly as shown on
+    screen, trailing zeros preserved where the generator deliberately carries
+    them (#187, #201).
+    """
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected_places", "expected_sign"),
+        [
+            pytest.param(
+                {"s1": "0,45", "s2": "0,23"},
+                2,
+                ">",
+                id="same-decimal-places-different-digits",
+            ),
+            pytest.param(
+                {"s1": "0,5", "s2": "0,42"},
+                2,
+                ">",
+                id="first-operand-fewer-decimal-places",
+            ),
+            pytest.param(
+                {"s1": "2,05", "s2": "2,5"},
+                2,
+                "<",
+                id="second-operand-more-decimal-places",
+            ),
+            pytest.param(
+                {"s1": "0,5", "s2": "0,50"},
+                2,
+                "=",
+                id="equal-with-trailing-zero",
+            ),
+            pytest.param(
+                {"s1": "3,070", "s2": "3,07"},
+                3,
+                "=",
+                id="equal-with-trailing-zero-and-whole-part",
+            ),
+        ],
+    )
+    def test_step_sequence(self, parameters, expected_places, expected_sign):
+        steps = build_steps("compares_decimals_by_wrong_digit_order", parameters)
+
+        assert len(steps) == 2
+        assert all(isinstance(step, Step) for step in steps)
+
+        find_places_step, compare_sign_step = steps
+
+        assert find_places_step.answer == str(expected_places)
+        assert compare_sign_step.answer == expected_sign
+
+        # The no-working-line shape (#187, #201): there is no expression to
+        # transform, so neither step authors one.
+        assert find_places_step.working_line is None
+        assert compare_sign_step.working_line is None
+
+        assert all(step.question for step in steps)
+        assert parameters["s1"] in find_places_step.question
+        assert parameters["s2"] in find_places_step.question
+        assert parameters["s1"] in compare_sign_step.question
+        assert parameters["s2"] in compare_sign_step.question

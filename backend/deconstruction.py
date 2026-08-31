@@ -281,4 +281,47 @@ def expands_to_target_denominator_without_finding_factor(
     ]
 
 
+# --- Batch one, walkthrough 4: compares_decimals_by_wrong_digit_order ---
+#
+# No-working-line shape (#187): there is no expression to transform when comparing
+# two decimals, so every step here authors `working_line: null` — the walkthrough
+# that proves the nullable working line is load-bearing rather than decorative.
+# Parameters contract: `s1`, `s2`, the two decimal strings exactly as shown in the
+# Problem (Polish comma, trailing zeros preserved where the generator deliberately
+# carries them), normalised across dec_compare_1/2/3, the three generators whose
+# Traps reference this Misconception.
+
+
+def _decimal_places_in_string(value: str) -> int:
+    return len(value.split(",", 1)[1]) if "," in value else 0
+
+
+@declares_deconstruction("compares_decimals_by_wrong_digit_order")
+def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[Step]:
+    """2-step walkthrough: how many places to align to, then compare left to right."""
+    s1, s2 = str(parameters["s1"]), str(parameters["s2"])
+    v1, v2 = Decimal(s1.replace(",", ".")), Decimal(s2.replace(",", "."))
+    places = max(_decimal_places_in_string(s1), _decimal_places_in_string(s2))
+    sign = "<" if v1 < v2 else ">" if v1 > v2 else "="
+
+    return [
+        Step(
+            question=(
+                f"Uzupełnij {s1} i {s2} zerami, aby obie liczby miały tyle samo "
+                "miejsc po przecinku. Ile miejsc po przecinku będą miały wtedy obie liczby?"
+            ),
+            working_line=None,
+            answer=str(places),
+        ),
+        Step(
+            question=(
+                "Teraz porównaj cyfry po przecinku od lewej strony — pierwsza "
+                f"różnica rozstrzyga. Jaki znak (<, > czy =) łączy {s1} i {s2}?"
+            ),
+            working_line=None,
+            answer=sign,
+        ),
+    ]
+
+
 set_deconstruction_registry(_STEP_BUILDERS)
