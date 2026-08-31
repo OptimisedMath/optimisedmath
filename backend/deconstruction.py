@@ -260,44 +260,48 @@ def operates_on_mixed_number_without_converting(
     parameters: StepParameters,
 ) -> list[Step]:
     """2-step walkthrough: convert the mixed number, then operate on improper fractions."""
-    whole1 = int(parameters["whole1"])
-    n1, d1 = int(parameters["n1"]), int(parameters["d1"])
     operation = str(parameters["operation"])
     if operation not in ("*", ":", "^"):
         raise ValueError(f"Unsupported operation '{operation}'")
 
+    whole1 = int(parameters["whole1"])
+    n1, d1 = int(parameters["n1"]), int(parameters["d1"])
     improper1 = whole1 * d1 + n1
-    left = format_fraction_question(n1, d1, whole1)
+    mixed1 = format_fraction_question(n1, d1, whole1)
 
     if operation == "^":
         p = int(parameters["p"])
-        target_whole, target_n, target_d = whole1, n1, d1
-        working_before = rf"\left( {left} \right)^{{{p}}}"
+        # A power has no second operand, so the first one is the mixed number.
+        target_mixed, target_improper = mixed1, improper1
+        working_before = rf"\left( {mixed1} \right)^{{{p}}}"
         working_after = rf"\left( {_frac(improper1, d1)} \right)^{{{p}}}"
-        final_answer, _ = format_answers(improper1**p, d1**p)
+        result_numerator, result_denominator = improper1**p, d1**p
     else:
         whole2 = int(parameters["whole2"])
         n2, d2 = int(parameters["n2"]), int(parameters["d2"])
         improper2 = whole2 * d2 + n2
-        target_whole, target_n, target_d = (
-            (whole1, n1, d1) if whole1 else (whole2, n2, d2)
-        )
-        right = format_fraction_question(n2, d2, whole2)
-        op_symbol = r"\cdot" if operation == "*" else ":"
-        working_before = rf"{left} {op_symbol} {right}"
-        working_after = rf"{_frac(improper1, d1)} {op_symbol} {_frac(improper2, d2)}"
-        if operation == "*":
-            final_answer, _ = format_answers(improper1 * improper2, d1 * d2)
+        mixed2 = format_fraction_question(n2, d2, whole2)
+        # The operand carrying a whole part is the one the Student skipped
+        # converting; when both carry one (frac_mult_4, frac_div_frac_3), the
+        # first one stands in for the pair.
+        if whole1:
+            target_mixed, target_improper = mixed1, improper1
         else:
-            final_answer, _ = format_answers(improper1 * d2, d1 * improper2)
+            target_mixed, target_improper = mixed2, improper2
+        op_symbol = r"\cdot" if operation == "*" else ":"
+        working_before = f"{mixed1} {op_symbol} {mixed2}"
+        working_after = f"{_frac(improper1, d1)} {op_symbol} {_frac(improper2, d2)}"
+        if operation == "*":
+            result_numerator, result_denominator = improper1 * improper2, d1 * d2
+        else:
+            result_numerator, result_denominator = improper1 * d2, d1 * improper2
 
-    target_improper = target_whole * target_d + target_n
+    final_answer, _ = format_answers(result_numerator, result_denominator)
 
     return [
         Step(
             question=(
-                "Zanim wykonasz działanie, zamień liczbę mieszaną "
-                f"{format_fraction_question(target_n, target_d, target_whole)} na "
+                f"Zanim wykonasz działanie, zamień liczbę mieszaną {target_mixed} na "
                 "ułamek niewłaściwy. Ile wynosi jej licznik?"
             ),
             working_line=working_before,

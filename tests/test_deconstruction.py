@@ -265,16 +265,25 @@ class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
 
 
 class TestOperatesOnMixedNumberWithoutConverting:
-    """Table-driven: representative `parameters` shapes for the precondition-conversion
-    walkthrough. Six generators across three topics reference this Misconception — a
-    mixed number multiplied, divided, or raised to a power, either alone or against a
-    whole number, a plain fraction, or a second mixed number — normalised to a shared
+    """Table-driven: `parameters` shapes for the precondition-conversion walkthrough.
+
+    Six generators across three topics reference this Misconception — a mixed number
+    multiplied, divided, or raised to a power, either alone or against a whole number,
+    a plain fraction, or a second mixed number — normalised to a shared
     `whole1`/`n1`/`d1`/`whole2`/`n2`/`d2`/`operation` contract (`p` replaces the second
     operand when `operation == "^"`, since a power has none) (#200).
+
+    `expected_target_mixed` pins down *which* operand the first step converts: the one
+    carrying a whole part, or the first of the two when both do.
     """
 
     @pytest.mark.parametrize(
-        ("parameters", "expected_target_improper", "expected_final_answer"),
+        (
+            "parameters",
+            "expected_target_mixed",
+            "expected_target_improper",
+            "expected_final_answer",
+        ),
         [
             pytest.param(
                 {
@@ -286,6 +295,7 @@ class TestOperatesOnMixedNumberWithoutConverting:
                     "d2": 1,
                     "operation": "*",
                 },
+                r"1\frac{1}{2}",
                 3,
                 r"4\frac{1}{2}",
                 id="mixed-times-whole-number",
@@ -300,6 +310,7 @@ class TestOperatesOnMixedNumberWithoutConverting:
                     "d2": 3,
                     "operation": "*",
                 },
+                r"1\frac{1}{3}",
                 4,
                 r"\frac{2}{3}",
                 id="plain-fraction-times-mixed-number",
@@ -314,6 +325,7 @@ class TestOperatesOnMixedNumberWithoutConverting:
                     "d2": 3,
                     "operation": "*",
                 },
+                r"1\frac{1}{2}",
                 3,
                 "2",
                 id="mixed-times-mixed",
@@ -328,6 +340,7 @@ class TestOperatesOnMixedNumberWithoutConverting:
                     "d2": 1,
                     "operation": ":",
                 },
+                r"2\frac{1}{4}",
                 9,
                 r"\frac{3}{4}",
                 id="mixed-divided-by-whole-number",
@@ -342,12 +355,14 @@ class TestOperatesOnMixedNumberWithoutConverting:
                     "d2": 4,
                     "operation": ":",
                 },
+                r"1\frac{1}{2}",
                 3,
                 r"1\frac{1}{5}",
                 id="mixed-divided-by-mixed",
             ),
             pytest.param(
                 {"whole1": 1, "n1": 1, "d1": 2, "p": 2, "operation": "^"},
+                r"1\frac{1}{2}",
                 3,
                 r"2\frac{1}{4}",
                 id="mixed-raised-to-power",
@@ -355,7 +370,11 @@ class TestOperatesOnMixedNumberWithoutConverting:
         ],
     )
     def test_step_sequence(
-        self, parameters, expected_target_improper, expected_final_answer
+        self,
+        parameters,
+        expected_target_mixed,
+        expected_target_improper,
+        expected_final_answer,
     ):
         steps = build_steps("operates_on_mixed_number_without_converting", parameters)
 
@@ -364,6 +383,7 @@ class TestOperatesOnMixedNumberWithoutConverting:
 
         convert_step, operate_step = steps
 
+        assert expected_target_mixed in convert_step.question
         assert convert_step.answer == str(expected_target_improper)
         assert operate_step.answer == expected_final_answer
 
