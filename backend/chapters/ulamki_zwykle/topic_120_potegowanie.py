@@ -86,7 +86,7 @@ def frac_pow_3() -> dict | None:
             "raises_only_the_numerator": format_answers(num**p, d)[0],
         },
         fillers=[format_answers(num**p + 1, d**p)[0]],
-        parameters={"w": w, "n": n, "d": d, "p": p},
+        parameters={"whole1": w, "n1": n, "d1": d, "p": p, "operation": "^"},
     )
     if problem:
         return problem

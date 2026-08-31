@@ -98,6 +98,7 @@ improper_to_mixed_mishandles_remainder:
 operates_on_mixed_number_without_converting:
   name: "Działa na liczbie mieszanej bez zamiany na ułamek niewłaściwy"
   explanation: "Zanim pomnożysz, podzielisz lub spotęgujesz liczbę mieszaną, wciągnij całości do ułamka niewłaściwego. Osobno całości i osobno ułamek to pułapka."
+  deconstruction: operates_on_mixed_number_without_converting
 
 drops_whole_part:
   name: "Gubi całości z przodu"

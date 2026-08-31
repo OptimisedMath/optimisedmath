@@ -84,7 +84,15 @@ def frac_mult_num_3() -> dict | None:
             "multiplies_the_denominator_too": format_answers(total, d * k)[0],
         },
         fillers=[format_answers(total + 1, d)[0]],
-        parameters={"w": w, "n": n, "d": d, "k": k},
+        parameters={
+            "whole1": w,
+            "n1": n,
+            "d1": d,
+            "whole2": 0,
+            "n2": k,
+            "d2": 1,
+            "operation": "*",
+        },
     )
     if result:
         return result

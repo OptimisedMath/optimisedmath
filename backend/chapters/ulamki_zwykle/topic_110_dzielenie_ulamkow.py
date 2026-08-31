@@ -88,6 +88,7 @@ def frac_div_frac_3() -> dict | None:
             "d1": d1,
             "n2": n2,
             "d2": d2,
+            "operation": ":",
         },
     )
     if problem:

@@ -94,7 +94,15 @@ def frac_mult_3() -> dict | None:
             )[0],
         },
         fillers=[format_answers(total + 1, d1 * d2)[0]],
-        parameters={"w": w, "n1": n1, "d1": d1, "n2": n2, "d2": d2},
+        parameters={
+            "whole1": 0,
+            "n1": n1,
+            "d1": d1,
+            "whole2": w,
+            "n2": n2,
+            "d2": d2,
+            "operation": "*",
+        },
     )
     if result:
         return result
@@ -134,6 +142,7 @@ def frac_mult_4() -> dict | None:
             "d1": d1,
             "n2": n2,
             "d2": d2,
+            "operation": "*",
         },
     )
     if result:

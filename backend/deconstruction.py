@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Callable, Literal
 
-from backend.core.utils import fmt_dec, format_answers
+from backend.core.utils import fmt_dec, format_answers, format_fraction_question
 from backend.curriculum_loader import set_deconstruction_registry
 
 StepParameters = dict[str, int | float | str]
@@ -237,6 +237,79 @@ def does_not_align_decimals_before_column_arithmetic(
             ),
             working_line=_column(padded_v1, operation, padded_v2, answer_row=True),
             answer=fmt_dec(combined),
+        ),
+    ]
+
+
+# --- Batch one, walkthrough 3: operates_on_mixed_number_without_converting ---
+#
+# Precondition-conversion shape (#187): the first step is a conversion the Student
+# must do before the actual operation is reachable at all, rather than going
+# straight at the operation the Problem asked about. Six generators across three
+# topics reference this Misconception — frac_mult_num_3, frac_mult_3, frac_mult_4,
+# frac_div_num_3, frac_div_frac_3, frac_pow_3 — normalised to a shared
+# `whole1`/`n1`/`d1`/`whole2`/`n2`/`d2`/`operation` contract: a whole number or plain
+# fraction operand carries a zero whole part, and a power's exponent rides in `p`
+# since a power has no second operand. `whole * d + n` doubles as the plain
+# improper numerator when the whole part is zero, so the same formula converts a
+# true mixed number or leaves a plain fraction untouched.
+
+
+@declares_deconstruction("operates_on_mixed_number_without_converting")
+def operates_on_mixed_number_without_converting(
+    parameters: StepParameters,
+) -> list[Step]:
+    """2-step walkthrough: convert the mixed number, then operate on improper fractions."""
+    whole1 = int(parameters["whole1"])
+    n1, d1 = int(parameters["n1"]), int(parameters["d1"])
+    operation = str(parameters["operation"])
+    if operation not in ("*", ":", "^"):
+        raise ValueError(f"Unsupported operation '{operation}'")
+
+    improper1 = whole1 * d1 + n1
+    left = format_fraction_question(n1, d1, whole1)
+
+    if operation == "^":
+        p = int(parameters["p"])
+        target_whole, target_n, target_d = whole1, n1, d1
+        working_before = rf"\left( {left} \right)^{{{p}}}"
+        working_after = rf"\left( {_frac(improper1, d1)} \right)^{{{p}}}"
+        final_answer, _ = format_answers(improper1**p, d1**p)
+    else:
+        whole2 = int(parameters["whole2"])
+        n2, d2 = int(parameters["n2"]), int(parameters["d2"])
+        improper2 = whole2 * d2 + n2
+        target_whole, target_n, target_d = (
+            (whole1, n1, d1) if whole1 else (whole2, n2, d2)
+        )
+        right = format_fraction_question(n2, d2, whole2)
+        op_symbol = r"\cdot" if operation == "*" else ":"
+        working_before = rf"{left} {op_symbol} {right}"
+        working_after = rf"{_frac(improper1, d1)} {op_symbol} {_frac(improper2, d2)}"
+        if operation == "*":
+            final_answer, _ = format_answers(improper1 * improper2, d1 * d2)
+        else:
+            final_answer, _ = format_answers(improper1 * d2, d1 * improper2)
+
+    target_improper = target_whole * target_d + target_n
+
+    return [
+        Step(
+            question=(
+                "Zanim wykonasz działanie, zamień liczbę mieszaną "
+                f"{format_fraction_question(target_n, target_d, target_whole)} na "
+                "ułamek niewłaściwy. Ile wynosi jej licznik?"
+            ),
+            working_line=working_before,
+            answer=str(target_improper),
+        ),
+        Step(
+            question=(
+                "Teraz gdy liczba mieszana jest już ułamkiem niewłaściwym, wykonaj "
+                "działanie na obu ułamkach. Ile wynosi wynik (w najprostszej postaci)?"
+            ),
+            working_line=working_after,
+            answer=final_answer,
         ),
     ]
 

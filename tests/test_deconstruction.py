@@ -262,3 +262,132 @@ class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
                 "does_not_align_decimals_before_column_arithmetic",
                 {"v1": 1.2, "v2": 0.05, "operation": "*"},
             )
+
+
+class TestOperatesOnMixedNumberWithoutConverting:
+    """Table-driven: representative `parameters` shapes for the precondition-conversion
+    walkthrough. Six generators across three topics reference this Misconception — a
+    mixed number multiplied, divided, or raised to a power, either alone or against a
+    whole number, a plain fraction, or a second mixed number — normalised to a shared
+    `whole1`/`n1`/`d1`/`whole2`/`n2`/`d2`/`operation` contract (`p` replaces the second
+    operand when `operation == "^"`, since a power has none) (#200).
+    """
+
+    @pytest.mark.parametrize(
+        ("parameters", "expected_target_improper", "expected_final_answer"),
+        [
+            pytest.param(
+                {
+                    "whole1": 1,
+                    "n1": 1,
+                    "d1": 2,
+                    "whole2": 0,
+                    "n2": 3,
+                    "d2": 1,
+                    "operation": "*",
+                },
+                3,
+                r"4\frac{1}{2}",
+                id="mixed-times-whole-number",
+            ),
+            pytest.param(
+                {
+                    "whole1": 0,
+                    "n1": 1,
+                    "d1": 2,
+                    "whole2": 1,
+                    "n2": 1,
+                    "d2": 3,
+                    "operation": "*",
+                },
+                4,
+                r"\frac{2}{3}",
+                id="plain-fraction-times-mixed-number",
+            ),
+            pytest.param(
+                {
+                    "whole1": 1,
+                    "n1": 1,
+                    "d1": 2,
+                    "whole2": 1,
+                    "n2": 1,
+                    "d2": 3,
+                    "operation": "*",
+                },
+                3,
+                "2",
+                id="mixed-times-mixed",
+            ),
+            pytest.param(
+                {
+                    "whole1": 2,
+                    "n1": 1,
+                    "d1": 4,
+                    "whole2": 0,
+                    "n2": 3,
+                    "d2": 1,
+                    "operation": ":",
+                },
+                9,
+                r"\frac{3}{4}",
+                id="mixed-divided-by-whole-number",
+            ),
+            pytest.param(
+                {
+                    "whole1": 1,
+                    "n1": 1,
+                    "d1": 2,
+                    "whole2": 1,
+                    "n2": 1,
+                    "d2": 4,
+                    "operation": ":",
+                },
+                3,
+                r"1\frac{1}{5}",
+                id="mixed-divided-by-mixed",
+            ),
+            pytest.param(
+                {"whole1": 1, "n1": 1, "d1": 2, "p": 2, "operation": "^"},
+                3,
+                r"2\frac{1}{4}",
+                id="mixed-raised-to-power",
+            ),
+        ],
+    )
+    def test_step_sequence(
+        self, parameters, expected_target_improper, expected_final_answer
+    ):
+        steps = build_steps("operates_on_mixed_number_without_converting", parameters)
+
+        assert len(steps) == 2
+        assert all(isinstance(step, Step) for step in steps)
+
+        convert_step, operate_step = steps
+
+        assert convert_step.answer == str(expected_target_improper)
+        assert operate_step.answer == expected_final_answer
+
+        # The conversion is its own step, and the second step's working line shows
+        # the operands already converted — the precondition-conversion shape (#187,
+        # #200): the operation is only reachable once the mixed number is gone.
+        assert convert_step.working_line is not None
+        assert operate_step.working_line is not None
+        assert convert_step.working_line != operate_step.working_line
+        assert str(expected_target_improper) in operate_step.working_line
+
+        assert all(step.question for step in steps)
+
+    def test_rejects_unsupported_operation(self):
+        with pytest.raises(ValueError):
+            build_steps(
+                "operates_on_mixed_number_without_converting",
+                {
+                    "whole1": 1,
+                    "n1": 1,
+                    "d1": 2,
+                    "whole2": 0,
+                    "n2": 3,
+                    "d2": 1,
+                    "operation": "+",
+                },
+            )
