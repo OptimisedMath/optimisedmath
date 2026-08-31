@@ -292,23 +292,34 @@ def expands_to_target_denominator_without_finding_factor(
 # Traps reference this Misconception.
 
 
-def _decimal_places_in_string(value: str) -> int:
-    return len(value.split(",", 1)[1]) if "," in value else 0
+def _decimal_from_display(value: str) -> Decimal:
+    """Exact Decimal for a decimal string as shown on screen (Polish comma).
+
+    Trailing zeros survive the parse, so `_decimal_places` still reports the
+    place count the Student sees: `Decimal("0.50")` keeps its two places.
+    """
+    return Decimal(value.replace(",", "."))
 
 
 @declares_deconstruction("compares_decimals_by_wrong_digit_order")
 def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[Step]:
     """2-step walkthrough: how many places to align to, then compare left to right."""
     s1, s2 = str(parameters["s1"]), str(parameters["s2"])
-    v1, v2 = Decimal(s1.replace(",", ".")), Decimal(s2.replace(",", "."))
-    places = max(_decimal_places_in_string(s1), _decimal_places_in_string(s2))
-    sign = "<" if v1 < v2 else ">" if v1 > v2 else "="
+    v1, v2 = _decimal_from_display(s1), _decimal_from_display(s2)
+    places = max(_decimal_places(v1), _decimal_places(v2))
+    if v1 < v2:
+        sign = "<"
+    elif v1 > v2:
+        sign = ">"
+    else:
+        sign = "="
 
     return [
         Step(
             question=(
                 f"Uzupełnij {s1} i {s2} zerami, aby obie liczby miały tyle samo "
-                "miejsc po przecinku. Ile miejsc po przecinku będą miały wtedy obie liczby?"
+                "miejsc po przecinku. Ile miejsc po przecinku będą miały wtedy "
+                "obie liczby?"
             ),
             working_line=None,
             answer=str(places),
