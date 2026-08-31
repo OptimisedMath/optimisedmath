@@ -1309,6 +1309,29 @@ def test_correct_answer_withheld_only_on_triggering_submission(monkeypatch):
     assert "correct_answer" not in second_response.state.current_problem
 
 
+def test_deconstruction_running_flag_tracks_the_running_deconstruction(monkeypatch):
+    """`SessionResponse.deconstruction_running` is the client's takeover trigger, so it
+    must name `state.deconstruction` exactly — not the withheld `correct_answer`, which
+    is a spoiler rule the client must never have to infer from."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+
+    first_response = _submit_trap(state, "p-first-hit")
+    assert first_response.state.deconstruction_running is False
+
+    second_response = _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    assert second_response.state.deconstruction_running is True
+
+    abandoned = run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=state.session_id)
+        )
+    )
+    assert state.deconstruction is None
+    assert abandoned.deconstruction_running is False
+
+
 def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
     monkeypatch,
 ):

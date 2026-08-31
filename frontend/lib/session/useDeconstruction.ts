@@ -21,19 +21,15 @@ export function isTakeoverPhase(phase: DeconstructionPhase): boolean {
 }
 
 /**
- * The Problem of a Submission that arms the takeover, or null for every other
- * Submission. `SessionResponse` has no field naming a running Deconstruction
- * (see `docs/session.md`), so the trigger is derived purely from the wire shape
- * the backend serves: a wrong, locked answer whose Problem is missing
- * `correct_answer` — withheld only while a Deconstruction is running.
+ * The Problem the backend is running a Deconstruction over, or null when none is
+ * running. Per ADR-0002 the trigger is the backend's own
+ * `deconstruction_running` flag — never inferred from the Submission's wire
+ * shape, which would tie the takeover to an unrelated spoiler rule in
+ * `backend/session.py`'s `public_problem`.
  */
 function takeoverArmingProblem(session: SessionResponse | null): Problem | null {
-  if (!session?.can_next_problem) return null;
-  if (session.feedback_type === null || session.feedback_type === 'success') return null;
-
-  const problem = session.current_problem;
-  if (!problem || problem.correct_answer !== undefined) return null;
-  return problem;
+  if (!session?.deconstruction_running) return null;
+  return session.current_problem;
 }
 
 interface UseDeconstructionOptions {
@@ -180,10 +176,14 @@ export function useDeconstruction({
   }, [client, sessionId, setSessionState, reset, setError]);
 
   const returnToProblem = useCallback(() => {
+    // The backend already ended the Deconstruction when it served the handback
+    // question; clearing the flag locally keeps the now-stale SessionResponse
+    // from re-arming the takeover the moment `reset()` returns to 'idle'.
     setSessionState((prev) =>
       prev
         ? {
             ...prev,
+            deconstruction_running: false,
             can_submit: true,
             can_next_problem: false,
             feedback_type: null,

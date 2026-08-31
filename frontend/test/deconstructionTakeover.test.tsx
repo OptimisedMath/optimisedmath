@@ -40,6 +40,34 @@ describe('Deconstruction takeover', () => {
     expect(screen.queryByText(TRAP_FEEDBACK)).not.toBeInTheDocument();
   });
 
+  it('arms off `deconstruction_running`, not a Problem that merely lacks `correct_answer`', async () => {
+    // Withholding `correct_answer` is a spoiler rule that may grow other reasons
+    // (see `public_problem`); only the backend's flag arms the takeover.
+    const session = baseSession();
+    const client = wireDeconstructionTriggerFlow({
+      submitAnswer: async () => ({
+        is_correct: false,
+        feedback: TRAP_FEEDBACK,
+        state: withProblem(
+          {
+            ...session,
+            can_submit: false,
+            can_next_problem: true,
+            deconstruction_running: false,
+            feedback_type: 'warning',
+            feedback_msg: TRAP_FEEDBACK,
+          },
+          withoutCorrectAnswer(baseProblem({ problem_id: 'prob-no-deconstruction' }))
+        ),
+      }),
+    });
+
+    await reachPause(client);
+
+    expect(screen.queryByLabelText('Przejdź dalej')).not.toBeInTheDocument();
+    expect(screen.getByText(TRAP_FEEDBACK)).toBeInTheDocument();
+  });
+
   it('auto-advances from the pause to the takeover after 4 seconds without a tap', async () => {
     const client = wireDeconstructionTriggerFlow();
 

@@ -43,6 +43,7 @@ export function baseSession(overrides: Partial<SessionResponse> = {}): SessionRe
     current_problem: null,
     can_submit: true,
     can_next_problem: false,
+    deconstruction_running: false,
     navigation: defaultNavigation(),
     ...overrides,
   };
@@ -100,9 +101,8 @@ export function baseOrderingDeconstructionStep(
 /**
  * A triggering Submission's Problem, exactly as the backend serves it: the
  * spoiler fix withholds `correct_answer` while a Deconstruction is running
- * (`public_problem` in `backend/session.py`), which is the only signal the
- * client has that a Submission armed the takeover — there is no separate
- * flag on `SessionResponse`.
+ * (`public_problem` in `backend/session.py`). This is a spoiler rule only —
+ * the takeover itself arms off `SessionResponse.deconstruction_running`.
  */
 export function withoutCorrectAnswer(problem: Problem): Problem {
   const clone: Problem = { ...problem };
@@ -156,8 +156,8 @@ export const TRAP_FEEDBACK = 'Trap feedback';
 
 /**
  * Wires an arena play-through whose Submission arms a Deconstruction: the graded
- * answer comes back wrong and locked, carrying a Problem stripped of its
- * `correct_answer` exactly as the backend serves it while a Deconstruction runs.
+ * answer comes back wrong and locked, with `deconstruction_running` set and a
+ * Problem stripped of its `correct_answer`, exactly as the backend serves it.
  * Every fixture defaults, and later handlers win, so a scenario names only the
  * step it varies and the operation it spies on.
  */
@@ -177,6 +177,7 @@ export function wireDeconstructionTriggerFlow({
     ...session,
     can_submit: false,
     can_next_problem: true,
+    deconstruction_running: true,
     feedback_type: 'warning',
     feedback_msg: TRAP_FEEDBACK,
   };

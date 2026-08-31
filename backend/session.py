@@ -119,7 +119,10 @@ def public_problem(
         if state.deconstruction is None:
             public["correct_answer"] = problem.get("correct")
         # else: a triggering Submission withholds it — the walkthrough still
-        # has something to arrive at.
+        # has something to arrive at. Withholding is a spoiler rule only; the
+        # client learns a Deconstruction is running from
+        # `SessionResponse.deconstruction_running`, so more reasons to withhold
+        # may be added here without arming or disarming the takeover.
     elif play_mode.reveals_correct_answer:
         correct = problem.get("correct")
         if correct is not None:

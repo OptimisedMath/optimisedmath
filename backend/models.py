@@ -208,6 +208,15 @@ class SessionResponse(BaseModel):
 
     can_submit: bool = False
     can_next_problem: bool = False
+    deconstruction_running: bool = Field(
+        default=False,
+        description=(
+            "Whether a Deconstruction is taking over the Session right now. The "
+            "client arms its takeover off this flag rather than inferring one from "
+            "a withheld `correct_answer` (ADR-0002: the backend names the state it "
+            "owns)"
+        ),
+    )
     streak_meter: int = Field(
         default=0,
         ge=0,
@@ -255,6 +264,7 @@ class SessionResponse(BaseModel):
             current_problem=current_problem,
             can_submit=can_submit,
             can_next_problem=can_next_problem,
+            deconstruction_running=state.deconstruction is not None,
             streak_meter=streak_meter,
             admin_mode=admin_mode,
             navigation=navigation,

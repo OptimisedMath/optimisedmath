@@ -55,6 +55,8 @@ export interface SessionResponse {
   current_problem: Problem | null;
   can_submit: boolean;
   can_next_problem: boolean;
+  /** True while a Deconstruction is taking over the Session — the takeover's only trigger. */
+  deconstruction_running: boolean;
   admin_mode?: boolean;
   navigation?: NavigationView | null;
 }
