@@ -45,20 +45,76 @@ class UnregisteredDeconstructionError(Exception):
     """Raised when `build_steps` is asked for a Misconception with no walkthrough."""
 
 
+class DeconstructionContractError(Exception):
+    """Raised when a Problem's `parameters` do not satisfy a walkthrough's contract.
+
+    Distinct from a bare `KeyError` so the submission cycle can tell curriculum drift
+    — a generator that stopped supplying a key its Level's Traps depend on, or a Trap
+    pointed at a Misconception whose walkthrough cannot be true of the Problem — from
+    a genuine defect inside a builder. Carries the Misconception slug and, where the
+    violation is a missing key, the keys that were absent.
+    """
+
+    def __init__(
+        self,
+        misconception_slug: str,
+        *,
+        missing_keys: tuple[str, ...] = (),
+        reason: str | None = None,
+    ) -> None:
+        self.misconception_slug = misconception_slug
+        self.missing_keys = missing_keys
+        detail = reason or f"missing parameters: {', '.join(missing_keys)}"
+        super().__init__(
+            f"Walkthrough '{misconception_slug}' contract violated: {detail}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class Declaration:
+    """A registered walkthrough alongside the contract metadata it declares.
+
+    `required_parameters` is readable without calling `builder`, which is what lets the
+    curriculum-wide sweep check a generator's emitted `parameters` against every
+    walkthrough its Level's Traps can reach. `answers_the_problem` states whether the
+    final Step's `answer` is the Problem's own correct answer — true where the
+    walkthrough carries the Student all the way there, false where it deliberately
+    stops short (the expansion walkthrough ends on a numerator, not a whole fraction).
+    """
+
+    builder: StepBuilder
+    required_parameters: frozenset[str]
+    answers_the_problem: bool
+
+
+_DECLARATIONS: dict[str, Declaration] = {}
 _STEP_BUILDERS: dict[str, StepBuilder] = {}
 
 
 def declares_deconstruction(
     misconception_slug: str,
+    *,
+    requires: tuple[str, ...],
+    answers_the_problem: bool,
 ) -> Callable[[StepBuilder], StepBuilder]:
-    """Register `func` as the walkthrough for `misconception_slug`.
+    """Register `func` as the walkthrough for `misconception_slug`, with its contract.
 
     Mirrors `declares_traps`'s decorator-registry shape: a catalogue entry naming
     an unregistered function fails at curriculum load time (`curriculum_loader.py`)
     rather than in front of a Student.
+
+    `requires` names the `parameters` keys the walkthrough always reads; optional keys
+    (the mixed-number whole parts) stay out of it. `answers_the_problem` declares
+    whether the last Step lands on the Problem's answer — set it honestly, since the
+    sweep asserts that invariant only where it is declared true.
     """
 
     def decorate(func: StepBuilder) -> StepBuilder:
+        _DECLARATIONS[misconception_slug] = Declaration(
+            builder=func,
+            required_parameters=frozenset(requires),
+            answers_the_problem=answers_the_problem,
+        )
         _STEP_BUILDERS[misconception_slug] = func
         return func
 
@@ -67,17 +123,36 @@ def declares_deconstruction(
 
 def has_walkthrough(misconception_slug: str) -> bool:
     """Whether a walkthrough is registered for a Misconception — batch one is five of 55."""
-    return misconception_slug in _STEP_BUILDERS
+    return misconception_slug in _DECLARATIONS
 
 
-def build_steps(misconception_slug: str, parameters: StepParameters) -> list[Step]:
-    """Build the fixed step sequence for a Misconception from a Problem's parameters."""
-    builder = _STEP_BUILDERS.get(misconception_slug)
-    if builder is None:
+def declaration(misconception_slug: str) -> Declaration:
+    """The registered walkthrough and its declared contract."""
+    declared = _DECLARATIONS.get(misconception_slug)
+    if declared is None:
         raise UnregisteredDeconstructionError(
             f"No walkthrough registered for misconception '{misconception_slug}'"
         )
-    return builder(parameters)
+    return declared
+
+
+def _require(misconception_slug: str, parameters: StepParameters, *keys: str) -> None:
+    """Raise the contract error naming every absent key, rather than the first."""
+    missing = tuple(key for key in keys if key not in parameters)
+    if missing:
+        raise DeconstructionContractError(misconception_slug, missing_keys=missing)
+
+
+def build_steps(misconception_slug: str, parameters: StepParameters) -> list[Step]:
+    """Build the fixed step sequence for a Misconception from a Problem's parameters.
+
+    Raises `DeconstructionContractError` when `parameters` omits a key the walkthrough
+    declared it requires, or when the Problem's shape is one the walkthrough cannot
+    truthfully address.
+    """
+    declared = declaration(misconception_slug)
+    _require(misconception_slug, parameters, *sorted(declared.required_parameters))
+    return declared.builder(parameters)
 
 
 def _frac(n: int, d: int) -> str:
@@ -86,14 +161,29 @@ def _frac(n: int, d: int) -> str:
 
 # --- Batch one, walkthrough 1: operates_on_unlike_fractions_directly ---
 #
-# Multi-step, cross-Chapter shape (#187): fires from both Ułamki_Zwykłe addition/
-# subtraction Traps and Ułamki_Dziesiętne mixed-operand Traps, since the underlying
-# error — combining unlike-denominator fractions without a common denominator — is
-# the same regardless of which Chapter generated the Problem. Parameters contract:
-# `n1`, `d1`, `n2`, `d2` (the two fractions) and `operation` ("+" or "-").
+# Multi-step shape (#187): fires from the Ułamki_Zwykłe addition and subtraction Traps
+# whose Problem's two denominators differ. It once also carried the Ułamki_Dziesiętne
+# mixed-operand Traps; #224 moved those to `mixes_fraction_and_decimal_forms_without_
+# converting`, whose lesson — convert to one form first — is the one those Problems
+# need. Parameters contract:
+# `n1`, `d1`, `n2`, `d2` (the two fractions) and `operation` ("+" or "-"), plus the
+# optional whole parts `whole1` and `whole2`, defaulting to zero.
+#
+# The whole parts are what let a mixed-number Level reach this walkthrough at all: each
+# operand is converted to an improper fraction first (`whole * d + n`, which leaves a
+# plain fraction untouched when the whole part is zero or absent), so the final step
+# lands on the Problem's own answer rather than on the fractional remainder of it.
+#
+# Equal denominators are refused. Nothing routes a like-denominator Problem here after
+# #224's re-mapping, and a walkthrough whose opening line tells a Student that two
+# identical denominators differ is worse than no walkthrough at all.
 
 
-@declares_deconstruction("operates_on_unlike_fractions_directly")
+@declares_deconstruction(
+    "operates_on_unlike_fractions_directly",
+    requires=("n1", "d1", "n2", "d2", "operation"),
+    answers_the_problem=True,
+)
 def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[Step]:
     """4-step walkthrough: common denominator, scale each numerator, combine."""
     n1, d1 = int(parameters["n1"]), int(parameters["d1"])
@@ -101,6 +191,23 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
     operation = str(parameters["operation"])
     if operation not in ("+", "-"):
         raise ValueError(f"Unsupported operation '{operation}'")
+    if d1 == d2:
+        raise DeconstructionContractError(
+            "operates_on_unlike_fractions_directly",
+            reason=(
+                f"denominators are equal ({d1}); this walkthrough teaches finding a "
+                "common denominator and would state a falsehood about the Problem"
+            ),
+        )
+
+    whole1 = int(parameters.get("whole1", 0))
+    whole2 = int(parameters.get("whole2", 0))
+    is_mixed = bool(whole1 or whole2)
+    opening_line = (
+        f"{format_fraction_question(n1, d1, whole1)} {operation} "
+        f"{format_fraction_question(n2, d2, whole2)}"
+    )
+    n1, n2 = whole1 * d1 + n1, whole2 * d2 + n2
 
     common = d1 * d2
     scaled_n1 = n1 * d2
@@ -114,10 +221,18 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
     return [
         Step(
             question=(
-                f"Ułamki {_frac(n1, d1)} i {_frac(n2, d2)} mają różne mianowniki. "
-                "Jaki jest ich wspólny mianownik?"
+                (
+                    f"Zamień liczby mieszane na ułamki niewłaściwe — to "
+                    f"{_frac(n1, d1)} i {_frac(n2, d2)}. Mają różne mianowniki. "
+                    "Jaki jest ich wspólny mianownik?"
+                )
+                if is_mixed
+                else (
+                    f"Ułamki {_frac(n1, d1)} i {_frac(n2, d2)} mają różne mianowniki. "
+                    "Jaki jest ich wspólny mianownik?"
+                )
             ),
-            working_line=f"{_frac(n1, d1)} {operation} {_frac(n2, d2)}",
+            working_line=opening_line,
             answer=str(common),
         ),
         Step(
@@ -204,7 +319,11 @@ def _column(top: str, operation: str, bottom: str, *, answer_row: bool = False) 
     )
 
 
-@declares_deconstruction("does_not_align_decimals_before_column_arithmetic")
+@declares_deconstruction(
+    "does_not_align_decimals_before_column_arithmetic",
+    requires=("v1", "v2", "operation"),
+    answers_the_problem=True,
+)
 def does_not_align_decimals_before_column_arithmetic(
     parameters: StepParameters,
 ) -> list[Step]:
@@ -255,7 +374,11 @@ def does_not_align_decimals_before_column_arithmetic(
 # true mixed number or leaves a plain fraction untouched.
 
 
-@declares_deconstruction("operates_on_mixed_number_without_converting")
+@declares_deconstruction(
+    "operates_on_mixed_number_without_converting",
+    requires=("whole1", "n1", "d1", "operation"),
+    answers_the_problem=True,
+)
 def operates_on_mixed_number_without_converting(
     parameters: StepParameters,
 ) -> list[Step]:
@@ -270,6 +393,10 @@ def operates_on_mixed_number_without_converting(
     mixed1 = format_fraction_question(n1, d1, whole1)
 
     if operation == "^":
+        # Branch keys, so outside the declared required set: a power has no second
+        # operand and a product has no exponent. Checked here so a generator that
+        # omits one still raises the contract error rather than a bare `KeyError`.
+        _require("operates_on_mixed_number_without_converting", parameters, "p")
         p = int(parameters["p"])
         # A power has no second operand, so the first one is the mixed number.
         target_mixed, target_improper = mixed1, improper1
@@ -277,6 +404,13 @@ def operates_on_mixed_number_without_converting(
         working_after = rf"\left( {_frac(improper1, d1)} \right)^{{{p}}}"
         result_numerator, result_denominator = improper1**p, d1**p
     else:
+        _require(
+            "operates_on_mixed_number_without_converting",
+            parameters,
+            "whole2",
+            "n2",
+            "d2",
+        )
         whole2 = int(parameters["whole2"])
         n2, d2 = int(parameters["n2"]), int(parameters["d2"])
         improper2 = whole2 * d2 + n2
@@ -328,7 +462,11 @@ def operates_on_mixed_number_without_converting(
 # contract: `n`, `d`, `factor`; the target denominator is recomputed here, never passed.
 
 
-@declares_deconstruction("expands_to_target_denominator_without_finding_factor")
+@declares_deconstruction(
+    "expands_to_target_denominator_without_finding_factor",
+    requires=("n", "d", "factor"),
+    answers_the_problem=False,
+)
 def expands_to_target_denominator_without_finding_factor(
     parameters: StepParameters,
 ) -> list[Step]:
@@ -378,7 +516,11 @@ def _decimal_from_display(value: str) -> Decimal:
     return Decimal(value.replace(",", "."))
 
 
-@declares_deconstruction("compares_decimals_by_wrong_digit_order")
+@declares_deconstruction(
+    "compares_decimals_by_wrong_digit_order",
+    requires=("s1", "s2"),
+    answers_the_problem=True,
+)
 def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[Step]:
     """2-step walkthrough: how many places to align to, then compare left to right."""
     s1, s2 = str(parameters["s1"]), str(parameters["s2"])

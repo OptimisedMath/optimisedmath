@@ -1238,6 +1238,29 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
     ]
 
 
+def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatch):
+    """Issue #224: curriculum drift costs the Student help, never their Problem.
+
+    `tests/test_deconstruction_contracts.py` is what keeps this from happening; this
+    is what happens if it ever does anyway. The Submission grades normally, the Trap's
+    own prose still fires, the request does not error, and nothing is written to
+    `deconstructions` — so telemetry never shows a Deconstruction that never ran.
+    """
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    incomplete = {"n1": 1, "d1": 2, "n2": 1, "d2": 3}  # no `operation`
+    state = make_state(
+        _trap_problem("p-first-hit", parameters=incomplete), input_mode="radio"
+    )
+    _submit_trap(state, "p-first-hit", parameters=incomplete)
+
+    response = _submit_trap(state, "p-second-hit", parameters=incomplete)
+
+    assert state.deconstruction is None
+    assert response.state.deconstruction_running is False
+    assert response.state.feedback_msg == "Try again"
+    assert _fetch_last_deconstruction_row(state.session_id) is None
+
+
 def test_repeated_failure_across_different_misconceptions_does_not_trigger(monkeypatch):
     """Issue #194: generic repeated failure — different Misconceptions — is not a trigger."""
     _map_traps_to_misconceptions(

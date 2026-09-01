@@ -3,6 +3,7 @@
 import pytest
 
 from backend.deconstruction import (
+    DeconstructionContractError,
     Step,
     UnregisteredDeconstructionError,
     build_steps,
@@ -51,6 +52,61 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 r"\frac{5}{12}",
                 id="subtraction-coprime-denominators",
             ),
+            # The whole parts are optional and convert each operand to an improper
+            # fraction before anything else happens, so the scaling steps work on
+            # 3/2 and 7/3 rather than on 1/2 and 1/3 — and the last step lands on
+            # the mixed-number Problem's own answer instead of its fractional
+            # remainder (#224).
+            pytest.param(
+                {
+                    "whole1": 1,
+                    "n1": 1,
+                    "d1": 2,
+                    "whole2": 2,
+                    "n2": 1,
+                    "d2": 3,
+                    "operation": "+",
+                },
+                6,
+                9,
+                14,
+                r"3\frac{5}{6}",
+                id="addition-mixed-number-operands",
+            ),
+            pytest.param(
+                {
+                    "whole1": 3,
+                    "n1": 1,
+                    "d1": 4,
+                    "whole2": 1,
+                    "n2": 1,
+                    "d2": 3,
+                    "operation": "-",
+                },
+                12,
+                39,
+                16,
+                r"1\frac{11}{12}",
+                id="subtraction-mixed-number-operands",
+            ),
+            # A zero whole part is the plain-fraction case spelled out: `whole * d + n`
+            # leaves the operand untouched, so this must match the coprime row above.
+            pytest.param(
+                {
+                    "whole1": 0,
+                    "n1": 1,
+                    "d1": 3,
+                    "whole2": 0,
+                    "n2": 1,
+                    "d2": 4,
+                    "operation": "+",
+                },
+                12,
+                4,
+                3,
+                r"\frac{7}{12}",
+                id="addition-explicit-zero-whole-parts",
+            ),
         ],
     )
     def test_step_sequence(
@@ -86,6 +142,29 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 "operates_on_unlike_fractions_directly",
                 {"n1": 1, "d1": 2, "n2": 1, "d2": 3, "operation": "*"},
             )
+
+    def test_rejects_equal_denominators(self):
+        """This walkthrough opens by saying the two denominators differ (#224).
+
+        On a like-denominator Problem that opening line is a falsehood about what the
+        Student can see, so a mis-mapped Trap is refused rather than rendered.
+        """
+        with pytest.raises(DeconstructionContractError):
+            build_steps(
+                "operates_on_unlike_fractions_directly",
+                {"n1": 1, "d1": 5, "n2": 2, "d2": 5, "operation": "+"},
+            )
+
+    def test_missing_required_parameter_names_every_absent_key(self):
+        with pytest.raises(DeconstructionContractError) as raised:
+            build_steps(
+                "operates_on_unlike_fractions_directly",
+                {"n1": 1, "d1": 2, "n2": 1},
+            )
+
+        error = raised.value
+        assert error.misconception_slug == "operates_on_unlike_fractions_directly"
+        assert set(error.missing_keys) == {"d2", "operation"}
 
 
 class TestExpandsToTargetDenominatorWithoutFindingFactor:

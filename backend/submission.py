@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 
 import backend.config as config
@@ -20,6 +21,8 @@ from backend.progression import (
     resolve_submission_outcome,
 )
 import backend.session_state as session_state
+
+logger = logging.getLogger(__name__)
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
@@ -211,9 +214,29 @@ def _maybe_trigger_deconstruction(
     if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
         return
 
-    steps = deconstruction.build_steps(
-        misconception_slug, problem.get("parameters") or {}
-    )
+    try:
+        steps = deconstruction.build_steps(
+            misconception_slug, problem.get("parameters") or {}
+        )
+    except deconstruction.DeconstructionContractError:
+        # Curriculum drift: this Level's generator no longer supplies what the
+        # walkthrough needs, or its Trap points at a Misconception whose walkthrough
+        # cannot be true of this Problem. `tests/test_deconstruction_contracts.py`
+        # exists to catch that in CI; if one reaches a Student anyway, no
+        # Deconstruction is armed rather than a 500 raised. The Submission is still
+        # graded normally and the Trap's own prose still fires — the Student loses
+        # only help they cannot tell they were owed. This returns before
+        # `create_deconstruction`, so no orphan header row is left behind for
+        # telemetry to count as a Deconstruction that never happened.
+        logger.exception(
+            "Skipping Deconstruction for misconception '%s' at %s / %s level %s",
+            misconception_slug,
+            chapter_name,
+            topic_name,
+            level,
+        )
+        return
+
     deconstruction_id = db.create_deconstruction(
         session_id=state.session_id,
         username=username,

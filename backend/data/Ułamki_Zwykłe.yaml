@@ -200,15 +200,15 @@ topics:
             misconception: operates_on_unlike_fractions_directly
             explanation: "Dodałeś liczniki, choć mianowniki są różne. Najpierw sprowadź ułamki do wspólnego mianownika."
           adds_the_denominators:
-            misconception: adds_denominators_with_like_fractions
-            explanation: "Dodałeś mianowniki do siebie! Mianownik przepisujemy, dodajemy tylko górę."
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Dodałeś mianowniki do siebie! Wspólnego mianownika nie znajdujemy przez dodawanie — rozszerz oba ułamki."
       - level: 3
-        name: "Liczby mieszane z wyłączaniem"
+        name: "Różne mianowniki - wstęp"
         function: "frac_add_3"
         traps:
           adds_the_denominators:
-            misconception: adds_denominators_with_like_fractions
-            explanation: "Dodałeś do siebie mianowniki! Mianownik zawsze przepisujemy."
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Dodałeś do siebie mianowniki! Wspólny mianownik znajdujemy przez rozszerzanie, nie przez dodawanie."
           multiplies_the_scaled_numerators_instead_of_adding:
             misconception: operates_on_unlike_fractions_directly
             explanation: "Rozszerzyłeś dobrze, ale liczniki pomnożyłeś zamiast dodać."
@@ -216,12 +216,12 @@ topics:
             misconception: operates_on_unlike_fractions_directly
             explanation: "Wziąłeś iloczyn mianowników, ale liczników nie rozszerzyłeś. Każdy licznik mnożymy przez mianownik drugiego ułamka."
       - level: 4
-        name: "Różne mianowniki - wstęp"
+        name: "Liczby mieszane z wyłączaniem"
         function: "frac_add_4"
         traps:
           adds_the_denominators:
-            misconception: operates_on_unlike_fractions_directly
-            explanation: "Dodałeś mianowniki! Zanim dodasz, sprowadź oba ułamki do wspólnego mianownika."
+            misconception: adds_denominators_with_like_fractions
+            explanation: "Dodałeś do siebie mianowniki! Tutaj mianowniki są takie same — przepisujemy je bez zmian i dodajemy tylko liczniki."
       - level: 5
         name: "Różne mianowniki - zaawansowane"
         function: "frac_add_5"
@@ -243,25 +243,25 @@ topics:
             misconception: adds_instead_of_subtracting
             explanation: "Zamiast odjąć, dodałeś liczniki — sprawdź znak działania."
       - level: 2
-        name: "Liczby mieszane"
+        name: "Różne mianowniki - wstęp"
         function: "frac_sub_2"
         traps:
           subtracts_numerators_without_expanding:
             misconception: operates_on_unlike_fractions_directly
             explanation: "Odjąłeś liczniki mimo różnych mianowników. Najpierw wspólny mianownik."
           subtracts_the_denominators:
-            misconception: adds_denominators_with_like_fractions
-            explanation: "Odjąłeś mianowniki od siebie! Mianownik przy odejmowaniu przepisujemy bez zmian."
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Odjąłeś mianowniki od siebie! Mianowników się nie odejmuje — sprowadź oba ułamki do wspólnego mianownika."
       - level: 3
-        name: "Zabieranie całości"
+        name: "Różne mianowniki - zaawansowane"
         function: "frac_sub_3"
         traps:
           adds_instead_of_subtracting:
             misconception: adds_instead_of_subtracting
             explanation: "Zamiast odjąć, dodałeś liczniki — sprawdź znak działania."
           subtracts_the_denominators:
-            misconception: adds_denominators_with_like_fractions
-            explanation: "Odjąłeś mianowniki! Mianownik zostaje bez zmian."
+            misconception: operates_on_unlike_fractions_directly
+            explanation: "Odjąłeś mianowniki! Mianowników się nie odejmuje — najpierw wspólny mianownik."
           uses_the_product_denominator_without_scaling_numerators:
             misconception: operates_on_unlike_fractions_directly
             explanation: "Wziąłeś iloczyn mianowników, ale liczników nie rozszerzyłeś."
@@ -605,8 +605,6 @@ topics:
         function: "frac_frac_of_int_4"
         traps:
           adds_only_the_numerator:
-            misconception: operates_on_mixed_number_without_converting
-            explanation: "Dodałeś sam licznik. Przy zamianie całości mnożymy przez mianownik i dopiero dodajemy licznik."
+            explanation: "Dodałeś sam licznik. Najpierw policz ułamek z liczby, a dopiero tę część dodaj lub odejmij."
           gives_only_the_fraction_not_the_total:
-            misconception: operates_on_mixed_number_without_converting
-            explanation: "Podałeś sam ułamek zamiast całej wartości. Zamień liczbę mieszaną na niewłaściwą i pomnóż."
+            explanation: "Podałeś samą zmianę zamiast całej wartości. Policzoną część trzeba jeszcze dodać do liczby albo od niej odjąć."

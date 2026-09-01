@@ -21,6 +21,19 @@
 # Slips include misreading a symbol (computing a - b*c where a - b:c is written), pairing the
 # wrong operands, and dropping an operation outright.
 #
+# THE PROBLEM'S SHAPE DECIDES which entry a Trap references, not the arithmetic of the
+# wrong answer alone (#224). Two entries may both be arithmetically consistent with one
+# wrong answer while only one of them is TRUE OF THE PROBLEM ON SCREEN. A Trap for adding
+# or subtracting denominators references adds_denominators_with_like_fractions where the
+# Problem's denominators are EQUAL, and operates_on_unlike_fractions_directly where they
+# DIFFER — the entries' own Polish explanations say opposite things, and only one of them
+# can be read without contradicting what the Student can see. The same rule un-maps a Trap
+# whose Problem lacks the shape the entry names at all: a fraction-of-a-quantity Problem
+# has no mixed number and no second operand, so no mixed-number entry can be true of it,
+# whatever the wrong answer's arithmetic suggests. This matters twice over, because an
+# entry's explanation is the opening line of its Deconstruction and a walkthrough is
+# authored against the entry, not against the Level.
+#
 # AMBIGUOUS EVIDENCE does not disqualify an entry (#210). Some answers are produced both by a
 # believed rule and by a plain slip — an area given as `24 cm` may be the rule "the unit comes
 # from the ruler", or a mistyped unit. Ask whether a believed rule exists whose NATURAL OUTPUT

@@ -606,18 +606,18 @@ topics:
         function: "dec_mix_1"
         traps:
           adds_numerators_and_denominators:
-            misconception: operates_on_unlike_fractions_directly
-            explanation: "Dodałeś liczniki i mianowniki osobno. Najpierw sprowadź oba ułamki do wspólnego mianownika."
+            misconception: mixes_fraction_and_decimal_forms_without_converting
+            explanation: "Dodałeś liczniki i mianowniki osobno. Najpierw zamień dziesiętny na ułamek zwykły, a potem sprowadź oba do wspólnego mianownika."
           adds_numerators_without_scaling:
-            misconception: operates_on_unlike_fractions_directly
+            misconception: mixes_fraction_and_decimal_forms_without_converting
             explanation: "Wspólny mianownik masz dobry, ale liczników nie rozszerzyłeś."
       - level: 2
         name: "Ułamki w dzieleniu dziesiętnym"
         function: "dec_mix_2"
         traps:
           adds_numerators_and_denominators:
-            misconception: operates_on_unlike_fractions_directly
-            explanation: "Dodałeś liczniki i mianowniki osobno. Najpierw sprowadź oba ułamki do wspólnego mianownika."
+            misconception: mixes_fraction_and_decimal_forms_without_converting
+            explanation: "Dodałeś liczniki i mianowniki osobno. Najpierw zamień dziesiętny na ułamek zwykły, a potem sprowadź oba do wspólnego mianownika."
           rounds_to_a_decimal_instead_of_an_exact_fraction:
             misconception: mixes_fraction_and_decimal_forms_without_converting
             explanation: "Policzyłeś w dziesiętnych i zaokrągliłeś. Ten ułamek nie ma skończonego rozwinięcia — licz na ułamkach zwykłych."

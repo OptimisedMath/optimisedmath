@@ -53,7 +53,14 @@ def frac_add_2() -> dict | None:
             "adds_the_denominators": format_answers(n1 + n2, d1 + d2)[0],
         },
         fillers=[format_answers((n1 * factor) + n2 + 1, d2)[0]],
-        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2, "factor": factor},
+        parameters={
+            "n1": n1,
+            "d1": d1,
+            "n2": n2,
+            "d2": d2,
+            "factor": factor,
+            "operation": "+",
+        },
     )
     if result:
         return result
@@ -87,7 +94,7 @@ def frac_add_3() -> dict | None:
                 n1 * d2 * n2 * d1, d1 * d2
             )[0],
         },
-        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2, "operation": "+"},
     )
     if result:
         return result
@@ -158,6 +165,7 @@ def frac_add_5() -> dict | None:
             "d1": d1,
             "n2": n2,
             "d2": d2,
+            "operation": "+",
         },
     )
     if result:
