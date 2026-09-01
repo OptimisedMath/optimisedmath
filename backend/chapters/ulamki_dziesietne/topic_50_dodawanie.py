@@ -1,5 +1,12 @@
 import random
+from decimal import Decimal
+
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
+
+
+def _as_decimal(value: int | float) -> Decimal:
+    """Exact Decimal for a tenths-built operand, via `str` so 1.3 stays 1.3."""
+    return Decimal(str(value))
 
 
 @declares_traps("adds_digits_across_the_point")
@@ -12,19 +19,21 @@ def dec_add_1() -> dict | None:
 
     v1 = whole1 + (d1 / 10)
     v2 = whole2 + (d2 / 10)
+    dv1, dv2 = _as_decimal(v1), _as_decimal(v2)
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} + {fmt_dec(v2)}"
-    c_str = fmt_dec(v1 + v2)
+    c_str = fmt_dec(dv1 + dv2)
+
+    trap_value = _as_decimal(whole1 + d2) + _as_decimal((whole2 + d1) / 10)
 
     problem = build_problem_dict(
         q_str,
         c_str,
-        traps={
-            "adds_digits_across_the_point": fmt_dec(
-                (whole1 + d2) + ((whole2 + d1) / 10)
-            )
-        },
-        fillers=[fmt_dec(v1 + v2 + 0.1), fmt_dec(v1 + v2 + 1)],
+        traps={"adds_digits_across_the_point": fmt_dec(trap_value)},
+        fillers=[
+            fmt_dec(dv1 + dv2 + Decimal("0.1")),
+            fmt_dec(dv1 + dv2 + 1),
+        ],
         parameters={"v1": v1, "v2": v2, "operation": "+"},
     )
     if problem:
