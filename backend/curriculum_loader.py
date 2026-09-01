@@ -78,6 +78,7 @@ class CurriculumStore:
     chapters: list[ChapterSummary]
     bundles_by_chapter_id: dict[int, ChapterBundle]
     chapter_name_by_id: dict[int, str]
+    misconception_names: dict[str, str] = field(default_factory=dict)
 
 
 _EMPTY_STORE = CurriculumStore(
@@ -96,6 +97,18 @@ def set_function_registry(registry: dict[str, Callable[..., Any]]) -> None:
     """Provide generator registry for function-name validation."""
     global _function_registry
     _function_registry = registry
+    _load_store.cache_clear()
+
+
+# --- Deconstruction walkthrough registry hook ---
+
+_deconstruction_registry: dict[str, Callable[..., Any]] | None = None
+
+
+def set_deconstruction_registry(registry: dict[str, Callable[..., Any]]) -> None:
+    """Provide walkthrough registry for `deconstruction:` name validation."""
+    global _deconstruction_registry
+    _deconstruction_registry = registry
     _load_store.cache_clear()
 
 
@@ -335,11 +348,16 @@ def _validate_file(file_path: Path, data: Any) -> ChapterBundle:
 # --- Loading & cache ---
 
 
-def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
+def _build_store(
+    bundles: list[ChapterBundle], catalogue: dict[str, Any] | None = None
+) -> CurriculumStore:
     bundles.sort(key=lambda bundle: (bundle.chapter_id, bundle.chapter_name))
     bundle_tuple = tuple(bundles)
     chapter_name_by_id = {
         bundle.chapter_id: bundle.chapter_name for bundle in bundle_tuple
+    }
+    misconception_names = {
+        slug: str(entry["name"]) for slug, entry in (catalogue or {}).items()
     }
     return CurriculumStore(
         bundles=bundle_tuple,
@@ -349,6 +367,7 @@ def _build_store(bundles: list[ChapterBundle]) -> CurriculumStore:
         ],
         bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundle_tuple},
         chapter_name_by_id=chapter_name_by_id,
+        misconception_names=misconception_names,
     )
 
 
@@ -379,6 +398,17 @@ def _load_misconception_catalogue(data_dir: Path) -> dict[str, Any]:
                 raise CurriculumLoadError(
                     f"{MISCONCEPTIONS_FILE}: '{entry_id}' missing '{key}'"
                 )
+
+        deconstruction = entry.get("deconstruction")
+        if (
+            deconstruction is not None
+            and _deconstruction_registry is not None
+            and deconstruction not in _deconstruction_registry
+        ):
+            raise CurriculumLoadError(
+                f"{MISCONCEPTIONS_FILE}: '{entry_id}' deconstruction "
+                f"'{deconstruction}' not found in the walkthrough registry"
+            )
 
     return catalogue
 
@@ -441,7 +471,7 @@ def _load_store(data_dir: Path) -> CurriculumStore:
         bundles.append(bundle)
 
     _validate_misconceptions(data_dir, bundles)
-    return _build_store(bundles)
+    return _build_store(bundles, _load_misconception_catalogue(data_dir))
 
 
 # --- Public API ---

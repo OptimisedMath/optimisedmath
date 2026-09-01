@@ -19,6 +19,21 @@ MAX_STREAK = 3
 # Streak count required to enable input mode (instead of radio mode)
 STREAK_THRESHOLD_FOR_INPUT_MODE = 1
 
+# --- GAME MECHANICS: DECONSTRUCTION ---
+# Hits on the same Misconception at the current Level before a Deconstruction
+# triggers. Generic repeated failure is deliberately not a trigger.
+DECONSTRUCTION_TRIGGER_COUNT = 2
+
+# Wrong (non-soft) answers on the same Deconstruction step before the Reveal.
+# Global — per-step and per-Misconception thresholds are rejected, since no
+# author has evidence to set them.
+DECONSTRUCTION_REVEAL_THRESHOLD = 3
+
+# XP multiplier for the discounted second attempt a completed Deconstruction
+# unlocks on its triggering Problem. Streak, Flawless, and the Frontier are
+# untouched by that attempt — only XP scores, and at a discount.
+DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER = 0.5
+
 # --- GAME MECHANICS: REWARDS ---
 # XP (Experience Points) awarded for correct answers by level
 XP_REWARDS = {

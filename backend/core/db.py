@@ -108,6 +108,37 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS deconstructions (
+                deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                username TEXT NOT NULL,
+                problem_id TEXT,
+                misconception_slug TEXT NOT NULL,
+                chapter TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                level_number INTEGER NOT NULL,
+                outcome TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (username) REFERENCES users(username)
+            )
+        """)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_deconstructions_session_id ON deconstructions(session_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_deconstructions_problem_id ON deconstructions(problem_id)"
+        )
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS deconstruction_steps (
+                deconstruction_id INTEGER NOT NULL,
+                step_index INTEGER NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                revealed BOOLEAN NOT NULL DEFAULT 0,
+                PRIMARY KEY (deconstruction_id, step_index),
+                FOREIGN KEY (deconstruction_id) REFERENCES deconstructions(deconstruction_id)
+            )
+        """)
         conn.commit()
 
 
@@ -294,5 +325,122 @@ def log_telemetry(
                 problem_snapshot,
                 problem_id,
             ),
+        )
+        conn.commit()
+
+
+# --- Deconstructions ---
+
+
+def count_misconception_hits(
+    session_id: str,
+    misconception_slug: str,
+    chapter_name: str,
+    topic_name: str,
+    level_number: int,
+) -> int:
+    """Count this Session's telemetry hits for one Misconception at one Level.
+
+    The per-Level hit counter the trigger reads is derived from `telemetry_logs`
+    rather than stored on `SessionState` — a Level change naturally starts it
+    fresh, since rows for a different Level never match this query.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM telemetry_logs
+            WHERE session_id = ? AND misconception_slug = ?
+              AND chapter = ? AND topic = ? AND level_number = ?
+            """,
+            (session_id, misconception_slug, chapter_name, topic_name, level_number),
+        )
+        return int(cursor.fetchone()[0])
+
+
+def create_deconstruction(
+    session_id: str,
+    username: str,
+    problem_id: str | None,
+    misconception_slug: str,
+    chapter_name: str,
+    topic_name: str,
+    level_number: int,
+) -> int:
+    """Write the `deconstructions` header row at trigger detection, before the pause.
+
+    `outcome` starts NULL so a Student who leaves during the pause is still counted.
+    Returns the new row's id, so the caller can key its `deconstruction_steps` rows.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO deconstructions (
+                session_id, username, problem_id, misconception_slug,
+                chapter, topic, level_number, outcome
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+        """,
+            (
+                session_id,
+                username,
+                problem_id,
+                misconception_slug,
+                chapter_name,
+                topic_name,
+                level_number,
+            ),
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+        assert new_id is not None
+        return new_id
+
+
+def create_deconstruction_steps(deconstruction_id: int, step_count: int) -> None:
+    """Write one `deconstruction_steps` row per step at trigger detection.
+
+    `attempts` and `revealed` start at zero — a Step-submit updates them as the
+    Student answers, so the row tracks the whole escalation, not just its end state.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.executemany(
+            """
+            INSERT INTO deconstruction_steps (deconstruction_id, step_index, attempts, revealed)
+            VALUES (?, ?, 0, 0)
+            """,
+            [(deconstruction_id, step_index) for step_index in range(step_count)],
+        )
+        conn.commit()
+
+
+def set_deconstruction_outcome(deconstruction_id: int, outcome: str) -> None:
+    """Write the terminal `outcome` on a `deconstructions` header row.
+
+    Called once, whichever way the Deconstruction ends: `completed`,
+    `abandoned_via_control`, or `abandoned_via_navigation`.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE deconstructions SET outcome = ? WHERE deconstruction_id = ?",
+            (outcome, deconstruction_id),
+        )
+        conn.commit()
+
+
+def update_deconstruction_step(
+    deconstruction_id: int, step_index: int, *, attempts: int, revealed: bool
+) -> None:
+    """Sync one step's attempt count and Reveal state after a Deconstruction submit."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE deconstruction_steps SET attempts = ?, revealed = ?
+            WHERE deconstruction_id = ? AND step_index = ?
+            """,
+            (attempts, revealed, deconstruction_id, step_index),
         )
         conn.commit()

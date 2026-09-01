@@ -55,6 +55,8 @@ export interface SessionResponse {
   current_problem: Problem | null;
   can_submit: boolean;
   can_next_problem: boolean;
+  /** True while a Deconstruction is taking over the Session — the takeover's only trigger. */
+  deconstruction_running: boolean;
   admin_mode?: boolean;
   navigation?: NavigationView | null;
 }
@@ -104,6 +106,34 @@ export interface SubmissionResponse {
   feedback: string;
 }
 
+export type DeconstructionStepInputType = 'typed' | 'ordering';
+
+export interface DeconstructionStepResponse {
+  question: string;
+  working_line: string | null;
+  step_index: number;
+  total_steps: number;
+  misconception_name: string;
+  revealed_answer: string | null;
+  input_type: DeconstructionStepInputType;
+  items: string[] | null;
+}
+
+export interface DeconstructionSubmissionRequest {
+  session_id: string;
+  user_input: string;
+}
+
+export interface DeconstructionSubmissionResponse {
+  is_correct: boolean;
+  feedback_msg: string | null;
+  handback_question: string | null;
+}
+
+export interface DeconstructionAbandonRequest {
+  session_id: string;
+}
+
 export type FeedbackPhase = 'none' | 'soft_error' | 'answer_locked';
 
 export interface Feedback {
@@ -118,6 +148,42 @@ export type NavigateIntent = Pick<
   SessionNavigateRequest,
   'selected_chapter_id' | 'selected_topic_id' | 'selected_level'
 >;
+
+/**
+ * Local takeover phase — never persisted, never a game-rule outcome. 'pause' holds
+ * the triggering Feedback on screen; 'intro'/'step'/'handback' are the full takeover.
+ */
+export type DeconstructionPhase = 'idle' | 'pause' | 'intro' | 'step' | 'handback';
+
+export interface DeconstructionStepView {
+  question: string;
+  workingLine: string | null;
+  stepIndex: number;
+  totalSteps: number;
+  revealedAnswer: string | null;
+  inputType: DeconstructionStepInputType;
+  items: string[] | null;
+}
+
+/** Render model for the takeover — a pure projection of DeconstructionStepResponse plus local phase. */
+export interface DeconstructionView {
+  phase: DeconstructionPhase;
+  misconceptionName: string | null;
+  headerQuestion: string | null;
+  step: DeconstructionStepView | null;
+  stepFeedback: string | null;
+  handbackQuestion: string | null;
+  isLoadingStep: boolean;
+  isSubmittingStep: boolean;
+}
+
+export interface DeconstructionActions {
+  endPause: () => void;
+  begin: () => void;
+  submitStep: (answer: string) => Promise<void>;
+  exit: () => Promise<void>;
+  returnToProblem: () => void;
+}
 
 /** Render model returned by useSession — arena children read slices of this. */
 export interface SessionView {
@@ -153,6 +219,7 @@ export interface SessionView {
   availableChapters: NavigationChapterOption[];
   availableTopics: NavigationTopicOption[];
   availableLevels: number[];
+  deconstruction: DeconstructionView;
 }
 
 /** Handlers returned by useSession — arena children call these for interactions. */
@@ -162,4 +229,5 @@ export interface SessionActions {
   nextProblem: () => Promise<void>;
   reset: () => Promise<void>;
   clearErrorAndReload: () => void;
+  deconstruction: DeconstructionActions;
 }

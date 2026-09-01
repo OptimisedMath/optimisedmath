@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 import time
 
+import backend.config as config
 from backend.answer_grading import EvalResult, grade
 from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
-from backend.models import SessionState
+import backend.deconstruction as deconstruction
+import backend.deconstruction_step as deconstruction_step
+from backend.models import DeconstructionState, DeconstructionStep, SessionState
 from backend.play_mode import PlayMode
 from backend.progression import (
     SubmissionContext,
@@ -39,7 +42,15 @@ def run_submission_cycle(
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> EvalResult:
-    """Grade, log telemetry, apply progression, and persist one Submission."""
+    """Grade, log telemetry, apply progression, and persist one Submission.
+
+    A discounted retry — the one case where `problem["problem_id"]` matches
+    `state.discounted_problem_id`, set by a just-finished Deconstruction — is
+    graded and logged exactly like any other Submission, but skips the trigger
+    check and scores XP through `_apply_discounted_retry_outcome` instead of
+    the normal progression rules, so it can never touch Streak, Flawless, or
+    the Frontier (ADR-0004).
+    """
     if (
         state.username is None
         or state.selected_chapter_id is None
@@ -47,21 +58,73 @@ def run_submission_cycle(
     ):
         raise RuntimeError("Session missing required context for submission")
 
+    is_discounted_retry = problem.get("problem_id") == state.discounted_problem_id
+
     eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
 
+    misconception_slug = _resolve_misconception_slug(state, curriculum, eval_result)
     _log_submission_telemetry(
-        state, problem, user_input, is_input_mode, eval_result, curriculum
+        state,
+        problem,
+        user_input,
+        is_input_mode,
+        eval_result,
+        curriculum,
+        misconception_slug,
     )
-    _run_progression_step(state, eval_result, curriculum, play_mode)
+    if is_discounted_retry:
+        _apply_discounted_retry_outcome(state, eval_result)
+        is_soft_error = eval_result.get("feedback_type") == "info"
+        if not is_soft_error:
+            state.discounted_problem_id = None
+    else:
+        _maybe_trigger_deconstruction(state, problem, curriculum, misconception_slug)
+        _run_progression_step(state, eval_result, curriculum, play_mode)
     session_state.persist(state, play_mode)
     return eval_result
+
+
+def _apply_discounted_retry_outcome(
+    state: SessionState, eval_result: EvalResult
+) -> None:
+    """Score a Deconstruction's discounted retry — XP only, at
+    `config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER`. Streak, Flawless, and the
+    Frontier are untouched: a Streak discount would let a Deconstruction gate
+    Level completion, which would contradict ADR-0004.
+    """
+    feedback_type = eval_result.get("feedback_type")
+    feedback_msg = eval_result.get("feedback_msg", "")
+    if eval_result.get("is_correct"):
+        base_xp = config.XP_REWARDS.get(state.selected_level, config.DEFAULT_XP_REWARD)
+        discounted_xp = round(base_xp * config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER)
+        state.xp += discounted_xp
+        feedback_type = "success"
+        feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{discounted_xp} XP)"
+    state.feedback_type = feedback_type
+    state.feedback_msg = feedback_msg
 
 
 def _sanitize_problem_for_telemetry(problem: ProblemDict) -> str:
     """Return JSON-safe problem state with internal/UI fields removed."""
     clean = {k: v for k, v in problem.items() if k not in _TELEMETRY_STRIP_KEYS}
     return json.dumps(clean)
+
+
+def _resolve_misconception_slug(
+    state: SessionState, curriculum: Curriculum, eval_result: EvalResult
+) -> str | None:
+    """Map a graded Trap to its catalogue Misconception, if any."""
+    trap_slug = eval_result.get("trap_slug")
+    if trap_slug is None:
+        return None
+    chapter_id = state.selected_chapter_id
+    topic_id = state.selected_topic_id
+    assert chapter_id is not None and topic_id is not None
+    level_config = curriculum.level_config(chapter_id, topic_id, state.selected_level)
+    if level_config is None:
+        return None
+    return level_config.trap_misconceptions.get(trap_slug)
 
 
 def _log_submission_telemetry(
@@ -71,6 +134,7 @@ def _log_submission_telemetry(
     is_input_mode: bool,
     eval_result: EvalResult,
     curriculum: Curriculum,
+    misconception_slug: str | None,
 ) -> None:
     """Persist one submission attempt with sanitized problem state."""
     username = state.username
@@ -86,13 +150,6 @@ def _log_submission_telemetry(
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
     trap_slug = eval_result.get("trap_slug")
-    misconception_slug = None
-    if trap_slug is not None:
-        level_config = curriculum.level_config(
-            chapter_id, topic_id, state.selected_level
-        )
-        if level_config is not None:
-            misconception_slug = level_config.trap_misconceptions.get(trap_slug)
 
     db.log_telemetry(
         session_id=state.session_id,
@@ -109,6 +166,77 @@ def _log_submission_telemetry(
         time_spent_seconds=time_spent,
         problem_snapshot=_sanitize_problem_for_telemetry(problem),
         problem_id=problem.get("problem_id"),
+    )
+
+
+def _maybe_trigger_deconstruction(
+    state: SessionState,
+    problem: ProblemDict,
+    curriculum: Curriculum,
+    misconception_slug: str | None,
+) -> None:
+    """Arm a Deconstruction on the second hit of a Misconception at the current Level.
+
+    Generic repeated failure is deliberately not a trigger — only a Misconception
+    hit `config.DECONSTRUCTION_TRIGGER_COUNT` times counts, and only a Misconception
+    with an authored walkthrough can ever fire one. The `deconstructions` header row
+    is written here, before the pause, so a Student who leaves during it is still
+    counted. The triggering answer itself is graded as a completely normal Submission
+    by the rest of `run_submission_cycle` — this only arms the takeover.
+    """
+    if (
+        misconception_slug is None
+        or state.deconstruction is not None
+        or not deconstruction.has_walkthrough(misconception_slug)
+    ):
+        return
+
+    chapter_id = state.selected_chapter_id
+    topic_id = state.selected_topic_id
+    level = state.selected_level
+    username = state.username
+    assert chapter_id is not None and topic_id is not None and username is not None
+
+    key = deconstruction_step.deconstruction_key(
+        misconception_slug, chapter_id, topic_id, level
+    )
+    if key in state.deconstructed:
+        return
+
+    chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
+    topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
+    hits = db.count_misconception_hits(
+        state.session_id, misconception_slug, chapter_name, topic_name, level
+    )
+    if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
+        return
+
+    steps = deconstruction.build_steps(
+        misconception_slug, problem.get("parameters") or {}
+    )
+    deconstruction_id = db.create_deconstruction(
+        session_id=state.session_id,
+        username=username,
+        problem_id=problem.get("problem_id"),
+        misconception_slug=misconception_slug,
+        chapter_name=chapter_name,
+        topic_name=topic_name,
+        level_number=level,
+    )
+    db.create_deconstruction_steps(deconstruction_id, len(steps))
+    state.deconstruction = DeconstructionState(
+        misconception_slug=misconception_slug,
+        steps=[
+            DeconstructionStep(
+                question=step.question,
+                working_line=step.working_line,
+                answer=step.answer,
+                input_type=step.input_type,
+                items=list(step.items) if step.items is not None else None,
+            )
+            for step in steps
+        ],
+        deconstruction_id=deconstruction_id,
     )
 
 

@@ -27,7 +27,8 @@ def dec_compare_1() -> dict | None:
         return None
 
     v1, v2 = n1 / 100, n2 / 100
-    q_str = rf"\text{{Wybierz znak: }} {fmt_dec(v1)} \text{{ \_\_\_ }} {fmt_dec(v2)}"
+    s1, s2 = fmt_dec(v1), fmt_dec(v2)
+    q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
     c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
     problem = build_problem_dict(
@@ -37,6 +38,7 @@ def dec_compare_1() -> dict | None:
             "compares_by_the_lower_place_digit": wrong_sign,
             "reads_unequal_decimals_as_equal": "=",
         },
+        parameters={"s1": s1, "s2": s2},
     )
     if problem:
         return _with_messages(
@@ -72,6 +74,7 @@ def dec_compare_2() -> dict | None:
                 "reads_trailing_zero_as_smaller": "<",
                 "reads_trailing_zero_as_larger": ">",
             },
+            parameters={"s1": s1, "s2": s2},
         )
         if problem:
             return _with_messages(
@@ -87,9 +90,8 @@ def dec_compare_2() -> dict | None:
 
         if random.choice([True, False]):
             v1, v2 = v2, v1
-        q_str = (
-            rf"\text{{Wybierz znak: }} {fmt_dec(v1)} \text{{ \_\_\_ }} {fmt_dec(v2)}"
-        )
+        s1, s2 = fmt_dec(v1), fmt_dec(v2)
+        q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
         c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
         problem = build_problem_dict(
@@ -99,6 +101,7 @@ def dec_compare_2() -> dict | None:
                 "compares_by_the_number_of_decimal_places": wrong_sign,
                 "reads_unequal_decimals_as_equal": "=",
             },
+            parameters={"s1": s1, "s2": s2},
         )
         if problem:
             return _with_messages(
@@ -135,6 +138,7 @@ def dec_compare_3() -> dict | None:
                 "reads_trailing_zero_as_smaller": "<",
                 "reads_trailing_zero_as_larger": ">",
             },
+            parameters={"s1": s1, "s2": s2},
         )
         if problem:
             return _with_messages(
@@ -150,9 +154,8 @@ def dec_compare_3() -> dict | None:
         if random.choice([True, False]):
             v1, v2 = v2, v1
 
-        q_str = (
-            rf"\text{{Wybierz znak: }} {fmt_dec(v1)} \text{{ \_\_\_ }} {fmt_dec(v2)}"
-        )
+        s1, s2 = fmt_dec(v1), fmt_dec(v2)
+        q_str = rf"\text{{Wybierz znak: }} {s1} \text{{ \_\_\_ }} {s2}"
         c_str, wrong_sign = ("<", ">") if v1 < v2 else (">", "<")
 
         problem = build_problem_dict(
@@ -162,6 +165,7 @@ def dec_compare_3() -> dict | None:
                 "ignores_the_zero_straight_after_the_point": wrong_sign,
                 "reads_unequal_decimals_as_equal": "=",
             },
+            parameters={"s1": s1, "s2": s2},
         )
         if problem:
             return _with_messages(
@@ -212,6 +216,7 @@ def dec_compare_4() -> dict | None:
                 "compares_a_period_to_a_finite_decimal_by_first_digits": wrong_sign,
                 "reads_unequal_decimals_as_equal": "=",
             },
+            parameters={"d": d, "n": n, "cents": cents},
         )
         if problem:
             return _with_messages(
@@ -246,6 +251,7 @@ def dec_compare_4() -> dict | None:
                 "compares_two_periods_by_first_digits": wrong_sign,
                 "reads_different_periods_as_equal": "=",
             },
+            parameters={"d1": d1, "n1": n1, "d2": d2, "n2": n2},
         )
         if problem:
             return _with_messages(
@@ -279,6 +285,7 @@ def dec_compare_4() -> dict | None:
                 "treats_the_period_as_a_single_digit": wrong_sign,
                 "reads_the_period_as_its_short_form": "=",
             },
+            parameters={"digit": digit},
         )
         if problem:
             return _with_messages(

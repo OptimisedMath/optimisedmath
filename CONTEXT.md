@@ -113,7 +113,7 @@ _Avoid_: exercise, item
 Mathematically right answer for this problem.
 
 **Trap**:
-An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error is a slip rather than a believed rule references none, and still carries its own prose. An answer matching no Trap is Wrong too, but unanticipated.
+An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception, and several Traps across different Topics may reference the same one; a Trap whose error is a slip rather than a believed rule references none, and still carries its own prose. Where a Submission is wrong in both its number and its Unit, the number decides which Trap it is: a Trap diagnosing the Unit fires only on the expected number, so an answer whose number matches another Trap is that Trap, and its Unit is corroborating evidence rather than a second fault. An answer matching no Trap is Wrong too, but unanticipated.
 _Avoid_: distractor, diagnostic answer, "wrong" as a Trap's identity (a Trap may grade as Wrong; and w1/w2 were Fillers, never Traps)
 
 **Trap slug**:
@@ -125,7 +125,7 @@ A wrong option that exists only to fill a radio button when a Level has fewer Tr
 _Avoid_: w1, w2 (positional slots), padding option
 
 **Misconception**:
-A wrong rule a Student believes and applies — a named, recurring error in their mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. The belief is what makes it a Misconception: an error with no false rule behind it, such as misreading a symbol or pairing the wrong operands, is a slip, and the Trap carrying it references no Misconception however reliably a walkthrough could correct it. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
+A wrong rule a Student believes and applies — a named, recurring error in their mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. The belief is what makes it a Misconception: an error with no false rule behind it, such as misreading a symbol or pairing the wrong operands, is a slip, and the Trap carrying it references no Misconception however reliably a walkthrough could correct it. Membership is a property of the answer, not of the Student who gave it: a Trap references a Misconception when a believed rule exists whose natural output is that answer, not when this Student can be shown to have held it. Some Students reach such an answer by slip, and that does not disqualify it — a single Submission never proves a belief, and nothing acts on one, since a Misconception surfaces only in telemetry aggregation and in a Deconstruction that already requires repetition. Traps reference a Misconception rather than owning their own error identity; a Misconception is what telemetry groups a Student's errors by and what a Deconstruction is authored against.
 _Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)
 
 **Misconception slug**:
@@ -133,15 +133,19 @@ The name a Misconception is known by in the catalogue — the English key under 
 _Avoid_: misconception_id, misconception number
 
 **Wrong**:
-An incorrect answer with no misconception behind it — a slip, where the Student's rules were sound but their execution was not: the arithmetic failed, a symbol was misread, or the wrong operands were paired. Feedback is generic where the answer was unanticipated, and the Trap's own prose where it was. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong is a grading outcome, not a category of authored answer: a Wrong answer is very often an authored Trap with its own prose, because whether a person anticipated it and whether it maps to a Misconception are separate facts.
+An incorrect answer with no misconception behind it — a slip, where the Student's rules were sound but their execution was not: the arithmetic failed, a symbol was misread, or the wrong operands were paired. Feedback is generic where the answer was unanticipated, and the Trap's own prose where it was. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Likewise covers an answer that omits a Unit the Problem expects, since there the Unit is part of the answer. Wrong is a grading outcome, not a category of authored answer: a Wrong answer is very often an authored Trap with its own prose, because whether a person anticipated it and whether it maps to a Misconception are separate facts.
 _Avoid_: w1, w2 (internal ids)
+
+**Unit**:
+The physical dimension marker an answer carries — `cm²`, `m`, `ha`. A Problem that expects one names it, and the Student types it as part of their answer; a Unit of the same dimension is converted before comparison, so a correct conversion is Correct. A Unit of the wrong dimension, or the right number under the wrong Unit, is a Trap. Degrees are not a Unit: `°` is shown beside the answer field but never typed, never expected, and never graded.
+_Avoid_: measure, dimension (for the marker itself), suffix
 
 **Problem fingerprint**:
 A hash of a Problem's question, correct answer, and options — identifies when two generated Problems are the same content-wise even though their problem_ids differ. Used to avoid serving the Student a Problem they just saw.
 _Avoid_: dedup key, content hash
 
 **Soft Error**:
-The answer could not be read as a maths expression, or used a notation the Problem did not ask for. Does not penalize streak or forfeit Flawless. Only applies where the required form was not itself part of the question — otherwise the answer is Wrong.
+The answer could not be read as a maths expression, or used a notation the Problem did not ask for. Does not penalize streak or forfeit Flawless. Only applies where the required form was not itself part of the question — otherwise the answer is Wrong. Units never land here: a Unit is either read (converted and accepted) or the answer is penalized.
 _Avoid_: format error
 
 **Answer Outcome**:

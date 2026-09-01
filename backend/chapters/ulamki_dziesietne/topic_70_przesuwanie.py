@@ -26,6 +26,7 @@ def dec_comma_1() -> dict | None:
             "shifts_by_the_wrong_number_of_places": fmt_dec(round(v * wrong_zeros, 2)),
             "appends_zeros_without_moving_the_point": fmt_dec(v) + "0" * num_zeros,
         },
+        parameters={"v": v, "zeros": zeros},
     )
     if problem:
         return problem
@@ -54,6 +55,7 @@ def dec_comma_2() -> dict | None:
             "shifts_by_the_wrong_number_of_places": fmt_dec(round(v / wrong_zeros, 4)),
             "shifts_one_place_too_far": fmt_dec(round(v / (zeros * 10), 6)),
         },
+        parameters={"v": v, "zeros": zeros},
     )
     if problem:
         return problem

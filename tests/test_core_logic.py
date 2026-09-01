@@ -153,27 +153,33 @@ class TestParseToFraction:
 
 class TestBuildProblemDict:
     def test_duplicate_options_returns_none(self):
-        assert build_problem_dict("q", "1/2", traps={"a": "1/2", "b": "3/4"}) is None
+        assert (
+            build_problem_dict(
+                "q", "1/2", traps={"a": "1/2", "b": "3/4"}, parameters={}
+            )
+            is None
+        )
 
     def test_comparison_symbol_ordering(self):
-        problem = build_problem_dict("q", "<", traps={"a": ">", "b": "="})
+        problem = build_problem_dict(
+            "q", "<", traps={"a": ">", "b": "="}, parameters={}
+        )
         assert problem is not None
         assert problem["options"] == ["<", "=", ">"]
 
     def test_no_improper_unsimplified_keys(self):
-        problem = build_problem_dict("q", "1/2", traps={"a": "2/3"})
+        problem = build_problem_dict("q", "1/2", traps={"a": "2/3"}, parameters={})
         assert problem is not None
         assert "improper" not in problem
         assert "unsimplified" not in problem
 
-    def test_parameters_included_when_provided(self):
+    def test_parameters_included(self):
         problem = build_problem_dict(
             "q", "1/2", parameters={"n": 1, "d": 2.5, "op": "+"}
         )
         assert problem is not None
         assert problem["parameters"] == {"n": 1, "d": 2.5, "op": "+"}
 
-    def test_parameters_absent_when_not_provided(self):
-        problem = build_problem_dict("q", "1/2")
-        assert problem is not None
-        assert "parameters" not in problem
+    def test_parameters_is_required(self):
+        with pytest.raises(TypeError):
+            build_problem_dict("q", "1/2")

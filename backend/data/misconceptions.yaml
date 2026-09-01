@@ -21,6 +21,16 @@
 # Slips include misreading a symbol (computing a - b*c where a - b:c is written), pairing the
 # wrong operands, and dropping an operation outright.
 #
+# AMBIGUOUS EVIDENCE does not disqualify an entry (#210). Some answers are produced both by a
+# believed rule and by a plain slip — an area given as `24 cm` may be the rule "the unit comes
+# from the ruler", or a mistyped unit. Ask whether a believed rule exists whose NATURAL OUTPUT
+# is this answer, not whether this Student can be shown to have held it: membership is a
+# property of the answer. A Trap may therefore reference a Misconception whose evidence really
+# lives in a SEQUENCE of Submissions (the same wrong unit, repeatedly) even though a Trap is
+# matched per-Submission and has no memory. This costs nothing when the guess is wrong, because
+# nothing acts on one Submission — telemetry is aggregate, and a Deconstruction already requires
+# repetition. See CONTEXT.md, Misconception.
+#
 # This test is about CAUSE, not capability, and it replaces the earlier "a Trap that no
 # walkthrough could address is Wrong" (#168, amended by #183). The two disagree: a walkthrough
 # easily could say "look at the symbol again", but a Deconstruction fired on a misread would
@@ -65,6 +75,7 @@ reduces_only_one_part:
 expands_to_target_denominator_without_finding_factor:
   name: "Rozszerza do danego mianownika bez wyznaczenia mnożnika"
   explanation: "Gdy mianownik jest z góry zadany, najpierw sprawdź, ile razy urósł, i przez tę samą liczbę pomnóż licznik."
+  deconstruction: expands_to_target_denominator_without_finding_factor
 
 adds_or_subtracts_instead_of_scaling:
   name: "Dodaje lub odejmuje zamiast mnożyć i dzielić"
@@ -87,6 +98,7 @@ improper_to_mixed_mishandles_remainder:
 operates_on_mixed_number_without_converting:
   name: "Działa na liczbie mieszanej bez zamiany na ułamek niewłaściwy"
   explanation: "Zanim pomnożysz, podzielisz lub spotęgujesz liczbę mieszaną, wciągnij całości do ułamka niewłaściwego. Osobno całości i osobno ułamek to pułapka."
+  deconstruction: operates_on_mixed_number_without_converting
 
 drops_whole_part:
   name: "Gubi całości z przodu"
@@ -129,6 +141,7 @@ adds_denominators_with_like_fractions:
 operates_on_unlike_fractions_directly:
   name: "Dodaje lub odejmuje ułamki o różnych mianownikach wprost"
   explanation: "Najpierw znajdź wspólny mianownik i rozszerz oba ułamki, a dopiero potem dodaj lub odejmij liczniki."
+  deconstruction: operates_on_unlike_fractions_directly
 
 adds_instead_of_subtracting:
   name: "Dodaje zamiast odjąć"
@@ -235,6 +248,7 @@ mixes_fraction_and_decimal_forms_without_converting:
 compares_decimals_by_wrong_digit_order:
   name: "Porównuje ułamki dziesiętne nie od lewej strony"
   explanation: "Wyrównaj liczby zerami, a potem porównuj cyfry po przecinku od lewej — pierwsza różnica rozstrzyga. Jeśli wszystkie są równe, liczby są równe."
+  deconstruction: compares_decimals_by_wrong_digit_order
 
 compares_repeating_decimals_incorrectly:
   name: "Źle porównuje rozwinięcia nieskończone"
@@ -255,6 +269,7 @@ rounds_nine_without_carrying:
 does_not_align_decimals_before_column_arithmetic:
   name: "Nie wyrównuje przecinków przed liczeniem pisemnym"
   explanation: "Przecinek stoi dokładnie pod przecinkiem, a krótszą liczbę uzupełnij zerami na końcu (np. 1,2 to 1,20)."
+  deconstruction: does_not_align_decimals_before_column_arithmetic
 
 forgets_to_carry:
   name: "Zapomina przenieść jeden do wyższego rzędu"

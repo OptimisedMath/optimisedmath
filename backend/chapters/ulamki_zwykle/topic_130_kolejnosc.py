@@ -60,6 +60,7 @@ def frac_ord_1() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
+        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
     )
     if problem:
         return problem
@@ -114,6 +115,7 @@ def frac_ord_2() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
+        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
     )
     if problem:
         return problem
@@ -157,6 +159,7 @@ def frac_ord_3() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
+        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c), "d": _frac(d)},
     )
 
     if problem:
@@ -184,6 +187,7 @@ def frac_ord_4() -> dict | None:
             "ignores_the_exponent": a + (b * c),
             "multiplies_by_the_exponent": (a * 2) + (b * c),
         }
+        instance_parameters = {"a": _frac(a), "b": _frac(b), "c": _frac(c)}
     else:
         b = Fraction(1, random.choice([2, 3, 4]))
         a = (b**2) + Fraction(random.randint(1, 2), random.choice([2, 3]))
@@ -194,11 +198,13 @@ def frac_ord_4() -> dict | None:
             "ignores_the_exponent": a - b,
             "multiplies_by_the_exponent": a - (b * 2),
         }
+        instance_parameters = {"a": _frac(a), "b": _frac(b)}
 
     problem = build_problem_dict(
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
+        parameters=instance_parameters,
     )
     if problem:
         return problem
@@ -243,6 +249,7 @@ def frac_ord_5() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
+        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
     )
     if problem:
         return problem
@@ -273,6 +280,7 @@ def frac_ord_6() -> dict | None:
             "multiplies_by_the_exponent": _frac(a * ((b + c) * 2) - d),
             "squares_the_bracket_terms_separately": _frac(a * (b**2 + c**2) - d),
         },
+        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c), "d": _frac(d)},
     )
     if problem:
         return problem

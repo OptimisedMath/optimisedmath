@@ -8,6 +8,7 @@ from typing import TypedDict
 from backend.core.utils import (
     FILLER_SLUG,
     ProblemDict,
+    check_format_mismatch,
     check_text_answer,
     parse_to_fraction,
 )
@@ -45,16 +46,6 @@ def _match_trap_feedback(
                 "answer_outcome": "trap",
                 "trap_slug": opt_type,
             }
-    return None
-
-
-def _check_format_mismatch(user_text: str, correct_latex: str) -> str | None:
-    """Intercept answers that are mathematically correct but use the wrong notation."""
-    user_str = str(user_text)
-    if "/" in user_str and "," in correct_latex:
-        return "Wynik poprawny matematycznie, ale to jest zadanie z ułamków dziesiętnych! Zapisz odpowiedź używając przecinka, a nie ułamka zwykłego."
-    if ("," in user_str or "." in user_str) and "\\frac" in correct_latex:
-        return "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"
     return None
 
 
@@ -112,7 +103,7 @@ def grade(
         }
 
     if student_val == correct_val:
-        format_warning = _check_format_mismatch(user_input, problem["correct"])
+        format_warning = check_format_mismatch(user_input, problem["correct"])
         if format_warning:
             return {
                 "lock_answer": False,

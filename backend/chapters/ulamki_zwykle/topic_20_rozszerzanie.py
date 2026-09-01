@@ -40,6 +40,7 @@ def frac_exp_1() -> dict | None:
             ),
         },
         grading_policy="exact_match_only",
+        parameters={"n": n, "d": d, "factor": factor},
     )
     if result:
         return result
@@ -82,6 +83,7 @@ def frac_exp_2() -> dict | None:
             ),
         },
         grading_policy="exact_match_only",
+        parameters={"n": n, "d": d, "factor": factor},
     )
     if result:
         return result
@@ -122,6 +124,7 @@ def frac_exp_3() -> dict | None:
             ),
         },
         grading_policy="exact_match_only",
+        parameters={"n": n, "d": d, "factor": factor},
     )
     if result:
         return result
@@ -165,6 +168,7 @@ def frac_exp_4() -> dict | None:
             ),
         },
         grading_policy="exact_match_only",
+        parameters={"n": n, "d": d, "factor1": factor1, "factor2": factor2},
     )
     if result:
         return result

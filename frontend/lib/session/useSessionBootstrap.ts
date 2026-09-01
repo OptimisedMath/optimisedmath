@@ -16,6 +16,15 @@ interface UseSessionBootstrapOptions {
 }
 
 /**
+ * A resumed session can come back mid-Deconstruction, and `/problem/next` is
+ * shut while one runs — asking anyway only buys a 403 and an error banner over
+ * the takeover that is about to arm off `deconstruction_running`.
+ */
+function shouldFetchProblem(session: SessionResponse): boolean {
+  return !session.deconstruction_running;
+}
+
+/**
  * Reads stored credentials and starts a session on mount, falling back to the
  * plain (no preferred-chapter) start request when the preferred chapter is
  * unavailable. Internal to lib/session/ — composed by useSession().
@@ -52,7 +61,9 @@ export function useSessionBootstrap({
         setStoredSessionId(sessionResponse.session_id);
         setSessionState(sessionResponse);
         setError(null);
-        onSessionStarted(sessionResponse.session_id);
+        if (shouldFetchProblem(sessionResponse)) {
+          onSessionStarted(sessionResponse.session_id);
+        }
       } catch (err) {
         if (!isMounted) return;
 
@@ -63,7 +74,9 @@ export function useSessionBootstrap({
           setStoredSessionId(fallbackSession.session_id);
           setSessionState(fallbackSession);
           setError(null);
-          onSessionStarted(fallbackSession.session_id);
+          if (shouldFetchProblem(fallbackSession)) {
+            onSessionStarted(fallbackSession.session_id);
+          }
           return;
         } catch {
           // Fall through to the original error message.

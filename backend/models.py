@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -62,6 +62,35 @@ class NavigationView(BaseModel):
 # --- Session state ---
 
 
+# Wire mirror of `deconstruction.StepInputType`, redeclared rather than imported so
+# `models.py` stays the shared leaf every layer may import (import rule 2).
+DeconstructionStepInputType = Literal["typed", "ordering"]
+
+
+class DeconstructionStep(BaseModel):
+    """One computed walkthrough question, mirroring `deconstruction.Step`."""
+
+    question: str
+    working_line: Optional[str] = None
+    answer: str
+    input_type: DeconstructionStepInputType = "typed"
+    items: Optional[list[str]] = None
+
+
+class DeconstructionState(BaseModel):
+    """Persisted progress through an active Deconstruction's fixed step sequence."""
+
+    misconception_slug: str
+    steps: list[DeconstructionStep]
+    step_index: int = 0
+    step_attempts: int = 0
+    step_revealed: bool = False
+    deconstruction_id: Optional[int] = Field(
+        default=None,
+        description="Row id of the `deconstructions` header, for updating deconstruction_steps",
+    )
+
+
 class SessionState(BaseModel):
     """Persisted Session — identity, progression, selection, submission cycle, Frontier, problem plumbing."""
 
@@ -92,6 +121,23 @@ class SessionState(BaseModel):
     recent_problem_fingerprints: list[str] = Field(
         default_factory=list,
         description="Recent generated problem fingerprints for duplicate avoidance",
+    )
+
+    deconstruction: Optional[DeconstructionState] = Field(
+        default=None,
+        description="The Deconstruction taking over the Session right now, if any",
+    )
+    deconstructed: list[str] = Field(
+        default_factory=list,
+        description=(
+            "(Misconception, Level) pairs already deconstructed this Session — "
+            "deliberately not folded into the per-Level hit counter, which Level "
+            "changes reset"
+        ),
+    )
+    discounted_problem_id: Optional[str] = Field(
+        default=None,
+        description="Problem available for a second, discounted-XP attempt after completion",
     )
 
     model_config = ConfigDict(
@@ -162,6 +208,15 @@ class SessionResponse(BaseModel):
 
     can_submit: bool = False
     can_next_problem: bool = False
+    deconstruction_running: bool = Field(
+        default=False,
+        description=(
+            "Whether a Deconstruction is taking over the Session right now. The "
+            "client arms its takeover off this flag rather than inferring one from "
+            "a withheld `correct_answer` (ADR-0002: the backend names the state it "
+            "owns)"
+        ),
+    )
     streak_meter: int = Field(
         default=0,
         ge=0,
@@ -209,6 +264,7 @@ class SessionResponse(BaseModel):
             current_problem=current_problem,
             can_submit=can_submit,
             can_next_problem=can_next_problem,
+            deconstruction_running=state.deconstruction is not None,
             streak_meter=streak_meter,
             admin_mode=admin_mode,
             navigation=navigation,
@@ -251,6 +307,19 @@ class ProblemSubmissionRequest(BaseModel):
     problem_id: Optional[str] = None
 
 
+class DeconstructionSubmissionRequest(BaseModel):
+    """Submit an answer for the current Deconstruction step."""
+
+    session_id: str
+    user_input: str
+
+
+class DeconstructionAbandonRequest(BaseModel):
+    """End the running Deconstruction via its exit control, forfeiting the retry."""
+
+    session_id: str
+
+
 # --- Response models ---
 
 
@@ -290,3 +359,35 @@ class SubmissionResponse(BaseModel):
     state: SessionResponse
     is_correct: bool
     feedback: str
+
+
+class DeconstructionStepResponse(BaseModel):
+    """Current Deconstruction step's wire payload for `GET /deconstruction/next`.
+
+    `working_line: None` is load-bearing — some Misconceptions author no working line.
+    `revealed_answer` is populated only once the Reveal threshold is hit, and the
+    Student still has to type it in to advance.
+    """
+
+    question: str
+    working_line: Optional[str] = None
+    step_index: int
+    total_steps: int
+    misconception_name: str
+    revealed_answer: Optional[str] = None
+    input_type: DeconstructionStepInputType = "typed"
+    items: Optional[list[str]] = None
+
+
+class DeconstructionSubmissionResponse(BaseModel):
+    """Grading outcome for one Deconstruction step submission.
+
+    No attempt counter on the wire (ADR-0004) — a visible "one try left" makes
+    the walkthrough feel like a test. `handback_question` carries the original
+    Problem's question text, and is populated only on the submission that
+    completes the final step — Handback has no separate endpoint.
+    """
+
+    is_correct: bool
+    feedback_msg: Optional[str] = None
+    handback_question: Optional[str] = None

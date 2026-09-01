@@ -28,6 +28,7 @@ def frac_pow_1() -> dict | None:
             "multiplies_by_the_exponent": format_answers(n * p, d * p)[0],
         },
         fillers=[format_answers((n**p) + 1, d**p)[0]],
+        parameters={"n": n, "d": d, "p": p},
     )
     if problem:
         return problem
@@ -55,6 +56,7 @@ def frac_pow_2() -> dict | None:
             "multiplies_by_the_exponent": format_answers(n * p, d * p)[0],
         },
         fillers=[format_answers((n**p) + 1, d**p)[0]],
+        parameters={"n": n, "d": d, "p": p},
     )
     if problem:
         return problem
@@ -84,6 +86,7 @@ def frac_pow_3() -> dict | None:
             "raises_only_the_numerator": format_answers(num**p, d)[0],
         },
         fillers=[format_answers(num**p + 1, d**p)[0]],
+        parameters={"whole1": w, "n1": n, "d1": d, "p": p, "operation": "^"},
     )
     if problem:
         return problem

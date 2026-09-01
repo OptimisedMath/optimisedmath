@@ -33,6 +33,7 @@ def frac_number_line_1() -> dict | None:
         },
         image_html=svg_graphic,
         grading_policy="equivalent_accepted",
+        parameters={"n": n, "d": d},
     )
     if result:
         return result
@@ -65,6 +66,7 @@ def frac_number_line_2() -> dict | None:
         },
         image_html=svg_graphic,
         grading_policy="equivalent_accepted",
+        parameters={"n": n, "d": d, "W": W},
     )
     if result:
         return result
@@ -141,6 +143,16 @@ def frac_number_line_3() -> dict | None:
             },
             image_html=svg_graphic,
             grading_policy="equivalent_accepted",
+            parameters={
+                "d": d,
+                "D": D,
+                "gap": gap,
+                "idx1": idx1,
+                "idx2": idx2,
+                "W": W,
+                "target": target,
+                "total_ticks": total_ticks,
+            },
         )
         if result:
             return result
@@ -213,6 +225,14 @@ def frac_number_line_4() -> dict | None:
             },
             image_html=svg_graphic,
             grading_policy="equivalent_accepted",
+            parameters={
+                "d": d,
+                "W": W,
+                "idx1": idx1,
+                "idx2": idx2,
+                "target": target,
+                "total_ticks": total_ticks,
+            },
         )
         if result:
             return result

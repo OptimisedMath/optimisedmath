@@ -32,6 +32,7 @@ def frac_div_num_1() -> dict | None:
             "leaves_the_fraction_unchanged": format_answers(n, d)[0],
         },
         fillers=[format_answers(n + k, d * k)[0]],
+        parameters={"n": n, "d": d, "k": k},
     )
     if problem:
         return problem
@@ -56,6 +57,7 @@ def frac_div_num_2() -> dict | None:
             "inverts_the_wrong_way_round": format_answers(n, k * d)[0],
         },
         fillers=[format_answers((k * d) + 1, n)[0]],
+        parameters={"n": n, "d": d, "k": k},
     )
     if result:
         return result
@@ -89,6 +91,15 @@ def frac_div_num_3() -> dict | None:
             )[0],
         },
         fillers=[format_answers(correct_num + 1, d * k)[0]],
+        parameters={
+            "whole1": w,
+            "n1": n,
+            "d1": d,
+            "whole2": 0,
+            "n2": k,
+            "d2": 1,
+            "operation": ":",
+        },
     )
     if result:
         return result

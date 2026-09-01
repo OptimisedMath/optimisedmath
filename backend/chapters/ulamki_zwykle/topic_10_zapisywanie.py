@@ -38,6 +38,7 @@ def frac_write_1() -> dict | None:
             ),
         },
         grading_policy="equivalent_accepted",
+        parameters={"n": n, "d": d},
     )
     if result:
         return result

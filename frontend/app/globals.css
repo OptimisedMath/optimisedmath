@@ -148,6 +148,14 @@
   100% { background-position: 200% 0; }
 }
 
+/* Marks what just changed on the Deconstruction working line — the wire carries
+   only the next line's full text, never a diff, so the whole line flashes to
+   draw the eye rather than highlighting a computed sub-span. */
+@keyframes working-line-flash {
+  0% { background-color: rgba(56, 189, 248, 0.35); border-color: rgba(56, 189, 248, 0.6); }
+  100% { background-color: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -220,6 +228,10 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-working-line-flash {
+  animation: working-line-flash 0.6s ease-out both;
 }
 
 .glow-success {

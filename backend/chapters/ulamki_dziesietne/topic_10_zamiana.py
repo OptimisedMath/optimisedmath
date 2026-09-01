@@ -36,6 +36,7 @@ def dec_to_frac_1() -> dict | None:
             "inverts_into_a_unit_fraction": rf"\frac{{{1}}}{{{raw_n}}}",
             "shifts_the_denominator_by_one": rf"\frac{{{n}}}{{{wrong_d}}}",
         },
+        parameters={"n": n, "d": d},
     )
     if problem:
         return problem
@@ -65,6 +66,7 @@ def dec_to_frac_2() -> dict | None:
             "shifts_the_point_one_place_too_far": fmt_dec(val / 10),
             "writes_the_denominator_after_the_point": fmt_dec(n + (d / 10)),
         },
+        parameters={"n": n, "d": d},
     )
     if problem:
         return problem
@@ -95,6 +97,7 @@ def dec_to_frac_3() -> dict | None:
             "shifts_the_point_one_place_too_far": fmt_dec(val / 10),
             "writes_the_denominator_after_the_point": f"{w},{d}",
         },
+        parameters={"w": w, "n": n, "d": d},
     )
     if problem:
         return problem
@@ -123,6 +126,7 @@ def dec_to_frac_4() -> dict | None:
             "adds_a_leading_zero_before_the_period": f"0,0({val})",
             "gets_the_period_digit_wrong": f"0,({val + 1})",
         },
+        parameters={"n": n, "d": d},
     )
     if problem:
         return problem

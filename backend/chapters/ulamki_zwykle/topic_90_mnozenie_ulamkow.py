@@ -33,6 +33,7 @@ def frac_mult_1() -> dict | None:
             "keeps_the_first_denominator": format_answers(n1 * n2, d1)[0],
             "adds_instead_of_multiplying": format_answers(n1 + n2, d1 + d2)[0],
         },
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if result:
         return result
@@ -60,6 +61,7 @@ def frac_mult_2() -> dict | None:
             "cancels_the_numerators_away": format_answers(1, d1 * d2)[0],
         },
         fillers=[format_answers(n1 * n2, d1 * d2 + 1)[0]],
+        parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if result:
         return result
@@ -92,6 +94,15 @@ def frac_mult_3() -> dict | None:
             )[0],
         },
         fillers=[format_answers(total + 1, d1 * d2)[0]],
+        parameters={
+            "whole1": 0,
+            "n1": n1,
+            "d1": d1,
+            "whole2": w,
+            "n2": n2,
+            "d2": d2,
+            "operation": "*",
+        },
     )
     if result:
         return result
@@ -124,6 +135,15 @@ def frac_mult_4() -> dict | None:
             )[0],
         },
         fillers=[format_answers(num1 * num2 + 1, d1 * d2)[0]],
+        parameters={
+            "whole1": whole1,
+            "whole2": whole2,
+            "n1": n1,
+            "d1": d1,
+            "n2": n2,
+            "d2": d2,
+            "operation": "*",
+        },
     )
     if result:
         return result

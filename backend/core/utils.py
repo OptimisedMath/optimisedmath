@@ -94,11 +94,12 @@ def declared_trap_slugs(func: Any) -> frozenset[str]:
 def build_problem_dict(
     q_str: str,
     c_str: str,
+    *,
+    parameters: dict[str, int | float | str],
     traps: dict[str, str | None] | None = None,
     fillers: list[str | None] | None = None,
     grading_policy: str = "standard",
     image_html: str | None = None,
-    parameters: dict[str, int | float | str] | None = None,
 ) -> ProblemDict | None:
     """Build the canonical problem dict with options, options_map, and grading_policy.
 
@@ -107,8 +108,8 @@ def build_problem_dict(
     offer a Trap conditionally. Returns None when two options collide.
 
     `parameters` is the structured values the Problem was generated from, keyed by the
-    generator's own operand names, for a future Deconstruction walkthrough to consume.
-    Omitted when a generator does not supply it.
+    generator's own operand names, for a Deconstruction walkthrough to consume. Required
+    on every call — a generator that omits it fails at call time, not silently.
     """
     option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
     option_entries += [(value, slug) for slug, value in (traps or {}).items()]
@@ -138,9 +139,8 @@ def build_problem_dict(
         "options": options,
         "options_map": options_map,
         "grading_policy": grading_policy,
+        "parameters": parameters,
     }
-    if parameters is not None:
-        problem["parameters"] = parameters
     return problem
 
 
@@ -194,6 +194,24 @@ def generate_universal_number_line(
 
     svg += "</svg>"
     return svg
+
+
+# --- Format-mismatch soft error ---
+
+
+def check_format_mismatch(user_text: str, correct_latex: str) -> str | None:
+    """Intercept answers that are mathematically correct but use the wrong notation.
+
+    Shared by `answer_grading.grade()` and `step_grading.grade_step()` — a Deconstruction
+    step needs the same forgiving-notation check a Problem does, without the Trap/
+    options_map machinery around it.
+    """
+    user_str = str(user_text)
+    if "/" in user_str and "," in correct_latex:
+        return "Wynik poprawny matematycznie, ale to jest zadanie z ułamków dziesiętnych! Zapisz odpowiedź używając przecinka, a nie ułamka zwykłego."
+    if ("," in user_str or "." in user_str) and "\\frac" in correct_latex:
+        return "Wynik poprawny matematycznie, ale w tym zadaniu powinieneś użyć ułamka zwykłego, a nie dziesiętnego!"
+    return None
 
 
 # --- LaTeX normalization & answer checking ---

@@ -28,6 +28,7 @@ def frac_frac_of_int_1() -> dict | None:
             "swaps_the_numerator_and_denominator": format_answers(k // n * d, 1)[0],
         },
         fillers=[format_answers((k // d) * n + 1, 1)[0]],
+        parameters={"n": n, "d": d, "k": k},
     )
     if problem:
         return problem
@@ -58,6 +59,7 @@ def frac_frac_of_int_2() -> dict | None:
             "multiplies_the_denominator_too": format_answers(n * k, d * k)[0],
         },
         fillers=[format_answers(n * k + 1, d)[0]],
+        parameters={"n": n, "d": d, "k": k},
     )
     if problem:
         return problem
@@ -85,6 +87,7 @@ def frac_frac_of_int_3() -> dict | None:
             "applies_the_fraction_again_instead_of_inverting": str(int(part * n // d)),
         },
         fillers=[str(whole + d)],
+        parameters={"n": n, "d": d, "whole": whole, "part": part},
     )
     if problem:
         return problem
@@ -115,6 +118,7 @@ def frac_frac_of_int_4() -> dict | None:
             ),
         },
         fillers=[str(c_val + 1)],
+        parameters={"d": d, "n": n, "base": base, "is_increase": is_increase},
     )
     if problem:
         return problem
