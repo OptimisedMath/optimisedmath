@@ -1,14 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Problem, SubmitAnswerHandler } from '@/lib/session';
 
-const AUTO_SOLVE_RADIO_DELAY_MS = 450;
-const AUTO_SOLVE_INPUT_CHAR_DELAY_MS = 45;
-const AUTO_SOLVE_INPUT_SUBMIT_DELAY_MS = 300;
-
-const sleep = (ms: number) => new Promise<void>((resolve) => {
-  setTimeout(resolve, ms);
-});
-
 type AutoSolveInputMode = 'radio' | 'input';
 
 interface UseAutoSolveOptions {
@@ -58,27 +50,9 @@ export function useAutoSolve({
     const runId = autoSolveRunRef.current + 1;
     autoSolveRunRef.current = runId;
     setIsAutoSolving(true);
-    setValue('');
+    setValue(correctAnswer);
 
     try {
-      if (inputMode === 'radio') {
-        setValue(correctAnswer);
-        await sleep(AUTO_SOLVE_RADIO_DELAY_MS);
-      } else {
-        for (let index = 0; index < correctAnswer.length; index += 1) {
-          if (autoSolveRunRef.current !== runId) {
-            return;
-          }
-          setValue(correctAnswer.slice(0, index + 1));
-          await sleep(AUTO_SOLVE_INPUT_CHAR_DELAY_MS);
-        }
-        await sleep(AUTO_SOLVE_INPUT_SUBMIT_DELAY_MS);
-      }
-
-      if (autoSolveRunRef.current !== runId) {
-        return;
-      }
-
       await onSubmit(correctAnswer);
     } finally {
       if (autoSolveRunRef.current === runId) {

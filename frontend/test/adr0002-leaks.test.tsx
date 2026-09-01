@@ -526,17 +526,12 @@ describe('ADR-0002 leak locks', () => {
 
     const autoSolveButton = screen.getByRole('button', { name: /Auto-Solve/ });
 
-    vi.useFakeTimers();
     await act(async () => {
       fireEvent.click(autoSolveButton);
     });
 
     const selectedOption = screen.getByRole('button', { name: /2/ });
-    expect(selectedOption.className).toContain('border-sky-500');
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(450);
-    });
+    expect(selectedOption.className).toContain('border-emerald-500');
 
     expect(client.submitAnswer).toHaveBeenCalledWith({
       session_id: session.session_id,
@@ -545,7 +540,7 @@ describe('ADR-0002 leak locks', () => {
     });
   });
 
-  it('admin auto-solve types the correct answer character-by-character before submitting it', async () => {
+  it('admin auto-solve fills in the correct answer immediately and submits it', async () => {
     const session = baseSession({ admin_mode: true, current_input_mode: 'input' });
     const problem = baseProblem({ correct_answer: '12' });
 
@@ -573,21 +568,10 @@ describe('ADR-0002 leak locks', () => {
     const input = await screen.findByPlaceholderText('Wpisz wynik...');
     const autoSolveButton = screen.getByRole('button', { name: /Auto-Solve/ });
 
-    vi.useFakeTimers();
     await act(async () => {
       fireEvent.click(autoSolveButton);
     });
-    expect(input).toHaveValue('1');
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(45);
-    });
     expect(input).toHaveValue('12');
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(45);
-      await vi.advanceTimersByTimeAsync(300);
-    });
 
     expect(client.submitAnswer).toHaveBeenCalledWith({
       session_id: session.session_id,
