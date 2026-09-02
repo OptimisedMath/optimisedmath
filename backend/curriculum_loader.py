@@ -115,8 +115,19 @@ def set_deconstruction_registry(registry: dict[str, Callable[..., Any]]) -> None
 # --- Derivation helpers ---
 
 
+_ASCII_TRANSLITERATION = str.maketrans(
+    "ąĄćĆęĘłŁńŃóÓśŚźŹżŻ",
+    "aAcCeElLnNoOsSzZzZ",
+)
+
+
 def _expected_filename(chapter_name: str) -> str:
-    return chapter_name.replace(" ", "_") + ".yaml"
+    # Data filenames must stay pure ASCII: they round-trip through zip files
+    # shared across platforms, and Windows' built-in "Extract All" ignores a
+    # zip's UTF-8 filename flag and always decodes names with the legacy OEM
+    # codepage, corrupting any non-ASCII characters on extraction.
+    ascii_name = chapter_name.translate(_ASCII_TRANSLITERATION)
+    return ascii_name.replace(" ", "_") + ".yaml"
 
 
 def _derive_topics_meta(data: dict[str, Any]) -> list[TopicDict]:
