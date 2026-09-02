@@ -11,6 +11,7 @@ The product targets Polish students (klasy 4–8, Egzamin Ósmoklasisty), but th
 3. **Frontend** — Polish for all visible strings. English only in component names, props, and types (mirroring backend field names).
 4. **API payloads** — English keys (`streak`, `flawless_eligible`). Values shown to the student (feedback, chapter names) may be Polish.
 5. **Do not** introduce Polish synonyms as alternate code names (e.g. no `passa` field alongside `streak`).
+6. **Reporting to a maintainer** — quote Polish copy (Trap prose, Level names, walkthrough questions) as-is. Maintainers read Polish; do not append English translations or glosses.
 
 **Considered options:** Full Polish codebase (rejected — poor tooling/agent ergonomics); bilingual identifiers (rejected — doubles maintenance); English UI (rejected — wrong market).
 

@@ -22,3 +22,5 @@ backend/storage/users.db*
 .pip_packages/
 .worktrees/
 .sandcastle/
+sharing/
+export-app.sh
