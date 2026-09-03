@@ -35,7 +35,7 @@ def frac_div_frac_1() -> dict | None:
 @declares_traps("cancels_before_inverting", "multiplies_without_inverting")
 def frac_div_frac_2() -> dict | None:
     """Odwracanie i skracanie (poziom 2)."""
-    n1, n2 = 2, 4
+    n1, n2 = random.randint(2, 8), random.randint(2, 8)
     while math.gcd(n1, n2) == 1:
         n1, n2 = random.randint(2, 8), random.randint(2, 8)
     d1, d2 = random.randint(3, 9), random.randint(3, 9)
