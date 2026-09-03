@@ -38,7 +38,7 @@ export default function DeconstructionIntro({
       {headerQuestion && (
         <div
           data-deconstruction-question
-          className="mb-8 w-full rounded-2xl border border-white/10 bg-white/5 p-5 text-xl text-white sm:text-2xl"
+          className="mb-8 w-full overflow-x-auto rounded-2xl border border-white/10 bg-white/5 p-5 text-base text-white sm:text-xl"
         >
           <BlockMath math={headerQuestion} />
         </div>

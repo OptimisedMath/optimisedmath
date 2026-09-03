@@ -25,6 +25,7 @@ class TestOperatesOnUnlikeFractionsDirectly:
             "expected_common",
             "expected_scaled_n1",
             "expected_scaled_n2",
+            "expected_combined_numerator",
             "expected_final_answer",
         ),
         [
@@ -33,14 +34,16 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 12,
                 4,
                 3,
+                7,
                 r"\frac{7}{12}",
                 id="addition-coprime-denominators",
             ),
             pytest.param(
                 {"n1": 1, "d1": 2, "n2": 1, "d2": 4, "operation": "+"},
-                8,
                 4,
                 2,
+                1,
+                3,
                 r"\frac{3}{4}",
                 id="addition-factor-related-denominators-reduces",
             ),
@@ -49,6 +52,7 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 12,
                 9,
                 4,
+                5,
                 r"\frac{5}{12}",
                 id="subtraction-coprime-denominators",
             ),
@@ -70,6 +74,7 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 6,
                 9,
                 14,
+                23,
                 r"3\frac{5}{6}",
                 id="addition-mixed-number-operands",
             ),
@@ -86,6 +91,7 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 12,
                 39,
                 16,
+                23,
                 r"1\frac{11}{12}",
                 id="subtraction-mixed-number-operands",
             ),
@@ -104,6 +110,7 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 12,
                 4,
                 3,
+                7,
                 r"\frac{7}{12}",
                 id="addition-explicit-zero-whole-parts",
             ),
@@ -115,21 +122,36 @@ class TestOperatesOnUnlikeFractionsDirectly:
         expected_common,
         expected_scaled_n1,
         expected_scaled_n2,
+        expected_combined_numerator,
         expected_final_answer,
     ):
         steps = build_steps("operates_on_unlike_fractions_directly", parameters)
 
-        assert len(steps) == 4
+        # A scaling step is dropped for an operand whose denominator is already the
+        # LCD — nothing to expand, so nothing to ask (#225).
+        d1, d2 = parameters["d1"], parameters["d2"]
+        expected_scaling_steps = (d1 != expected_common) + (d2 != expected_common)
+        assert len(steps) == 3 + expected_scaling_steps
         assert all(isinstance(step, Step) for step in steps)
 
-        common_denominator_step, scale_first_step, scale_second_step, combine_step = (
-            steps
-        )
+        common_denominator_step = steps[0]
+        scaling_steps = steps[1:-2]
+        combine_step, simplify_step = steps[-2:]
 
         assert common_denominator_step.answer == str(expected_common)
-        assert scale_first_step.answer == str(expected_scaled_n1)
-        assert scale_second_step.answer == str(expected_scaled_n2)
-        assert combine_step.answer == expected_final_answer
+        expected_scaled = [
+            str(scaled)
+            for denominator, scaled in (
+                (d1, expected_scaled_n1),
+                (d2, expected_scaled_n2),
+            )
+            if denominator != expected_common
+        ]
+        assert [step.answer for step in scaling_steps] == expected_scaled
+        # The combining step takes a bare numerator over the shared denominator,
+        # and only the simplifying step after it lands on the Problem's answer (#225).
+        assert combine_step.answer == str(expected_combined_numerator)
+        assert simplify_step.answer == expected_final_answer
 
         # The multi-step, cross-Chapter shape carries a working line throughout —
         # unlike the no-working-line comparison Misconception in a later batch.
