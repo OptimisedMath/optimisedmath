@@ -64,7 +64,7 @@ def dec_mix_2() -> dict | None:
     c_den = d1 * d2
     c_str, _ = format_answers(c_num, c_den)
 
-    both_summed, _ = format_answers(n1 + n2, d1 + 10)
+    both_summed, _ = format_answers(n1 + n2, d1 + d2)
     one_too_many, _ = format_answers(c_num + 1, c_den)
 
     problem = build_problem_dict(

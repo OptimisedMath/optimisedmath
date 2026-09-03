@@ -35,12 +35,14 @@ def frac_sub_1() -> dict | None:
 
 @declares_traps("subtracts_numerators_without_expanding", "subtracts_the_denominators")
 def frac_sub_2() -> dict | None:
-    """Liczby mieszane (poziom 2)."""
+    """Różne mianowniki - wstęp (poziom 2)."""
     d1 = random.randint(2, 5)
     factor = random.randint(2, 4)
     d2 = d1 * factor
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
     if (n1 * factor) <= n2:
+        return None
+    if n1 == n2:
         return None
 
     q_str = rf"\text{{Oblicz: }} \frac{{{n1}}}{{{d1}}} - \frac{{{n2}}}{{{d2}}}"
@@ -54,9 +56,7 @@ def frac_sub_2() -> dict | None:
             "subtracts_numerators_without_expanding": format_answers(abs(n1 - n2), d2)[
                 0
             ],
-            "subtracts_the_denominators": format_answers(
-                abs(n1 - n2), abs(d1 - d2) if d1 != d2 else 1
-            )[0],
+            "subtracts_the_denominators": format_answers(abs(n1 - n2), abs(d1 - d2))[0],
         },
         fillers=[format_answers((n1 * factor) - n2 + 1, d2)[0]],
         parameters={
@@ -78,7 +78,7 @@ def frac_sub_2() -> dict | None:
     "adds_instead_of_subtracting",
 )
 def frac_sub_3() -> dict | None:
-    """Zabieranie całości (poziom 3)."""
+    """Różne mianowniki - zaawansowane (poziom 3)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     if math.gcd(d1, d2) > 1 or d1 == d2:
         return None

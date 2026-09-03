@@ -25,7 +25,7 @@ def frac_add_1() -> dict | None:
         traps={"adds_the_denominators": format_answers(n1 + n2, d + d)[0]},
         fillers=[
             format_answers(n1 + n2 + 1, d)[0],
-            format_answers(abs(n1 + n2 - 1), d)[0],
+            format_answers(n1 + n2 - 1, d)[0],
         ],
         parameters={"n1": n1, "n2": n2, "d": d},
     )
@@ -72,7 +72,7 @@ def frac_add_2() -> dict | None:
     "multiplies_the_scaled_numerators_instead_of_adding",
 )
 def frac_add_3() -> dict | None:
-    """Liczby mieszane z wyłączaniem (poziom 3)."""
+    """Różne mianowniki - wstęp (poziom 3)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     if math.gcd(d1, d2) > 1 or d1 == d2:
         return None
@@ -102,7 +102,7 @@ def frac_add_3() -> dict | None:
 
 @declares_traps("adds_the_denominators")
 def frac_add_4() -> dict | None:
-    """Różne mianowniki - wstęp (poziom 4)."""
+    """Liczby mieszane z wyłączaniem (poziom 4)."""
     whole1, whole2 = random.randint(1, 3), random.randint(1, 3)
     d = random.randint(3, 7)
     n1, n2 = random.randint(1, d - 1), random.randint(1, d - 1)

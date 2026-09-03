@@ -77,15 +77,12 @@ def dec_unit_3() -> dict | None:
     q_str = rf"\text{{Zamień na złote: }} {zl} \text{{ zł }} {gr} \text{{ gr}}"
     c_str = fmt_dec(zl + (gr / 100))
 
-    # Bulletproof: ensure gr stays single-digit even if logic changes
-    ones_digit = gr % 10
-
     problem = build_problem_dict(
         q_str,
         c_str,
         traps={
             "writes_grosze_in_the_tenths_place": fmt_dec(zl + (gr / 10)),
-            "writes_grosze_as_tens_of_grosze": f"{zl},{ones_digit}0",
+            "writes_grosze_as_tens_of_grosze": f"{zl},{gr}0",
         },
         fillers=[fmt_dec(zl + ((gr + 1) / 100))],
         parameters={"zl": zl, "gr": gr},
