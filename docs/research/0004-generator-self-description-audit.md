@@ -20,6 +20,7 @@ Audit findings for [#227](https://github.com/OptimisedMath/optimisedmath/issues/
 | 2 — level name vs what the generator produces | **21** (5 severe) |
 | 3 — degenerate control flow | **9** (3 severe) |
 | Bonus — correctness defects found while reading | **4** |
+| Bonus — generators whose yield makes `all_test.py` flaky | **2** |
 
 The severe cases, in one line each:
 
@@ -116,6 +117,38 @@ Outside the issue's three classes, but they surfaced on the same read and each o
 2. **`dec_mix_2`'s `adds_numerators_and_denominators` Trap uses the wrong denominator** — `format_answers(n1 + n2, d1 + 10)` where the slug (and every sibling generator) means `d1 + d2`. It happens to be right only when `d2 == 10`, i.e. one third of draws (`topic_130_dzialania_mieszane.py:67`).
 3. **`frac_sub_2`'s `subtracts_numerators_without_expanding` Trap can be zero** — `abs(n1 - n2)` is `0` whenever `n1 == n2`, offering `0` as a distractor (`topic_70_odejmowanie.py:54`).
 4. **`frac_frac_of_int_1`'s `swaps_the_numerator_and_denominator` Trap divides by a non-divisor** — `k // n * d` floors on a `k` that `n` need not divide, so the Trap value does not model the stated misconception (`topic_140_ulamek_liczby.py:28`).
+
+---
+
+## Generator yield — the `all_test.py` flake
+
+Not a naming or control-flow fault, but it surfaced on the same read and it is why
+`all_test.py::test_universal_math_structure[frac_sub_2]` fails intermittently on a
+clean tree.
+
+`all_test.py` asks each generator for **10 valid Problems in at most 100 attempts**.
+A generator that rejects most of its draws — by an explicit guard, or by
+`build_problem_dict` returning `None` when two options collide — can miss that floor
+by chance. Measured yield (fraction of calls returning a Problem, 20 000 draws each),
+and the resulting per-run failure probability:
+
+| Generator | Yield | `P(<10 in 100)` | Why the draws die |
+|---|---|---|---|
+| `frac_sub_2` | 0.19 | 0.42% | The guard `if (n1 * factor) <= n2: return None` kills 57% of draws; an option collision then kills 54% of the survivors |
+| `frac_sub_3` | 0.20 | 0.25% | Same shape: the coprime-and-ordering guards kill 68% of draws, collisions 37% of the survivors |
+| `frac_comp_3` | 0.27 | 0.001% | — |
+| every other generator | ≥ 0.31 | negligible | — |
+
+Over the 95 parametrized cases that is a **~0.7% chance of a red `all_test.py` on any
+given run**, concentrated almost entirely in `frac_sub_2`. Reproduced on `main` at the
+audit baseline, with no source change involved.
+
+Two independent things are worth separating here. The **test** is fragile: a fixed
+100-attempt budget encodes an assumption about yield that no generator declares. The
+**generators** are wasteful: `frac_sub_2` throws away four draws in five, and roughly
+half of the survivors die on an option collision, which is the Trap arithmetic
+colliding with the correct answer rather than bad luck. Raising the attempt budget
+hides the flake; constraining the draw so the guard passes by construction fixes both.
 
 ---
 
