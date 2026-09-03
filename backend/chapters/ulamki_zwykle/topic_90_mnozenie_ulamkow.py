@@ -42,7 +42,7 @@ def frac_mult_1() -> dict | None:
 @declares_traps("stops_before_lowest_terms", "cancels_the_numerators_away")
 def frac_mult_2() -> dict | None:
     """Skracanie na krzyż (poziom 2)."""
-    n1, d2 = 2, 4
+    n1, d2 = random.randint(2, 8), random.randint(2, 8)
     while math.gcd(n1, d2) == 1:
         n1, d2 = random.randint(2, 8), random.randint(2, 8)
     d1, n2 = random.randint(3, 9), random.randint(1, 7)
