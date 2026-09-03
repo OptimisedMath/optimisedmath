@@ -282,9 +282,9 @@ topics:
         name: "Bez pożyczania"
         function: "dec_sub_1"
         traps:
-          subtracts_the_smaller_digit_in_each_column:
-            misconception: forgets_to_borrow
-            explanation: "W każdej kolumnie odjąłeś mniejszą cyfrę od większej. Odejmuj z góry na dół i pożycz, gdy trzeba."
+          adds_instead_of_subtracting:
+            misconception: adds_instead_of_subtracting
+            explanation: "Zamiast odjąć, dodałeś liczby — sprawdź znak działania."
       - level: 2
         name: "Z pożyczaniem"
         function: "dec_sub_2"

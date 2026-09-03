@@ -173,8 +173,6 @@ def frac_number_line_4() -> dict | None:
     idx2 = idx1 + d  # Gap is exactly 1 whole number for simplicity
 
     total_ticks = idx2 + random.randint(3, 5)
-    if total_ticks > 16:
-        total_ticks = 16
 
     labeled = {idx1: str(W), idx2: str(W + 1)}
 

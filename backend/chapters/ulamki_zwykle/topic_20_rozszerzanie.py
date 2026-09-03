@@ -65,8 +65,6 @@ def frac_exp_2() -> dict | None:
     c_str = format_fraction_answer(n * factor, target_d, simplify=False)
 
     wrong_factor = factor + random.choice([-1, 1])
-    if wrong_factor < 1:
-        wrong_factor = factor + 2
 
     result = build_problem_dict(
         q_str,

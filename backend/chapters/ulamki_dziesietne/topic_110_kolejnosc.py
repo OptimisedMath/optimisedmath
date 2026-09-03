@@ -45,7 +45,7 @@ def dec_order_1() -> dict | None:
             q = f"{fmt_dec(a)} - {fmt_dec(b)} : {fmt_dec(c)}"
             ans = a - ans_div
             traps = {
-                "subtracts_before_dividing": (a - b) / c if c != 0 else 0,
+                "subtracts_before_dividing": (a - b) / c,
                 "flattens_to_all_subtraction": a - b - c,
                 "replaces_division_with_multiplication": a - (b * c),
             }

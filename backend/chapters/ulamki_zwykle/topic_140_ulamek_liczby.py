@@ -25,7 +25,7 @@ def frac_frac_of_int_1() -> dict | None:
         c_str,
         traps={
             "reads_it_as_a_mixed_number": format_answers(k * d + n, d)[0],
-            "swaps_the_numerator_and_denominator": format_answers(k // n * d, 1)[0],
+            "swaps_the_numerator_and_denominator": format_answers(k * d, n)[0],
         },
         fillers=[format_answers((k // d) * n + 1, 1)[0]],
         parameters={"n": n, "d": d, "k": k},

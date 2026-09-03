@@ -135,8 +135,12 @@ def frac_ord_3() -> dict | None:
     template = random.choice(["brack_div_brack", "add_div_add"])
 
     if template == "brack_div_brack":
-        a, b = Fraction(1, 2), Fraction(1, 3)
-        c, d = Fraction(3, 4), Fraction(1, 4)
+        a = Fraction(1, random.choice([2, 3, 4]))
+        b = Fraction(1, random.choice([2, 3, 4]))
+        c = Fraction(random.randint(2, 4), random.choice([4, 5, 6]))
+        d = Fraction(1, random.choice([3, 4, 5]))
+        if c <= d:
+            return None
         q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}}) : (\\frac{{{c.numerator}}}{{{c.denominator}}} - \\frac{{{d.numerator}}}{{{d.denominator}}})"
         ans = (a + b) / (c - d)
         traps = {
@@ -145,8 +149,10 @@ def frac_ord_3() -> dict | None:
             "ignores_the_second_bracket": (a + b) / c - d,
         }
     else:
-        a, b = Fraction(1, 2), Fraction(3, 4)
-        c, d = Fraction(1, 4), Fraction(1, 3)
+        a = Fraction(1, random.choice([2, 3, 4]))
+        b = Fraction(random.randint(2, 3), random.choice([4, 5]))
+        c = Fraction(1, random.choice([3, 4, 5]))
+        d = Fraction(1, random.choice([2, 3, 4]))
         q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}} : \\frac{{{c.numerator}}}{{{c.denominator}}} + \\frac{{{d.numerator}}}{{{d.denominator}}}"
         ans = a + (b / c) + d
         traps = {
@@ -227,7 +233,7 @@ def frac_ord_5() -> dict | None:
         q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}})^2 - \\frac{{{c.numerator}}}{{{c.denominator}}}"
         ans = ((a + b) ** 2) - c
         if ans < 0:
-            ans = abs(ans)
+            return None
         traps = {
             "squares_the_bracket_terms_separately": (a**2 + b**2) - c,
             "multiplies_by_the_exponent": ((a + b) * 2) - c,
@@ -270,7 +276,7 @@ def frac_ord_6() -> dict | None:
     q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} + \\frac{{{c.numerator}}}{{{c.denominator}}})^2 - \\frac{{{d.numerator}}}{{{d.denominator}}}"
     ans = a * ((b + c) ** 2) - d
     if ans < 0:
-        ans = abs(ans)
+        return None
 
     problem = build_problem_dict(
         q,

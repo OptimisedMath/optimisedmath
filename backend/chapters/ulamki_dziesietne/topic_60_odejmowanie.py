@@ -2,7 +2,7 @@ import random
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
-@declares_traps("subtracts_the_smaller_digit_in_each_column")
+@declares_traps("adds_instead_of_subtracting")
 def dec_sub_1() -> dict | None:
     """Bez pożyczania (poziom 1)."""
     v1 = random.randint(31, 99) / 10
@@ -12,7 +12,7 @@ def dec_sub_1() -> dict | None:
 
     d1 = int(str(v1).split(".")[1])
     d2 = int(str(v2).split(".")[1])
-    if d1 >= d2:
+    if d1 <= d2:
         return None
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
@@ -21,11 +21,7 @@ def dec_sub_1() -> dict | None:
     problem = build_problem_dict(
         q_str,
         c_str,
-        traps={
-            "subtracts_the_smaller_digit_in_each_column": fmt_dec(
-                round(int(v1) - int(v2) + abs(d1 - d2) / 10, 2)
-            )
-        },
+        traps={"adds_instead_of_subtracting": fmt_dec(round(v1 + v2, 2))},
         fillers=[
             fmt_dec(round(v1 - v2 + 0.1, 2)),
             fmt_dec(round(v1 - v2 - 0.1, 2)),
