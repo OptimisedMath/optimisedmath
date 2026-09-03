@@ -23,6 +23,7 @@ for _topic, title, _note, src in picked:
     )
 
 html = (
+    '<!doctype html><meta charset="utf-8">'
     "<style>body{background:#fff;color:#0f172a;font:13px system-ui;margin:0;padding:16px;"
     "display:grid;grid-template-columns:1fr 1fr;gap:16px}"
     "figure{margin:0}figcaption{font-weight:600;margin-bottom:6px}"

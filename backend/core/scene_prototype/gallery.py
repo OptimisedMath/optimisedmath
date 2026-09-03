@@ -302,7 +302,10 @@ scene = R.Scene(fig, [
 ]
 
 
-PAGE = """<title>Geometria scene schema</title>
+PAGE = """<!doctype html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geometria scene schema</title>
 <style>
 :root {{ --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --dim:#64748b; --line:#e2e8f0; --code:#f1f5f9; }}
 [data-theme="dark"] {{ --bg:#020617; --card:#0f172a; --ink:#e2e8f0; --dim:#94a3b8; --line:#1e293b; --code:#020617; }}
@@ -325,7 +328,7 @@ h2 {{ font-size:15px; margin:7px 0 4px; letter-spacing:-.01em; }}
 pre {{ background:var(--code); border:1px solid var(--line); border-radius:9px; margin:0;
        padding:11px 12px; overflow-x:auto; font:11.5px/1.5 ui-monospace,SFMono-Regular,monospace;
        color:var(--dim); }}
-</style>
+</style></head><body>
 <header>
   <h1>Geometria scene schema — prototype gallery</h1>
   <p>Ticket #211. Every figure below is produced by the code shown under it: the
