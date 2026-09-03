@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import type { DeconstructionStepView } from '@/lib/session';
 import DeconstructionExitControl from './DeconstructionExitControl';
 import DeconstructionOrderingInput from './DeconstructionOrderingInput';
+import MathText from './MathText';
 import 'katex/dist/katex.min.css';
 
 interface DeconstructionStepProps {
@@ -56,7 +57,10 @@ export default function DeconstructionStep({
           Rozkładamy zadanie
         </span>
         {headerQuestion && (
-          <span data-deconstruction-question className="truncate text-sm text-slate-500">
+          <span
+            data-deconstruction-question
+            className="min-w-0 flex-1 overflow-x-auto text-right text-sm text-slate-500"
+          >
             <InlineMath math={headerQuestion} />
           </span>
         )}
@@ -91,11 +95,17 @@ export default function DeconstructionStep({
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
           krok {step.stepIndex + 1} z {step.totalSteps}
         </p>
-        <h2 className="mb-4 text-lg font-bold text-white sm:text-xl">{step.question}</h2>
+        <h2 className="mb-4 text-lg font-bold text-white sm:text-xl">
+          <MathText text={step.question} />
+        </h2>
 
         {step.revealedAnswer !== null && (
           <div className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-emerald-200">
-            Odpowiedź: <span className="font-bold">{step.revealedAnswer}</span> — wpisz ją, aby
+            Odpowiedź:{' '}
+            <span className="font-bold">
+              <MathText text={step.revealedAnswer} />
+            </span>{' '}
+            — wpisz ją, aby
             przejść dalej.
           </div>
         )}

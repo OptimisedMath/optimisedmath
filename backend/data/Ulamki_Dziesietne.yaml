@@ -66,10 +66,8 @@ topics:
         function: "dec_compare_1"
         traps:
           compares_by_the_lower_place_digit:
-            misconception: compares_decimals_by_wrong_digit_order
             explanation: "Porównałeś dalsze cyfry. Zacznij od pierwszej cyfry po przecinku."
           reads_unequal_decimals_as_equal:
-            misconception: compares_decimals_by_wrong_digit_order
             explanation: "Liczby nie są równe — nie wybieraj znaku równości!"
       - level: 2
         name: "Różna liczba miejsc po przecinku"
@@ -250,7 +248,6 @@ topics:
         function: "dec_add_1"
         traps:
           adds_digits_across_the_point:
-            misconception: does_not_align_decimals_before_column_arithmetic
             explanation: "Źle podstawiłeś przecinek! Złota zasada dodawania to: przecinek pod przecinkiem."
       - level: 2
         name: "Z przekroczeniem rzędu"

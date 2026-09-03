@@ -9,6 +9,7 @@ Session, state, or HTTP imports; nothing here reads or writes a Session.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Callable, Literal
@@ -159,6 +160,17 @@ def _frac(n: int, d: int) -> str:
     return rf"\frac{{{n}}}{{{d}}}"
 
 
+def _math(latex: str) -> str:
+    """Delimit a LaTeX fragment for a Step `question`.
+
+    Working lines are whole expressions the frontend hands straight to KaTeX;
+    a question is Polish prose with maths embedded in it, so the maths has to be
+    marked off. `$`-delimited spans are what `MathText` on the frontend renders
+    (#225 — before it, `\frac{2}{5}` reached the Student as literal source).
+    """
+    return f"${latex}$"
+
+
 # --- Batch one, walkthrough 1: operates_on_unlike_fractions_directly ---
 #
 # Multi-step shape (#187): fires from the Ułamki_Zwykłe addition and subtraction Traps
@@ -174,6 +186,13 @@ def _frac(n: int, d: int) -> str:
 # plain fraction untouched when the whole part is zero or absent), so the final step
 # lands on the Problem's own answer rather than on the fractional remainder of it.
 #
+# The common denominator is `lcm(d1, d2)`, not the product (#225): a Student who
+# reduced 5 and 10 to 10 was told 50 was the only right answer. The walkthrough ends
+# on two steps rather than one — the combined numerator over the shared denominator,
+# typed as a bare number, and then that fraction written in its simplest form, which
+# is the Problem's own answer. The step count therefore varies: an operand whose
+# denominator is already the LCD has no scaling step of its own.
+#
 # Equal denominators are refused. Nothing routes a like-denominator Problem here after
 # #224's re-mapping, and a walkthrough whose opening line tells a Student that two
 # identical denominators differ is worse than no walkthrough at all.
@@ -185,7 +204,7 @@ def _frac(n: int, d: int) -> str:
     answers_the_problem=True,
 )
 def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[Step]:
-    """4-step walkthrough: common denominator, scale each numerator, combine."""
+    """LCD, scale each numerator that needs it, combine numerators, simplify."""
     n1, d1 = int(parameters["n1"]), int(parameters["d1"])
     n2, d2 = int(parameters["n2"]), int(parameters["d2"])
     operation = str(parameters["operation"])
@@ -209,59 +228,86 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
     )
     n1, n2 = whole1 * d1 + n1, whole2 * d2 + n2
 
-    common = d1 * d2
-    scaled_n1 = n1 * d2
-    scaled_n2 = n2 * d1
+    common = math.lcm(d1, d2)
+    scaled_n1 = n1 * (common // d1)
+    scaled_n2 = n2 * (common // d2)
     combined_numerator = (
         scaled_n1 + scaled_n2 if operation == "+" else scaled_n1 - scaled_n2
     )
+    combined = _frac(combined_numerator, common)
     final_answer, _ = format_answers(combined_numerator, common)
     verb = "Dodaj" if operation == "+" else "Odejmij"
 
-    return [
+    steps = [
         Step(
             question=(
                 (
                     f"Zamień liczby mieszane na ułamki niewłaściwe — to "
-                    f"{_frac(n1, d1)} i {_frac(n2, d2)}. Mają różne mianowniki. "
-                    "Jaki jest ich wspólny mianownik?"
+                    f"{_math(_frac(n1, d1))} i {_math(_frac(n2, d2))}. Mają różne "
+                    "mianowniki. Jaki jest ich najmniejszy wspólny mianownik?"
                 )
                 if is_mixed
                 else (
-                    f"Ułamki {_frac(n1, d1)} i {_frac(n2, d2)} mają różne mianowniki. "
-                    "Jaki jest ich wspólny mianownik?"
+                    f"Ułamki {_math(_frac(n1, d1))} i {_math(_frac(n2, d2))} mają "
+                    "różne mianowniki. Jaki jest ich najmniejszy wspólny mianownik?"
                 )
             ),
             working_line=opening_line,
             answer=str(common),
         ),
-        Step(
-            question=(
-                f"Rozszerz ułamek {_frac(n1, d1)} do mianownika {common}. "
-                "Ile wynosi nowy licznik?"
-            ),
-            working_line=f"{_frac(n1, d1)} {operation} {_frac(n2, d2)}",
-            answer=str(scaled_n1),
-        ),
-        Step(
-            question=(
-                f"Rozszerz ułamek {_frac(n2, d2)} do mianownika {common}. "
-                "Ile wynosi nowy licznik?"
-            ),
-            working_line=f"{_frac(scaled_n1, common)} {operation} {_frac(n2, d2)}",
-            answer=str(scaled_n2),
-        ),
+    ]
+
+    # With the LCD rather than the product (#225), one denominator can already be
+    # the shared one — 5/10 alongside 2/5. There is no expanding to ask about, and
+    # asking for a numerator that is already on screen is busywork, so that
+    # operand's step is dropped rather than reworded. The two denominators differ,
+    # so at most one of these can be skipped.
+    if d1 != common:
+        steps.append(
+            Step(
+                question=(
+                    f"Rozszerz ułamek {_math(_frac(n1, d1))} do mianownika {common}. "
+                    "Ile wynosi nowy licznik?"
+                ),
+                working_line=f"{_frac(n1, d1)} {operation} {_frac(n2, d2)}",
+                answer=str(scaled_n1),
+            )
+        )
+    if d2 != common:
+        steps.append(
+            Step(
+                question=(
+                    f"Rozszerz ułamek {_math(_frac(n2, d2))} do mianownika {common}. "
+                    "Ile wynosi nowy licznik?"
+                ),
+                working_line=f"{_frac(scaled_n1, common)} {operation} {_frac(n2, d2)}",
+                answer=str(scaled_n2),
+            )
+        )
+
+    steps.append(
         Step(
             question=(
                 f"{verb} liczniki nad wspólnym mianownikiem {common}. "
-                "Ile wynosi wynik?"
+                "Ile wynosi licznik?"
             ),
             working_line=(
                 f"{_frac(scaled_n1, common)} {operation} {_frac(scaled_n2, common)}"
             ),
+            answer=str(combined_numerator),
+        )
+    )
+    steps.append(
+        Step(
+            question=(
+                f"Zostaje zapisać wynik {_math(combined)} w najprostszej postaci. "
+                "Jak wygląda?"
+            ),
+            working_line=combined,
             answer=final_answer,
-        ),
-    ]
+        )
+    )
+    return steps
 
 
 # --- Batch one, walkthrough 2: does_not_align_decimals_before_column_arithmetic ---
@@ -435,8 +481,9 @@ def operates_on_mixed_number_without_converting(
     return [
         Step(
             question=(
-                f"Zanim wykonasz działanie, zamień liczbę mieszaną {target_mixed} na "
-                "ułamek niewłaściwy. Ile wynosi jej licznik?"
+                "Zanim wykonasz działanie, zamień liczbę mieszaną "
+                f"{_math(target_mixed)} na ułamek niewłaściwy. "
+                "Ile wynosi jej licznik?"
             ),
             working_line=working_before,
             answer=str(target_improper),

@@ -51,6 +51,19 @@ def _combinations() -> list[tuple[str, int, int, str, str, str]]:
 COMBINATIONS = _combinations()
 
 
+def _undelimited_latex(question: str) -> bool:
+    """Whether `question` carries LaTeX outside a `$...$` span.
+
+    The frontend renders a working line as maths outright but a question as prose,
+    so raw `\\frac{2}{5}` in a question reached the Student as literal source (#225).
+    Prose segments are the even-indexed ones once the string is split on `$`.
+    """
+    segments = question.split("$")
+    if len(segments) % 2 == 0:
+        return True  # an unclosed span
+    return any("\\" in segment for segment in segments[::2])
+
+
 def test_the_sweep_covers_something():
     """A store that silently loaded nothing would make every case below vacuous."""
     assert COMBINATIONS
@@ -85,6 +98,12 @@ def test_walkthrough_builds_from_what_the_generator_emits(
             pytest.fail(f"{where}: {error} (parameters: {problem['parameters']})")
 
         assert steps, f"{where}: walkthrough built no Steps"
+
+        for index, step in enumerate(steps):
+            assert not _undelimited_latex(step.question), (
+                f"{where}: step {index} has LaTeX outside a $...$ span and would "
+                f"reach the Student as source: {step.question!r}"
+            )
 
         if declaration.answers_the_problem:
             assert steps[-1].answer == problem["correct"], (
