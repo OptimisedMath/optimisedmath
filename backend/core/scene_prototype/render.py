@@ -404,9 +404,25 @@ class EdgeLabel(Annotation):
         ctx.text(mid, n, self.text_for(ctx))
 
 
+#: #212 found the placement floor by scanning: below this, `place_labels` cannot
+#: find a spot for the angle's own label that clears the vertex — verified by
+#: `find_threshold.py`, which crosses the collision-cost threshold between 12°
+#: and 13°. 15° keeps a margin. There is no matching ceiling: 179.4° (the
+#: narrowest margin tested) placed cleanly.
+MIN_LABELLED_ANGLE = 15.0
+
+
 @dataclass
 class AngleArc(Annotation):
-    """An arc at a vertex, labelled with the angle DERIVED from the figure."""
+    """An arc at a vertex, labelled with the angle DERIVED from the figure.
+
+    Refuses a labelled arc below `MIN_LABELLED_ANGLE` — below that floor the
+    label cannot be placed clear of the vertex it describes, so a diagram
+    would show a label sitting on top of its own figure. #212 declared this a
+    generator-side range limit rather than a placement algorithm to fix
+    further: every Geometria generator using AngleArc must keep the angle at
+    or above this floor.
+    """
 
     vertex: str
     unknown: bool = False
@@ -419,6 +435,11 @@ class AngleArc(Annotation):
         prev, nxt = f.neighbours(self.vertex)
         u1 = unit(sub(f.p(prev), v))
         u2 = unit(sub(f.p(nxt), v))
+        if self.show_label and f.interior_angle(self.vertex) < MIN_LABELLED_ANGLE:
+            raise ValueError(
+                f"vertex {self.vertex} is {f.interior_angle(self.vertex):.1f}°, "
+                f"below the {MIN_LABELLED_ANGLE}° minimum for a labelled AngleArc"
+            )
         r = ctx.arc_radius(self.vertex)
         inward = mul(ctx.outward_bisector(self.vertex), -1)
         ctx.path(ctx.arc_points(v, r, u1, u2, inward), color=ACCENT, width=ctx.thin)

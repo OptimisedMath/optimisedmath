@@ -10,8 +10,9 @@ here = pathlib.Path(__file__).parent
 theme = sys.argv[1] if len(sys.argv) > 1 else "light"
 width = int(sys.argv[2]) if len(sys.argv) > 2 else 1120
 height = int(sys.argv[3]) if len(sys.argv) > 3 else 3600
+page_name = sys.argv[4] if len(sys.argv) > 4 else "gallery.html"
 
-src = here / "gallery.html"
+src = here / page_name
 page = src.read_text(encoding="utf-8")
 if theme == "dark":
     page = page.replace(
@@ -21,7 +22,7 @@ if theme == "dark":
 target = here / f"_shot_{theme}_{width}.html"
 target.write_text(page, encoding="utf-8")
 
-out = here / f"shot_{theme}_{width}.png"
+out = here / f"shot_{page_name.removesuffix('.html')}_{theme}_{width}.png"
 subprocess.run(
     [
         CHROME,
