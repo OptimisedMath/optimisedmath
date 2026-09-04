@@ -1,4 +1,5 @@
 import random
+from decimal import Decimal
 from fractions import Fraction
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
@@ -55,7 +56,7 @@ def dec_to_frac_2() -> dict | None:
         return None
 
     q_str = rf"\text{{Zamień na ułamek dziesiętny: }} \frac{{{n}}}{{{d}}}"
-    val = n / d
+    val = Decimal(n) / Decimal(d)
     c_str = fmt_dec(val)
 
     problem = build_problem_dict(
@@ -64,7 +65,9 @@ def dec_to_frac_2() -> dict | None:
         traps={
             "writes_the_digits_side_by_side": f"0,{n}{d}",
             "shifts_the_point_one_place_too_far": fmt_dec(val / 10),
-            "writes_the_denominator_after_the_point": fmt_dec(n + (d / 10)),
+            "writes_the_denominator_after_the_point": fmt_dec(
+                Decimal(n) + (Decimal(d) / 10)
+            ),
         },
         parameters={"n": n, "d": d},
     )
@@ -86,7 +89,7 @@ def dec_to_frac_3() -> dict | None:
         return None
 
     q_str = rf"\text{{Zamień na ułamek dziesiętny: }} {w}\frac{{{n}}}{{{d}}}"
-    val = w + (n / d)
+    val = Decimal(w) + (Decimal(n) / Decimal(d))
     c_str = fmt_dec(val)
 
     problem = build_problem_dict(
