@@ -1,5 +1,3 @@
-"""Unit tests for the session use-case layer."""
-
 import json
 import uuid
 
@@ -123,7 +121,6 @@ def test_respond_attaches_navigation(fixture_curriculum: Curriculum):
 def test_respond_serves_full_streak_meter_at_level_completion_feedback(
     fixture_curriculum: Curriculum,
 ):
-    """While Level completion feedback is on screen, Streak meter stays full."""
     state = _fresh_state(fixture_curriculum)
     state.problem_answered = True
     state.level_completed = True
@@ -301,7 +298,6 @@ def test_respond_uses_passed_play_mode_for_admin_reveal(fixture_curriculum: Curr
 def test_legacy_stored_response_fields_load_and_serve_correct_payload(
     fixture_curriculum: Curriculum,
 ):
-    """Old session rows with response-only fields still load and respond correctly."""
     state = _fresh_state(fixture_curriculum)
     state.current_problem = {
         "problem_id": "p1",
@@ -602,7 +598,6 @@ def test_admin_navigates_to_locked_topic_without_bypass(fixture_curriculum: Curr
 def test_submit_grades_by_session_input_mode_not_client_signal(
     fixture_curriculum: Curriculum,
 ):
-    """Radio-mode sessions use multiple-choice grading from session state alone."""
     state = _fresh_state(fixture_curriculum)
     state.current_input_mode = "radio"
     problem = {
@@ -640,7 +635,6 @@ def test_start_session_returns_state_with_navigation():
 def test_start_session_with_fixture_curriculum_lists_fixture_chapters(
     fixture_curriculum,
 ):
-    """Provider override must reach the started session's navigation Chapters."""
     set_curriculum(fixture_curriculum)
     try:
         response = session.start_session(
@@ -659,7 +653,6 @@ def test_start_session_with_fixture_curriculum_lists_fixture_chapters(
 def test_start_next_submit_cycle_with_fixture_curriculum(
     fixture_curriculum, monkeypatch
 ):
-    """Full start → next problem → submit runs on the fixture Curriculum only."""
     import backend.problem_generation as problem_generation
 
     def fake_multi_1():
@@ -707,7 +700,6 @@ def test_start_session_raises_for_unknown_chapter():
 def test_start_session_chapter_override_resolves_and_applies_via_navigate_to(
     fixture_curriculum: Curriculum,
 ):
-    """Override to a different chapter lands on its Frontier via the consolidated resolver."""
     set_curriculum(fixture_curriculum)
     try:
         response = session.start_session(
@@ -729,7 +721,6 @@ def test_start_session_chapter_override_resolves_and_applies_via_navigate_to(
 def test_start_session_chapter_override_matching_profile_is_unaffected(
     fixture_curriculum: Curriculum,
 ):
-    """Override equal to the loaded profile's chapter behaves like a normal start."""
     username = f"user-{uuid.uuid4()}"
     set_curriculum(fixture_curriculum)
     try:
@@ -748,12 +739,11 @@ def test_start_session_chapter_override_matching_profile_is_unaffected(
     assert overridden.selected_level == baseline.selected_level
 
 
+# Overriding the chapter on start applies the target chapter/topic/level and
+# the start clock in one DB write, not the two the old navigate-then-persist path made.
 def test_start_session_chapter_override_persists_exactly_once(
     fixture_curriculum: Curriculum, monkeypatch
 ):
-    """Overriding the chapter on start applies the target chapter/topic/level and
-    the start clock in one DB write, not the two the old navigate-then-persist path made.
-    """
     calls = []
     original_persist = session_state.persist
 

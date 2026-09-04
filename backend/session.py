@@ -44,8 +44,6 @@ ACTIVE_SESSIONS: dict[str, SessionState] = {}
 
 
 class SessionError(Exception):
-    """Base error for session use-case failures."""
-
     def __init__(self, detail: str, *, status_code: int = 400) -> None:
         self.detail = detail
         self.status_code = status_code
@@ -172,7 +170,6 @@ def _resolve_navigation_target_or_raise(
     request: SessionNavigateRequest,
     snapshot: navigation_snapshot.NavigationSnapshot,
 ) -> tuple[int, int, int]:
-    """Resolve a navigation intent, mapping resolver errors to session-layer errors."""
     try:
         return navigation_resolve.resolve_navigation_target(state, request, snapshot)
     except navigation_resolve.NavigationLockedError as exc:
@@ -235,7 +232,6 @@ def _build_started_state(
 
 
 def start_session(request: SessionStartRequest) -> SessionResponse:
-    """Create a session, load user progress, and return SessionResponse with navigation."""
     state, curriculum, play_mode = _build_started_state(request)
     ACTIVE_SESSIONS[state.session_id] = state
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
@@ -245,7 +241,6 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
 
 
 def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
-    """Change chapter, topic, or level with unlock validation."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
@@ -275,7 +270,6 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
 
 
 def reset_session(request: SessionResetRequest) -> SessionResponse:
-    """Hard-reset session progress and return a fresh SessionResponse."""
     state = get_session(request.session_id)
     play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
@@ -348,7 +342,6 @@ def _submit_active_problem(
     is_input_mode: bool,
     require_admin: bool = False,
 ) -> SubmissionResponse:
-    """Shared submission path — grade, apply outcome, and return updated state."""
     state = get_session(session_id)
     play_mode = resolve_play_mode(state.username)
 
@@ -387,7 +380,6 @@ def _submit_active_problem(
 
 
 def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
-    """Grade an answer, update streak and XP, and persist session state."""
     state = get_session(request.session_id)
     is_input_mode = state.current_input_mode == "input"
     user_input = (
@@ -446,7 +438,6 @@ def abandon_deconstruction(request: DeconstructionAbandonRequest) -> SessionResp
 
 
 def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
-    """Submit the correct answer for admin or dev testing."""
     state = get_session(request.session_id)
     is_input_mode = state.current_input_mode == "input"
     problem = state.current_problem

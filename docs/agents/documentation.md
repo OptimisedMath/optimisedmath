@@ -22,7 +22,7 @@ Delete it: would a reader plausibly make a **wrong decision** the code alone wou
 - an **ownership rule** — who may call this, who may not
 - **why** it exists when an obvious alternative doesn't work
 
-Role is not a reason. Route handlers, Pydantic models, and public helpers get nothing by default. Reference: [session_state.py](../../backend/session_state.py).
+Role is not a reason — in either direction. Route handlers, Pydantic models, and public helpers get nothing by default; a private `_helper` earns one on exactly the same terms as a public function, because a `why` is no less true for being private. Reference: [session_state.py](../../backend/session_state.py).
 
 **Module docstrings are mandatory** on every non-trivial module — one line naming what the module owns.
 
@@ -50,4 +50,4 @@ Same rules. No JSDoc restating a TS type. File-header comments are allowed on th
 
 ## Enforcement
 
-`make lint` fails on `Args:`/`Returns:` sections, docstrings on `_private` helpers, and any docstring under `tests/`. Everything else is review.
+`make lint` fails on `Args:`/`Returns:` sections and on any docstring under `tests/`. Everything else is review.

@@ -12,8 +12,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChapterFrontier(BaseModel):
-    """Persisted Frontier for a single chapter on the student profile."""
-
     frontier_topic_id: int = Field(
         default=1,
         description="Frontier topic id — furthest Topic earned in this chapter",
@@ -25,30 +23,22 @@ class ChapterFrontier(BaseModel):
 
 
 class NavigationChapterOption(BaseModel):
-    """One chapter entry in navigation dropdowns."""
-
     chapter_id: int
     name: str
 
 
 class NavigationTopicOption(BaseModel):
-    """One topic entry in navigation dropdowns."""
-
     topic_id: int
     name: str
 
 
 class NavigationProgress(BaseModel):
-    """Completed vs total counts for chapter or topic completion meters."""
-
     completed: int
     total: int
     percentage: float
 
 
 class NavigationView(BaseModel):
-    """Computed navigation state attached to every SessionResponse."""
-
     available_chapters: list[NavigationChapterOption]
     current_topic_name: Optional[str] = None
     available_topics: list[NavigationTopicOption]
@@ -78,8 +68,6 @@ class DeconstructionStep(BaseModel):
 
 
 class DeconstructionState(BaseModel):
-    """Persisted progress through an active Deconstruction's fixed step sequence."""
-
     misconception_slug: str
     steps: list[DeconstructionStep]
     step_index: int = 0
@@ -92,8 +80,6 @@ class DeconstructionState(BaseModel):
 
 
 class SessionState(BaseModel):
-    """Persisted Session — identity, progression, selection, submission cycle, Frontier, problem plumbing."""
-
     session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     username: Optional[str] = None
 
@@ -169,7 +155,6 @@ class SessionState(BaseModel):
     )
 
     def to_storage(self) -> str:
-        """Serialize persisted Session fields for SQLite."""
         return self.model_dump_json(include=set(SessionState.model_fields))
 
 
@@ -243,7 +228,6 @@ class SessionResponse(BaseModel):
         admin_mode: bool,
         navigation: Optional[NavigationView],
     ) -> SessionResponse:
-        """Build a wire payload by copying shared persisted fields plus derived view values."""
         return cls(
             session_id=state.session_id,
             username=state.username,
@@ -275,8 +259,6 @@ class SessionResponse(BaseModel):
 
 
 class SessionStartRequest(BaseModel):
-    """Start or resume a session for a username."""
-
     username: str
     selected_chapter_id: Optional[int] = None
 
@@ -300,16 +282,12 @@ class AutoSolveRequest(BaseModel):
 
 
 class ProblemSubmissionRequest(BaseModel):
-    """Submit an answer for the active problem in a session."""
-
     session_id: str
     user_input: str
     problem_id: Optional[str] = None
 
 
 class DeconstructionSubmissionRequest(BaseModel):
-    """Submit an answer for the current Deconstruction step."""
-
     session_id: str
     user_input: str
 
@@ -324,8 +302,6 @@ class DeconstructionAbandonRequest(BaseModel):
 
 
 class TopicSummary(BaseModel):
-    """One topic in the curriculum index response."""
-
     topic_id: int
     name: str
     max_level: int
@@ -333,29 +309,21 @@ class TopicSummary(BaseModel):
 
 
 class ChapterSummary(BaseModel):
-    """One chapter in the curriculum index response."""
-
     chapter_id: int
     name: str
     topics: list[TopicSummary]
 
 
 class CurriculumResponse(BaseModel):
-    """Full curriculum metadata for chapters and topics."""
-
     chapters: list[ChapterSummary]
 
 
 class ProblemResponse(BaseModel):
-    """Next problem payload plus updated session state."""
-
     problem: Dict[str, Any]
     state: SessionResponse
 
 
 class SubmissionResponse(BaseModel):
-    """Grading outcome plus updated session state."""
-
     state: SessionResponse
     is_correct: bool
     feedback: str

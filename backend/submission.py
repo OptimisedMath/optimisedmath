@@ -109,7 +109,6 @@ def _apply_discounted_retry_outcome(
 
 
 def _sanitize_problem_for_telemetry(problem: ProblemDict) -> str:
-    """Return JSON-safe problem state with internal/UI fields removed."""
     clean = {k: v for k, v in problem.items() if k not in _TELEMETRY_STRIP_KEYS}
     return json.dumps(clean)
 
@@ -117,7 +116,6 @@ def _sanitize_problem_for_telemetry(problem: ProblemDict) -> str:
 def _resolve_misconception_slug(
     state: SessionState, curriculum: Curriculum, eval_result: EvalResult
 ) -> str | None:
-    """Map a graded Trap to its catalogue Misconception, if any."""
     trap_slug = eval_result.get("trap_slug")
     if trap_slug is None:
         return None
@@ -139,7 +137,6 @@ def _log_submission_telemetry(
     curriculum: Curriculum,
     misconception_slug: str | None,
 ) -> None:
-    """Persist one submission attempt with sanitized problem state."""
     username = state.username
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
@@ -299,7 +296,6 @@ def _build_submission_context(
 def _resolve_feedback(
     eval_result: EvalResult, outcome: SubmissionOutcome
 ) -> tuple[str | None, str]:
-    """Merge grading feedback with progression overrides into one final pair."""
     feedback_type = eval_result.get("feedback_type")
     feedback_msg = eval_result.get("feedback_msg", "")
     if outcome.feedback_type is not None:
@@ -342,7 +338,6 @@ def _run_progression_step(
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> None:
-    """Apply progression rules for one graded submission using the play mode."""
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
     assert chapter_id is not None and topic_id is not None

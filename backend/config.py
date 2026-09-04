@@ -1,12 +1,8 @@
 """Settings and tunable constants. `PROJECT_ROOT` is `backend/`, not the repo root."""
 
-# Central configuration file for the Math Learning App
-# Pure Python - no UI framework imports
-
 from pathlib import Path
 
 # --- PROJECT PATHS ---
-# Absolute project root - works regardless of where imports are called from
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 # --- DATABASE CONFIGURATION ---

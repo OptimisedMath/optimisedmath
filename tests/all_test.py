@@ -1,12 +1,9 @@
-"""Parametrized smoke tests for all problem generators in FUNCTION_REGISTRY."""
-
 import pytest
 
 from backend.problem_generation import FUNCTION_REGISTRY
 
 
 def get_all_math_functions():
-    """Return every auto-registered generator from problem_generation."""
     return list(FUNCTION_REGISTRY.items())
 
 

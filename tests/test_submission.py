@@ -1,5 +1,3 @@
-"""Behavioural tests for one Submission — session state and telemetry after grade → log → apply."""
-
 from __future__ import annotations
 
 import json
@@ -42,8 +40,6 @@ _TELEMETRY_STRIP_KEYS = frozenset(
 
 @dataclass(frozen=True)
 class ExpectedSession:
-    """Session fields written by the submission mapping (progression output → state)."""
-
     streak: int
     flawless_eligible: bool
     xp: int
@@ -59,8 +55,6 @@ class ExpectedSession:
 
 @dataclass(frozen=True)
 class ExpectedTelemetry:
-    """One telemetry row produced per Submission."""
-
     is_correct: bool
     user_input: str
     chapter: str
@@ -119,8 +113,6 @@ def _student_state_at(
 
 @dataclass(frozen=True)
 class AdminProfileBaseline:
-    """Persisted profile snapshot before admin submissions mutate session state."""
-
     xp: int
     streak: int
     chapter_frontiers: dict[int, ChapterFrontier]
@@ -291,7 +283,6 @@ def _assert_admin_profile_unchanged(
     state: SessionState,
     baseline: AdminProfileBaseline,
 ) -> None:
-    """Single assertion point: stored profile matches pre-submission baseline."""
     loaded = db.load_user(_username(state))
     assert loaded is not None
     assert loaded["xp"] == baseline.xp

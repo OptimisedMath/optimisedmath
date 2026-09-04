@@ -1,5 +1,3 @@
-"""FastAPI integration tests for session flow, grading, and API contract."""
-
 import asyncio
 import json
 import sqlite3
@@ -36,7 +34,6 @@ def isolated_state(isolated_db):
 
 
 def make_state(problem, *, streak=0, input_mode="radio"):
-    """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS."""
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
     chapter_id = chapter_ids[0]
@@ -450,10 +447,10 @@ def test_locked_navigation_is_rejected():
     assert exc.value.status_code == 403
 
 
+# The value that validates a Navigation intent and the value that renders the
+# toolbar in the same response must agree: an accepted target must show up as
+# Selected and Reachable in that response, not just accepted.
 def test_accepted_navigation_toolbar_agrees_with_target():
-    """The value that validates a Navigation intent and the value that renders the
-    toolbar in the same response must agree: an accepted target must show up as
-    Selected and Reachable in that response, not just accepted."""
     import backend.config as config
 
     admin_username = next(iter(config.ADMIN_USERNAMES))
@@ -483,11 +480,11 @@ def test_accepted_navigation_toolbar_agrees_with_target():
     assert target_topic_id in available_topic_ids
 
 
+# An admin's effective full unlock must apply from the first served state,
+# never a Student-mode default carried over from an unresolved play mode.
 def test_start_session_admin_and_student_diverge_on_effective_frontier(
     fixture_curriculum,
 ):
-    """An admin's effective full unlock must apply from the first served state,
-    never a Student-mode default carried over from an unresolved play mode."""
     import backend.config as config
     from backend.curriculum import set_curriculum
     from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI, TOPIC_RADIO
@@ -639,7 +636,6 @@ def _make_topic_completed_state(
     frontier_topic_id: int,
     frontier_level: int = 1,
 ) -> SessionState:
-    """Build a session ready for next problem after topic completion."""
     curriculum = resolve_curriculum()
     session_id = str(uuid.uuid4())
     state = SessionState()
@@ -692,10 +688,10 @@ def test_next_problem_moves_to_frontier_topic_after_topic_completion():
     assert response.state.navigation is not None
 
 
+# The Navigation snapshot behind Next problem's response must be built after
+# auto-navigation moves the Session, not before — otherwise the just-unlocked
+# Topic would be missing from the toolbar it renders in the same response.
 def test_next_problem_reachable_set_includes_topic_unlocked_by_completion():
-    """The Navigation snapshot behind Next problem's response must be built after
-    auto-navigation moves the Session, not before — otherwise the just-unlocked
-    Topic would be missing from the toolbar it renders in the same response."""
     state = _make_topic_completed_state(
         chapter_id=10,
         completed_topic_id=10,
@@ -869,7 +865,6 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
 
 
 def test_start_session_persists_problem_start_time():
-    """The start clock must reach SQLite from the start path, not just memory."""
     response = run(
         main.session_start(
             main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
@@ -883,7 +878,6 @@ def test_start_session_persists_problem_start_time():
 
 
 def test_start_session_survives_recovery_from_db():
-    """A Session recovered from SQLite after the in-memory cache drops keeps its start clock."""
     response = run(
         main.session_start(
             main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
@@ -899,7 +893,6 @@ def test_start_session_survives_recovery_from_db():
 
 
 def test_start_next_submit_logs_time_spent_telemetry():
-    """Submitting right after start and Next problem must log a populated time_spent field."""
     response = run(
         main.session_start(
             main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
@@ -933,8 +926,8 @@ def test_start_next_submit_logs_time_spent_telemetry():
     assert row[0] is not None
 
 
+# Issue #189: `parameters` is server-side only, withheld by public_problem's allowlist.
 def test_parameters_never_reaches_public_problem_payload():
-    """Issue #189: `parameters` is server-side only, withheld by public_problem's allowlist."""
     problem = {
         "problem_id": "p-parameters-wrong",
         "question": "q",
@@ -961,8 +954,8 @@ def test_parameters_never_reaches_public_problem_payload():
     assert "parameters" not in revealed
 
 
+# Issue #189: `parameters` rides through problem_snapshot, which strips nothing new.
 def test_submission_telemetry_records_parameters_when_present():
-    """Issue #189: `parameters` rides through problem_snapshot, which strips nothing new."""
     problem = {
         "problem_id": "p-parameters-telemetry",
         "question": "q",
@@ -1015,8 +1008,8 @@ def _fetch_last_telemetry_row(session_id):
         ).fetchone()
 
 
+# Issue #188: a Trap whose slug maps to the catalogue writes trap + both new columns.
 def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatch):
-    """Issue #188: a Trap whose slug maps to the catalogue writes trap + both new columns."""
     import dataclasses
 
     from backend.curriculum import Curriculum
@@ -1061,8 +1054,8 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
     assert row == ("trap", "test_misconception", "w1", "p-mapped-trap")
 
 
+# Issue #188: a Trap whose slug is un-mapped writes trap + trap_slug + NULL misconception_slug.
 def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
-    """Issue #188: a Trap whose slug is un-mapped writes trap + trap_slug + NULL misconception_slug."""
     problem = {
         "problem_id": "p-unmapped-trap",
         "question": "q",
@@ -1087,8 +1080,8 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
     assert row == ("trap", None, "w1", "p-unmapped-trap")
 
 
+# Issue #215: a Filler pick collapses into wrong + NULL misconception_slug + NULL trap_slug.
 def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
-    """Issue #215: a Filler pick collapses into wrong + NULL misconception_slug + NULL trap_slug."""
     problem = {
         "problem_id": "p-filler",
         "question": "q",
@@ -1113,8 +1106,8 @@ def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
     assert row == ("wrong", None, None, "p-filler")
 
 
+# Issue #188: problem_id is present on telemetry rows and is indexed.
 def test_telemetry_problem_id_column_is_indexed():
-    """Issue #188: problem_id is present on telemetry rows and is indexed."""
     with sqlite3.connect(main.db.DB_PATH) as conn:
         indexes = {row[1] for row in conn.execute("PRAGMA index_list(telemetry_logs)")}
         index_columns = set()
@@ -1133,7 +1126,6 @@ _UNLIKE_FRACTIONS_MISCONCEPTION = "operates_on_unlike_fractions_directly"
 
 
 def _map_traps_to_misconceptions(monkeypatch, mapping):
-    """Monkeypatch `Curriculum.level_config` so each trap slug maps to a Misconception."""
     import dataclasses
 
     from backend.curriculum import Curriculum
@@ -1166,7 +1158,6 @@ def _trap_problem(problem_id, *, trap_slug="w1", parameters=None):
 
 
 def _submit_trap(state, problem_id, *, trap_slug="w1", parameters=None):
-    """Re-arm `state` with a fresh wrong-answer Problem and submit it, like a Next-problem cycle."""
     state.current_problem = _trap_problem(
         problem_id, trap_slug=trap_slug, parameters=parameters
     )
@@ -1198,8 +1189,8 @@ def _fetch_last_deconstruction_row(session_id):
         ).fetchone()
 
 
+# Issue #194: the first hit only grades normally — it does not arm a Deconstruction.
 def test_first_hit_of_misconception_does_not_trigger_deconstruction(monkeypatch):
-    """Issue #194: the first hit only grades normally — it does not arm a Deconstruction."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
@@ -1209,9 +1200,9 @@ def test_first_hit_of_misconception_does_not_trigger_deconstruction(monkeypatch)
     assert _fetch_last_deconstruction_row(state.session_id) is None
 
 
+# Issue #194: the second hit of the same Misconception at a Level arms `state.deconstruction`
+# with steps computed from the triggering Problem's `parameters`.
 def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
-    """Issue #194: the second hit of the same Misconception at a Level arms `state.deconstruction`
-    with steps computed from the triggering Problem's `parameters`."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1238,14 +1229,13 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
     ]
 
 
+# Issue #224: curriculum drift costs the Student help, never their Problem.
+#
+# `tests/test_deconstruction_contracts.py` is what keeps this from happening; this
+# is what happens if it ever does anyway. The Submission grades normally, the Trap's
+# own prose still fires, the request does not error, and nothing is written to
+# `deconstructions` — so telemetry never shows a Deconstruction that never ran.
 def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatch):
-    """Issue #224: curriculum drift costs the Student help, never their Problem.
-
-    `tests/test_deconstruction_contracts.py` is what keeps this from happening; this
-    is what happens if it ever does anyway. The Submission grades normally, the Trap's
-    own prose still fires, the request does not error, and nothing is written to
-    `deconstructions` — so telemetry never shows a Deconstruction that never ran.
-    """
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     incomplete = {"n1": 1, "d1": 2, "n2": 1, "d2": 3}  # no `operation`
     state = make_state(
@@ -1261,8 +1251,8 @@ def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatc
     assert _fetch_last_deconstruction_row(state.session_id) is None
 
 
+# Issue #194: generic repeated failure — different Misconceptions — is not a trigger.
 def test_repeated_failure_across_different_misconceptions_does_not_trigger(monkeypatch):
-    """Issue #194: generic repeated failure — different Misconceptions — is not a trigger."""
     _map_traps_to_misconceptions(
         monkeypatch, {"w1": "misconception_a", "w2": "misconception_b"}
     )
@@ -1274,9 +1264,9 @@ def test_repeated_failure_across_different_misconceptions_does_not_trigger(monke
     assert state.deconstruction is None
 
 
+# Only a Misconception with an authored walkthrough can ever fire a Deconstruction —
+# hitting the threshold on one of the other 50 must not raise.
 def test_misconception_without_walkthrough_does_not_trigger_or_crash(monkeypatch):
-    """Only a Misconception with an authored walkthrough can ever fire a Deconstruction —
-    hitting the threshold on one of the other 50 must not raise."""
     _map_traps_to_misconceptions(
         monkeypatch, {"w1": "misconception_without_walkthrough"}
     )
@@ -1288,8 +1278,8 @@ def test_misconception_without_walkthrough_does_not_trigger_or_crash(monkeypatch
     assert state.deconstruction is None
 
 
+# Issue #194: the trigger count is read from config, beside MAX_STREAK.
 def test_trigger_count_is_config_tunable(monkeypatch):
-    """Issue #194: the trigger count is read from config, beside MAX_STREAK."""
     monkeypatch.setattr(config, "DECONSTRUCTION_TRIGGER_COUNT", 1)
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-only-hit"), input_mode="radio")
@@ -1299,8 +1289,8 @@ def test_trigger_count_is_config_tunable(monkeypatch):
     assert state.deconstruction is not None
 
 
+# Issue #194: the triggering Submission is graded exactly like any other wrong Trap.
 def test_triggering_submission_grades_streak_xp_flawless_normally(monkeypatch):
-    """Issue #194: the triggering Submission is graded exactly like any other wrong Trap."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), streak=2, input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1317,9 +1307,9 @@ def test_triggering_submission_grades_streak_xp_flawless_normally(monkeypatch):
     assert state.problem_answered is True
 
 
+# Issue #194: correct_answer is withheld on a triggering Submission and present on
+# every other Submission — the premise-level spoiler bug fixed here.
 def test_correct_answer_withheld_only_on_triggering_submission(monkeypatch):
-    """Issue #194: correct_answer is withheld on a triggering Submission and present on
-    every other Submission — the premise-level spoiler bug fixed here."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
@@ -1332,10 +1322,10 @@ def test_correct_answer_withheld_only_on_triggering_submission(monkeypatch):
     assert "correct_answer" not in second_response.state.current_problem
 
 
+# `SessionResponse.deconstruction_running` is the client's takeover trigger, so it
+# must name `state.deconstruction` exactly — not the withheld `correct_answer`, which
+# is a spoiler rule the client must never have to infer from.
 def test_deconstruction_running_flag_tracks_the_running_deconstruction(monkeypatch):
-    """`SessionResponse.deconstruction_running` is the client's takeover trigger, so it
-    must name `state.deconstruction` exactly — not the withheld `correct_answer`, which
-    is a spoiler rule the client must never have to infer from."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
@@ -1355,11 +1345,11 @@ def test_deconstruction_running_flag_tracks_the_running_deconstruction(monkeypat
     assert abandoned.deconstruction_running is False
 
 
+# Issue #194: the `deconstructions` header row exists after trigger detection,
+# before the pause, with `outcome` NULL.
 def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
     monkeypatch,
 ):
-    """Issue #194: the `deconstructions` header row exists after trigger detection,
-    before the pause, with `outcome` NULL."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1387,8 +1377,8 @@ def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
     assert outcome is None
 
 
+# Issue #194: `state.deconstruction` survives re-reading the Session from SQLite.
 def test_deconstruction_survives_sqlite_reload(monkeypatch):
-    """Issue #194: `state.deconstruction` survives re-reading the Session from SQLite."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1410,8 +1400,8 @@ def test_deconstruction_survives_sqlite_reload(monkeypatch):
     ]
 
 
+# Issue #194: problem_start_time keeps running unpaused through trigger detection.
 def test_problem_start_time_not_paused_by_trigger(monkeypatch):
-    """Issue #194: problem_start_time keeps running unpaused through trigger detection."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1437,11 +1427,11 @@ def test_problem_start_time_not_paused_by_trigger(monkeypatch):
 # --- Deconstruction step routes, grading, and the Reveal (#195) ---
 
 
+# Directly arm `state.deconstruction`, bypassing the trigger — mirrors `make_state`
+# setting `current_problem` directly rather than driving a whole Submission cycle.
 def _arm_deconstruction(
     state, steps, *, misconception_slug=None, deconstruction_id=None
 ):
-    """Directly arm `state.deconstruction`, bypassing the trigger — mirrors `make_state`
-    setting `current_problem` directly rather than driving a whole Submission cycle."""
     state.deconstruction = DeconstructionState(
         misconception_slug=misconception_slug or _UNLIKE_FRACTIONS_MISCONCEPTION,
         steps=steps,
@@ -1473,8 +1463,8 @@ def _fetch_deconstruction_step_rows(deconstruction_id):
         ).fetchall()
 
 
+# Issue #195: `working_line: null` is load-bearing — some walkthroughs author none.
 def test_deconstruction_next_returns_full_step_payload_with_null_working_line():
-    """Issue #195: `working_line: null` is load-bearing — some walkthroughs author none."""
     problem = _trap_problem("p-step-payload")
     state = make_state(problem, input_mode="radio")
     _arm_deconstruction(
@@ -1506,8 +1496,8 @@ def test_deconstruction_next_returns_authored_working_line():
     assert response.working_line == r"\frac{1}{2}"
 
 
+# Issue #195: no attempt count appears anywhere on the wire — ADR-0004.
 def test_no_attempt_counter_on_the_wire():
-    """Issue #195: no attempt count appears anywhere on the wire — ADR-0004."""
     state = make_state(_trap_problem("p-no-counter"), input_mode="radio")
     _arm_deconstruction(
         state, [DeconstructionStep(question="q", working_line=None, answer="5")]
@@ -1557,8 +1547,8 @@ def test_correct_answer_advances_step_index_and_resets_attempts():
     assert state.deconstruction.step_revealed is False
 
 
+# Issue #195: a mistyped or wrongly-notated answer costs nothing toward the Reveal.
 def test_soft_error_does_not_count_toward_the_reveal():
-    """Issue #195: a mistyped or wrongly-notated answer costs nothing toward the Reveal."""
     state = make_state(_trap_problem("p-soft-error"), input_mode="radio")
     _arm_deconstruction(
         state, [DeconstructionStep(question="q", working_line=None, answer="5")]
@@ -1741,8 +1731,8 @@ def test_reveal_fires_on_an_ordering_step_same_as_typed(monkeypatch):
     assert state.deconstruction.step_index == 1
 
 
+# Issue #195: one `deconstruction_steps` row per step carries step_index, attempts, revealed.
 def test_deconstruction_steps_row_tracks_attempts_and_revealed(monkeypatch):
-    """Issue #195: one `deconstruction_steps` row per step carries step_index, attempts, revealed."""
     monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
@@ -1775,9 +1765,9 @@ def test_deconstruction_next_raises_when_none_running():
 # --- Deconstruction endings: completion, handback, discounted retry, Abandonment (#196) ---
 
 
+# Issue #196: the final step's submit response carries the original Problem's
+# question text, and only that submission — Handback has no separate endpoint.
 def test_final_step_completion_returns_handback_question():
-    """Issue #196: the final step's submit response carries the original Problem's
-    question text, and only that submission — Handback has no separate endpoint."""
     problem = _trap_problem("p-handback")
     state = make_state(problem, input_mode="radio")
     _arm_deconstruction(
@@ -1808,9 +1798,9 @@ def test_non_final_step_completion_leaves_handback_question_none():
     assert state.deconstruction is not None
 
 
+# Issue #196: after completion the triggering Problem is answerable again on
+# the same problem_id, with `correct_answer` still withheld.
 def test_completion_reopens_same_problem_with_answer_withheld():
-    """Issue #196: after completion the triggering Problem is answerable again on
-    the same problem_id, with `correct_answer` still withheld."""
     problem = _trap_problem("p-reopen")
     state = make_state(problem, input_mode="radio")
     _arm_deconstruction(
@@ -1826,12 +1816,12 @@ def test_completion_reopens_same_problem_with_answer_withheld():
     assert "correct_answer" not in revealed
 
 
+# Issue #196: a correct second attempt scores XP at the config multiplier
+# and leaves Streak and Flawless untouched — a Streak discount would let a
+# Deconstruction gate Level completion, contradicting ADR-0004.
 def test_discounted_retry_scores_xp_multiplier_streak_and_flawless_untouched(
     monkeypatch,
 ):
-    """Issue #196: a correct second attempt scores XP at the config multiplier
-    and leaves Streak and Flawless untouched — a Streak discount would let a
-    Deconstruction gate Level completion, contradicting ADR-0004."""
     monkeypatch.setattr(config, "DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER", 0.5)
     problem = _trap_problem("p-discounted")
     state = make_state(problem, input_mode="radio")
@@ -1861,9 +1851,9 @@ def test_discounted_retry_scores_xp_multiplier_streak_and_flawless_untouched(
     assert state.discounted_problem_id is None
 
 
+# Issue #196: Next problem is not a door — it is rejected backend-side while
+# a Deconstruction is running, rather than serving a fresh Problem.
 def test_next_problem_rejected_while_deconstruction_active():
-    """Issue #196: Next problem is not a door — it is rejected backend-side while
-    a Deconstruction is running, rather than serving a fresh Problem."""
     state = make_state(_trap_problem("p-next-rejected"), input_mode="radio")
     _arm_deconstruction(
         state, [DeconstructionStep(question="q", working_line=None, answer="5")]
@@ -1874,10 +1864,10 @@ def test_next_problem_rejected_while_deconstruction_active():
     assert exc_info.value.status_code == 403
 
 
+# The 403 is a backstop, not the Student's experience: `can_next_problem`
+# closes while a Deconstruction runs, so the client never offers a door the
+# backend would only refuse.
 def test_next_problem_gate_shut_while_deconstruction_active(monkeypatch):
-    """The 403 is a backstop, not the Student's experience: `can_next_problem`
-    closes while a Deconstruction runs, so the client never offers a door the
-    backend would only refuse."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
@@ -1896,9 +1886,9 @@ def test_next_problem_gate_shut_while_deconstruction_active(monkeypatch):
     assert abandoned.can_next_problem is True
 
 
+# Issue #196: the exit control ends the Deconstruction, writing
+# `abandoned_via_control`.
 def test_exit_control_abandons_from_any_step_and_writes_outcome(monkeypatch):
-    """Issue #196: the exit control ends the Deconstruction, writing
-    `abandoned_via_control`."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1939,9 +1929,9 @@ def test_abandon_via_control_leaves_problem_locked_revealed_nothing_earned(
     assert response.current_problem.get("correct_answer") == "2"
 
 
+# Issue #196: toolbar Navigation ends a running Deconstruction cleanly,
+# writing `abandoned_via_navigation` — the second of the two doors.
 def test_navigation_abandons_running_deconstruction_and_writes_outcome(monkeypatch):
-    """Issue #196: toolbar Navigation ends a running Deconstruction cleanly,
-    writing `abandoned_via_navigation` — the second of the two doors."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1967,9 +1957,9 @@ def test_navigation_abandons_running_deconstruction_and_writes_outcome(monkeypat
     assert row[-1] == "abandoned_via_navigation"
 
 
+# Issue #196: either ending disarms the (Misconception, Level) pair for the
+# rest of the Session.
 def test_misconception_does_not_retrigger_after_abandonment_via_control(monkeypatch):
-    """Issue #196: either ending disarms the (Misconception, Level) pair for the
-    rest of the Session."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -2003,12 +1993,12 @@ def test_misconception_does_not_retrigger_after_completion(monkeypatch):
     assert state.deconstruction is None
 
 
+# Issue #196: joining `deconstructions` to `telemetry_logs` on `problem_id`
+# answers whether the Student then solved the triggering Problem — never
+# denormalised onto the `deconstructions` row itself.
 def test_completed_deconstruction_correct_retry_discoverable_by_joining_on_problem_id(
     monkeypatch,
 ):
-    """Issue #196: joining `deconstructions` to `telemetry_logs` on `problem_id`
-    answers whether the Student then solved the triggering Problem — never
-    denormalised onto the `deconstructions` row itself."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")

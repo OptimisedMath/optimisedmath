@@ -1,14 +1,12 @@
-"""Every generator in the curriculum must supply non-empty `parameters`.
-
-A generator picks its template with `random.choice`, so no single call proves every
-branch supplies `parameters` — the same sweep shape as `test_trap_slugs.py`. Running
-each generator many times does: over enough rolls every template fires, and every
-emitted Problem must carry a non-empty `parameters` dict.
-
-One sweep over the whole curriculum, not one per chapter — `build_problem_dict` makes
-`parameters` a required argument, so this is the guarantee's only test.
-"""
-
+# Every generator in the curriculum must supply non-empty `parameters`.
+#
+# A generator picks its template with `random.choice`, so no single call proves every
+# branch supplies `parameters` — the same sweep shape as `test_trap_slugs.py`. Running
+# each generator many times does: over enough rolls every template fires, and every
+# emitted Problem must carry a non-empty `parameters` dict.
+#
+# One sweep over the whole curriculum, not one per chapter — `build_problem_dict` makes
+# `parameters` a required argument, so this is the guarantee's only test.
 import pytest
 
 from backend.problem_generation import FUNCTION_REGISTRY

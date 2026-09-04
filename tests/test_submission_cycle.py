@@ -1,5 +1,3 @@
-"""Internal-seam tests for the Submission cycle module."""
-
 import uuid
 
 import pytest
@@ -57,10 +55,10 @@ def test_reset_submission_cycle_clears_problem_and_feedback(
     assert state.current_input_mode == "radio"
 
 
+# Issue #194: Deconstruction fields are structurally separate from the cycle flags.
 def test_reset_submission_cycle_does_not_clear_deconstruction_fields(
     fixture_curriculum: Curriculum,
 ):
-    """Issue #194: Deconstruction fields are structurally separate from the cycle flags."""
     state = _fresh_state(fixture_curriculum)
     state.deconstruction = DeconstructionState(
         misconception_slug="test_misconception",

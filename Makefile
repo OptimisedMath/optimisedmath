@@ -36,4 +36,5 @@ test:
 
 lint:
 	uv run black --check backend tests
+	uv run python scripts/check_docs.py
 	npm run lint --prefix frontend

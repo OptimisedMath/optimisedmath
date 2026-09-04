@@ -1,5 +1,3 @@
-"""Tests for the Curriculum read model, provider, and /curriculum tracer."""
-
 from __future__ import annotations
 
 import asyncio

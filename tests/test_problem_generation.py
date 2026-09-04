@@ -1,5 +1,3 @@
-"""Problem generation against a fixture Curriculum — no backend/data/ reads."""
-
 import pytest
 
 import backend.config as config
@@ -23,7 +21,6 @@ def _fake_multi_1():
 def test_generate_level_problem_uses_fixture_curriculum_and_fake_generator(
     fixture_curriculum, monkeypatch
 ):
-    """A Problem can be generated from the fixture without reading backend/data/."""
     monkeypatch.setitem(
         problem_generation.FUNCTION_REGISTRY, "fixture_multi_1", _fake_multi_1
     )
@@ -39,7 +36,6 @@ def test_generate_level_problem_uses_fixture_curriculum_and_fake_generator(
 
 
 def test_unpublished_level_raises_same_error(fixture_curriculum):
-    """Fixture unpublished Level surfaces the same 'Level is not available' message."""
     with pytest.raises(
         ProblemGenerationError,
         match=(
@@ -51,8 +47,6 @@ def test_unpublished_level_raises_same_error(fixture_curriculum):
 
 
 def test_always_failing_generator_surfaces_same_error(fixture_curriculum, monkeypatch):
-    """A generator that never returns a problem keeps the prior error message."""
-
     def always_fail():
         return None
 

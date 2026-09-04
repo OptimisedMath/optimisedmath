@@ -10,16 +10,12 @@ from backend.models import ChapterFrontier
 
 @dataclass(frozen=True)
 class Frontier:
-    """Highest Topic and Level a student may reach in one Chapter."""
-
     frontier_topic_id: int
     frontier_level: int
 
 
 @dataclass(frozen=True)
 class FrontierUpdate:
-    """Frontier changes when a Level is mastered at the current boundary."""
-
     level_unlocked: bool = False
     topic_completed: bool = False
     new_frontier_level: int | None = None
@@ -64,7 +60,6 @@ def is_reachable(
     level: int,
     frontier: Frontier,
 ) -> bool:
-    """Return whether a chapter/topic/level target is within the Frontier."""
     if topic_id > frontier.frontier_topic_id:
         return False
     if topic_id == frontier.frontier_topic_id and level > frontier.frontier_level:
@@ -77,7 +72,6 @@ def level_limit(
     topic_max_level: int,
     frontier: Frontier,
 ) -> int:
-    """Return the highest selectable level for a topic given the Frontier."""
     if topic_id < frontier.frontier_topic_id:
         return topic_max_level
     return min(frontier.frontier_level, topic_max_level)
@@ -87,7 +81,6 @@ def accessible_topics(
     chapter_topics: list[TopicDict],
     frontier: Frontier,
 ) -> list[TopicDict]:
-    """Return topics visible in navigation dropdowns for the current Frontier."""
     available = [
         topic_entry
         for topic_entry in chapter_topics
@@ -103,7 +96,6 @@ def increase_frontier_on_mastery(
     topic_max_level: int,
     next_topic_ids: tuple[int, ...],
 ) -> FrontierUpdate:
-    """Apply a Frontier update after streak mastery at the current boundary."""
     if frontier_level < topic_max_level:
         new_level = frontier_level + 1
         return FrontierUpdate(

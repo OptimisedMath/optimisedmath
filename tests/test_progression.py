@@ -1,5 +1,3 @@
-"""Unit tests for submission progression rules (streak, XP, level/topic unlock)."""
-
 import pytest
 
 import backend.config as config

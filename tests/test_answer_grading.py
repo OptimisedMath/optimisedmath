@@ -1,5 +1,3 @@
-"""Tests for backend.answer_grading and problem_generation registry helpers."""
-
 import pytest
 
 from backend.answer_grading import grade
@@ -75,7 +73,6 @@ class TestMultipleChoiceGrading:
         assert result["feedback_msg"] == "Wrong one"
 
     def test_unanticipated_answer_not_in_options_map(self):
-        """An option absent from options_map is unanticipated: Wrong, not Filler."""
         result = grade("not-an-option", _sample_problem(), is_input_mode=False)
         assert result["answer_outcome"] == "wrong"
         assert "trap_slug" not in result

@@ -1,5 +1,3 @@
-"""Unit tests for the persistence layer public API (backend/core/db.py)."""
-
 import json
 import sqlite3
 import uuid

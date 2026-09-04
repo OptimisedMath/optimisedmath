@@ -32,7 +32,6 @@ def _configure_connection(conn: sqlite3.Connection) -> None:
 
 @contextmanager
 def get_connection() -> Generator[sqlite3.Connection, None, None]:
-    """Open a SQLite connection and always close it when the block exits."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH.resolve()), timeout=DB_TIMEOUT_SECONDS)
     _configure_connection(conn)
@@ -50,7 +49,6 @@ def get_connection() -> Generator[sqlite3.Connection, None, None]:
 
 
 def init_db() -> None:
-    """Initializes the database schema if it doesn't exist."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
         conn.execute("PRAGMA journal_mode=WAL")
@@ -163,7 +161,6 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
 
 
 def save_session(session_id: str, username: str, state: SessionState) -> None:
-    """Persists a full session state to SQLite."""
     with get_connection() as conn:
         cursor = conn.cursor()
         state_json = state.to_storage()
@@ -181,7 +178,6 @@ def save_session(session_id: str, username: str, state: SessionState) -> None:
 
 
 def load_session(session_id: str) -> SessionState | None:
-    """Loads a session state from SQLite. Returns None if not found."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -194,7 +190,6 @@ def load_session(session_id: str) -> SessionState | None:
 
 
 def delete_session(session_id: str) -> None:
-    """Removes a session from the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
@@ -214,7 +209,6 @@ def _parse_chapter_frontiers(
 
 
 def load_user(username: str) -> UserData | None:
-    """Loads a user's state. Returns None if the user doesn't exist."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -241,7 +235,6 @@ def load_user(username: str) -> UserData | None:
 
 
 def save_user(username: str, state: SessionState) -> None:
-    """Saves or updates the user's state in the database."""
     with get_connection() as conn:
         cursor = conn.cursor()
         frontiers_str = json.dumps(
@@ -298,7 +291,6 @@ def log_telemetry(
     problem_snapshot: str | None = None,
     problem_id: str | None = None,
 ) -> None:
-    """Record one answer attempt for analytics and debugging."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
@@ -433,7 +425,6 @@ def set_deconstruction_outcome(deconstruction_id: int, outcome: str) -> None:
 def update_deconstruction_step(
     deconstruction_id: int, step_index: int, *, attempts: int, revealed: bool
 ) -> None:
-    """Sync one step's attempt count and Reveal state after a Deconstruction submit."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(

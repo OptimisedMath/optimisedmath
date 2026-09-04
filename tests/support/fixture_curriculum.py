@@ -1,5 +1,3 @@
-"""In-memory Curriculum adapter for tests — synthetic Chapters and Topics."""
-
 from __future__ import annotations
 
 from backend.curriculum import Curriculum
@@ -21,7 +19,6 @@ TOPIC_SINGLE = 201  # Chapter Beta: exactly one published level
 
 
 def build_fixture_curriculum() -> Curriculum:
-    """Build a fixture Curriculum covering behaviours later tickets need."""
     topics_alpha: tuple[TopicDict, ...] = (
         {
             "topic_id": TOPIC_MULTI,

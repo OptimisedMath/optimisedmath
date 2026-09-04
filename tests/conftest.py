@@ -1,5 +1,3 @@
-"""Shared pytest fixtures for the test suite."""
-
 import pytest
 
 from backend.core import db
@@ -15,5 +13,4 @@ def isolated_db(tmp_path, monkeypatch):
 
 @pytest.fixture
 def fixture_curriculum():
-    """Synthetic Curriculum with stable ids for behavioural tests."""
     return build_fixture_curriculum()

@@ -1,17 +1,15 @@
-"""Every generator must actually randomise the numbers it declares as `parameters`.
-
-`test_trap_slugs.py` proves each declared Trap is reachable and
-`test_problem_parameters.py` proves every Problem carries `parameters` — neither
-notices a generator that emits the *same* numbers every roll. `frac_div_frac_2`
-and `frac_mult_2` both seeded their rejection-sampling loop with a pair that
-already satisfied the loop condition, so the body never ran and a whole Level
-shipped one fixed numerator pair (#226).
-
-So: sweep every generator, and require each integer parameter to take more than
-one value across the rolls. A parameter that is fixed by the Level's *shape*
-rather than by a bug is listed in `STRUCTURALLY_CONSTANT` with the reason.
-"""
-
+# Every generator must actually randomise the numbers it declares as `parameters`.
+#
+# `test_trap_slugs.py` proves each declared Trap is reachable and
+# `test_problem_parameters.py` proves every Problem carries `parameters` — neither
+# notices a generator that emits the *same* numbers every roll. `frac_div_frac_2`
+# and `frac_mult_2` both seeded their rejection-sampling loop with a pair that
+# already satisfied the loop condition, so the body never ran and a whole Level
+# shipped one fixed numerator pair (#226).
+#
+# So: sweep every generator, and require each integer parameter to take more than
+# one value across the rolls. A parameter that is fixed by the Level's *shape*
+# rather than by a bug is listed in `STRUCTURALLY_CONSTANT` with the reason.
 import collections
 
 import pytest

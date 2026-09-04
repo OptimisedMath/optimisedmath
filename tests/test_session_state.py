@@ -1,5 +1,3 @@
-"""Unit tests for the session state layer."""
-
 import uuid
 
 import pytest
@@ -160,7 +158,6 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
 def _polluted_submission_cycle_state(
     state: SessionState, fixture_curriculum: Curriculum
 ) -> None:
-    """Fill cycle fields so a clear is observable."""
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_MULTI
     state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
@@ -176,7 +173,6 @@ def _polluted_submission_cycle_state(
 
 
 def _submission_cycle_field_snapshot(state: SessionState) -> dict[str, object]:
-    """Capture the Submission-cycle fields owned by reset_submission_cycle."""
     return {
         "streak": state.streak,
         "flawless_eligible": state.flawless_eligible,
@@ -207,7 +203,6 @@ def test_submission_cycle_clear_entry_points_match_public_helper(
     fixture_curriculum: Curriculum,
     entry_point: str,
 ):
-    """All three entry points clear the same cycle fields, including input mode."""
     username = f"cycle-clear-{entry_point}-user"
     expected = _reference_cleared_cycle_snapshot(fixture_curriculum)
 
@@ -308,7 +303,6 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
 def test_persist_round_trips_flawless_eligible_for_student(
     fixture_curriculum: Curriculum,
 ):
-    """A Flawless-eligible profile survives a real persist and re-read."""
     state = _fresh_state(fixture_curriculum)
     state.flawless_eligible = False
 
@@ -322,7 +316,6 @@ def test_persist_round_trips_flawless_eligible_for_student(
 def test_persist_round_trips_flawless_eligible_and_preserved_profile_for_admin(
     fixture_curriculum: Curriculum,
 ):
-    """The non-write-all build_db_write_plan path preserves the profile and flawless_eligible."""
     state = _fresh_state(fixture_curriculum)
     state.username = "admin-round-trip-user"
     state.flawless_eligible = False

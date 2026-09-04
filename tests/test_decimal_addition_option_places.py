@@ -1,23 +1,21 @@
-"""No decimal-addition option may carry more decimal places than its operands.
-
-`dec_add_1` used to build its operands as `whole + d/10` in binary float and pass
-the sum straight to `fmt_dec`, so a Student was sometimes shown a 17-digit binary-
-float artefact (e.g. `2,5999999999999996`) as one of the four options — and it was
-the correct one. The fix computes in exact `Decimal` arithmetic; this test asserts
-the Student-visible guarantee rather than the arithmetic used to reach it.
-
-A generator picks its template with `random.choice`, so no single call proves the
-guarantee — the same sweep shape as `test_problem_parameters.py` and
-`test_trap_slugs.py`. Running each generator many times does.
-
-Scoped to `dec_add_1` only: its sibling generators in the same Topic (`dec_add_2`,
-`dec_add_3`) already build correct/Trap/Filler values through `round()`, which
-never exhibited this artefact (audited separately), and `dec_add_2`'s
-`applies_the_multiplication_point_rule` Trap *deliberately* emits an answer with a
-different, larger number of decimal places — the guarantee below does not hold
-for it.
-"""
-
+# No decimal-addition option may carry more decimal places than its operands.
+#
+# `dec_add_1` used to build its operands as `whole + d/10` in binary float and pass
+# the sum straight to `fmt_dec`, so a Student was sometimes shown a 17-digit binary-
+# float artefact (e.g. `2,5999999999999996`) as one of the four options — and it was
+# the correct one. The fix computes in exact `Decimal` arithmetic; this test asserts
+# the Student-visible guarantee rather than the arithmetic used to reach it.
+#
+# A generator picks its template with `random.choice`, so no single call proves the
+# guarantee — the same sweep shape as `test_problem_parameters.py` and
+# `test_trap_slugs.py`. Running each generator many times does.
+#
+# Scoped to `dec_add_1` only: its sibling generators in the same Topic (`dec_add_2`,
+# `dec_add_3`) already build correct/Trap/Filler values through `round()`, which
+# never exhibited this artefact (audited separately), and `dec_add_2`'s
+# `applies_the_multiplication_point_rule` Trap *deliberately* emits an answer with a
+# different, larger number of decimal places — the guarantee below does not hold
+# for it.
 import re
 
 from backend.problem_generation import FUNCTION_REGISTRY
@@ -32,7 +30,6 @@ def _decimal_places(token: str) -> int:
 
 
 def _operand_places(q_str: str) -> int:
-    """Max decimal places among the numbers embedded in the rendered question."""
     return max(_decimal_places(token) for token in _NUMBER_RE.findall(q_str))
 
 

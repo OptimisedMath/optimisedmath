@@ -11,7 +11,6 @@ from backend.unlock import first_topic_id
 
 
 def _get_first_topic_id(curriculum: Curriculum, chapter_id: int | None) -> int:
-    """Extract the first topic id for a chapter, with safe fallback."""
     if chapter_id is not None:
         topics = list(curriculum.topics(chapter_id))
         if topics:
@@ -20,7 +19,6 @@ def _get_first_topic_id(curriculum: Curriculum, chapter_id: int | None) -> int:
 
 
 def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
-    """Determine input mode respecting streak threshold and radio-only topics."""
     topic_id = state.selected_topic_id
     chapter_id = state.selected_chapter_id
     if topic_id is None or chapter_id is None:
@@ -118,7 +116,6 @@ def lift_answer_lock(state: SessionState, curriculum: Curriculum | None = None) 
 def mark_level_and_topic_completion(
     state: SessionState, *, level_completed: bool, topic_completed: bool
 ) -> None:
-    """Set Level/Topic completion flags from one graded Submission's outcome."""
     if level_completed:
         state.level_completed = True
     if topic_completed:
@@ -126,7 +123,6 @@ def mark_level_and_topic_completion(
 
 
 def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan:
-    """Produce DB write eligibility once from play mode and persisted profile."""
     if not state.username or play_mode.persists_profile:
         return DbWritePlan.write_all()
 
@@ -146,7 +142,6 @@ def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan
 
 
 def overlay_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> SessionState:
-    """Return session snapshot for DB writes according to ``write_plan``."""
     if (
         write_plan.write_xp
         and write_plan.write_streak
@@ -169,7 +164,6 @@ def overlay_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> Sessi
 
 
 def write_state_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
-    """Pushes current session state to the database."""
     persist_state = overlay_db_write_plan(state, write_plan)
     if persist_state.username:
         try:
@@ -186,7 +180,6 @@ def write_state_to_db(state: SessionState, write_plan: DbWritePlan) -> None:
 
 
 def persist(state: SessionState, play_mode: PlayMode) -> None:
-    """Build the write plan for the resolved play mode and sync state to the DB."""
     write_state_to_db(state, build_db_write_plan(state, play_mode))
 
 

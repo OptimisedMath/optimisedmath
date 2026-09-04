@@ -1,5 +1,3 @@
-"""Table-driven tests for play mode resolution (student vs admin adapters)."""
-
 import pytest
 
 import backend.config as config
