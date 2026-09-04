@@ -4,7 +4,7 @@ What a filename does not tell you. Module ownership and layering: [layered-modul
 
 | Path | Purpose |
 | ------ | --------- |
-| `chapters/<slug>/topic_{id}_{slug}.py` | Problem generators — auto-registered by that filename, `_` prefix for helpers. Copy an existing chapter file when adding content |
+| `chapters/<slug>/topic_{id}_{slug}.py` | Problem generators. The filename decides which files are scanned; every module-level callable in one without a `_` prefix is then registered, so a helper must take the prefix. Copy an existing chapter file when adding content; docstring and Trap comments are required ([documentation.md](../../docs/agents/documentation.md)) |
 | `data/` | Curriculum YAML |
-| `data/misconceptions.yaml` | Misconception catalogue and the rules for authoring one; its optional `deconstruction:` key is validated against `deconstruction.py`'s registry at load time |
+| `data/misconceptions.yaml` | Misconception catalogue and the rules for authoring one. Validated at load time in both directions: a Trap's `misconception:` must name a catalogue entry, **and every catalogue entry must be referenced by at least one Trap** — an entry added ahead of the Traps that will use it fails the load. Its optional `deconstruction:` key is checked against `deconstruction.py`'s registry |
 | `storage/users.db` | SQLite file — access only via `core/db.py` |
