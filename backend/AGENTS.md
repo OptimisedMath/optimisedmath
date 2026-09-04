@@ -10,4 +10,4 @@ Pure Python FastAPI service — no UI framework imports. Game rules live here �
 - **Curriculum / generators** — [backend-map.md](docs/backend-map.md) when adding chapters or problem generators.
 - **API contract** — request/response shapes are `models.py` (Pydantic) mirrored by `frontend/lib/session/types.ts` and `frontend/lib/types.ts`; JSON field names are stable wire format — see `CONTEXT.md`.
 - **Tests** — DB isolated via pytest fixtures; run from repo root.
-- **Docstrings** — [docstrings.md](docs/docstrings.md) when writing or skipping module docs.
+- **Documentation** — [documentation.md](../docs/agents/documentation.md) when writing or skipping a docstring or comment.
