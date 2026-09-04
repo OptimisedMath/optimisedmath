@@ -1,4 +1,6 @@
 import random
+from fractions import Fraction
+
 from backend.core.utils import (
     build_problem_dict,
     declares_traps,
@@ -53,6 +55,8 @@ def dec_mix_2() -> dict | None:
     # Denominators that create infinite decimals (1/3, 1/6) forcing fraction math
     d1 = random.choice([3, 6, 7, 9])
     n1 = random.randint(1, d1 - 1)
+    if Fraction(n1, d1).denominator != d1:
+        return None
 
     d2 = random.choice([2, 5, 10])
     n2 = random.randint(1, d2 - 1)
@@ -91,6 +95,8 @@ def dec_mix_3() -> dict | None:
     """Z nawiasami i różnymi typami (poziom 3)."""
     d1 = random.choice([3, 4, 5, 6, 7])
     n1 = random.randint(1, d1 - 1)
+    if Fraction(n1, d1).denominator != d1:
+        return None
 
     d2 = random.choice([2, 4, 5])
     n2 = random.randint(1, d2 - 1)

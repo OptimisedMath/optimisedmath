@@ -1,5 +1,27 @@
 import random
+from decimal import ROUND_HALF_UP, Decimal
+
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
+
+_QUANT = Decimal("0.0001")
+
+
+def _tenths(lo: int, hi: int) -> Decimal:
+    """A random exact tenths value, e.g. 0.3, drawn as an integer to avoid float noise."""
+    return Decimal(random.randint(lo, hi)) / Decimal(10)
+
+
+def _q(value: Decimal) -> Decimal:
+    """Cap a Decimal to 4 places, so a non-terminating trap division (e.g. a/3) still
+    displays as a clean answer option instead of a 28-digit context-precision tail.
+    Every template here tops out at 2 legitimate decimal places (a tenths value
+    squared or multiplied by another), so 4 places is headroom, never a truncation."""
+    return value.quantize(_QUANT, rounding=ROUND_HALF_UP)
+
+
+def _params(**operands: Decimal) -> dict[str, float]:
+    """`build_problem_dict`'s `parameters` type has no `Decimal` member, so cast back."""
+    return {name: float(value) for name, value in operands.items()}
 
 
 @declares_traps(
@@ -20,7 +42,7 @@ def dec_order_1() -> dict | None:
         template = random.choice(["add_mul", "mul_add", "sub_div", "div_sub"])
 
         if template == "add_mul":
-            a, b, c = [round(random.randint(2, 6) * 0.1, 1) for _ in range(3)]
+            a, b, c = [_tenths(2, 6) for _ in range(3)]
             q = f"{fmt_dec(a)} + {fmt_dec(b)} \\cdot {fmt_dec(c)}"
             ans = a + (b * c)
             traps = {
@@ -29,7 +51,7 @@ def dec_order_1() -> dict | None:
                 "multiplies_the_wrong_pair": (a * b) + c,
             }
         elif template == "mul_add":
-            a, b, c = [round(random.randint(2, 6) * 0.1, 1) for _ in range(3)]
+            a, b, c = [_tenths(2, 6) for _ in range(3)]
             q = f"{fmt_dec(a)} \\cdot {fmt_dec(b)} + {fmt_dec(c)}"
             ans = (a * b) + c
             traps = {
@@ -38,10 +60,10 @@ def dec_order_1() -> dict | None:
                 "flattens_to_all_multiplication": a * b * c,
             }
         elif template == "sub_div":
-            c = round(random.randint(2, 5) * 0.1, 1)
-            ans_div = round(random.randint(2, 5) * 0.1, 1)
-            b = round(ans_div * c, 2)
-            a = round(random.randint(10, 20) * 0.1, 1)
+            c = _tenths(2, 5)
+            ans_div = _tenths(2, 5)
+            b = ans_div * c
+            a = _tenths(10, 20)
             q = f"{fmt_dec(a)} - {fmt_dec(b)} : {fmt_dec(c)}"
             ans = a - ans_div
             traps = {
@@ -50,11 +72,11 @@ def dec_order_1() -> dict | None:
                 "replaces_division_with_multiplication": a - (b * c),
             }
         else:  # div_sub
-            c = round(random.randint(2, 6) * 0.1, 1)
-            ans_div = round(random.randint(2, 6) * 0.1, 1)
-            a = round(ans_div * c, 2)
-            upper_bound = max(1, int(round(ans_div * 10)) - 1)
-            b = round(random.randint(1, upper_bound) * 0.1, 1)
+            c = _tenths(2, 6)
+            ans_div = _tenths(2, 6)
+            a = ans_div * c
+            upper_bound = max(1, int(ans_div * 10) - 1)
+            b = _tenths(1, upper_bound)
             q = f"{fmt_dec(a)} : {fmt_dec(c)} - {fmt_dec(b)}"
             ans = ans_div - b
             traps = {
@@ -65,9 +87,9 @@ def dec_order_1() -> dict | None:
 
         problem = build_problem_dict(
             q,
-            fmt_dec(ans),
-            traps={slug: fmt_dec(value) for slug, value in traps.items()},
-            parameters={"a": a, "b": b, "c": c},
+            fmt_dec(_q(ans)),
+            traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
+            parameters=_params(a=a, b=b, c=c),
         )
 
         # If the dictionary built successfully (no collisions), return it.
@@ -96,7 +118,7 @@ def dec_order_2() -> dict | None:
         template = random.choice(["brack_mul", "mul_brack", "brack_div", "div_brack"])
 
         if template == "brack_mul":
-            a, b, c = [round(random.randint(2, 6) * 0.1, 1) for _ in range(3)]
+            a, b, c = [_tenths(2, 6) for _ in range(3)]
             q = f"({fmt_dec(a)} + {fmt_dec(b)}) \\cdot {fmt_dec(c)}"
             ans = (a + b) * c
             traps = {
@@ -105,9 +127,9 @@ def dec_order_2() -> dict | None:
                 "flattens_to_all_multiplication": a * b * c,
             }
         elif template == "mul_brack":
-            a = round(random.randint(2, 6) * 0.1, 1)
-            b = round(random.randint(5, 9) * 0.1, 1)
-            c = round(random.randint(1, 4) * 0.1, 1)
+            a = _tenths(2, 6)
+            b = _tenths(5, 9)
+            c = _tenths(1, 4)
             q = f"{fmt_dec(a)} \\cdot ({fmt_dec(b)} - {fmt_dec(c)})"
             ans = a * (b - c)
             traps = {
@@ -116,12 +138,12 @@ def dec_order_2() -> dict | None:
                 "replaces_multiplication_with_addition": a + (b - c),
             }
         elif template == "brack_div":
-            c = round(random.randint(2, 5) * 0.1, 1)
-            ans_div = random.randint(2, 6)
-            ab_sum = round(ans_div * c, 1)
-            upper_bound = max(1, int(round(ab_sum * 10)) - 1)
-            a = round(random.randint(1, upper_bound) * 0.1, 1)
-            b = round(ab_sum - a, 1)
+            c = _tenths(2, 5)
+            ans_div = Decimal(random.randint(2, 6))
+            ab_sum = ans_div * c
+            upper_bound = max(1, int(ab_sum * 10) - 1)
+            a = _tenths(1, upper_bound)
+            b = ab_sum - a
             q = f"({fmt_dec(a)} + {fmt_dec(b)}) : {fmt_dec(c)}"
             ans = ans_div
             traps = {
@@ -130,11 +152,11 @@ def dec_order_2() -> dict | None:
                 "replaces_division_with_subtraction": a + b - c,
             }
         else:  # div_brack
-            ans_brack = round(random.randint(2, 5) * 0.1, 1)
-            ans_div = round(random.randint(2, 5) * 0.1, 1)
-            a = round(ans_div * ans_brack, 2)
-            b = round(random.randint(10, 20) * 0.1, 1)
-            c = round(b - ans_brack, 1)
+            ans_brack = _tenths(2, 5)
+            ans_div = _tenths(2, 5)
+            a = ans_div * ans_brack
+            b = _tenths(10, 20)
+            c = b - ans_brack
             q = f"{fmt_dec(a)} : ({fmt_dec(b)} - {fmt_dec(c)})"
             ans = ans_div
             traps = {
@@ -145,9 +167,9 @@ def dec_order_2() -> dict | None:
 
         problem = build_problem_dict(
             q,
-            fmt_dec(ans),
-            traps={slug: fmt_dec(value) for slug, value in traps.items()},
-            parameters={"a": a, "b": b, "c": c},
+            fmt_dec(_q(ans)),
+            traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
+            parameters=_params(a=a, b=b, c=c),
         )
 
         if problem is not None:
@@ -176,7 +198,7 @@ def dec_order_3() -> dict | None:
 
     parameters = {}
     if template == "pow_add":
-        a, b, c = [round(random.randint(2, 5) * 0.1, 1) for _ in range(3)]
+        a, b, c = [_tenths(2, 5) for _ in range(3)]
         q = f"{fmt_dec(a)}^2 + {fmt_dec(b)} \\cdot {fmt_dec(c)}"
         ans = (a**2) + (b * c)
         traps = {
@@ -184,9 +206,9 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": (a * 2) + (b * c),
             "ignores_the_exponent": a + (b * c),
         }
-        parameters = {"a": a, "b": b, "c": c}
+        parameters = _params(a=a, b=b, c=c)
     elif template == "add_pow":
-        a, b = [round(random.randint(2, 5) * 0.1, 1) for _ in range(2)]
+        a, b = [_tenths(2, 5) for _ in range(2)]
         q = f"{fmt_dec(a)} + {fmt_dec(b)}^2"
         ans = a + (b**2)
         traps = {
@@ -194,10 +216,10 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": a + (b * 2),
             "replaces_addition_with_multiplication": a * (b**2),
         }
-        parameters = {"a": a, "b": b}
+        parameters = _params(a=a, b=b)
     elif template == "sub_pow":
-        a = round(random.randint(10, 20) * 0.1, 1)
-        b = round(random.randint(2, 5) * 0.1, 1)
+        a = _tenths(10, 20)
+        b = _tenths(2, 5)
         q = f"{fmt_dec(a)} - {fmt_dec(b)}^2"
         ans = a - (b**2)
         traps = {
@@ -205,9 +227,9 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": a - (b * 2),
             "flips_the_final_sign": a + (b**2),
         }
-        parameters = {"a": a, "b": b}
+        parameters = _params(a=a, b=b)
     else:  # pow_mul
-        a, b = [round(random.randint(2, 5) * 0.1, 1) for _ in range(2)]
+        a, b = [_tenths(2, 5) for _ in range(2)]
         q = f"{fmt_dec(a)}^2 \\cdot {fmt_dec(b)}"
         ans = (a**2) * b
         traps = {
@@ -215,12 +237,12 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": (a * 2) * b,
             "replaces_multiplication_with_addition": (a**2) + b,
         }
-        parameters = {"a": a, "b": b}
+        parameters = _params(a=a, b=b)
 
     problem = build_problem_dict(
         q,
-        fmt_dec(ans),
-        traps={slug: fmt_dec(value) for slug, value in traps.items()},
+        fmt_dec(_q(ans)),
+        traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
         parameters=parameters,
     )
     if problem:
@@ -241,9 +263,9 @@ def dec_order_4() -> dict | None:
     template = random.choice(["brack_mul_brack", "mul_add_mul"])
 
     if template == "brack_mul_brack":
-        a, b = [round(random.randint(2, 6) * 0.1, 1) for _ in range(2)]
-        c = round(random.randint(5, 9) * 0.1, 1)
-        d = round(random.randint(1, 4) * 0.1, 1)
+        a, b = [_tenths(2, 6) for _ in range(2)]
+        c = _tenths(5, 9)
+        d = _tenths(1, 4)
         q = f"({fmt_dec(a)} + {fmt_dec(b)}) \\cdot ({fmt_dec(c)} - {fmt_dec(d)})"
         ans = (a + b) * (c - d)
         traps = {
@@ -252,8 +274,8 @@ def dec_order_4() -> dict | None:
             "ignores_the_first_bracket": a + b * (c - d),
         }
     else:
-        a, c = [round(random.randint(2, 5) * 0.1, 1) for _ in range(2)]
-        b, d = [round(random.randint(2, 5) * 0.1, 1) for _ in range(2)]
+        a, c = [_tenths(2, 5) for _ in range(2)]
+        b, d = [_tenths(2, 5) for _ in range(2)]
         q = f"{fmt_dec(a)} \\cdot {fmt_dec(b)} + {fmt_dec(c)} \\cdot {fmt_dec(d)}"
         ans = (a * b) + (c * d)
         traps = {
@@ -264,9 +286,9 @@ def dec_order_4() -> dict | None:
 
     problem = build_problem_dict(
         q,
-        fmt_dec(ans),
-        traps={slug: fmt_dec(value) for slug, value in traps.items()},
-        parameters={"a": a, "b": b, "c": c, "d": d},
+        fmt_dec(_q(ans)),
+        traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
+        parameters=_params(a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
@@ -284,7 +306,7 @@ def dec_order_5() -> dict | None:
     template = random.choice(["brack_sq_sub", "sub_brack_sq"])
 
     if template == "brack_sq_sub":
-        a, b, c = [round(random.randint(1, 4) * 0.1, 1) for _ in range(3)]
+        a, b, c = [_tenths(1, 4) for _ in range(3)]
         q = f"({fmt_dec(a)} + {fmt_dec(b)})^2 - {fmt_dec(c)}"
         ans = ((a + b) ** 2) - c
         traps = {
@@ -293,8 +315,8 @@ def dec_order_5() -> dict | None:
             "flips_the_final_sign": ((a + b) ** 2) + c,
         }
     else:
-        a = round(random.randint(10, 20) * 0.1, 1)
-        b, c = [round(random.randint(1, 4) * 0.1, 1) for _ in range(2)]
+        a = _tenths(10, 20)
+        b, c = [_tenths(1, 4) for _ in range(2)]
         q = f"{fmt_dec(a)} - ({fmt_dec(b)} + {fmt_dec(c)})^2"
         ans = a - ((b + c) ** 2)
         traps = {
@@ -305,9 +327,9 @@ def dec_order_5() -> dict | None:
 
     problem = build_problem_dict(
         q,
-        fmt_dec(ans),
-        traps={slug: fmt_dec(value) for slug, value in traps.items()},
-        parameters={"a": a, "b": b, "c": c},
+        fmt_dec(_q(ans)),
+        traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
+        parameters=_params(a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -321,9 +343,9 @@ def dec_order_5() -> dict | None:
 def dec_order_6() -> dict | None:
     """Boss Level (poziom 6)."""
     # Poziom 6: Ultimate Boss (Potęgi, Nawiasy i Mnożenie)
-    a = round(random.randint(2, 4) * 0.1, 1)
-    b, c = [round(random.randint(1, 3) * 0.1, 1) for _ in range(2)]
-    d = round(random.randint(1, 5) * 0.1, 1)
+    a = _tenths(2, 4)
+    b, c = [_tenths(1, 3) for _ in range(2)]
+    d = _tenths(1, 5)
     q = f"{fmt_dec(a)} \\cdot ({fmt_dec(b)} + {fmt_dec(c)})^2 - {fmt_dec(d)}"
     ans = a * ((b + c) ** 2) - d
 
@@ -335,9 +357,9 @@ def dec_order_6() -> dict | None:
 
     problem = build_problem_dict(
         q,
-        fmt_dec(ans),
-        traps={slug: fmt_dec(value) for slug, value in traps.items()},
-        parameters={"a": a, "b": b, "c": c, "d": d},
+        fmt_dec(_q(ans)),
+        traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
+        parameters=_params(a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
