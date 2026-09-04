@@ -38,11 +38,13 @@ def frac_frac_of_int_1() -> dict | None:
     "inverts_the_fraction_before_multiplying", "multiplies_the_denominator_too"
 )
 def frac_frac_of_int_2() -> dict | None:
-    """Trudniejsze liczby (poziom 2)."""
+    """Gdy wynik jest ułamkiem (poziom 2)."""
     d = random.randint(3, 9)
     n = random.randint(1, d - 1)
     k = random.randint(4, 15)
-    if k % d == 0:
+    # The Level is "Gdy wynik jest ułamkiem": k % d != 0 is not enough, because
+    # d can still divide n * k (n=3, d=6, k=4 gives 12/6 = 2).
+    if (n * k) % d == 0:
         return None
 
     q_str = (
@@ -70,7 +72,7 @@ def frac_frac_of_int_2() -> dict | None:
     "applies_the_fraction_again_instead_of_inverting",
 )
 def frac_frac_of_int_3() -> dict | None:
-    """Gdy wynik jest ułamkiem (poziom 3)."""
+    """Szukanie liczby z jej ułamka (poziom 3)."""
     d = random.randint(3, 8)
     n = random.randint(2, d - 1)
     whole = d * random.randint(2, 6)
@@ -95,7 +97,7 @@ def frac_frac_of_int_3() -> dict | None:
 
 @declares_traps("gives_only_the_fraction_not_the_total", "adds_only_the_numerator")
 def frac_frac_of_int_4() -> dict | None:
-    """Ułamek z liczby mieszanej (poziom 4)."""
+    """Powiększanie i pomniejszanie o ułamek (poziom 4)."""
     d = random.randint(3, 6)
     n = random.randint(1, d - 1)
     base = d * random.randint(2, 5)

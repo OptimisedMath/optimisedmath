@@ -53,7 +53,7 @@ def dec_number_line_1() -> dict | None:
     "counts_gaps_from_the_far_end",
 )
 def dec_number_line_2() -> dict | None:
-    """Oś co 0.01 (poziom 2)."""
+    """Oś co 0,01 i 0,001 (poziom 2)."""
     # Level 2: 10 ticks, but with decimals (hundredths and thousandths). Step 0.01 or 0.001.
     step = random.choice([0.01, 0.001])
     base_mult = random.randint(1, 99)
@@ -96,7 +96,7 @@ def dec_number_line_2() -> dict | None:
     "counts_gaps_from_the_far_end",
 )
 def dec_number_line_3() -> dict | None:
-    """Oś co 0.2 lub podobne (poziom 3)."""
+    """Oś co 0,2 (poziom 3)."""
     # Level 3: Easy Scale Intro. 5 ticks, whole numbers. Step is 0.2.
     ticks = 5
     step = 0.2
@@ -137,7 +137,7 @@ def dec_number_line_3() -> dict | None:
     "counts_gaps_from_the_far_end",
 )
 def dec_number_line_4() -> dict | None:
-    """Duży odstęp (poziom 4)."""
+    """Oś co 0,02 i 0,025 (poziom 4)."""
     # Level 4: Advanced Scale. 4 or 5 ticks, decimal numbers.
     ticks = random.choice([4, 5])
     step = 0.02 if ticks == 5 else 0.025
@@ -181,7 +181,7 @@ def dec_number_line_4() -> dict | None:
     "doubles_the_whole_distance",
 )
 def dec_number_line_5() -> dict | None:
-    """Duży odstęp cz. 2 (poziom 5)."""
+    """Poza ostatnią etykietą (poziom 5)."""
     # Level 5: Extrapolation. 10 ticks, target is outside bounds.
     ticks = 10
     step = random.choice([0.1, 0.01])

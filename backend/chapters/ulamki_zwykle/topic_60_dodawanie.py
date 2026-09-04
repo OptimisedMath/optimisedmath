@@ -35,7 +35,7 @@ def frac_add_1() -> dict | None:
 
 @declares_traps("adds_numerators_without_expanding", "adds_the_denominators")
 def frac_add_2() -> dict | None:
-    """Skracanie wyniku (poziom 2)."""
+    """Jeden mianownik jest wielokrotnością drugiego (poziom 2)."""
     d1 = random.randint(2, 5)
     factor = random.randint(2, 4)
     d2 = d1 * factor

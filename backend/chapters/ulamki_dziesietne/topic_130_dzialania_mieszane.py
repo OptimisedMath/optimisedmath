@@ -49,7 +49,7 @@ def dec_mix_1() -> dict | None:
     "rounds_to_a_decimal_instead_of_an_exact_fraction",
 )
 def dec_mix_2() -> dict | None:
-    """Ułamki w dzieleniu dziesiętnym (poziom 2)."""
+    """Dodawanie, gdy ułamek nie ma skończonego rozwinięcia (poziom 2)."""
     # Denominators that create infinite decimals (1/3, 1/6) forcing fraction math
     d1 = random.choice([3, 6, 7, 9])
     n1 = random.randint(1, d1 - 1)
@@ -88,7 +88,7 @@ def dec_mix_2() -> dict | None:
     "multiplies_instead_of_dividing",
 )
 def dec_mix_3() -> dict | None:
-    """Z nawiasami i różnymi typami (poziom 3)."""
+    """Mnożenie i dzielenie różnych typów (poziom 3)."""
     d1 = random.choice([3, 4, 5, 6, 7])
     n1 = random.randint(1, d1 - 1)
 

@@ -146,7 +146,7 @@ def frac_sub_4() -> dict | None:
     "borrows_without_decrementing_the_whole",
 )
 def frac_sub_5() -> dict | None:
-    """Różne mianowniki (poziom 5)."""
+    """Odejmowanie z pożyczaniem całości (poziom 5)."""
     whole1, whole2 = random.randint(2, 4), random.randint(1, 2)
     if whole1 <= whole2:
         return None

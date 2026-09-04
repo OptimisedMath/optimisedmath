@@ -40,6 +40,14 @@ def dec_sub_2() -> dict | None:
     """Z pożyczaniem (poziom 2)."""
     v1 = random.randint(311, 999) / 100
     v2 = random.randint(11, int(v1 * 10) - 1) / 10
+    if v2 == int(v2):
+        return None  # A whole subtrahend is level 3's subject, not this one
+
+    # The Level is "Z pożyczaniem": only draws whose minuend tenth is smaller
+    # actually borrow, and the borrows_but_leaves_nine_in_the_hundredths trap
+    # models nothing on the ones that don't.
+    if int(v1 * 10) % 10 >= int(v2 * 10) % 10:
+        return None
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} - {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 - v2, 2))

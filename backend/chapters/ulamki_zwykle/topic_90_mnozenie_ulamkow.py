@@ -72,7 +72,7 @@ def frac_mult_2() -> dict | None:
     "adds_instead_of_multiplying",
 )
 def frac_mult_3() -> dict | None:
-    """Mnożenie liczb mieszanych (poziom 3)."""
+    """Mnożenie przez liczbę mieszaną (poziom 3)."""
     w = random.randint(1, 3)
     d1, d2 = random.randint(2, 5), random.randint(2, 5)
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
@@ -113,7 +113,7 @@ def frac_mult_3() -> dict | None:
     "multiplies_fractions_and_adds_the_wholes",
 )
 def frac_mult_4() -> dict | None:
-    """Wielkie skracanie (poziom 4)."""
+    """Mnożenie liczb mieszanych (poziom 4)."""
     whole1, whole2 = random.randint(1, 2), random.randint(1, 2)
     d1, d2 = random.randint(2, 4), random.randint(2, 4)
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
