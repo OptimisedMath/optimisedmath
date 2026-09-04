@@ -137,7 +137,7 @@ An incorrect answer with no misconception behind it — a slip, where the Studen
 _Avoid_: w1, w2 (internal ids)
 
 **Unit**:
-The physical dimension marker an answer carries — `cm²`, `m`, `ha`. A Problem that expects one names it, and the Student types it as part of their answer; a Unit of the same dimension is converted before comparison, so a correct conversion is Correct. A Unit of the wrong dimension, or the right number under the wrong Unit, is a Trap. Degrees are not a Unit: `°` is shown beside the answer field but never typed, never expected, and never graded.
+The physical dimension marker an answer carries — `cm²`, `m`, `ha`. A Problem that expects one names it, and the Student types it as part of their answer in Input mode, while in Radio mode every option carries the same Unit and none of them is typed; a Unit of the same dimension is converted before comparison, so a correct conversion is Correct. A Unit of the wrong dimension, or the right number under the wrong Unit, is a Trap. Degrees are not a Unit: `°` is shown beside the answer field but never typed, never expected, and never graded.
 _Avoid_: measure, dimension (for the marker itself), suffix
 
 **Problem fingerprint**:
