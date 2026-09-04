@@ -193,7 +193,7 @@ topics:
             misconception: adds_denominators_with_like_fractions
             explanation: "Dodałeś do siebie mianowniki! Przy dodawaniu ułamków mianownik zawsze przepisujemy bez zmian."
       - level: 2
-        name: "Skracanie wyniku"
+        name: "Jeden mianownik jest wielokrotnością drugiego"
         function: "frac_add_2"
         traps:
           adds_numerators_without_expanding:
@@ -276,7 +276,7 @@ topics:
             misconception: drops_whole_part
             explanation: "Zgubiłeś całości! Odejmij też duże liczby stojące z przodu."
       - level: 5
-        name: "Różne mianowniki"
+        name: "Odejmowanie z pożyczaniem całości"
         function: "frac_sub_5"
         traps:
           borrows_ten_instead_of_the_denominator:
@@ -348,7 +348,7 @@ topics:
             misconception: does_not_reduce_to_lowest_terms
             explanation: "Pominąłeś skracanie! Szukaj pary na krzyż do podzielenia przez tę samą liczbę."
       - level: 3
-        name: "Mnożenie liczb mieszanych"
+        name: "Mnożenie przez liczbę mieszaną"
         function: "frac_mult_3"
         traps:
           adds_instead_of_multiplying:
@@ -358,7 +358,7 @@ topics:
             misconception: operates_on_mixed_number_without_converting
             explanation: "Pomnożyłeś osobno całości i osobno ułamki! Najpierw zamień wszystko na ułamki niewłaściwe."
       - level: 4
-        name: "Wielkie skracanie"
+        name: "Mnożenie liczb mieszanych"
         function: "frac_mult_4"
         traps:
           multiplies_fractions_and_adds_the_wholes:
@@ -581,7 +581,7 @@ topics:
             misconception: does_not_read_fraction_of_as_multiplication
             explanation: "Odwróciłeś ułamek. 'Ułamek z liczby' to mnożenie przez ten ułamek, nie przez jego odwrotność."
       - level: 2
-        name: "Trudniejsze liczby"
+        name: "Gdy wynik jest ułamkiem"
         function: "frac_frac_of_int_2"
         traps:
           inverts_the_fraction_before_multiplying:
@@ -591,7 +591,7 @@ topics:
             misconception: does_not_read_fraction_of_as_multiplication
             explanation: "Pomnożyłeś także mianownik. Liczba całkowita mnoży tylko licznik."
       - level: 3
-        name: "Gdy wynik jest ułamkiem"
+        name: "Szukanie liczby z jej ułamka"
         function: "frac_frac_of_int_3"
         traps:
           applies_the_fraction_again_instead_of_inverting:
@@ -601,7 +601,7 @@ topics:
             misconception: does_not_read_fraction_of_as_multiplication
             explanation: "Wziąłeś mianownik o jeden za duży. Przepisz go dokładnie z ułamka."
       - level: 4
-        name: "Ułamek z liczby mieszanej"
+        name: "Powiększanie i pomniejszanie o ułamek"
         function: "frac_frac_of_int_4"
         traps:
           adds_only_the_numerator:

@@ -48,7 +48,7 @@ def dec_to_frac_1() -> dict | None:
     "writes_the_denominator_after_the_point",
 )
 def dec_to_frac_2() -> dict | None:
-    """Ze zwykłego na dziesiętny (mianowniki 10, 100) (poziom 2)."""
+    """Ze zwykłego na dziesiętny (ułamek właściwy) (poziom 2)."""
     d = random.choice([4, 5, 20, 25])
     n = random.randint(1, d - 1)
     if Fraction(n, d).denominator != d:
@@ -78,7 +78,7 @@ def dec_to_frac_2() -> dict | None:
     "writes_the_denominator_after_the_point",
 )
 def dec_to_frac_3() -> dict | None:
-    """Ze zwykłego na dziesiętny (rozszerzanie 2, 4, 5) (poziom 3)."""
+    """Ze zwykłego na dziesiętny (liczba mieszana) (poziom 3)."""
     w = random.randint(1, 5)
     d = random.choice([2, 4, 5, 20])
     n = random.randint(1, d - 1)

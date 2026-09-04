@@ -60,7 +60,7 @@ def dec_mult_2() -> dict | None:
     "puts_one_place_too_many_in_the_product",
 )
 def dec_mult_3() -> dict | None:
-    """Z dużą ilością zer (poziom 3)."""
+    """Połówki przez części dziesiąte (poziom 3)."""
     v1 = random.choice([1.5, 2.5, 3.5, 4.5])
     v2 = random.choice([0.2, 0.4, 0.6, 0.8])
 

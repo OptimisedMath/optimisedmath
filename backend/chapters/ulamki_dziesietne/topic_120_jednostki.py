@@ -8,7 +8,7 @@ from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
     "divides_by_one_power_too_many",
 )
 def dec_unit_1() -> dict | None:
-    """Zamiana na mniejsze (mm, cm) (poziom 1)."""
+    """Jednostki długości (poziom 1)."""
     v = random.randint(2, 99)
     pairs = [("mm", "cm", 10), ("cm", "m", 100), ("m", "km", 1000)]
     unit_in, unit_out, factor = random.choice(pairs)
@@ -40,7 +40,7 @@ def dec_unit_1() -> dict | None:
     "divides_by_one_power_too_few",
 )
 def dec_unit_2() -> dict | None:
-    """Zamiana na większe (g, kg) (poziom 2)."""
+    """Jednostki masy (poziom 2)."""
     v = random.randint(2, 99)
     pairs = [("g", "dag", 10), ("dag", "kg", 100), ("g", "kg", 1000)]
     unit_in, unit_out, factor = random.choice(pairs)
@@ -70,7 +70,7 @@ def dec_unit_2() -> dict | None:
     "writes_grosze_as_tens_of_grosze",
 )
 def dec_unit_3() -> dict | None:
-    """Jednostki pieniężne i wagowe (mieszane) (poziom 3)."""
+    """Złote i grosze (poziom 3)."""
     zl = random.randint(2, 15)
     gr = random.randint(1, 9)  # Single digit grosze forces the "0" trap (e.g. 5.08)
 

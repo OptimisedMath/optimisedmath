@@ -35,7 +35,7 @@ def dec_div_1() -> dict | None:
     "sums_the_decimal_places_as_in_multiplication",
 )
 def dec_div_2() -> dict | None:
-    """Przez liczbę całkowitą (z resztą) (poziom 2)."""
+    """Przez części dziesiąte (poziom 3)."""
     c = random.randint(2, 9)
     d = random.randint(2, 5)
     v1 = (c * d) / 100
@@ -67,7 +67,7 @@ def dec_div_2() -> dict | None:
     "shifts_the_dividend_two_places_the_wrong_way",
 )
 def dec_div_3() -> dict | None:
-    """Przez ułamek dziesiętny (proste) (poziom 3)."""
+    """Przez części setne (poziom 4)."""
     c = random.randint(2, 9)
     d = random.randint(2, 5)
     v1 = (c * d) / 10
@@ -97,7 +97,7 @@ def dec_div_3() -> dict | None:
     "shifts_the_divisor_instead_of_appending_a_zero",
 )
 def dec_div_4() -> dict | None:
-    """Przez ułamek dziesiętny (zaawansowane) (poziom 4)."""
+    """Przez liczbę całkowitą (z dopisaniem zera) (poziom 2)."""
     # Generate divisions like 0.3 : 2 = 0.15 where student must append a 0
     v1 = random.choice([1, 3, 5, 7, 9]) / 10
     d = random.choice([2, 4, 5])
