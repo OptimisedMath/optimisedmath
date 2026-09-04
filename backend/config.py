@@ -1,3 +1,5 @@
+"""Settings and tunable constants. `PROJECT_ROOT` is `backend/`, not the repo root."""
+
 # Central configuration file for the Math Learning App
 # Pure Python - no UI framework imports
 

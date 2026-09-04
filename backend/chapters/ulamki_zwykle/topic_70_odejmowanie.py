@@ -1,3 +1,5 @@
+"""Ułamki Zwykłe — Odejmowanie: generatory Problemów."""
+
 import random
 import math
 from backend.core.utils import (

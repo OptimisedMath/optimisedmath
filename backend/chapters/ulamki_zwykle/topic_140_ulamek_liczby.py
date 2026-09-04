@@ -1,3 +1,5 @@
+"""Ułamki Zwykłe — Ułamek z liczby: generatory Problemów."""
+
 import random
 from backend.core.utils import (
     format_answers,

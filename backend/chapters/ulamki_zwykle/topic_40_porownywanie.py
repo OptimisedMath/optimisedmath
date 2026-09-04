@@ -1,3 +1,5 @@
+"""Ułamki Zwykłe — Porównywanie: generatory Problemów."""
+
 import random
 from backend.core.utils import (
     format_fraction_question,

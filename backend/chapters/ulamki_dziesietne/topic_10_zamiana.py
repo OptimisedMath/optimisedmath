@@ -1,3 +1,5 @@
+"""Ułamki Dziesiętne — Zamiana ułamków: generatory Problemów."""
+
 import random
 from decimal import Decimal
 from fractions import Fraction

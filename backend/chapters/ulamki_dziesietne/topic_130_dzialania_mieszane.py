@@ -1,3 +1,5 @@
+"""Ułamki Dziesiętne — Działania mieszane: generatory Problemów."""
+
 import random
 from fractions import Fraction
 

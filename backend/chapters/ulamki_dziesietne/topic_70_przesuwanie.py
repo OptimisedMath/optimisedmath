@@ -1,3 +1,5 @@
+"""Ułamki Dziesiętne — Przesuwanie przecinka: generatory Problemów."""
+
 import random
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 

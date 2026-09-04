@@ -1,3 +1,5 @@
+"""Ułamki Dziesiętne — Kolejność wykonywania działań: generatory Problemów."""
+
 import random
 from decimal import ROUND_HALF_UP, Decimal
 

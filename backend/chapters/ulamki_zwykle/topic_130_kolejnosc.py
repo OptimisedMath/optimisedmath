@@ -1,3 +1,5 @@
+"""Ułamki Zwykłe — Kolejność wykonywania działań: generatory Problemów."""
+
 import random
 from fractions import Fraction
 from backend.core.utils import build_problem_dict, declares_traps

@@ -1,3 +1,5 @@
+"""Ułamki Dziesiętne — Dodawanie: generatory Problemów."""
+
 import random
 from decimal import Decimal
 

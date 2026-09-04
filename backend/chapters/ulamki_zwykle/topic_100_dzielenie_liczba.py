@@ -1,3 +1,5 @@
+"""Ułamki Zwykłe — Dzielenie przez liczbę: generatory Problemów."""
+
 import random
 from backend.core.utils import (
     format_answers,

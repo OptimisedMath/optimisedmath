@@ -1,3 +1,5 @@
+"""Ułamki Zwykłe — Oś liczbowa: generatory Problemów."""
+
 import random
 from backend.core.utils import (
     build_problem_dict,
