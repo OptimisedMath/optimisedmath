@@ -1,13 +1,8 @@
 # Frontend file map
 
-| Path                | Purpose                                                      |
+| Path | Purpose |
 | ------------------- | ------------------------------------------------------------ |
-| `app/`              | App Router pages: `/`, `/login`, `/arena`                    |
-| `components/arena/` | Arena UI                                                     |
-| `components/ui/`    | Shared shadcn primitives                                     |
-| `lib/session/`      | Session client - 'frontend/docs/session.md'                  |
-| `lib/types.ts`      | Curriculum catalog types (mirror backend)                    |
-| `lib/api.ts`        | API helpers                                                  |
-| `test/`             | Vitest + Testing Library; fake session client via `test/fakeBackend.ts` |
-
-
+| `app/` | App Router pages: `/`, `/login`, `/arena` |
+| `components/ui/` | Shared shadcn primitives — not arena-specific |
+| `lib/session/` | Session client and the app's one test seam — [session.md](session.md) |
+| `lib/types.ts` | Curriculum catalog types, mirroring `backend/models.py` |

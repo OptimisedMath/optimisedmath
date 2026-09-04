@@ -1,14 +1,10 @@
 # Backend file map
 
-Module ownership and layers: [layered-modules.md](layered-modules.md).
+What a filename does not tell you. Module ownership and layering: [layered-modules.md](layered-modules.md); each module's own docstring says what it owns.
 
 | Path | Purpose |
 | ------ | --------- |
-| `core/utils.py` | Shared helpers |
-| `chapters/<slug>/topic_{id}_{slug}.py` | Problem generators (auto-registered; `_` prefix for helpers; copy an existing chapter file when adding content) |
-| `deconstruction.py` | Walkthrough registry and `build_steps()`; one `@declares_deconstruction(...)` function per Misconception |
-| `deconstruction_step.py` | Deconstruction step state transitions — grade, Reveal, advance, persist, completion/Abandonment; used by `session.py`'s `/deconstruction/*` use-cases and `submission_cycle.py`'s Navigation |
-| `step_grading.py` | Deconstruction step grading — target answer, correct/incorrect, no Trap/`options_map` |
+| `chapters/<slug>/topic_{id}_{slug}.py` | Problem generators — auto-registered by that filename, `_` prefix for helpers. Copy an existing chapter file when adding content |
 | `data/` | Curriculum YAML |
-| `data/misconceptions.yaml` | Misconception catalogue; optional `deconstruction:` key per entry, validated against `deconstruction.py`'s registry at load time |
-| `storage/users.db` | SQLite file; access via `core/db.py` |
+| `data/misconceptions.yaml` | Misconception catalogue and the rules for authoring one; its optional `deconstruction:` key is validated against `deconstruction.py`'s registry at load time |
+| `storage/users.db` | SQLite file — access only via `core/db.py` |
