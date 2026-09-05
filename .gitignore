@@ -10,7 +10,6 @@ docs/*
 !docs/research/
 !docs/research/**
 !docs/module-map.html
-scripts/
 data/*.db
 storage/*.db
 .pytest_cache/
