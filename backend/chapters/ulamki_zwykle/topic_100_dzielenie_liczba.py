@@ -1,5 +1,6 @@
 """Ułamki Zwykłe — Dzielenie przez liczbę: generatory Problemów."""
 
+import math
 import random
 from backend.core.utils import (
     format_answers,
@@ -10,28 +11,39 @@ from backend.core.utils import (
 
 
 @declares_traps(
+    "divides_the_numerator_and_multiplies_the_denominator",
     "multiplies_the_numerator_instead_of_dividing",
-    "leaves_the_fraction_unchanged",
 )
 def frac_div_num_1() -> dict | None:
     """Dzielenie licznika (poziom 1)."""
-    d = random.randint(2, 7)
-    n = random.randint(1, d - 1)
-    k = random.randint(2, 5)
+    # The Level is the k | n case, so n is built from k rather than drawn and
+    # rejected — rejection sampling over the old ranges left 19 distinct Problems.
+    k = random.randint(2, 6)
+    q = random.randint(1, 6)
+    n = k * q
+    if n >= 15:
+        return None
+    d = random.randint(n + 1, 15)
+    # An already-reducible question invites cancelling before dividing, which is a
+    # different Topic's skill and a different Misconception.
+    if math.gcd(n, d) != 1:
+        return None
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} : {k}"
 
+    # Dividing the numerator and multiplying the denominator are the same operation
+    # here — n/(d*k) is (n/k)/d — so the Level affords the easier method rather than
+    # grading it. The Traps are what carry the contrast.
     c_str, _ = format_answers(n, d * k)
 
-    # Dividing the denominator by k is not a distinct wrong rule here: n/(d/k) is the
-    # same value as n*k/d, so the two options always collided and the branch that
-    # offered it could never build a Problem.
     problem = build_problem_dict(
         q_str,
         c_str,
         traps={
+            "divides_the_numerator_and_multiplies_the_denominator": format_answers(
+                n, d * k * k
+            )[0],
             "multiplies_the_numerator_instead_of_dividing": format_answers(n * k, d)[0],
-            "leaves_the_fraction_unchanged": format_answers(n, d)[0],
         },
         fillers=[format_answers(n + k, d * k)[0]],
         parameters={"n": n, "d": d, "k": k},
@@ -40,29 +52,38 @@ def frac_div_num_1() -> dict | None:
         return problem
 
 
-@declares_traps("multiplies_without_inverting", "inverts_the_wrong_way_round")
+@declares_traps(
+    "adds_to_the_denominator_instead_of_multiplying",
+    "multiplies_the_numerator_instead_of_dividing",
+)
 def frac_div_num_2() -> dict | None:
     """Gdy licznik się nie dzieli (poziom 2)."""
-    k = random.randint(2, 5)
-    d = random.randint(2, 7)
-    n = random.randint(1, d - 1)
+    k = random.randint(2, 6)
+    n = random.randint(1, 14)
+    if n % k == 0:
+        return None
+    d = random.randint(n + 1, 15)
+    if math.gcd(n, d) != 1:
+        return None
 
-    q_str = rf"\text{{Oblicz: }} {k} : {format_fraction_question(n, d)}"
+    q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d)} : {k}"
 
-    c_str, _ = format_answers(k * d, n)
+    c_str, _ = format_answers(n, d * k)
 
-    result = build_problem_dict(
+    problem = build_problem_dict(
         q_str,
         c_str,
         traps={
-            "multiplies_without_inverting": format_answers(k * n, d)[0],
-            "inverts_the_wrong_way_round": format_answers(n, k * d)[0],
+            "adds_to_the_denominator_instead_of_multiplying": format_answers(n, d + k)[
+                0
+            ],
+            "multiplies_the_numerator_instead_of_dividing": format_answers(n * k, d)[0],
         },
-        fillers=[format_answers((k * d) + 1, n)[0]],
+        fillers=[format_answers(n + 1, d * k)[0]],
         parameters={"n": n, "d": d, "k": k},
     )
-    if result:
-        return result
+    if problem:
+        return problem
 
 
 @declares_traps(
