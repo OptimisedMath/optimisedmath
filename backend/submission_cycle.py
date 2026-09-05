@@ -18,15 +18,15 @@ import backend.session_state as session_state
 
 
 class ProblemServeError(Exception):
-    pass
+    """Problem serving failed when no candidate could be selected."""
 
 
 class NoActiveProblemError(Exception):
-    pass
+    """Next problem requested at chapter end with no active problem on the Session."""
 
 
 class TopicNotFoundError(Exception):
-    pass
+    """Selected topic is missing from the curriculum."""
 
 
 def _navigate_after_topic_completion(
@@ -121,6 +121,7 @@ def begin_problem(
     *,
     recent_fingerprints: list[str] | None = None,
 ) -> None:
+    """Apply state mutations for a newly generated problem and persist."""
     session_state.reset_submission_cycle(state, curriculum, reset_streak=False)
     if recent_fingerprints is not None:
         state.recent_problem_fingerprints = recent_fingerprints[
@@ -138,6 +139,7 @@ def serve_next_problem(
     topic_id: int,
     play_mode: PlayMode,
 ) -> ProblemDict:
+    """Generate the next problem at the selection, dedupe recent instances, and begin it."""
     level = state.selected_level
     recent_fingerprints = list(state.recent_problem_fingerprints)
     problem: ProblemDict | None = None

@@ -1,3 +1,5 @@
+"""Pure tests for Deconstruction step grading — no Session, DB, or HTTP."""
+
 from backend.step_grading import (
     ORDERING_ANSWER_SEPARATOR,
     grade_ordering_step,

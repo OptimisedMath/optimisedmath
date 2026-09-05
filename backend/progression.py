@@ -12,6 +12,8 @@ from backend.unlock import increase_frontier_on_mastery
 
 @dataclass(frozen=True)
 class SubmissionContext:
+    """Session slice needed to apply one Submission's progression rules."""
+
     chapter_id: int
     topic_id: int
     selected_level: int
@@ -26,6 +28,8 @@ class SubmissionContext:
 
 @dataclass(frozen=True)
 class SubmissionOutcome:
+    """State deltas produced by progression rules for one answered Submission."""
+
     new_streak: int
     new_flawless_eligible: bool
     xp_earned: int
@@ -40,6 +44,7 @@ class SubmissionOutcome:
 
 
 def resolve_streak_meter(state: SessionState) -> int:
+    """Streak meter display value for the Session payload."""
     if state.problem_answered and state.level_completed and state.streak == 0:
         return state.max_streak
     return state.streak
@@ -48,6 +53,7 @@ def resolve_streak_meter(state: SessionState) -> int:
 def resolve_submission_outcome(
     eval_result: EvalResult, ctx: SubmissionContext
 ) -> SubmissionOutcome:
+    """Apply progression rules given a grading result and session context."""
     is_correct = eval_result.get("is_correct", False)
     feedback_type = eval_result.get("feedback_type")
     is_soft_error = feedback_type == "info"
@@ -82,6 +88,7 @@ def _is_at_streak_reset_boundary(
     frontier_topic_id: int,
     require_topic_match: bool,
 ) -> bool:
+    """Check whether the player is at the streak-reset boundary for their profile."""
     if selected_level != frontier_level:
         return False
     if require_topic_match:

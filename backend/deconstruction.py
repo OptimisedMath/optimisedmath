@@ -43,7 +43,7 @@ StepBuilder = Callable[[StepParameters], list[Step]]
 
 
 class UnregisteredDeconstructionError(Exception):
-    pass
+    """Raised when `build_steps` is asked for a Misconception with no walkthrough."""
 
 
 class DeconstructionContractError(Exception):
@@ -123,10 +123,12 @@ def declares_deconstruction(
 
 
 def has_walkthrough(misconception_slug: str) -> bool:
+    """Whether a walkthrough is registered for a Misconception — batch one is five of 55."""
     return misconception_slug in _DECLARATIONS
 
 
 def declaration(misconception_slug: str) -> Declaration:
+    """The registered walkthrough and its declared contract."""
     declared = _DECLARATIONS.get(misconception_slug)
     if declared is None:
         raise UnregisteredDeconstructionError(

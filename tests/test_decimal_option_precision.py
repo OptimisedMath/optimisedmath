@@ -1,15 +1,17 @@
-# No answer option may carry raw binary-float noise (e.g. `0,4800000000000001`).
-#
-# `fmt_dec` (backend/core/utils.py) formats a Decimal built from `str(val)` exactly and
-# never rounds, so any generator that does its display-critical arithmetic in `float`
-# rather than `Decimal`/`Fraction` leaks IEEE-754 artefacts straight into an answer
-# option a child sees. See issue #234.
-#
-# No Level in this curriculum legitimately needs more than a handful of fractional
-# digits (the deepest intentional rounding call is 6 places, in `dec_comma_2`), so a
-# fractional part past ``MAX_LEGITIMATE_DECIMAL_PLACES`` digits is unambiguously float
-# noise rather than a genuinely long answer — the gap between "clean" and "leaking" is
-# wide (float noise runs to 15-17 digits), so this bound never fights a real Level.
+"""No answer option may carry raw binary-float noise (e.g. `0,4800000000000001`).
+
+`fmt_dec` (backend/core/utils.py) formats a Decimal built from `str(val)` exactly and
+never rounds, so any generator that does its display-critical arithmetic in `float`
+rather than `Decimal`/`Fraction` leaks IEEE-754 artefacts straight into an answer
+option a child sees. See issue #234.
+
+No Level in this curriculum legitimately needs more than a handful of fractional
+digits (the deepest intentional rounding call is 6 places, in `dec_comma_2`), so a
+fractional part past ``MAX_LEGITIMATE_DECIMAL_PLACES`` digits is unambiguously float
+noise rather than a genuinely long answer — the gap between "clean" and "leaking" is
+wide (float noise runs to 15-17 digits), so this bound never fights a real Level.
+"""
+
 import re
 
 import pytest
@@ -25,6 +27,7 @@ _DECIMAL_RE = re.compile(r"-?\d+,(\d+)")
 
 
 def _dirty_options(generator) -> set[str]:
+    """Options across many draws whose fractional part is implausibly long."""
     dirty: set[str] = set()
     for _ in range(ROLLS):
         problem = generator()

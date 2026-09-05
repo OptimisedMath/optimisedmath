@@ -32,9 +32,11 @@ class Curriculum:
         return tuple(bundle.chapter_id for bundle in self._store.bundles)
 
     def chapters(self) -> tuple[ChapterSummary, ...]:
+        """Chapter id plus display name pairs for Navigation dropdowns."""
         return tuple(self._store.chapters)
 
     def has_chapter(self, chapter_id: int) -> bool:
+        """Return whether a Chapter id exists."""
         return chapter_id in self._store.bundles_by_chapter_id
 
     def topics(self, chapter_id: int) -> tuple[TopicDict, ...]:
@@ -43,6 +45,7 @@ class Curriculum:
         return bundle.topics_meta if bundle is not None else ()
 
     def topic_by_id(self, chapter_id: int, topic_id: int) -> TopicDict | None:
+        """Topic lookup by id within a Chapter (name, max level, radio-only)."""
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
         return bundle.topics_by_id.get(topic_id) if bundle is not None else None
 
@@ -58,25 +61,30 @@ class Curriculum:
         return min(effective, max_level)
 
     def chapter_name(self, chapter_id: int) -> str | None:
+        """Chapter display name by id."""
         return self._store.chapter_name_by_id.get(chapter_id)
 
     def topic_name(self, chapter_id: int, topic_id: int) -> str | None:
+        """Topic display name by Chapter and id."""
         meta = self.topic_by_id(chapter_id, topic_id)
         return meta["name"] if meta else None
 
     def level_config(
         self, chapter_id: int, topic_id: int, level: int
     ) -> LevelConfig | None:
+        """Level config for a Chapter, Topic and Level, including published state."""
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
         return (
             bundle.level_configs.get((topic_id, level)) if bundle is not None else None
         )
 
     def keyboard_type(self, chapter_id: int) -> str:
+        """Keyboard type for a Chapter."""
         bundle = self._store.bundles_by_chapter_id.get(chapter_id)
         return bundle.keyboard_type if bundle is not None else "default"
 
     def misconception_name(self, misconception_slug: str) -> str | None:
+        """Display name for a Misconception slug, from the global catalogue."""
         return self._store.misconception_names.get(misconception_slug)
 
 
@@ -99,6 +107,7 @@ def resolve_curriculum() -> Curriculum:
 
 
 def get_curriculum_response(curriculum: Curriculum) -> CurriculumResponse:
+    """Return curriculum metadata formatted for the API."""
     chapters: list[ChapterSummaryResponse] = []
     for chapter in curriculum.chapters():
         topic_list = curriculum.topics(chapter.chapter_id)

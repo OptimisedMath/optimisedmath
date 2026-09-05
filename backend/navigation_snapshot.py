@@ -300,6 +300,7 @@ def build_navigation_snapshot(
 
 
 def build_navigation_view(nav: NavigationSnapshot) -> NavigationView:
+    """Map a navigation snapshot to the API NavigationView DTO."""
     ctx = nav.selected_chapter_context
     available_chapters = [
         NavigationChapterOption(chapter_id=chapter.chapter_id, name=chapter.name)

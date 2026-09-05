@@ -1,3 +1,5 @@
+"""Unit tests for navigation snapshot and view — by play mode and frontier position."""
+
 import uuid
 
 import pytest
@@ -101,11 +103,11 @@ def test_chapter_context_is_distinct_per_chapter_id(
     assert beta_ctx.chapter_id == CHAPTER_BETA
 
 
-# An unvalidated client chapter id can reach chapter_context() before the
-# caller has checked it exists — this must fall back, not read live state.
 def test_chapter_context_for_unknown_chapter_id_does_not_raise(
     fixture_curriculum: Curriculum,
 ):
+    """An unvalidated client chapter id can reach chapter_context() before the
+    caller has checked it exists — this must fall back, not read live state."""
     state = _fresh_state(fixture_curriculum)
     snapshot, _ = _build(state, fixture_curriculum, _STUDENT)
 
@@ -134,12 +136,12 @@ def test_snapshot_selected_fields_do_not_move_after_state_mutates(
     assert view.current_topic_name == "Multi Level Topic"
 
 
-# Reachability read off a chapter's context must not change because the
-# Session's chapter_frontiers dict was mutated after the snapshot was built —
-# the snapshot holds no live reference into it.
 def test_chapter_context_answers_do_not_move_after_frontier_mutates(
     fixture_curriculum: Curriculum,
 ):
+    """Reachability read off a chapter's context must not change because the
+    Session's chapter_frontiers dict was mutated after the snapshot was built —
+    the snapshot holds no live reference into it."""
     state = _fresh_state(fixture_curriculum)
     state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
         frontier_topic_id=TOPIC_MULTI,
@@ -160,12 +162,12 @@ def test_chapter_context_answers_do_not_move_after_frontier_mutates(
     assert TOPIC_RADIO not in after_accessible
 
 
-# The same Navigation must not depend on the order chapters are asked
-# about — asking about one chapter first must not change what a later
-# question about another chapter (or the same chapter again) returns.
 def test_chapter_context_answers_are_the_same_regardless_of_which_chapter_is_asked_first(
     fixture_curriculum: Curriculum,
 ):
+    """The same Navigation must not depend on the order chapters are asked
+    about — asking about one chapter first must not change what a later
+    question about another chapter (or the same chapter again) returns."""
     state_ask_alpha_first = _fresh_state(fixture_curriculum)
     state_ask_beta_first = _fresh_state(fixture_curriculum)
     for state in (state_ask_alpha_first, state_ask_beta_first):

@@ -1,3 +1,5 @@
+"""Unit tests for navigation intent resolution (pure rules)."""
+
 import uuid
 
 import pytest

@@ -1,3 +1,5 @@
+"""Unit tests for the Unlock module (Frontier read/write rules)."""
+
 import pytest
 
 from backend.curriculum_loader import TopicDict

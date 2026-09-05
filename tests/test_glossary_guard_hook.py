@@ -1,9 +1,11 @@
-# Tests for .claude/hooks/glossary_guard.py, invoked as a subprocess like
-# Claude Code would invoke it as a PreToolUse hook.
-#
-# No live Claude Code session involved: each test feeds a PreToolUse-shaped
-# JSON payload to the script's stdin against a throwaway fake repo (its own
-# CONTEXT.md + backend/frontend tree) and asserts exit code + stderr.
+"""Tests for .claude/hooks/glossary_guard.py, invoked as a subprocess like
+Claude Code would invoke it as a PreToolUse hook.
+
+No live Claude Code session involved: each test feeds a PreToolUse-shaped
+JSON payload to the script's stdin against a throwaway fake repo (its own
+CONTEXT.md + backend/frontend tree) and asserts exit code + stderr.
+"""
+
 import json
 import subprocess
 import sys

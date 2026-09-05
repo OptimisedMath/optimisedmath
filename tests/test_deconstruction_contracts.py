@@ -1,19 +1,21 @@
-# Every walkthrough a Trap can reach must build from what its generator emits.
-#
-# The only place that can see all three factors at once: a Level's generator, the Traps
-# it emits, and the walkthrough contract of the Misconception those Traps reference. A
-# generator's `parameters` only exist after a call and a generator picks its template
-# with `random.choice`, so no load-time check and no single roll can prove the contract
-# holds — the same sweep shape as `test_trap_slugs.py` and `test_problem_parameters.py`,
-# with the walkthrough registry as a third factor.
-#
-# Two failures are caught. A missing required key means a Student who hits that
-# Misconception twice gets no Deconstruction where the curriculum promised one
-# (`submission.py` now skips rather than raises, so the loss is silent — this is where it
-# becomes loud). A final Step whose answer is not the Problem's own means a walkthrough
-# that runs, reads plausibly, and lands the Student on the wrong number; that assertion
-# runs only where the walkthrough declares `answers_the_problem`, since the expansion
-# walkthrough deliberately ends on a numerator rather than a whole fraction.
+"""Every walkthrough a Trap can reach must build from what its generator emits.
+
+The only place that can see all three factors at once: a Level's generator, the Traps
+it emits, and the walkthrough contract of the Misconception those Traps reference. A
+generator's `parameters` only exist after a call and a generator picks its template
+with `random.choice`, so no load-time check and no single roll can prove the contract
+holds — the same sweep shape as `test_trap_slugs.py` and `test_problem_parameters.py`,
+with the walkthrough registry as a third factor.
+
+Two failures are caught. A missing required key means a Student who hits that
+Misconception twice gets no Deconstruction where the curriculum promised one
+(`submission.py` now skips rather than raises, so the loss is silent — this is where it
+becomes loud). A final Step whose answer is not the Problem's own means a walkthrough
+that runs, reads plausibly, and lands the Student on the wrong number; that assertion
+runs only where the walkthrough declares `answers_the_problem`, since the expansion
+walkthrough deliberately ends on a numerator rather than a whole fraction.
+"""
+
 import pytest
 
 from backend import deconstruction
@@ -27,6 +29,7 @@ ROLLS = 500
 
 
 def _combinations() -> list[tuple[str, int, int, str, str, str]]:
+    """Every (chapter, topic, level, generator, trap, misconception) with a walkthrough."""
     combinations = []
     for bundle in load_curriculum_store().bundles:
         for (topic_id, level), level_config in bundle.level_configs.items():
@@ -48,12 +51,13 @@ def _combinations() -> list[tuple[str, int, int, str, str, str]]:
 COMBINATIONS = _combinations()
 
 
-# Whether `question` carries LaTeX outside a `$...$` span.
-#
-# The frontend renders a working line as maths outright but a question as prose,
-# so raw `\frac{2}{5}` in a question reached the Student as literal source (#225).
-# Prose segments are the even-indexed ones once the string is split on `$`.
 def _undelimited_latex(question: str) -> bool:
+    """Whether `question` carries LaTeX outside a `$...$` span.
+
+    The frontend renders a working line as maths outright but a question as prose,
+    so raw `\\frac{2}{5}` in a question reached the Student as literal source (#225).
+    Prose segments are the even-indexed ones once the string is split on `$`.
+    """
     segments = question.split("$")
     if len(segments) % 2 == 0:
         return True  # an unclosed span
@@ -61,6 +65,7 @@ def _undelimited_latex(question: str) -> bool:
 
 
 def test_the_sweep_covers_something():
+    """A store that silently loaded nothing would make every case below vacuous."""
     assert COMBINATIONS
 
 

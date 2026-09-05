@@ -1,3 +1,5 @@
+"""Tests for the YAML curriculum adapter — loading and validation against real files."""
+
 import pytest
 
 import backend.curriculum_loader as loader

@@ -1,3 +1,5 @@
+"""Pure tests for the Deconstruction step registry — no Session, DB, or HTTP."""
+
 import pytest
 
 from backend.deconstruction import (
@@ -15,6 +17,8 @@ def test_build_steps_raises_for_unregistered_misconception():
 
 
 class TestOperatesOnUnlikeFractionsDirectly:
+    """Table-driven: representative `parameters` shapes for the first walkthrough."""
+
     @pytest.mark.parametrize(
         (
             "parameters",
@@ -161,11 +165,12 @@ class TestOperatesOnUnlikeFractionsDirectly:
                 {"n1": 1, "d1": 2, "n2": 1, "d2": 3, "operation": "*"},
             )
 
-    # This walkthrough opens by saying the two denominators differ (#224).
-    #
-    # On a like-denominator Problem that opening line is a falsehood about what the
-    # Student can see, so a mis-mapped Trap is refused rather than rendered.
     def test_rejects_equal_denominators(self):
+        """This walkthrough opens by saying the two denominators differ (#224).
+
+        On a like-denominator Problem that opening line is a falsehood about what the
+        Student can see, so a mis-mapped Trap is refused rather than rendered.
+        """
         with pytest.raises(DeconstructionContractError):
             build_steps(
                 "operates_on_unlike_fractions_directly",
@@ -185,6 +190,8 @@ class TestOperatesOnUnlikeFractionsDirectly:
 
 
 class TestExpandsToTargetDenominatorWithoutFindingFactor:
+    """Table-driven: representative `parameters` shapes for the hidden-operand walkthrough."""
+
     @pytest.mark.parametrize(
         ("parameters", "expected_target_denominator", "expected_scaled_n"),
         [
@@ -236,11 +243,12 @@ class TestExpandsToTargetDenominatorWithoutFindingFactor:
         assert all(step.question for step in steps)
 
 
-# Pure coverage for the ordering-input step type (#198): the wire contract
-# and control only. #186's priority-ladder walkthrough for
-# `ignores_the_order_of_operations` is batch two and not authored here, so
-# these exercise the type mechanism with stand-in items.
 class TestOrderingStepType:
+    """Pure coverage for the ordering-input step type (#198): the wire contract
+    and control only. #186's priority-ladder walkthrough for
+    `ignores_the_order_of_operations` is batch two and not authored here, so
+    these exercise the type mechanism with stand-in items."""
+
     def test_typed_step_defaults(self):
         step = Step(question="q", working_line=None, answer="5")
 
@@ -262,13 +270,15 @@ class TestOrderingStepType:
         assert step.answer == "brackets|powers|multiply-divide|add-subtract"
 
 
-# Table-driven: representative `parameters` shapes for the column-layout walkthrough.
-#
-# The three shapes mirror the three generators that reference this Misconception —
-# the second operand carrying more decimal places (dec_add_3), the first carrying
-# more (dec_sub_2), and both already tied (dec_add_1) — normalised to a shared
-# `v1`/`v2`/`operation` contract (#199).
 class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
+    """Table-driven: representative `parameters` shapes for the column-layout walkthrough.
+
+    The three shapes mirror the three generators that reference this Misconception —
+    the second operand carrying more decimal places (dec_add_3), the first carrying
+    more (dec_sub_2), and both already tied (dec_add_1) — normalised to a shared
+    `v1`/`v2`/`operation` contract (#199).
+    """
+
     @pytest.mark.parametrize(
         ("parameters", "expected_places", "expected_padded", "expected_combined"),
         [
@@ -355,17 +365,19 @@ class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
             )
 
 
-# Table-driven: `parameters` shapes for the precondition-conversion walkthrough.
-#
-# Six generators across three topics reference this Misconception — a mixed number
-# multiplied, divided, or raised to a power, either alone or against a whole number,
-# a plain fraction, or a second mixed number — normalised to a shared
-# `whole1`/`n1`/`d1`/`whole2`/`n2`/`d2`/`operation` contract (`p` replaces the second
-# operand when `operation == "^"`, since a power has none) (#200).
-#
-# `expected_target_mixed` pins down *which* operand the first step converts: the one
-# carrying a whole part, or the first of the two when both do.
 class TestOperatesOnMixedNumberWithoutConverting:
+    """Table-driven: `parameters` shapes for the precondition-conversion walkthrough.
+
+    Six generators across three topics reference this Misconception — a mixed number
+    multiplied, divided, or raised to a power, either alone or against a whole number,
+    a plain fraction, or a second mixed number — normalised to a shared
+    `whole1`/`n1`/`d1`/`whole2`/`n2`/`d2`/`operation` contract (`p` replaces the second
+    operand when `operation == "^"`, since a power has none) (#200).
+
+    `expected_target_mixed` pins down *which* operand the first step converts: the one
+    carrying a whole part, or the first of the two when both do.
+    """
+
     @pytest.mark.parametrize(
         (
             "parameters",
@@ -502,12 +514,14 @@ class TestOperatesOnMixedNumberWithoutConverting:
             )
 
 
-# Table-driven: representative `parameters` shapes for the no-working-line
-# comparison walkthrough. The shapes mirror dec_compare_1/2/3, normalised to a
-# shared `s1`/`s2` contract — the two decimal strings exactly as shown on
-# screen, trailing zeros preserved where the generator deliberately carries
-# them (#187, #201).
 class TestComparesDecimalsByWrongDigitOrder:
+    """Table-driven: representative `parameters` shapes for the no-working-line
+    comparison walkthrough. The shapes mirror dec_compare_1/2/3, normalised to a
+    shared `s1`/`s2` contract — the two decimal strings exactly as shown on
+    screen, trailing zeros preserved where the generator deliberately carries
+    them (#187, #201).
+    """
+
     @pytest.mark.parametrize(
         ("parameters", "expected_places", "expected_sign"),
         [

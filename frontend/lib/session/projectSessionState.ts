@@ -5,6 +5,7 @@ import type {
   SessionResponse,
 } from './types';
 
+/** Display fields projected from SessionResponse for arena rendering. */
 export interface SessionDisplayProjection {
   hasNavigation: boolean;
   xp: number;

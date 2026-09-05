@@ -15,6 +15,8 @@ from backend.core.utils import (
 
 
 class TestMobileSanitizer:
+    """Tests the middleware that cleans messy mobile keyboard inputs."""
+
     @pytest.mark.parametrize(
         "user_input, expected",
         [

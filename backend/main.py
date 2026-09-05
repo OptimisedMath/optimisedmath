@@ -43,6 +43,7 @@ __all__ = ["ACTIVE_SESSIONS", "app"]
 
 
 def _map_session_error(exc: SessionError) -> HTTPException:
+    """Map domain errors from the session use-case layer to HTTP responses."""
     return HTTPException(status_code=exc.status_code, detail=exc.detail)
 
 
@@ -82,11 +83,13 @@ app.add_middleware(
 
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:
+    """Return service health status."""
     return {"status": "ok", "service": "math-learning-api"}
 
 
 @app.get("/", tags=["System"])
 async def root() -> dict[str, str]:
+    """Return API metadata and documentation link."""
     return {
         "message": "Optimized Math Learning API",
         "version": "1.0.0",
@@ -96,6 +99,7 @@ async def root() -> dict[str, str]:
 
 @app.get("/curriculum", response_model=CurriculumResponse, tags=["Curriculum"])
 async def curriculum_index() -> CurriculumResponse:
+    """Return available chapters and their topic metadata."""
     return get_curriculum_response(resolve_curriculum())
 
 
@@ -104,6 +108,7 @@ async def curriculum_index() -> CurriculumResponse:
 
 @app.post("/session/start", response_model=SessionResponse, tags=["Session"])
 async def session_start(request: SessionStartRequest) -> SessionResponse:
+    """Create a session, load user progress, and return SessionResponse with navigation."""
     try:
         return start_session(request)
     except SessionError as exc:
@@ -112,6 +117,7 @@ async def session_start(request: SessionStartRequest) -> SessionResponse:
 
 @app.post("/session/navigate", response_model=SessionResponse, tags=["Session"])
 async def session_navigate(request: SessionNavigateRequest) -> SessionResponse:
+    """Change chapter, topic, or level with unlock validation."""
     try:
         return navigate_session(request)
     except SessionError as exc:
@@ -120,6 +126,7 @@ async def session_navigate(request: SessionNavigateRequest) -> SessionResponse:
 
 @app.post("/session/reset", response_model=SessionResponse, tags=["Session"])
 async def session_reset(request: SessionResetRequest) -> SessionResponse:
+    """Hard-reset session progress and return a fresh SessionResponse."""
     try:
         return reset_session(request)
     except SessionError as exc:
@@ -131,6 +138,7 @@ async def session_reset(request: SessionResetRequest) -> SessionResponse:
 
 @app.get("/problem/next", response_model=ProblemResponse, tags=["Problem"])
 async def problem_next(session_id: str) -> ProblemResponse:
+    """Generate the next problem, dedupe recent instances, and update input mode."""
     try:
         return next_problem(session_id)
     except SessionError as exc:
@@ -139,6 +147,7 @@ async def problem_next(session_id: str) -> ProblemResponse:
 
 @app.post("/problem/submit", response_model=SubmissionResponse, tags=["Problem"])
 async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionResponse:
+    """Grade an answer, update streak and XP, and persist session state."""
     try:
         return submit_problem(request)
     except SessionError as exc:
@@ -151,6 +160,7 @@ async def problem_submit(request: ProblemSubmissionRequest) -> SubmissionRespons
     tags=["Problem", "Dev tools"],
 )
 async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
+    """Dev-tools shortcut: submit the correct answer without UI fill-then-submit."""
     try:
         return auto_solve_problem(request)
     except SessionError as exc:
@@ -166,6 +176,7 @@ async def problem_auto_solve(request: AutoSolveRequest) -> SubmissionResponse:
     tags=["Deconstruction"],
 )
 async def deconstruction_next(session_id: str) -> DeconstructionStepResponse:
+    """Return the Student's current Deconstruction step."""
     try:
         return get_deconstruction_step(session_id)
     except SessionError as exc:
@@ -180,6 +191,7 @@ async def deconstruction_next(session_id: str) -> DeconstructionStepResponse:
 async def deconstruction_submit(
     request: DeconstructionSubmissionRequest,
 ) -> DeconstructionSubmissionResponse:
+    """Grade an answer for the current Deconstruction step."""
     try:
         return submit_deconstruction_step(request)
     except SessionError as exc:
@@ -194,6 +206,7 @@ async def deconstruction_submit(
 async def deconstruction_abandon(
     request: DeconstructionAbandonRequest,
 ) -> SessionResponse:
+    """End the running Deconstruction via its exit control."""
     try:
         return abandon_deconstruction(request)
     except SessionError as exc:

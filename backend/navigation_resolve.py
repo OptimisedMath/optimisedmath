@@ -9,6 +9,7 @@ from backend.unlock import first_topic_id
 
 
 def clamp_selected_level(state: SessionState, curriculum: Curriculum) -> None:
+    """Clamp session selected_level to the current topic's max_level."""
     chapter_id = state.selected_chapter_id
     if chapter_id is None:
         return
@@ -29,6 +30,7 @@ def resolve_chapter_change(
     next_chapter_id: int,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
+    """Pick default topic and level when switching chapter."""
     curriculum = snapshot.curriculum()
     ctx = snapshot.chapter_context(next_chapter_id)
     next_topic_id, next_level = ctx.implicit_chapter_landing
@@ -51,6 +53,7 @@ def resolve_topic_change(
     next_topic_id: int,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int]:
+    """Pick default level when switching topic within a chapter."""
     curriculum = snapshot.curriculum()
     ctx = snapshot.chapter_context(chapter_id)
     next_level = ctx.implicit_topic_landing(next_topic_id)
@@ -62,6 +65,7 @@ def resolve_navigate_request(
     request: SessionNavigateRequest,
     snapshot: NavigationSnapshot,
 ) -> tuple[int, int, int]:
+    """Resolve partial navigation intents into a full chapter/topic/level target."""
     if (
         request.selected_chapter_id is not None
         and request.selected_chapter_id != state.selected_chapter_id
@@ -96,25 +100,33 @@ def resolve_navigate_request(
 
 
 class NavigationResolutionError(Exception):
-    pass
+    """Base error for navigation intent validate-and-resolve failures."""
 
 
 class NavigationChapterNotFoundError(NavigationResolutionError):
+    """Resolved chapter id does not exist in the curriculum."""
+
     def __init__(self, chapter_id: int) -> None:
         super().__init__(f"Chapter id {chapter_id} not found in curriculum")
 
 
 class NavigationChapterHasNoTopicsError(NavigationResolutionError):
+    """Resolved chapter exists but has no topics defined."""
+
     def __init__(self, chapter_id: int) -> None:
         super().__init__(f"Chapter id {chapter_id} has no available topics")
 
 
 class NavigationTopicNotFoundError(NavigationResolutionError):
+    """Resolved topic id is not a member of the resolved chapter."""
+
     def __init__(self, topic_id: int) -> None:
         super().__init__(f"Topic id {topic_id} not found in curriculum")
 
 
 class NavigationLevelOutOfRangeError(NavigationResolutionError):
+    """Resolved level falls outside the topic's level bounds."""
+
     def __init__(self, level: int, topic_id: int) -> None:
         super().__init__(f"Level {level} is not available for topic id {topic_id}")
 

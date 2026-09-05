@@ -68,6 +68,8 @@ class AdminPlayMode:
 
 @dataclass(frozen=True, slots=True)
 class DbWritePlan:
+    """Per-field DB write eligibility for one persist operation."""
+
     write_xp: bool
     write_streak: bool
     write_flawless_eligible: bool
@@ -78,6 +80,7 @@ class DbWritePlan:
 
     @classmethod
     def write_all(cls) -> DbWritePlan:
+        """All profile fields may be written from the current session state."""
         return cls(
             write_xp=True,
             write_streak=True,

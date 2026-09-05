@@ -24,10 +24,12 @@ MISCONCEPTIONS_FILE = "misconceptions.yaml"
 
 
 class CurriculumLoadError(Exception):
-    pass
+    """Raised when curriculum YAML fails validation."""
 
 
 class TopicDict(TypedDict):
+    """Navigation metadata for one topic derived from curriculum YAML."""
+
     topic_id: int
     name: str
     max_level: int
@@ -36,6 +38,8 @@ class TopicDict(TypedDict):
 
 @dataclass(frozen=True)
 class LevelConfig:
+    """Precomputed level metadata for problem generation."""
+
     level: int
     name: str
     function: str
@@ -46,6 +50,8 @@ class LevelConfig:
 
 @dataclass(frozen=True)
 class ChapterBundle:
+    """Cached parsed YAML plus derived navigation metadata for one chapter."""
+
     chapter_id: int
     chapter_name: str
     keyboard_type: str
@@ -58,12 +64,16 @@ class ChapterBundle:
 
 @dataclass(frozen=True)
 class ChapterSummary:
+    """Chapter id and display name for API responses."""
+
     chapter_id: int
     name: str
 
 
 @dataclass(frozen=True)
 class CurriculumStore:
+    """Fully loaded curriculum with precomputed lookup indexes."""
+
     bundles: tuple[ChapterBundle, ...]
     chapters: list[ChapterSummary]
     bundles_by_chapter_id: dict[int, ChapterBundle]
@@ -147,6 +157,7 @@ def _derive_topics_by_id(topics_meta: list[TopicDict]) -> dict[int, TopicDict]:
 
 
 def _derive_trap_prose(level_entry: dict[str, Any]) -> dict[str, str]:
+    """Per-Level trap sentences, keyed by trap slug. The Student-facing first hit."""
     return {
         str(key): str(entry["explanation"])
         for key, entry in level_entry.get("traps", {}).items()
@@ -372,6 +383,7 @@ def _build_store(
 
 
 def _load_misconception_catalogue(data_dir: Path) -> dict[str, Any]:
+    """Parse `misconceptions.yaml` — the global, named catalogue of wrong rules."""
     catalogue_path = data_dir / MISCONCEPTIONS_FILE
     if not catalogue_path.exists():
         return {}

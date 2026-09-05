@@ -21,11 +21,11 @@ GeneratorFunc = Callable[[], ProblemDict | None]
 
 
 class GeneratorRegistryError(Exception):
-    pass
+    """Raised when generator registration fails."""
 
 
 class ProblemGenerationError(Exception):
-    pass
+    """Raised when a level problem cannot be generated."""
 
 
 def _is_generator(name: str, value: object, module_name: str) -> bool:
@@ -99,6 +99,7 @@ def generate_problem(generator_func: GeneratorFunc) -> ProblemDict:
 def generate_level_problem(
     curriculum: Curriculum, chapter_id: int, topic_id: int, level: int
 ) -> ProblemDict:
+    """Generate a problem for a curriculum level."""
     if not curriculum.has_chapter(chapter_id):
         raise ProblemGenerationError(f"Missing curriculum for chapter id: {chapter_id}")
 

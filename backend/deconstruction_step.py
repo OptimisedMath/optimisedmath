@@ -24,7 +24,7 @@ from backend.step_grading import grade_ordering_step, grade_step
 
 
 class DeconstructionNotRunningError(Exception):
-    pass
+    """Raised when a Deconstruction route is called with no step to act on."""
 
 
 def _require_deconstruction_step(
@@ -115,6 +115,7 @@ def _finish(
 def next_step_response(
     state: SessionState, curriculum: Curriculum
 ) -> DeconstructionStepResponse:
+    """Build the wire payload for the Student's Deconstruction step right now."""
     deconstruction, step = _require_deconstruction_step(state)
     misconception_name = (
         curriculum.misconception_name(deconstruction.misconception_slug)

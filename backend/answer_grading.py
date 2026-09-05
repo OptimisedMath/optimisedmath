@@ -26,6 +26,7 @@ class EvalResult(TypedDict, total=False):
 def _match_trap_feedback(
     user_input: str, student_val: Fraction, problem: ProblemDict
 ) -> EvalResult | None:
+    """Return trap/wrong feedback if user input matches a known distractor."""
     options_map = problem.get("options_map", {})
     for opt_str, opt_type in options_map.items():
         if opt_type == "correct":

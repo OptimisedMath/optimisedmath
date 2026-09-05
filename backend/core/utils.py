@@ -84,6 +84,7 @@ def declares_traps(*slugs: str) -> Any:
 
 
 def declared_trap_slugs(func: Any) -> frozenset[str]:
+    """The Trap slugs a generator declares, or an empty set if it declares none."""
     return getattr(func, "trap_slugs", frozenset())
 
 
@@ -149,6 +150,7 @@ def build_problem_dict(
 def generate_universal_number_line(
     ticks_count: int, labeled_ticks: dict[int, str], target_tick: int
 ) -> str:
+    """Draws a mathematical number line with custom intervals and labels."""
     width = 4000
     height = 900
     svg = f'<svg width="100%" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">'
@@ -238,11 +240,13 @@ def _standardize_spacing(s: str) -> str:
 
 
 def check_text_answer(correct_latex: str, user_text: str) -> bool:
+    """Checks if the user's text matches the correct answer string."""
     clean_correct = clean_latex(correct_latex)
     return _standardize_spacing(clean_correct) == _standardize_spacing(user_text)
 
 
 def parse_to_fraction(val_str: str) -> Fraction | None:
+    """Parse forgiving student input into a Fraction, or None on failure."""
     try:
         val_str = str(val_str).strip()
 
@@ -289,6 +293,7 @@ def fmt_dec(val: int | float | Decimal | str) -> str:
 
 
 def clean_mobile_input(user_string: str) -> str:
+    """Sanitizes user input to match engine expectations and fix hardware laziness."""
     if not user_string:
         return ""
 
