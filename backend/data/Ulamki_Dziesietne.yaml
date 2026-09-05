@@ -377,7 +377,7 @@ topics:
     name: "Dzielenie"
     levels:
       - level: 1
-        name: "Przez liczbę całkowitą (bez reszty)"
+        name: "Przez liczbę całkowitą"
         function: "dec_div_1"
         traps:
           ignores_the_point_in_the_dividend:
@@ -388,7 +388,7 @@ topics:
             explanation: "Wynik ma o jedno miejsce po przecinku za dużo."
       - level: 2
         name: "Przez liczbę całkowitą (z dopisaniem zera)"
-        function: "dec_div_4"
+        function: "dec_div_2"
         traps:
           shifts_the_divisor_instead_of_appending_a_zero:
             misconception: stops_division_at_remainder
@@ -398,7 +398,7 @@ topics:
             explanation: "Nie przesunąłeś przecinka wcale. Najpierw pozbądź się przecinka z dzielnika."
       - level: 3
         name: "Przez części dziesiąte"
-        function: "dec_div_2"
+        function: "dec_div_3"
         traps:
           puts_one_place_too_few_in_the_quotient:
             misconception: misplaces_decimal_point_in_quotient
@@ -411,7 +411,7 @@ topics:
             explanation: "Zsumowałeś miejsca po przecinku jak przy mnożeniu. Przy dzieleniu ta zasada nie działa."
       - level: 4
         name: "Przez części setne"
-        function: "dec_div_3"
+        function: "dec_div_4"
         traps:
           shifts_only_the_dividend:
             misconception: divides_by_decimal_without_clearing_the_divisor
