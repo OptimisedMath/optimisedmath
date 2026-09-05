@@ -563,12 +563,18 @@ topics:
         name: "Jednostki długości"
         function: "dec_unit_1"
         traps:
+          divides_by_one_power_too_few:
+            misconception: converts_units_incorrectly
+            explanation: "Podzieliłeś o jedno zero za mało."
           divides_by_one_power_too_many:
             misconception: converts_units_incorrectly
             explanation: "Podzieliłeś o jedno zero za dużo."
-          divides_by_the_wrong_power_of_ten:
+          divides_instead_of_multiplying:
             misconception: converts_units_incorrectly
-            explanation: "Podzieliłeś przez złą potęgę dziesiątki. Sprawdź przelicznik: 1 cm to 10 mm, 1 m to 100 cm."
+            explanation: "Podzieliłeś zamiast pomnożyć. Z większej jednostki na mniejszą zawsze mnożymy — 1 cm to 10 mm, więc metrów jest mniej niż centymetrów."
+          multiplies_by_one_power_too_many:
+            misconception: converts_units_incorrectly
+            explanation: "Pomnożyłeś o jedno zero za dużo. Sprawdź przelicznik: 1 cm to 10 mm, 1 m to 100 cm, 1 km to 1000 m."
           multiplies_instead_of_dividing:
             misconception: converts_units_incorrectly
             explanation: "Pomnożyłeś zamiast podzielić. Z mniejszej jednostki na większą zawsze dzielimy."
@@ -582,6 +588,12 @@ topics:
           divides_by_one_power_too_many:
             misconception: converts_units_incorrectly
             explanation: "Podzieliłeś o jedno zero za dużo."
+          divides_instead_of_multiplying:
+            misconception: converts_units_incorrectly
+            explanation: "Podzieliłeś zamiast pomnożyć. Z kilogramów na gramy mnożymy przez 1000 — gramów musi wyjść więcej."
+          multiplies_by_one_power_too_many:
+            misconception: converts_units_incorrectly
+            explanation: "Pomnożyłeś o jedno zero za dużo. Sprawdź przelicznik: 1 dag to 10 g, 1 kg to 100 dag, 1 kg to 1000 g."
           multiplies_instead_of_dividing:
             misconception: converts_units_incorrectly
             explanation: "Pomnożyłeś zamiast podzielić. Z gramów na kilogramy dzielimy przez 1000."
