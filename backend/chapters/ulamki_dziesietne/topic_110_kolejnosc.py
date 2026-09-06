@@ -311,6 +311,10 @@ def dec_order_5() -> dict | None:
         a, b, c = [_tenths(1, 4) for _ in range(3)]
         q = f"({fmt_dec(a)} + {fmt_dec(b)})^2 - {fmt_dec(c)}"
         ans = ((a + b) ** 2) - c
+        # A tenths pair squared is routinely smaller than c, and klasy 4-8 do not
+        # practise negative answers in this Topic (#242). Discard that roll.
+        if ans < 0:
+            return None
         traps = {
             "squares_the_bracket_terms_separately": (a**2) + (b**2) - c,
             "multiplies_by_the_exponent": (a + b) * 2 - c,
@@ -345,11 +349,17 @@ def dec_order_5() -> dict | None:
 def dec_order_6() -> dict | None:
     """Boss Level (poziom 6)."""
     # Poziom 6: Ultimate Boss (Potęgi, Nawiasy i Mnożenie)
-    a = _tenths(2, 4)
-    b, c = [_tenths(1, 3) for _ in range(2)]
-    d = _tenths(1, 5)
+    # Ranges chosen so the squared bracket usually clears d: with the old draw
+    # (a from 0,2-0,4 and d up to 0,5) only 4 of 135 combinations were
+    # non-negative, so the guard below alone would have starved the Level (#242).
+    a = _tenths(5, 9)
+    b, c = [_tenths(2, 5) for _ in range(2)]
+    d = _tenths(1, 3)
     q = f"{fmt_dec(a)} \\cdot ({fmt_dec(b)} + {fmt_dec(c)})^2 - {fmt_dec(d)}"
     ans = a * ((b + c) ** 2) - d
+    # klasy 4-8 do not practise negative answers in this Topic (#242).
+    if ans < 0:
+        return None
 
     traps = {
         "multiplies_before_squaring": (a * (b + c)) ** 2 - d,
