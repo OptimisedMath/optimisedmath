@@ -195,6 +195,10 @@ _Avoid_: skip, quit, drop out, bail
 One question within a Deconstruction, derived from the Problem's parameters rather than authored per Problem.
 _Avoid_: sub-problem, micro-step
 
+**Working line**:
+The single line of maths shown above a Deconstruction step — the expression as it stands at that point in the walkthrough. Each step's replaces the last rather than adding to a thread, so the sequence reads as one expression collapsing. Authored per step and legitimately absent where a Misconception has no expression to transform. Not the Problem's own question, which stays on screen throughout a Deconstruction on its own.
+_Avoid_: scratchpad, working, running total, step expression
+
 **Reveal**:
 Showing a Student the correct answer to a Deconstruction step after they have got it wrong repeatedly. The step is not skipped — the Student still enters the revealed answer to advance.
 _Avoid_: hint, give up, solution, skip
