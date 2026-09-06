@@ -188,13 +188,9 @@ inverts_fraction_unnecessarily:
 
 # --- Dzielenie ---
 
-divides_denominator_instead_of_numerator:
-  name: "Dzieli mianownik zamiast licznika"
-  explanation: "Dzieląc ułamek przez liczbę całkowitą, dzielimy licznik — mianownik zostaje."
-
-divides_denominator_instead_of_multiplying_it:
-  name: "Dzieli mianownik, zamiast go pomnożyć"
-  explanation: "Gdy licznik nie dzieli się przez tę liczbę, mnożymy przez nią mianownik — bo dzielenie przez liczbę to mnożenie przez 1/liczba."
+operates_on_the_denominator_when_dividing_by_a_number:
+  name: "Źle traktuje mianownik przy dzieleniu przez liczbę"
+  explanation: "Dzieląc ułamek przez liczbę: gdy licznik dzieli się przez tę liczbę — dziel licznik; gdy nie — pomnóż mianownik. Mianownika nie dzielimy nigdy."
 
 divides_fractions_without_inverting_the_second:
   name: "Dzieli ułamki bez odwrócenia drugiego"

@@ -11,6 +11,11 @@ So: sweep every generator, draw it N times, and require a floor on the number
 of distinct `parameters` tuples seen. Number-line Levels are skipped — their
 `question` is a constant string and the variation lives in the rendered SVG, so
 they would always measure as 1 distinct tuple.
+
+The floor started at 5, which was too low to be a guard at all: `dec_mult_3` drew
+its operands from two four-item lists, so the Level was 16 Problems forever, and
+this test passed it (#233). A floor has to sit above the pool sizes it is meant
+to catch.
 """
 
 import pytest
@@ -18,9 +23,21 @@ import pytest
 from backend.problem_generation import FUNCTION_REGISTRY
 
 ROLLS = 300
-MIN_DISTINCT = 5
+MIN_DISTINCT = 20
 
 NUMBER_LINE_GENERATORS = {name for name in FUNCTION_REGISTRY if "number_line" in name}
+
+# Below the floor on `main` when it was raised from 5 to 20 (#233). Whether each
+# small pool is the Level's design or a defect is #239's decision, which removes
+# these one at a time — nothing here is a verdict that the pool is acceptable.
+PENDING_TRIAGE = {
+    "frac_pow_2",
+    "dec_pow_1",
+    "frac_ord_6",
+    "dec_to_frac_4",
+    "frac_ord_5",
+    "frac_pow_3",
+}
 
 
 def _parameters_key(parameters: dict) -> tuple:
@@ -28,7 +45,7 @@ def _parameters_key(parameters: dict) -> tuple:
 
 
 @pytest.mark.parametrize(
-    "name", sorted(set(FUNCTION_REGISTRY) - NUMBER_LINE_GENERATORS)
+    "name", sorted(set(FUNCTION_REGISTRY) - NUMBER_LINE_GENERATORS - PENDING_TRIAGE)
 )
 def test_generator_draws_varied_problems(name):
     generator = FUNCTION_REGISTRY[name]

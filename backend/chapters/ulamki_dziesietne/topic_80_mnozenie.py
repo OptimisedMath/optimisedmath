@@ -63,8 +63,9 @@ def dec_mult_2() -> dict | None:
 )
 def dec_mult_3() -> dict | None:
     """Połówki przez części dziesiąte (poziom 3)."""
-    v1 = random.choice([1.5, 2.5, 3.5, 4.5])
-    v2 = random.choice([0.2, 0.4, 0.6, 0.8])
+    # Two four-item lists made the whole Level 16 Problems, forever (#233).
+    v1 = random.randint(1, 9) + 0.5
+    v2 = random.randint(1, 9) / 10
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} \cdot {fmt_dec(v2)}"
     val = round(v1 * v2, 2)

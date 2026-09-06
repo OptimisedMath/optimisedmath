@@ -118,7 +118,7 @@ def dec_to_frac_4() -> dict | None:
     d = random.choice([3, 9])
     n = random.randint(1, d - 1)
 
-    q_str = rf"\text{{Rozwiń ułamek (zapisz w okresie): }} \frac{{{n}}}{{{d}}}"
+    q_str = rf"\text{{Rozwiń ułamek: }} \frac{{{n}}}{{{d}}}"
 
     val = int((n / d) * 10)
     c_str = f"0,({val})"

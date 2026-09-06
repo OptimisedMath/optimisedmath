@@ -128,7 +128,7 @@ _Avoid_: w1, w2 (positional slots), padding option
 
 **Misconception**:
 A wrong rule a Student believes and applies — a named, recurring error in their mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. The belief is what makes it a Misconception: an error with no false rule behind it, such as misreading a symbol, is a slip, and the Trap carrying it references none. Which entry a Trap references, and whether it earns one at all, is decided by the rules in [misconceptions.yaml](backend/data/misconceptions.yaml).
-_Avoid_: error pattern, bug, trap type, t1/t2 (positional slots, not identities)
+_Avoid_: error pattern, bug, trap type, entry, catalogue entry, t1/t2 (positional slots, not identities)
 
 **Misconception slug**:
 The name a Misconception is known by in the catalogue — a stable, human-readable English key, not a database id. Telemetry records it alongside a Trap's own Trap slug.

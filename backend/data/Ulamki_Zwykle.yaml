@@ -374,22 +374,20 @@ topics:
         name: "Dzielenie licznika"
         function: "frac_div_num_1"
         traps:
-          leaves_the_fraction_unchanged:
-            misconception: divides_denominator_instead_of_numerator
-            explanation: "Przepisałeś ułamek bez zmian. Dzielenie przez liczbę musi go zmniejszyć."
+          divides_the_numerator_and_multiplies_the_denominator:
+            misconception: operates_on_the_denominator_when_dividing_by_a_number
+            explanation: "Podzieliłeś licznik I pomnożyłeś mianownik. Wystarczy jedno z dwojga — tu licznik dzieli się równo, więc podziel sam licznik."
           multiplies_the_numerator_instead_of_dividing:
-            misconception: divides_denominator_instead_of_multiplying_it
-            explanation: "Pomnożyłeś licznik zamiast podzielić ułamek! Dzielenie przez liczbę powiększa mianownik."
+            explanation: "Pomnożyłeś licznik zamiast go podzielić. Dzielenie przez liczbę ma ułamek zmniejszyć, nie powiększyć."
       - level: 2
         name: "Gdy licznik się nie dzieli"
         function: "frac_div_num_2"
         traps:
-          inverts_the_wrong_way_round:
-            misconception: divides_fractions_without_inverting_the_second
-            explanation: "Odwróciłeś pierwszy ułamek! Pierwszy zostaje bez zmian, odwracamy zawsze drugi."
-          multiplies_without_inverting:
-            misconception: divides_fractions_without_inverting_the_second
-            explanation: "Pomnożyłeś bez odwracania! Dzielenie to mnożenie przez odwrotność drugiej liczby."
+          adds_to_the_denominator_instead_of_multiplying:
+            misconception: operates_on_the_denominator_when_dividing_by_a_number
+            explanation: "Dodałeś tę liczbę do mianownika. Mianownik przez nią MNOŻYMY — po dodaniu ułamek maleje o wiele za mało."
+          multiplies_the_numerator_instead_of_dividing:
+            explanation: "Pomnożyłeś licznik zamiast pomnożyć mianownik. Licznik nie dzieli się przez tę liczbę, więc zostaje bez zmian."
       - level: 3
         name: "Dzielenie liczby mieszanej"
         function: "frac_div_num_3"
@@ -404,8 +402,18 @@ topics:
     name: "Dzielenie ułamków"
     levels:
       - level: 1
-        name: "Proste odwracanie"
+        name: "Dzielenie liczby przez ułamek"
         function: "frac_div_frac_1"
+        traps:
+          inverts_the_wrong_way_round:
+            misconception: divides_fractions_without_inverting_the_second
+            explanation: "Odwróciłeś pierwszy ułamek! Pierwszy zostaje bez zmian, odwracamy zawsze drugi."
+          multiplies_without_inverting:
+            misconception: divides_fractions_without_inverting_the_second
+            explanation: "Pomnożyłeś bez odwracania! Dzielenie to mnożenie przez odwrotność drugiej liczby."
+      - level: 2
+        name: "Proste odwracanie"
+        function: "frac_div_frac_2"
         traps:
           inverts_the_whole_answer:
             misconception: inverts_fraction_unnecessarily
@@ -413,9 +421,9 @@ topics:
           multiplies_without_inverting:
             misconception: divides_fractions_without_inverting_the_second
             explanation: "Zapomniałeś odwrócić! Dzielenie ułamków to mnożenie pierwszego przez odwrotność drugiego."
-      - level: 2
+      - level: 3
         name: "Odwracanie i skracanie"
-        function: "frac_div_frac_2"
+        function: "frac_div_frac_3"
         traps:
           cancels_before_inverting:
             misconception: cancels_before_inverting
@@ -423,9 +431,9 @@ topics:
           multiplies_without_inverting:
             misconception: divides_fractions_without_inverting_the_second
             explanation: "Pomnożyłeś bez odwracania drugiego ułamka."
-      - level: 3
+      - level: 4
         name: "Dzielenie z liczbami mieszanymi"
-        function: "frac_div_frac_3"
+        function: "frac_div_frac_4"
         traps:
           inverts_only_the_fraction_part:
             misconception: operates_on_mixed_number_without_converting

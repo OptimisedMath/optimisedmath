@@ -10,9 +10,34 @@ from backend.core.utils import (
 )
 
 
-@declares_traps("multiplies_without_inverting", "inverts_the_whole_answer")
+@declares_traps("multiplies_without_inverting", "inverts_the_wrong_way_round")
 def frac_div_frac_1() -> dict | None:
-    """Proste odwracanie (poziom 1)."""
+    """Dzielenie liczby przez ułamek (poziom 1)."""
+    k = random.randint(2, 5)
+    d = random.randint(2, 7)
+    n = random.randint(1, d - 1)
+
+    q_str = rf"\text{{Oblicz: }} {k} : {format_fraction_question(n, d)}"
+
+    c_str, _ = format_answers(k * d, n)
+
+    problem = build_problem_dict(
+        q_str,
+        c_str,
+        traps={
+            "multiplies_without_inverting": format_answers(k * n, d)[0],
+            "inverts_the_wrong_way_round": format_answers(n, k * d)[0],
+        },
+        fillers=[format_answers((k * d) + 1, n)[0]],
+        parameters={"n": n, "d": d, "k": k},
+    )
+    if problem:
+        return problem
+
+
+@declares_traps("multiplies_without_inverting", "inverts_the_whole_answer")
+def frac_div_frac_2() -> dict | None:
+    """Proste odwracanie (poziom 2)."""
     d1, d2 = random.randint(3, 7), random.randint(3, 7)
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
 
@@ -35,8 +60,8 @@ def frac_div_frac_1() -> dict | None:
 
 
 @declares_traps("cancels_before_inverting", "multiplies_without_inverting")
-def frac_div_frac_2() -> dict | None:
-    """Odwracanie i skracanie (poziom 2)."""
+def frac_div_frac_3() -> dict | None:
+    """Odwracanie i skracanie (poziom 3)."""
     n1, n2 = random.randint(2, 8), random.randint(2, 8)
     while math.gcd(n1, n2) == 1:
         n1, n2 = random.randint(2, 8), random.randint(2, 8)
@@ -64,8 +89,8 @@ def frac_div_frac_2() -> dict | None:
 
 
 @declares_traps("inverts_only_the_fraction_part", "multiplies_without_inverting")
-def frac_div_frac_3() -> dict | None:
-    """Dzielenie z liczbami mieszanymi (poziom 3)."""
+def frac_div_frac_4() -> dict | None:
+    """Dzielenie z liczbami mieszanymi (poziom 4)."""
     whole1, whole2 = random.randint(1, 2), random.randint(1, 2)
     d1, d2 = random.randint(2, 4), random.randint(2, 4)
     n1, n2 = random.randint(1, d1 - 1), random.randint(1, d2 - 1)
