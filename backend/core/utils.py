@@ -88,6 +88,31 @@ def declared_trap_slugs(func: Any) -> frozenset[str]:
     return getattr(func, "trap_slugs", frozenset())
 
 
+# --- Units ---
+
+
+def declares_units(*units: str) -> Any:
+    """Declare the Units a generator may pick from, and hand it that tuple.
+
+    `generate_problem` calls a generator with no arguments, so a Unit cannot be
+    passed in — the generator draws its own. That leaves the Level's
+    `expected_units` and the generator's choice as two lists that could drift, so
+    the declaration is checked against the YAML at load time, exactly as
+    `declares_traps` is (ADR-0005 as amended by #237).
+    """
+
+    def decorate(func: Any) -> Any:
+        func.expected_units = tuple(units)
+        return func
+
+    return decorate
+
+
+def declared_units(func: Any) -> tuple[str, ...]:
+    """The Units a generator declares, or an empty tuple if it declares none."""
+    return getattr(func, "expected_units", ())
+
+
 # --- Problem dict builder ---
 
 
@@ -100,6 +125,7 @@ def build_problem_dict(
     fillers: list[str | None] | None = None,
     grading_policy: str = "standard",
     image_html: str | None = None,
+    expected_unit: str | None = None,
 ) -> ProblemDict | None:
     """Build the canonical problem dict with options, options_map, and grading_policy.
 
@@ -110,6 +136,10 @@ def build_problem_dict(
     `parameters` is the structured values the Problem was generated from, keyed by the
     generator's own operand names, for a Deconstruction walkthrough to consume. Required
     on every call — a generator that omits it fails at call time, not silently.
+
+    `expected_unit` is the Unit the answer carries. Every option stays a bare number —
+    Radio mode appends the Unit to all four buttons at render time, so it can never be
+    the discriminator (#213) — and the Level must declare it in `expected_units`.
     """
     option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
     option_entries += [(value, slug) for slug, value in (traps or {}).items()]
@@ -141,6 +171,8 @@ def build_problem_dict(
         "grading_policy": grading_policy,
         "parameters": parameters,
     }
+    if expected_unit is not None:
+        problem["expected_unit"] = expected_unit
     return problem
 
 

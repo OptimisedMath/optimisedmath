@@ -71,6 +71,8 @@ export interface Problem {
   level_display: string;
   keyboard_type?: string;
   image_html?: string;
+  /** Radio mode only. Appended to every option for display; never submitted. */
+  expected_unit?: string;
 }
 
 export interface SessionStartRequest {

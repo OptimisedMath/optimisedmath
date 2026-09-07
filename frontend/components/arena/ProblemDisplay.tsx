@@ -45,7 +45,10 @@ function ProblemDisplay({
       </div>
       {problem.image_html && (
         <div className="mb-6 flex justify-center">
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950/60" style={{ width: '100%', maxWidth: '100%' }} dangerouslySetInnerHTML={{ __html: problem.image_html }} />
+          {/* Capped, not fixed: a scene sizes its own viewBox from its content, so a
+              near-square figure would otherwise take the full card width and about
+              as much height again, pushing the answer below the fold on desktop. */}
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950/60" dangerouslySetInnerHTML={{ __html: problem.image_html }} />
         </div>
       )}
     </div>

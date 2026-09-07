@@ -5,6 +5,8 @@ from __future__ import annotations
 from fractions import Fraction
 from typing import TypedDict
 
+import backend.config as config
+from backend.core.units import convert, normalize_unit, split_answer
 from backend.core.utils import (
     FILLER_SLUG,
     ProblemDict,
@@ -21,6 +23,9 @@ class EvalResult(TypedDict, total=False):
     feedback_msg: str
     answer_outcome: str
     trap_slug: str
+    #: Set only by a grader-synthesized Trap, which has no Level `traps:` entry
+    #: for `_resolve_misconception_slug` to look its Misconception up from.
+    misconception_slug: str
 
 
 def _match_trap_feedback(
@@ -47,6 +52,100 @@ def _match_trap_feedback(
                 "trap_slug": opt_type,
             }
     return None
+
+
+def _unit_wrong(message: str) -> EvalResult:
+    """A Unit fault with no rule behind it — missing or not a Unit at all."""
+    return {
+        "lock_answer": True,
+        "feedback_type": "warning",
+        "feedback_msg": message,
+        "answer_outcome": "wrong",
+    }
+
+
+def _synthesized_unit_trap(slug: str, misconception: str, message: str) -> EvalResult:
+    """A Trap the grader raises itself, carrying its own Misconception.
+
+    Authorized for Units only (ADR-0005): the rule is mechanically detectable, so
+    making 22 Geometria generators author every wrong Unit would be combinatorial
+    work to state something already general.
+    """
+    return {
+        "lock_answer": True,
+        "feedback_type": "warning",
+        "feedback_msg": message,
+        "answer_outcome": "trap",
+        "trap_slug": slug,
+        "misconception_slug": misconception,
+    }
+
+
+def _grade_with_unit(
+    user_input: str, problem: ProblemDict, expected_unit: str
+) -> EvalResult:
+    """Grade a typed answer that must carry a Unit.
+
+    Ordering is the decision (ADR-0005): split, then dimension, then convert, then
+    compare — so `0,0024 m²` resolves Correct for `24 cm²` before any Trap is
+    considered, and Trap matching only ever sees answers already established as
+    wrong. A missing Unit is Wrong, never a Soft Error: here the Unit is part of
+    the answer.
+    """
+    number_text, raw_unit = split_answer(user_input)
+    student_val = parse_to_fraction(number_text)
+    if student_val is None:
+        # A number that is not a number is a notation Soft Error, and stays one
+        # here. Only the Unit half of the answer is exempt from Soft Errors.
+        return {
+            "lock_answer": False,
+            "feedback_type": "info",
+            "feedback_msg": "Niepoprawny zapis matematyczny.",
+            "answer_outcome": "syntax_error",
+        }
+
+    if raw_unit is None:
+        return _unit_wrong(config.MISSING_UNIT_MESSAGE)
+
+    unit = normalize_unit(raw_unit)
+    if unit is None:
+        return _unit_wrong(config.UNKNOWN_UNIT_MESSAGE)
+
+    correct_val = parse_to_fraction(str(problem["correct"]))
+    converted = convert(student_val, unit, expected_unit)
+
+    if converted is not None and converted == correct_val:
+        return {"is_correct": True, "lock_answer": True}
+
+    # The number decides which Trap it is (#229), and it is matched *after*
+    # conversion, so a Trap number typed in a legal other Unit still names its
+    # own rule rather than falling through to the generic message.
+    comparable = converted if converted is not None else student_val
+    trap_result = _match_trap_feedback(number_text, comparable, problem)
+    if trap_result:
+        return trap_result
+
+    if student_val == correct_val:
+        if converted is None:
+            return _synthesized_unit_trap(
+                config.UNIT_DIMENSION_TRAP_SLUG,
+                config.UNIT_DIMENSION_MISCONCEPTION,
+                config.WRONG_DIMENSION_UNIT_MESSAGE,
+            )
+        return _synthesized_unit_trap(
+            config.UNIT_SCALE_TRAP_SLUG,
+            config.UNIT_SCALE_MISCONCEPTION,
+            config.WRONG_SCALE_UNIT_MESSAGE,
+        )
+
+    return {
+        "lock_answer": True,
+        "feedback_type": "warning",
+        "feedback_msg": problem.get("messages", {}).get(
+            FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
+        ),
+        "answer_outcome": "wrong",
+    }
 
 
 def grade(
@@ -86,6 +185,10 @@ def grade(
         return eval_outcome
 
     # --- 2. TEXT INPUT MODE ---
+    expected_unit = problem.get("expected_unit")
+    if expected_unit:
+        return _grade_with_unit(user_input, problem, str(expected_unit))
+
     policy = problem.get("grading_policy", "standard")
 
     if check_text_answer(problem["correct"], user_input):

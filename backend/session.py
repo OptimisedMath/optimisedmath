@@ -115,6 +115,14 @@ def public_problem(
     if image_html and not _is_safe_svg_fragment(str(image_html)):
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
+    if state.current_input_mode != "input":
+        # Radio mode only. The client appends this to all four buttons, so the
+        # Student reads `24 cm²` but the Unit can never be the discriminator
+        # (#213). Printing it beside a text input would hand away the very
+        # distinction `confuses_length_and_area_units` exists to detect.
+        expected_unit = problem.get("expected_unit")
+        if expected_unit:
+            public["expected_unit"] = expected_unit
     if state.problem_answered:
         if state.deconstruction is None:
             public["correct_answer"] = problem.get("correct")

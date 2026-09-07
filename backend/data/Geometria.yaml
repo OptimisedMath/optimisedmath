@@ -1,0 +1,62 @@
+chapter: "Geometria"
+id: 30
+# `text`, not `default`: `default` sets inputMode="numeric" on the phone keyboard,
+# which puts `c` and `m` out of reach — and here the Unit is part of the answer.
+keyboard_type: "text"
+topics:
+  - id: 130
+    name: "Pole trójkąta"
+    levels:
+      - level: 1
+        name: "Wysokość wewnątrz trójkąta"
+        function: "geo_triangle_area_1"
+        expected_units: ["mm²", "cm²", "dm²"]
+        traps:
+          treats_the_triangle_area_as_base_times_height:
+            misconception: treats_the_triangle_area_as_base_times_height
+            explanation: "To pole prostokąta, nie trójkąta. Trójkąt to połowa — podziel jeszcze przez 2."
+          computes_the_perimeter_instead_of_the_area:
+            misconception: computes_the_perimeter_instead_of_the_area
+            explanation: "Dodałeś boki, czyli policzyłeś obwód. Pole liczymy z podstawy i wysokości."
+          confuses_base_with_height:
+            misconception: confuses_base_with_height
+            explanation: "To bok, nie wysokość. Wysokość to odcinek przerywany, prostopadły do podstawy."
+      - level: 2
+        name: "Trójkąt prostokątny"
+        function: "geo_triangle_area_2"
+        expected_units: ["mm²", "cm²", "dm²"]
+        traps:
+          treats_the_triangle_area_as_base_times_height:
+            misconception: treats_the_triangle_area_as_base_times_height
+            explanation: "Pomnożyłeś przyprostokątne i na tym skończyłeś — to pole prostokąta. Trójkąt to jego połowa."
+          computes_the_perimeter_instead_of_the_area:
+            misconception: computes_the_perimeter_instead_of_the_area
+            explanation: "Dodałeś wszystkie trzy boki, czyli policzyłeś obwód. Pytanie jest o pole."
+          confuses_base_with_height:
+            misconception: confuses_base_with_height
+            explanation: "Wziąłeś przeciwprostokątną. Tutaj wysokością jest przyprostokątna — to ona jest prostopadła do podstawy."
+      - level: 3
+        name: "Wysokość poza trójkątem"
+        function: "geo_triangle_area_3"
+        expected_units: ["mm²", "cm²", "dm²"]
+        traps:
+          treats_the_triangle_area_as_base_times_height:
+            misconception: treats_the_triangle_area_as_base_times_height
+            explanation: "Zapomniałeś podzielić przez 2. Podstawa razy wysokość to pole prostokąta."
+          computes_the_perimeter_instead_of_the_area:
+            misconception: computes_the_perimeter_instead_of_the_area
+            explanation: "Zsumowałeś boki — to obwód. Do pola potrzebujesz podstawy i wysokości."
+          confuses_base_with_height:
+            misconception: confuses_base_with_height
+            explanation: "To bok, nie wysokość. Wysokość wypada tu poza trójkątem — to przerywany odcinek prostopadły do przedłużonej podstawy."
+      - level: 4
+        name: "Podstawa lub wysokość z pola"
+        function: "geo_triangle_area_4"
+        expected_units: ["mm", "cm", "dm"]
+        traps:
+          treats_the_triangle_area_as_base_times_height:
+            misconception: treats_the_triangle_area_as_base_times_height
+            explanation: "Samo dzielenie pola nie wystarczy — pole to połowa iloczynu, więc najpierw podwój je, a dopiero potem dziel."
+          confuses_base_with_height:
+            misconception: confuses_base_with_height
+            explanation: "Podzieliłeś przez bok. Dziel przez tę długość, która jest podpisana jako podstawa albo wysokość."

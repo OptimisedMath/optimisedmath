@@ -109,6 +109,9 @@ function RadioAnswerInput({
                 {index + 1}
               </kbd>
               {option.includes('\\') ? <InlineMath math={option} /> : option}
+              {problem.expected_unit ? (
+                <span className="opacity-80">{problem.expected_unit}</span>
+              ) : null}
             </span>
           </button>
         ))}
