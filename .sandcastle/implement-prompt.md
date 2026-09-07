@@ -53,9 +53,22 @@ If applicable, use RGR to complete the task.
 
 # FEEDBACK LOOPS
 
-Before committing, run `make test` and `make lint` to ensure the tests and the
-linters pass. These are the repo's real entry points — there is no `npm run
-test` or `npm run typecheck` at the repo root.
+`make test` and `make lint` are the repo's real entry points — there is no
+`npm run test` or `npm run typecheck` at the repo root.
+
+**Commit first, then verify.** As soon as the change is written and you believe
+it is right, commit it. Run `make test` and `make lint` afterwards and fix what
+they report in a follow-up commit. A commit is trivial to amend or revert; an
+uncommitted change is invisible to the orchestrator, which reads commits alone
+to decide whether you are making progress. Verifying before committing risks
+spending your whole turn on the check and leaving nothing behind.
+
+**Never run a verification command in the background and wait for it.** Run
+`make test` and `make lint` in the foreground and read their output. Do not
+launch them as background tasks, do not poll for their results, and do not
+`sleep` waiting on them. Your turn can end at any moment, and a turn spent
+waiting produces nothing. If a command is too slow to finish in your turn, say
+so in the commit message and move on — the next iteration will pick it up.
 
 # COMMIT
 
@@ -71,7 +84,9 @@ Keep it concise.
 
 **Commit before you run out of room.** Your work only survives an interruption
 if it is committed, so commit each coherent step as you finish it rather than
-saving one commit for the end.
+saving one commit for the end. Three turns in a row with no commit are read as
+a dead agent and the issue is abandoned, so never end a turn with a working
+change sitting uncommitted.
 
 # THE ISSUE
 
