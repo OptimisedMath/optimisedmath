@@ -75,11 +75,23 @@ const MAX_ITERATIONS = 4;
 // stop a dead run instead of burning the remainder on container starts.
 const MAX_IMPLEMENTER_ITERATIONS = 100;
 
+// Hooks run inside the sandbox before the agent starts. The agent's feedback
+// loop is `make test` / `make lint`, so all three toolchains it reaches for —
+// root node, frontend node, and the Python env uv manages — must be present, or
+// the loop fails in a way the agent will read as a broken repo.
 const hooks = {
-  sandbox: { onSandboxReady: [{ command: "npm install" }] },
+  sandbox: {
+    onSandboxReady: [
+      { command: "npm install" },
+      { command: "npm install --prefix frontend" },
+      { command: "uv sync" },
+    ],
+  },
 };
 
-const copyToWorktree = ["node_modules"];
+// Copied from the host before each sandbox starts, so the hooks above are a
+// top-up rather than a cold install.
+const copyToWorktree = ["node_modules", "frontend/node_modules"];
 
 const BASE_BRANCH = "main";
 

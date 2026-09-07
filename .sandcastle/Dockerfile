@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y \
   git \
   curl \
   jq \
+  make \
+  python3 \
   && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI
@@ -27,6 +29,9 @@ USER ${AGENT_UID}:${AGENT_GID}
 
 # Install Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Install uv: `make test` runs pytest through it, `make lint` runs black.
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Add Claude to PATH
 ENV PATH="/home/agent/.local/bin:$PATH"
