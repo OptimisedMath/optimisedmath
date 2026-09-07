@@ -47,6 +47,7 @@ import {
   isDeadRun,
   isGroupComplete,
   isRunFatal,
+  isSettledWithNothingToDo,
   issueBranchName,
   issueNumberOfBranch,
   partitionIntoGroups,
@@ -501,7 +502,7 @@ async function workIssue(issue: {
   id: string;
   title: string;
   branch: string;
-}): Promise<{ commits: { sha: string }[] }> {
+}): Promise<{ commits: { sha: string }[]; completed: boolean }> {
   const sandbox = await sandcastle.createSandbox({
     branch: issue.branch,
     sandbox: docker(),
@@ -522,7 +523,10 @@ async function workIssue(issue: {
     });
     throwIfRunFatal(review.stdout);
 
-    return { commits: [...implement.commits, ...review.commits] };
+    return {
+      commits: [...implement.commits, ...review.commits],
+      completed: implement.completed,
+    };
   } finally {
     await sandbox.close();
   }
@@ -636,6 +640,20 @@ async function runGroup(group: Group): Promise<void> {
 
     if (completed.length === 0) {
       console.log("No commits produced. Nothing to merge.");
+
+      // Every issue reporting completion with nothing to show for it means the
+      // work was already done. Replanning would ask the same question and get
+      // the same answer, so stop rather than spend the remaining cycles on it.
+      const outcomes = settled.map((outcome) => ({
+        failed: outcome.status === "rejected",
+        commits: outcome.status === "fulfilled" ? outcome.value.commits.length : 0,
+        completed: outcome.status === "fulfilled" && outcome.value.completed,
+      }));
+      if (isSettledWithNothingToDo(outcomes)) {
+        console.log("Every issue reports its work was already done. Group finished.");
+        break;
+      }
+
       continue;
     }
 

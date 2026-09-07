@@ -241,3 +241,21 @@ export function buildPrBody(options: {
 
   return lines.join("\n");
 }
+
+/**
+ * Did a cycle prove there is nothing left for this group to do?
+ *
+ * An issue that signals completion without producing a commit is telling us its
+ * work was already done. When that holds for every issue in a cycle, replanning
+ * can only produce the same answer, so the group is finished and further cycles
+ * are pure waste. A failure, or an issue that never signalled, means the
+ * opposite — a retry may still get somewhere.
+ */
+export function isSettledWithNothingToDo(
+  outcomes: { failed: boolean; commits: number; completed: boolean }[],
+): boolean {
+  return (
+    outcomes.length > 0 &&
+    outcomes.every((o) => !o.failed && o.commits === 0 && o.completed)
+  );
+}

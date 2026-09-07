@@ -13,6 +13,7 @@ import {
   isDeadRun,
   isGroupComplete,
   isRunFatal,
+  isSettledWithNothingToDo,
   issueNumberOfBranch,
   parentIssueOf,
   partitionIntoGroups,
@@ -224,4 +225,51 @@ test("a solo group's PR title names the issue itself", () => {
     buildPrTitle({ id: "solo-999", parentIssue: undefined, issues: [] }, 1),
     "Sandcastle: #999 — 1 issue(s)",
   );
+});
+
+// --- a cycle that had nothing to do ---------------------------------------
+
+test("a group whose every issue reports completion without commits is finished", () => {
+  assert.equal(
+    isSettledWithNothingToDo([
+      { failed: false, commits: 0, completed: true },
+      { failed: false, commits: 0, completed: true },
+    ]),
+    true,
+  );
+});
+
+test("a cycle that produced commits is not a cycle with nothing to do", () => {
+  assert.equal(
+    isSettledWithNothingToDo([{ failed: false, commits: 2, completed: true }]),
+    false,
+  );
+});
+
+test("an issue that never signalled completion leaves the group retryable", () => {
+  assert.equal(
+    isSettledWithNothingToDo([{ failed: false, commits: 0, completed: false }]),
+    false,
+  );
+});
+
+test("a failed issue leaves the group retryable", () => {
+  assert.equal(
+    isSettledWithNothingToDo([{ failed: true, commits: 0, completed: false }]),
+    false,
+  );
+});
+
+test("one unfinished issue is enough to keep a group going", () => {
+  assert.equal(
+    isSettledWithNothingToDo([
+      { failed: false, commits: 0, completed: true },
+      { failed: false, commits: 0, completed: false },
+    ]),
+    false,
+  );
+});
+
+test("an empty cycle proves nothing, since planning handles that case", () => {
+  assert.equal(isSettledWithNothingToDo([]), false);
 });
