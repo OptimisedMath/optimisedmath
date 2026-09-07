@@ -725,6 +725,34 @@ if (DRY_RUN) {
 }
 
 const startBranch = sh(`git rev-parse --abbrev-ref HEAD`);
+
+/**
+ * Put the developer's checkout back where they left it.
+ *
+ * Registered as an exit handler rather than run as a line at the end, because
+ * the ends that matter most never reach that line: Ctrl-C and a spent quota
+ * both leave through `process.exit`, and stranding someone on an integration
+ * branch is a poor way to greet them after a run died overnight. Everything
+ * here is synchronous, which an exit handler requires, and nothing here may
+ * throw — an exception at this point would mask whatever actually went wrong.
+ */
+let restored = false;
+function restoreStartBranch(): void {
+  if (restored) return;
+  restored = true;
+  try {
+    if (sh(`git rev-parse --abbrev-ref HEAD`) === startBranch) return;
+    if (shQuiet(`git checkout ${startBranch}`) === undefined) {
+      console.error(
+        `\nCould not return to ${startBranch} — your checkout is still on the integration branch.`,
+      );
+    }
+  } catch {
+    console.error(`\nCould not determine the current branch to restore ${startBranch}.`);
+  }
+}
+process.on("exit", restoreStartBranch);
+
 let fatal: RunFatalError | undefined;
 
 for (const group of groups) {
@@ -748,9 +776,7 @@ for (const group of groups) {
   }
 }
 
-// Leave the developer's checkout where they left it, not on whichever
-// integration branch the run happened to stop on.
-shQuiet(`git checkout ${startBranch}`);
+restoreStartBranch();
 
 if (fatal) {
   console.error(`\n${fatal.message}`);
