@@ -20,6 +20,7 @@ frontend/dist/
 backend/storage/users.db*
 .pip_packages/
 .worktrees/
-.sandcastle/
+# Sandcastle orchestration is version-controlled so `make test` works on a
+# fresh clone; .sandcastle/.gitignore keeps .env, logs/ and worktrees/ out.
 sharing/
 export-app.sh

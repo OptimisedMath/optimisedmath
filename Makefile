@@ -33,6 +33,7 @@ dev:
 test:
 	uv run python -m pytest
 	npm test --prefix frontend
+	node --test .sandcastle/lib/
 
 lint:
 	uv run black --check backend tests
