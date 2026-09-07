@@ -273,3 +273,35 @@ test("one unfinished issue is enough to keep a group going", () => {
 test("an empty cycle proves nothing, since planning handles that case", () => {
   assert.equal(isSettledWithNothingToDo([]), false);
 });
+
+// --- network failures ------------------------------------------------------
+
+test("the API being unreachable is a network failure, not a local one", () => {
+  assert.equal(
+    classifyFailure(
+      "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+    ),
+    "network",
+  );
+});
+
+test("DNS and connection errors are recognised by their codes", () => {
+  assert.equal(classifyFailure("Error: getaddrinfo EAI_AGAIN api.anthropic.com"), "network");
+  assert.equal(classifyFailure("connect ECONNREFUSED 127.0.0.1:443"), "network");
+});
+
+test("a network failure ends the whole run, since the next container fares no better", () => {
+  assert.equal(isRunFatal("network"), true);
+});
+
+test("a spent quota still outranks a network error in the same output", () => {
+  assert.equal(
+    classifyFailure("usage limit reached; also ENOTFOUND while retrying"),
+    "quota",
+  );
+});
+
+test("an ordinary test failure is still local", () => {
+  assert.equal(classifyFailure("FAILED tests/test_session.py::test_streak"), "local");
+  assert.equal(isRunFatal("local"), false);
+});

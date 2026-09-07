@@ -2,7 +2,7 @@
 // handlers that play a sound however the run ends — and for reportOutcome(),
 // which lets main.mts name the ending before it exits.
 //
-// Three sounds, because the run now has three endings and only one of them
+// Four endings, three sounds, and only one of them means something is broken.
 // means something is broken. A quota-exhausted run is the expected interruption
 // and needs nothing from you but a re-run later; hearing that from the next
 // room is the whole point, since you are not watching the terminal.
@@ -12,10 +12,13 @@
 
 import { execFileSync } from "node:child_process";
 
-type Outcome = "success" | "interrupted" | "crash";
+type Outcome = "success" | "empty" | "interrupted" | "crash";
 
 const SOUNDS: Record<Outcome, string> = {
   success: "/System/Library/Sounds/Hero.aiff",
+  // A run that published nothing shares the interrupted sound: it did not
+  // break, but it wants looking at, and it has no good news to announce.
+  empty: "/System/Library/Sounds/Funk.aiff",
   interrupted: "/System/Library/Sounds/Funk.aiff",
   crash: "/System/Library/Sounds/Sosumi.aiff",
 };

@@ -47,6 +47,7 @@ import {
   isDeadRun,
   isGroupComplete,
   isRunFatal,
+  type FailureKind,
   isSettledWithNothingToDo,
   issueBranchName,
   issueNumberOfBranch,
@@ -324,13 +325,18 @@ function warnAboutUnmergedBranches(
 // ---------------------------------------------------------------------------
 
 /** A failure that should end the whole run rather than just its group. */
+const FATAL_REASONS: Record<Exclude<FailureKind, "local">, string> = {
+  quota: "Claude usage exhausted",
+  auth: "Agent authentication failed",
+  network: "Cannot reach the API from inside the sandbox",
+};
+
 class RunFatalError extends Error {
-  constructor(readonly kind: "quota" | "auth", detail: string) {
-    super(
-      kind === "quota"
-        ? `Claude usage exhausted — stopping the run. (${detail})`
-        : `Agent authentication failed — stopping the run. (${detail})`,
-    );
+  constructor(
+    readonly kind: Exclude<FailureKind, "local">,
+    detail: string,
+  ) {
+    super(`${FATAL_REASONS[kind]} — stopping the run. (${detail})`);
   }
 }
 
@@ -343,7 +349,7 @@ function errorText(error: unknown): string {
 function throwIfRunFatal(text: string): void {
   const kind = classifyFailure(text);
   if (isRunFatal(kind)) {
-    throw new RunFatalError(kind as "quota" | "auth", text.slice(0, 200));
+    throw new RunFatalError(kind, text.slice(0, 200));
   }
 }
 
@@ -542,10 +548,10 @@ async function workIssue(issue: {
  * Always a draft while work is outstanding: a partial batch is worth publishing
  * — the next run grows the same PR — but it is not worth anyone's review yet.
  */
-function publish(group: Group, integrationBranch: string, complete: boolean): void {
+function publish(group: Group, integrationBranch: string, complete: boolean): boolean {
   if (commitsAhead(BASE_BRANCH, integrationBranch) === 0) {
     console.log(`\n${GROUP_LABEL_PREFIX}${group.id}: no commits produced. No PR opened.`);
-    return;
+    return false;
   }
 
   execSync(`git push -u origin ${integrationBranch}`, { stdio: "inherit" });
@@ -580,13 +586,15 @@ function publish(group: Group, integrationBranch: string, complete: boolean): vo
   } else {
     console.log(`Group ${GROUP_LABEL_PREFIX}${group.id} still has outstanding work — PR left as a draft.`);
   }
+
+  return true;
 }
 
 // ---------------------------------------------------------------------------
 // One group, start to finish
 // ---------------------------------------------------------------------------
 
-async function runGroup(group: Group): Promise<void> {
+async function runGroup(group: Group): Promise<boolean> {
   console.log(`\n${"=".repeat(70)}`);
   console.log(`Group ${GROUP_LABEL_PREFIX}${group.id} — ${group.issues.length} open issue(s)`);
   console.log(`${"=".repeat(70)}`);
@@ -683,7 +691,7 @@ async function runGroup(group: Group): Promise<void> {
     strandedBranches: strandedBranches(group, integrationBranch).length,
   });
 
-  publish(group, integrationBranch, complete);
+  return publish(group, integrationBranch, complete);
 }
 
 // ---------------------------------------------------------------------------
@@ -755,9 +763,11 @@ process.on("exit", restoreStartBranch);
 
 let fatal: RunFatalError | undefined;
 
+let published = 0;
+
 for (const group of groups) {
   try {
-    await runGroup(group);
+    if (await runGroup(group)) published++;
   } catch (error) {
     if (error instanceof RunFatalError) {
       fatal = error;
@@ -778,14 +788,27 @@ for (const group of groups) {
 
 restoreStartBranch();
 
+const RESUME_ADVICE: Record<Exclude<FailureKind, "local">, string> = {
+  quota: "Re-run Sandcastle when your quota resets.",
+  auth: "Log the agent in, then re-run Sandcastle.",
+  network: "Check the sandbox's connectivity, then re-run Sandcastle.",
+};
+
 if (fatal) {
   console.error(`\n${fatal.message}`);
   console.error(
-    `Work committed before this point is pushed and covered by its draft PR. Re-run Sandcastle when your quota resets and it will resume where it stopped.`,
+    `Work committed before this point is pushed and covered by its draft PR. ${RESUME_ADVICE[fatal.kind]} It will resume where it stopped.`,
   );
   reportOutcome("interrupted");
   process.exit(2);
 }
 
-console.log("\nAll done.");
-reportOutcome("success");
+if (published === 0) {
+  console.log(
+    `\nNo group produced any commits, so nothing was published. Check the logs in .sandcastle/logs/ — the agents ran but left nothing behind.`,
+  );
+  reportOutcome("empty");
+} else {
+  console.log(`\nAll done — ${published} group(s) published.`);
+  reportOutcome("success");
+}

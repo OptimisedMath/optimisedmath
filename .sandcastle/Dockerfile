@@ -36,6 +36,12 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Add Claude to PATH
 ENV PATH="/home/agent/.local/bin:$PATH"
 
+# Bake in the interpreter pyproject.toml demands. The base image ships Python
+# 3.11, requires-python is >=3.14, so without this every container's first
+# `uv sync` downloads and unpacks a 29MB standalone CPython before it can
+# install anything — paid once per sandbox, and `make test` runs through uv.
+RUN uv python install 3.14
+
 WORKDIR /home/agent
 
 # In worktree sandbox mode, Sandcastle bind-mounts the git worktree at /home/agent/workspace

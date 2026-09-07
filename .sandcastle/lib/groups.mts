@@ -126,13 +126,25 @@ export function issueNumberOfBranch(branch: string): number | undefined {
  * only burns container starts. Anything else is the group's own problem and
  * the next group deserves its turn.
  */
-export type FailureKind = "quota" | "auth" | "local";
+export type FailureKind = "quota" | "auth" | "network" | "local";
 
 const QUOTA_PATTERNS = [
   /usage limit reached/i,
   /usage limit will reset/i,
   /credit balance is too low/i,
   /insufficient credits/i,
+];
+
+// A machine that cannot reach the API will not be able to reach it on the next
+// iteration either, and each retry costs a container start. Observed during the
+// #260 smoke test, where a transient outage burned three cycles.
+const NETWORK_PATTERNS = [
+  /can't reach the api server/i,
+  /\bENOTFOUND\b/,
+  /\bECONNREFUSED\b/,
+  /\bEAI_AGAIN\b/,
+  /getaddrinfo/i,
+  /network[_ ]error/i,
 ];
 
 const AUTH_PATTERNS = [
@@ -146,11 +158,12 @@ const AUTH_PATTERNS = [
 export function classifyFailure(text: string): FailureKind {
   if (QUOTA_PATTERNS.some((pattern) => pattern.test(text))) return "quota";
   if (AUTH_PATTERNS.some((pattern) => pattern.test(text))) return "auth";
+  if (NETWORK_PATTERNS.some((pattern) => pattern.test(text))) return "network";
   return "local";
 }
 
-/** A quota or auth failure ends the whole run; a local one ends only its group. */
-export function isRunFatal(kind: FailureKind): boolean {
+/** Quota, auth and network failures end the whole run; a local one ends only its group. */
+export function isRunFatal(kind: FailureKind): kind is Exclude<FailureKind, "local"> {
   return kind !== "local";
 }
 
