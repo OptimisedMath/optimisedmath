@@ -52,15 +52,16 @@ Ask the user:
 - Does the granularity feel right? (too coarse / too fine)
 - Are the blocking edges correct — does each ticket only depend on tickets that genuinely gate it?
 - Should any tickets be merged or split further?
+- (GitHub only) Should these tickets be handed to Sandcastle? If so, confirm the group label — propose `sandcastle:<parent spec issue>` when the work came from a spec issue, and say which label you would apply so the user can correct it. Sandcastle runs one group per PR, so all these tickets sharing one group means one PR for the whole breakdown.
 
-Iterate until the user approves the breakdown.
+Iterate until the user approves the breakdown **and** the Sandcastle answer.
 
 ### 5. Publish the tickets to the configured tracker
 
 Publish the approved tickets. **How** depends on the tracker `/setup-matt-pocock-skills` configured — the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction.
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction. If the user confirmed Sandcastle in step 4, also apply the Sandcastle admission label they approved: `sandcastle:<id>` for a group, using the parent spec issue's number as the `<id>` whenever the work has one, or bare `sandcastle` for a ticket that should get its own PR. See [docs/agents/triage-labels.md](../../../docs/agents/triage-labels.md) for what each label means to a run. Never put tickets from two different specs in one group — they would share a PR and a review.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
