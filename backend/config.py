@@ -69,7 +69,7 @@ DEFAULT_WRONG_MESSAGE = "Niepoprawna odpowiedź, spróbuj ponownie."
 MISSING_UNIT_MESSAGE = (
     "Brakuje jednostki! Sam wynik to za mało — dopisz, w czym go mierzysz."
 )
-UNKNOWN_UNIT_MESSAGE = "Nie znam takiej jednostki. Użyj np. cm, cm² albo m²."
+UNKNOWN_UNIT_MESSAGE = "Niepoprawna jednostka. Użyj np. cm, cm² albo m²."
 WRONG_DIMENSION_UNIT_MESSAGE = (
     "Dobra liczba, zła jednostka. Sprawdź, czy liczysz długość, czy pole."
 )
