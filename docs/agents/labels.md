@@ -1,6 +1,10 @@
-# Triage Labels
+# Labels
 
-The skills speak in terms of canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+Every label in this repo's issue tracker, and what applying it commits you to. Four families, and an issue may carry one from each: **triage** says what state it is in, **descriptive** says what it is, **wayfinder** marks a map's children, **sandcastle** decides which PR its work lands in. Operations — creating, fetching, applying labels, closing — are [issue-tracker.md](issue-tracker.md).
+
+## Triage labels
+
+The skills speak in terms of canonical triage roles; this table maps those roles to the label strings used here.
 
 | Label in mattpocock/skills | Label in our tracker | Meaning                                 |
 | -------------------------- | -------------------- | --------------------------------------- |
