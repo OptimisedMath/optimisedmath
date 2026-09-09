@@ -492,7 +492,7 @@ class RightAngle(Annotation):
 
 @dataclass
 class Ticks(Annotation):
-    """Congruence marks: on an edge for equal lengths, on an arc for equal angles."""
+    """Congruence marks on an edge, for equal lengths."""
 
     edge: str
     count: int = 1
