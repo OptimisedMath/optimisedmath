@@ -1,16 +1,33 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+The skills speak in terms of canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
 
-| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
-| -------------------------- | -------------------- | ---------------------------------------- |
-| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
-| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
-| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
-| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
-| `wontfix`                  | `wontfix`            | Will not be actioned                     |
+| Label in mattpocock/skills | Label in our tracker | Meaning                                 |
+| -------------------------- | -------------------- | --------------------------------------- |
+| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent |
+| `wontfix`                  | `wontfix`            | Will not be actioned                    |
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
+
+## Descriptive labels
+
+Orthogonal to triage — they say what an issue *is*, not what state it is in. Apply as many as fit, or none.
+
+| Label         | Meaning                                                             |
+| ------------- | ------------------------------------------------------------------- |
+| `bug`         | Something shipped behaves wrongly                                   |
+| `enhancement` | A change to behaviour that already works                            |
+| `documentation` | Docs-only work                                                    |
+| `spec`        | A specification issue, typically the parent of a `to-tickets` batch |
+| `research`    | Answered by reading sources, not by changing code                   |
+| `grilling`    | Answered by a conversation that settles a decision                  |
+| `future idea` | Worth doing, nobody is doing it, no commitment to when              |
+
+## Wayfinder labels
+
+`wayfinder:map` marks a map; `wayfinder:research` / `wayfinder:prototype` / `wayfinder:grilling` / `wayfinder:task` mark its child tickets by type. See [wayfinding operations](issue-tracker.md#wayfinding-operations).
+
+These are meaningful **only inside a map**. An issue detached from its map — ruled out of scope, or orphaned when a map closes — swaps its `wayfinder:<type>` label for the plain descriptive one of the same name (`wayfinder:research` → `research`), because outside a map the type no longer names a ticket a session can claim.
 
 ## Sandcastle labels
 
