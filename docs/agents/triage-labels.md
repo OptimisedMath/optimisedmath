@@ -9,6 +9,8 @@ The skills speak in terms of canonical triage roles. This file maps those roles 
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
+`ready-for-agent` is a claim that an agent can finish the ticket alone. Withhold it whenever the ticket still contains a decision — an unpicked option, a threshold nobody has chosen, a trade-off with no stated winner — and apply `grilling` instead, so the ticket is routed to the conversation that settles it rather than to an agent who would settle it by guessing. A ticket carries one or the other, never both. `grilling` comes off and `ready-for-agent` goes on once the decisions are written into the body.
+
 ## Descriptive labels
 
 Orthogonal to triage — they say what an issue *is*, not what state it is in. Apply as many as fit, or none.
