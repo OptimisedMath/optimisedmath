@@ -1,7 +1,9 @@
 .PHONY: help install dev test lint
 
+.DEFAULT_GOAL := help
+
 help: ## List this Makefile's targets with their descriptions
-	@grep -E '^[a-zA-Z_-]+:.*## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-10s %s\n", $$1, $$2}'
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "%-10s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 install: ## Install backend and frontend dependencies, and configure git hooks
 	uv sync
