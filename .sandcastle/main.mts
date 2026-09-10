@@ -31,7 +31,7 @@
 //   node --test .sandcastle/lib/    # unit tests for the logic below
 
 import * as sandcastle from "@ai-hero/sandcastle";
-import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
+import { defaultImageName, docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
 import { execSync } from "node:child_process";
 
@@ -731,6 +731,37 @@ if (DRY_RUN) {
   console.log("\nSANDCASTLE_DRY_RUN=1 — planned above, nothing executed.");
   process.exit(0);
 }
+
+/**
+ * Refuse to start a run the sandboxes cannot possibly survive.
+ *
+ * A stopped Docker daemon or a missing image fails every sandbox in exactly the
+ * same way, and it fails them by *throwing* out of createSandbox — which
+ * bypasses both the dead-iteration breaker and the fatal-output check, so the
+ * run burns every cycle of every group retrying a machine that cannot change
+ * mid-run. The costlier half is quieter: a failed create tears down the
+ * worktree it had just prepared, so uncommitted work a previous run left behind
+ * to be resumed is deleted by a run that never got as far as reading it. One
+ * second of checking here is cheaper than either.
+ */
+function preflightSandbox(): void {
+  if (shQuiet(`docker info`) === undefined) {
+    console.error(
+      `\nDocker is not responding — every sandbox would fail to start. Open Docker Desktop, wait for it to finish starting, then re-run Sandcastle.`,
+    );
+    process.exit(1);
+  }
+
+  const image = defaultImageName(process.cwd());
+  if (shQuiet(`docker image inspect ${image}`) === undefined) {
+    console.error(
+      `\nSandbox image ${image} is missing — every sandbox would fail to start. Build it with 'npx sandcastle docker build-image', then re-run Sandcastle.`,
+    );
+    process.exit(1);
+  }
+}
+
+preflightSandbox();
 
 const startBranch = sh(`git rev-parse --abbrev-ref HEAD`);
 
