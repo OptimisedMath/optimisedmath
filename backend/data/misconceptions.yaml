@@ -323,3 +323,21 @@ divides_by_decimal_without_clearing_the_divisor:
 converts_units_incorrectly:
   name: "Źle zamienia jednostki"
   explanation: "Ustal przelicznik (np. 1 kg to 1000 g), a potem: z dużych na małe MNOŻYMY, z małych na duże DZIELIMY."
+
+# --- Pola figur ---
+
+treats_the_triangle_area_as_base_times_height:
+  name: "Liczy pole trójkąta jak pole prostokąta"
+  explanation: "Podstawa razy wysokość to pole PROSTOKĄTA. Trójkąt to dokładnie jego połowa, więc na końcu zawsze dziel przez 2 — a licząc w drugą stronę, najpierw podwój pole."
+
+computes_the_perimeter_instead_of_the_area:
+  name: "Liczy obwód zamiast pola"
+  explanation: "Obwód to długość całego brzegu figury — w wielokącie suma boków — a pole to ile miejsca zajmuje jej wnętrze. Sprawdź w pytaniu, o które z nich chodzi."
+
+confuses_base_with_height:
+  name: "Bierze bok zamiast wysokości"
+  explanation: "Wysokość jest prostopadła do podstawy — to nie musi być żaden z boków. W trójkącie rozwartokątnym potrafi wypaść nawet poza figurą."
+
+confuses_length_and_area_units:
+  name: "Myli jednostki długości z jednostkami pola"
+  explanation: "Pamiętaj: jednostka pola zawsze ma kwadrat — pole powstaje z mnożenia długości przez długość. Długość podajemy w cm, pole w cm²."

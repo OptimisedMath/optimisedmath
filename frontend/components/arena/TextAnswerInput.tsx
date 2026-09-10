@@ -33,6 +33,21 @@ function formatInputAsLatex(s: string): string {
   return trimmed;
 }
 
+// `text` is Geometria's: `numeric` puts `c` and `m` out of reach on a phone,
+// and there the Unit is part of the answer.
+const INPUT_MODES: Record<string, 'decimal' | 'numeric' | 'text'> = {
+  decimal: 'decimal',
+  text: 'text',
+};
+
+const TAP_KEYS: Record<string, { char: string; label?: string }[]> = {
+  default: [
+    { char: '/' },
+    { char: ' ', label: 'spacja' },
+  ],
+  text: [{ char: '²' }],
+};
+
 function TextAnswerInput({
   problem,
   answerLocked,
@@ -100,31 +115,26 @@ function TextAnswerInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Wpisz wynik..."
-          inputMode={keyboardType === 'decimal' ? 'decimal' : 'numeric'}
+          inputMode={INPUT_MODES[keyboardType] ?? 'numeric'}
           className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-slate-950 dark:text-white rounded-xl w-full max-w-xs sm:w-64 text-center bg-white dark:bg-slate-950/70 border-slate-200 dark:border-slate-700 shadow-sm focus:outline-none focus:ring-4 focus:ring-sky-200 dark:focus:ring-sky-500/30"
           autoFocus
           ref={inputRef}
         />
       )}
 
-      {!answerLocked && keyboardType !== 'decimal' && (
+      {!answerLocked && TAP_KEYS[keyboardType] && (
         <div className="sm:hidden flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => appendChar('/')}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] px-5 py-3 text-xl font-mono dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            /
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => appendChar(' ')}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] px-5 py-3 text-xl dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            spacja
-          </Button>
+          {TAP_KEYS[keyboardType].map(({ char, label }) => (
+            <Button
+              key={char}
+              type="button"
+              variant="outline"
+              onClick={() => appendChar(char)}
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] px-5 py-3 text-xl font-mono dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              {label ?? char}
+            </Button>
+          ))}
         </div>
       )}
 

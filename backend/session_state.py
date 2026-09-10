@@ -32,6 +32,30 @@ def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
     return "radio"
 
 
+def seed_chapter_frontiers(state: SessionState, curriculum: Curriculum) -> None:
+    """Give every Chapter in the Curriculum a Frontier record, healing stale ones.
+
+    Idempotent, and it must run *after* anything that replaces the map wholesale —
+    a profile saved before a Chapter existed has no record for it, and the first
+    Submission there would otherwise raise `KeyError` on the Chapter id (#214).
+    """
+    for chapter_id in curriculum.chapter_ids():
+        chapter_first_topic_id = _get_first_topic_id(curriculum, chapter_id)
+        if chapter_id not in state.chapter_frontiers:
+            state.chapter_frontiers[chapter_id] = ChapterFrontier(
+                frontier_topic_id=chapter_first_topic_id,
+                frontier_level=1,
+            )
+        elif (
+            state.chapter_frontiers[chapter_id].frontier_topic_id
+            < chapter_first_topic_id
+        ):
+            state.chapter_frontiers[chapter_id].frontier_topic_id = (
+                chapter_first_topic_id
+            )
+            state.chapter_frontiers[chapter_id].frontier_level = 1
+
+
 def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
     """Initialize session state with defaults. Heals broken saves from old versions."""
     chapter_ids = list(curriculum.chapter_ids())
@@ -52,21 +76,7 @@ def init_defaults(state: SessionState, curriculum: Curriculum) -> None:
         state.feedback_msg = ""
         state.level_completed = False
 
-    for chapter_id in chapter_ids:
-        chapter_first_topic_id = _get_first_topic_id(curriculum, chapter_id)
-        if chapter_id not in state.chapter_frontiers:
-            state.chapter_frontiers[chapter_id] = ChapterFrontier(
-                frontier_topic_id=chapter_first_topic_id,
-                frontier_level=1,
-            )
-        elif (
-            state.chapter_frontiers[chapter_id].frontier_topic_id
-            < chapter_first_topic_id
-        ):
-            state.chapter_frontiers[chapter_id].frontier_topic_id = (
-                chapter_first_topic_id
-            )
-            state.chapter_frontiers[chapter_id].frontier_level = 1
+    seed_chapter_frontiers(state, curriculum)
 
     curr_chapter_id = state.selected_chapter_id
     first_curr_topic_id = _get_first_topic_id(curriculum, curr_chapter_id)
@@ -215,6 +225,7 @@ def load_profile(
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
         state.chapter_frontiers = user_data["chapter_frontiers"]
+        seed_chapter_frontiers(state, curriculum)
         reset_submission_cycle(state, curriculum)
     else:
         hard_reset(

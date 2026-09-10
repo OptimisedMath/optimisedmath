@@ -10,7 +10,9 @@ from typing import Any, Callable, TypedDict
 
 import yaml
 
-from backend.core.utils import FILLER_SLUG, declared_trap_slugs
+import backend.config as config
+from backend.core.units import UNITS
+from backend.core.utils import FILLER_SLUG, declared_trap_slugs, declared_units
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,9 @@ class LevelConfig:
     traps: dict[str, str]
     published: bool
     trap_misconceptions: dict[str, str] = field(default_factory=dict)
+    #: The Units a Problem of this Level may expect — the generator picks one per
+    #: Problem (ADR-0005, amended by #237). Empty on every Level that has no Unit.
+    expected_units: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -173,6 +178,11 @@ def _derive_trap_misconceptions(level_entry: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _derive_expected_units(level_entry: dict[str, Any]) -> tuple[str, ...]:
+    """The Level's declared Unit set, in YAML order."""
+    return tuple(str(unit) for unit in level_entry.get("expected_units", []))
+
+
 def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[int, int], LevelConfig]:
     configs: dict[tuple[int, int], LevelConfig] = {}
     for topic_entry in data.get("topics", []):
@@ -184,6 +194,7 @@ def _derive_level_configs(data: dict[str, Any]) -> dict[tuple[int, int], LevelCo
                 function=str(level_entry["function"]),
                 traps=_derive_trap_prose(level_entry),
                 trap_misconceptions=_derive_trap_misconceptions(level_entry),
+                expected_units=_derive_expected_units(level_entry),
                 published=bool(level_entry.get("published", True)),
             )
     return configs
@@ -234,6 +245,52 @@ def _validate_trap_slugs(
     if unreachable:
         raise CurriculumLoadError(
             f"{where}: 'traps' entries no template can emit: {', '.join(unreachable)}"
+        )
+
+
+def _validate_expected_units(
+    file_name: str, chapter_name: str, topic_name: str, level_entry: dict[str, Any]
+) -> None:
+    """Assert every declared Unit is in the Units table, at load time.
+
+    This is the whole reason the declaration lives in YAML rather than only in the
+    generator: a typo like `cm3` is caught on boot, not on a Student's answer.
+    """
+    where = f"{file_name}: {chapter_name} / {topic_name} / level {level_entry['level']}"
+    declared = level_entry.get("expected_units")
+    if declared is None:
+        generator = (
+            _function_registry.get(str(level_entry["function"]))
+            if _function_registry
+            else None
+        )
+        if generator is not None and declared_units(generator):
+            raise CurriculumLoadError(
+                f"{where}: generator declares Units "
+                f"{sorted(declared_units(generator))} but the level declares none"
+            )
+        return
+
+    if not isinstance(declared, list) or not declared:
+        raise CurriculumLoadError(f"{where}: 'expected_units' must be a non-empty list")
+
+    unknown = sorted({str(unit) for unit in declared} - set(UNITS))
+    if unknown:
+        raise CurriculumLoadError(
+            f"{where}: 'expected_units' entries not in the Units table: "
+            f"{', '.join(unknown)}"
+        )
+
+    if _function_registry is None:
+        return
+    generator = _function_registry.get(str(level_entry["function"]))
+    if generator is None:
+        return
+    if set(declared_units(generator)) != {str(unit) for unit in declared}:
+        raise CurriculumLoadError(
+            f"{where}: 'expected_units' {sorted(str(u) for u in declared)} does not "
+            f"match what the generator declares "
+            f"({sorted(declared_units(generator))})"
         )
 
 
@@ -295,6 +352,9 @@ def _validate_topics(file_name: str, chapter_name: str, data: dict[str, Any]) ->
                         f"FUNCTION_REGISTRY ({chapter_name} / {topic_entry['name']})"
                     )
                 _validate_trap_slugs(
+                    file_name, chapter_name, topic_entry["name"], level_entry
+                )
+                _validate_expected_units(
                     file_name, chapter_name, topic_entry["name"], level_entry
                 )
 
@@ -430,7 +490,14 @@ def _validate_misconceptions(data_dir: Path, bundles: list[ChapterBundle]) -> No
     if not catalogue:
         return
 
-    referenced: set[str] = set()
+    # The grader synthesizes the two Unit Traps (ADR-0005), so their
+    # Misconceptions are referenced by code rather than by any Level's `traps:`
+    # block. They are live references — the check is that no entry is dead, not
+    # that every entry is named in YAML.
+    referenced: set[str] = {
+        config.UNIT_DIMENSION_MISCONCEPTION,
+        config.UNIT_SCALE_MISCONCEPTION,
+    }
     for bundle in bundles:
         for (topic_id, level), level_config in bundle.level_configs.items():
             for slug, misconception_id in level_config.trap_misconceptions.items():

@@ -11,6 +11,7 @@ from typing import Any
 import backend.config as config
 from backend.core.utils import FILLER_SLUG, ProblemDict, declared_trap_slugs
 from backend.curriculum import Curriculum
+from backend.curriculum_loader import LevelConfig
 from backend.curriculum_loader import set_function_registry
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,9 +138,45 @@ def generate_level_problem(
     }
     gen_messages = problem_dict.pop("messages", {})
     problem_dict["messages"] = yaml_messages | gen_messages
+    _apply_expected_unit(problem_dict, level_config)
     problem_dict["level_display"] = f"{level_config.name} (Lvl {level})"
     problem_dict["keyboard_type"] = curriculum.keyboard_type(chapter_id)
     return problem_dict
+
+
+def _apply_expected_unit(problem: ProblemDict, level_config: LevelConfig) -> None:
+    """Check the generator's chosen Unit against what its Level declared.
+
+    The generator picks the Unit because it is the thing that knows what the figure
+    says, but the Level owns the legal set (ADR-0005 as amended by #237). Disagreeing
+    in either direction is an authoring error, not a Student-visible one: a Unit the
+    YAML never declared makes the load-time check worthless, and a Level that declares
+    Units whose generator returns none would grade every typed Unit as noise.
+
+    Raises:
+        ProblemGenerationError: when generator and Level disagree.
+    """
+    chosen = problem.get("expected_unit")
+    declared = level_config.expected_units
+
+    if not declared:
+        if chosen is not None:
+            raise ProblemGenerationError(
+                f"Generator returned expected_unit {chosen!r} but level "
+                f"'{level_config.name}' declares no 'expected_units'"
+            )
+        return
+
+    if chosen is None:
+        raise ProblemGenerationError(
+            f"Level '{level_config.name}' declares expected_units "
+            f"{list(declared)} but its generator returned none"
+        )
+    if chosen not in declared:
+        raise ProblemGenerationError(
+            f"Generator returned expected_unit {chosen!r}, which level "
+            f"'{level_config.name}' does not declare ({list(declared)})"
+        )
 
 
 def problem_fingerprint(problem: ProblemDict) -> str:

@@ -117,7 +117,14 @@ def _sanitize_problem_for_telemetry(problem: ProblemDict) -> str:
 def _resolve_misconception_slug(
     state: SessionState, curriculum: Curriculum, eval_result: EvalResult
 ) -> str | None:
-    """Map a graded Trap to its catalogue Misconception, if any."""
+    """Map a graded Trap to its catalogue Misconception, if any.
+
+    A grader-synthesized Trap (Units — ADR-0005) carries its own Misconception,
+    because it has no Level `traps:` entry to be looked up from.
+    """
+    synthesized = eval_result.get("misconception_slug")
+    if synthesized is not None:
+        return synthesized
     trap_slug = eval_result.get("trap_slug")
     if trap_slug is None:
         return None

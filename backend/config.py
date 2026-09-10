@@ -61,6 +61,31 @@ RECENT_FINGERPRINT_HISTORY_SIZE = 10
 # --- ERROR MESSAGES & FEEDBACK ---
 DEFAULT_WRONG_MESSAGE = "Niepoprawna odpowiedź, spróbuj ponownie."
 
+# --- UNITS ---
+# Grader-owned prose. These three cases have no generator to author them: a
+# missing or unrecognised Unit is not a rule anyone believes, and the two Unit
+# Traps are synthesized rather than authored (ADR-0005), so their sentences
+# cannot live in a Level's `traps:` block.
+MISSING_UNIT_MESSAGE = (
+    "Brakuje jednostki! Sam wynik to za mało — dopisz, w czym go mierzysz."
+)
+UNKNOWN_UNIT_MESSAGE = "Niepoprawna jednostka. Użyj np. cm, cm² albo m²."
+WRONG_DIMENSION_UNIT_MESSAGE = (
+    "Dobra liczba, zła jednostka. Sprawdź, czy liczysz długość, czy pole."
+)
+WRONG_SCALE_UNIT_MESSAGE = (
+    "Dobra liczba, ale nie w tej jednostce. Przeliczyłeś źle — sprawdź, "
+    "ile mniejszych jednostek mieści się w większej."
+)
+
+# Slugs of the two Traps the grader synthesizes. They carry no `options_map`
+# entry and no YAML `traps:` entry, so their Misconception travels on the
+# EvalResult instead of being looked up from the Level.
+UNIT_DIMENSION_TRAP_SLUG = "answers_in_the_wrong_dimension"
+UNIT_SCALE_TRAP_SLUG = "answers_in_the_wrong_scale"
+UNIT_DIMENSION_MISCONCEPTION = "confuses_length_and_area_units"
+UNIT_SCALE_MISCONCEPTION = "converts_units_incorrectly"
+
 # --- DEVELOPMENT TOOLS ---
 # Keep answer-revealing helper endpoints disabled unless explicitly enabled.
 ENABLE_DEV_TOOLS = False
