@@ -315,6 +315,11 @@ def parse_to_fraction(val_str: str) -> Fraction | None:
 
 
 def fmt_dec(val: int | float | Decimal | str) -> str:
+    """Format an answer value with a Polish decimal comma, exactly.
+
+    Figure labels use `core.scene.render._fmt` instead, which rounds; that
+    docstring owns why the two cannot be one function.
+    """
     d = Decimal(str(val))
     s = format(d, "f")
     if "." in s:

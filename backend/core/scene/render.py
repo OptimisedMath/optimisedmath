@@ -30,6 +30,7 @@ from backend.core.scene.geometry import (
     dot,
     mul,
     norm,
+    perp,
     sub,
     unit,
 )
@@ -40,7 +41,14 @@ MUTED = "#94a3b8"
 
 
 def _fmt(v: float) -> str:
-    """Polish decimal comma; integers stay bare."""
+    """Polish decimal comma; integers stay bare.
+
+    Not `core.utils.fmt_dec`, which shares the comma convention but formats
+    exactly: these values are *derived* float geometry, so an edge length comes
+    out `12.000000000000002` and must print `12`. The tolerance and the 2 dp cap
+    are what make that safe, and they would corrupt an answer string — which is
+    what `fmt_dec` formats. Keep the comma convention in step across the two.
+    """
     if abs(v - round(v)) < 1e-9:
         return str(int(round(v)))
     return f"{v:.2f}".rstrip("0").rstrip(".").replace(".", ",")
@@ -141,7 +149,7 @@ class Ctx:
         makes this correct on non-convex outlines."""
         a, b = self.fig.edge(e)
         d = unit(sub(b, a))
-        return (d[1], -d[0])
+        return perp(d)
 
     def outward_bisector(self, v: str) -> Pt:
         """Unit vector pointing away from the figure at vertex `v`."""
@@ -493,7 +501,7 @@ class Ticks(Annotation):
         a, b = ctx.fig.edge(self.edge)
         mid = mul(add(a, b), 0.5)
         d = unit(sub(b, a))
-        n = (d[1], -d[0])
+        n = perp(d)
         spacing = ctx.u * 2.6
         for i in range(self.count):
             off = mul(d, (i - (self.count - 1) / 2) * spacing)
@@ -522,7 +530,7 @@ class ParallelMarks(Annotation):
                 reference = d
             elif dot(d, reference) < 0:
                 d = mul(d, -1)  # keep every chevron in the group pointing alike
-            n = (d[1], -d[0])
+            n = perp(d)
             s = ctx.u * 2.6
             for i in range(self.count):
                 c = add(mid, mul(d, (i - (self.count - 1) / 2) * s * 1.3))
@@ -626,7 +634,7 @@ class Segment(Annotation):
         if self.label:
             mid = mul(add(a, b), 0.5)
             d = unit(sub(b, a))
-            ctx.text(mid, (d[1], -d[0]), self.label, color=self.color, scale=0.85)
+            ctx.text(mid, perp(d), self.label, color=self.color, scale=0.85)
 
 
 @dataclass
@@ -650,7 +658,7 @@ class DimensionLine(Annotation):
         h = ctx.u * 3.0
         for tip, sign in ((a2, 1), (b2, -1)):
             back = mul(d, sign * h)
-            side = mul((d[1], -d[0]), h * 0.38)
+            side = mul(perp(d), h * 0.38)
             ctx.parts.append(
                 f'<polygon points="{_pts([tip, add(add(tip, back), side), add(add(tip, back), mul(side, -1))])}" fill="{MUTED}"/>'
             )
@@ -747,9 +755,7 @@ class Radius(Annotation):
         ctx.line(start, end, color=ACCENT)
         length = f.radius * (2 if self.diameter else 1)
         text = "x" if self.unknown else f"{_fmt(length)} {self.unit_label}".strip()
-        ctx.text(
-            mul(add(start, end), 0.5), (d[1], -d[0]), text, color=ACCENT, scale=0.9
-        )
+        ctx.text(mul(add(start, end), 0.5), perp(d), text, color=ACCENT, scale=0.9)
 
 
 @dataclass

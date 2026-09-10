@@ -45,8 +45,13 @@ def unit(p: Pt) -> Pt:
 
 
 def perp(p: Pt) -> Pt:
-    """Vector `p` rotated a quarter turn — the right-hand perpendicular."""
-    return (-p[1], p[0])
+    """Vector `p` rotated a quarter turn clockwise — the right-hand perpendicular.
+
+    The handedness is the whole point: an outline is always CCW, so the right-hand
+    perp of an edge direction is the *outward* side. Rotating the other way puts
+    every label and tick inside the figure.
+    """
+    return (p[1], -p[0])
 
 
 def dot(p: Pt, q: Pt) -> float:
