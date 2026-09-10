@@ -81,12 +81,19 @@ const MAX_IMPLEMENTER_ITERATIONS = 100;
 // loop is `make test` / `make lint`, so all three toolchains it reaches for —
 // root node, frontend node, and the Python env uv manages — must be present, or
 // the loop fails in a way the agent will read as a broken repo.
+// The 60s default is a budget for a top-up, not an install. When copyToWorktree
+// misses — a fresh frontend lockfile, or a sandbox that never got the copy —
+// these run cold, and a hook that times out throws the whole group away *after*
+// the agents have already done their expensive work. Slow is recoverable; dead
+// is not.
+const HOOK_TIMEOUT_MS = 10 * 60 * 1000;
+
 const hooks = {
   sandbox: {
     onSandboxReady: [
-      { command: "npm install" },
-      { command: "npm install --prefix frontend" },
-      { command: "uv sync" },
+      { command: "npm install", timeoutMs: HOOK_TIMEOUT_MS },
+      { command: "npm install --prefix frontend", timeoutMs: HOOK_TIMEOUT_MS },
+      { command: "uv sync", timeoutMs: HOOK_TIMEOUT_MS },
     ],
   },
 };
@@ -670,6 +677,9 @@ async function runGroup(group: Group): Promise<boolean> {
 
     await sandcastle.run({
       hooks,
+      // The merger resolves conflicts and then runs `make test`, so it needs the
+      // same toolchain an issue sandbox gets. Without this its install runs cold.
+      copyToWorktree,
       sandbox: docker(),
       name: "merger",
       maxIterations: 1,
@@ -796,6 +806,8 @@ let fatal: RunFatalError | undefined;
 
 let published = 0;
 
+let failed = 0;
+
 for (const group of groups) {
   try {
     if (await runGroup(group)) published++;
@@ -811,6 +823,7 @@ for (const group of groups) {
       fatal = rethrown as RunFatalError;
       break;
     }
+    failed++;
     console.error(
       `\n✗ Group ${GROUP_LABEL_PREFIX}${group.id} failed, continuing to the next group:\n${text}\n`,
     );
@@ -832,6 +845,20 @@ if (fatal) {
   );
   reportOutcome("interrupted");
   process.exit(2);
+}
+
+// A group that threw says nothing either way about what its agents committed —
+// the merge step is the last thing to run, so a failure there lands with the
+// work already committed on the issue branches. Reporting that as "nothing was
+// produced" sends you looking for an agent that did nothing, when what actually
+// happened is that finished work never got merged. The commits are not lost:
+// the next run picks those branches up.
+if (failed > 0) {
+  console.error(
+    `\n${failed} group(s) failed${published > 0 ? `, ${published} published` : " and nothing was published"}. Any commits their agents made are still on the sandcastle/issue-* branches and the next run will pick them up. The error above says what broke.`,
+  );
+  reportOutcome("crash");
+  process.exit(1);
 }
 
 if (published === 0) {
