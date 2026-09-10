@@ -94,6 +94,17 @@ const hooks = {
       { command: "npm install", timeoutMs: HOOK_TIMEOUT_MS },
       { command: "npm install --prefix frontend", timeoutMs: HOOK_TIMEOUT_MS },
       { command: "uv sync", timeoutMs: HOOK_TIMEOUT_MS },
+      // Reconciling the copied node_modules against the lockfiles rewrites them,
+      // which leaves the worktree dirty before the agent has touched anything.
+      // That dirt is indistinguishable from an interrupted agent, so Phase 0
+      // refuses to pick the branch up — permanently, since every run redoes the
+      // same install. Finished commits then never reach a PR. Setup must leave
+      // no trace; this runs before the agent starts, so a lockfile change the
+      // agent genuinely intends is unaffected.
+      {
+        command: "git checkout -- package-lock.json frontend/package-lock.json",
+        timeoutMs: HOOK_TIMEOUT_MS,
+      },
     ],
   },
 };
@@ -695,6 +706,7 @@ async function runGroup(group: Group): Promise<boolean> {
   }
 
   warnAboutUnmergedBranches(group, integrationBranch);
+  stranded += strandedBranches(group, integrationBranch).length;
 
   const complete = isGroupComplete({
     plannedIssues: planned.length,
@@ -808,6 +820,10 @@ let published = 0;
 
 let failed = 0;
 
+// Branches left holding commits no batch took. Counted so the ending cannot
+// claim the agents produced nothing while the warning above lists their work.
+let stranded = 0;
+
 for (const group of groups) {
   try {
     if (await runGroup(group)) published++;
@@ -861,7 +877,12 @@ if (failed > 0) {
   process.exit(1);
 }
 
-if (published === 0) {
+if (published === 0 && stranded > 0) {
+  console.error(
+    `\nNothing was published, but ${stranded} branch(es) carry finished commits that never reached a batch — see the warning above. The agents did work; it is the merge that did not happen.`,
+  );
+  reportOutcome("empty");
+} else if (published === 0) {
   console.log(
     `\nNo group produced any commits, so nothing was published. Check the logs in .sandcastle/logs/ — the agents ran but left nothing behind.`,
   );
