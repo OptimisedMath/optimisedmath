@@ -1,11 +1,14 @@
-.PHONY: install dev test lint
+.PHONY: help install dev test lint
 
-install:
+help: ## List this Makefile's targets with their descriptions
+	@grep -E '^[a-zA-Z_-]+:.*## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-10s %s\n", $$1, $$2}'
+
+install: ## Install backend and frontend dependencies, and configure git hooks
 	uv sync
 	npm install --prefix frontend
 	git config core.hooksPath .githooks
 
-dev:
+dev: ## Run the backend and frontend dev servers together
 	@export NO_PROXY="localhost,127.0.0.1,*.local"; \
 	export no_proxy="$$NO_PROXY"; \
 	cleanup() { \
@@ -30,12 +33,12 @@ dev:
 	echo "🟢 App is running! Press [CTRL+C] to stop."; \
 	wait
 
-test:
+test: ## Run backend, frontend, and Sandcastle test suites
 	uv run python -m pytest
 	npm test --prefix frontend
 	node --test .sandcastle/lib/
 
-lint:
+lint: ## Run backend and frontend linters
 	uv run black --check backend tests
 	uv run python scripts/check_docs.py
 	npm run lint --prefix frontend
