@@ -81,11 +81,10 @@ const MAX_IMPLEMENTER_ITERATIONS = 100;
 // loop is `make test` / `make lint`, so all three toolchains it reaches for —
 // root node, frontend node, and the Python env uv manages — must be present, or
 // the loop fails in a way the agent will read as a broken repo.
-// The 60s default is a budget for a top-up, not an install. When copyToWorktree
-// misses — a fresh frontend lockfile, or a sandbox that never got the copy —
-// these run cold, and a hook that times out throws the whole group away *after*
-// the agents have already done their expensive work. Slow is recoverable; dead
-// is not.
+// Every sandbox installs from cold, and the 60s default is a budget for a
+// top-up rather than an install. A hook that times out throws the whole group
+// away *after* the agents have done their expensive work. Slow is recoverable;
+// dead is not.
 const HOOK_TIMEOUT_MS = 10 * 60 * 1000;
 
 const hooks = {
@@ -94,8 +93,8 @@ const hooks = {
       { command: "npm install", timeoutMs: HOOK_TIMEOUT_MS },
       { command: "npm install --prefix frontend", timeoutMs: HOOK_TIMEOUT_MS },
       { command: "uv sync", timeoutMs: HOOK_TIMEOUT_MS },
-      // Reconciling the copied node_modules against the lockfiles rewrites them,
-      // which leaves the worktree dirty before the agent has touched anything.
+      // An install can still rewrite a lockfile, which leaves the worktree dirty
+      // before the agent has touched anything.
       // That dirt is indistinguishable from an interrupted agent, so Phase 0
       // refuses to pick the branch up — permanently, since every run redoes the
       // same install. Finished commits then never reach a PR. Setup must leave
@@ -109,9 +108,14 @@ const hooks = {
   },
 };
 
-// Copied from the host before each sandbox starts, so the hooks above are a
-// top-up rather than a cold install.
-const copyToWorktree = ["node_modules", "frontend/node_modules"];
+// Nothing is copied from the host. node_modules was, to make the hooks above a
+// top-up rather than a cold install, but the host is Darwin arm64 and the
+// sandbox is Linux aarch64: the tree carries platform-specific binaries like
+// @rollup/rollup-darwin-arm64 that are wrong inside the container. npm has to
+// reconcile them, and that reconciliation rewrote the lockfiles on a good day
+// and died with ENOTEMPTY on a bad one. A cold install is slower and correct.
+// If the minutes ever matter, the fix is a cache the container owns — a volume
+// or an image layer — not a copy of a tree built for another platform.
 
 const BASE_BRANCH = "main";
 
@@ -531,7 +535,6 @@ async function workIssue(issue: {
     branch: issue.branch,
     sandbox: docker(),
     hooks,
-    copyToWorktree,
   });
 
   try {
@@ -688,9 +691,6 @@ async function runGroup(group: Group): Promise<boolean> {
 
     await sandcastle.run({
       hooks,
-      // The merger resolves conflicts and then runs `make test`, so it needs the
-      // same toolchain an issue sandbox gets. Without this its install runs cold.
-      copyToWorktree,
       sandbox: docker(),
       name: "merger",
       maxIterations: 1,
