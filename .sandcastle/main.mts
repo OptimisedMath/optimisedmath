@@ -33,7 +33,7 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { defaultImageName, docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { z } from "zod";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 
 import { reportOutcome } from "./notify.mts";
 import {
@@ -585,15 +585,28 @@ function publish(group: Group, integrationBranch: string, complete: boolean): bo
     `gh pr list --head ${integrationBranch} --state open --json url --jq ".[0].url // empty"`,
   );
 
+  // Title and body go to gh as argv, never through a shell. They are built from
+  // issue titles a human wrote and from Markdown that uses backticks, and a
+  // JSON-quoted string is still double-quoted to the shell: backticks and `$`
+  // run as command substitution, and `\n` escapes arrive as literal text. The
+  // first published PR shipped with its group label executed out of the body.
   if (existing) {
-    sh(
-      `gh pr edit ${integrationBranch} --title ${JSON.stringify(title)} --body ${JSON.stringify(body)}`,
+    execFileSync(
+      "gh",
+      ["pr", "edit", integrationBranch, "--title", title, "--body", body],
+      { stdio: "inherit" },
     );
     console.log(`\nRefreshed PR for ${integrationBranch}: ${existing}`);
   } else {
-    execSync(
-      `gh pr create --draft --base ${BASE_BRANCH} --head ${integrationBranch} ` +
-        `--title ${JSON.stringify(title)} --body ${JSON.stringify(body)}`,
+    execFileSync(
+      "gh",
+      [
+        "pr", "create", "--draft",
+        "--base", BASE_BRANCH,
+        "--head", integrationBranch,
+        "--title", title,
+        "--body", body,
+      ],
       { stdio: "inherit" },
     );
     console.log(`\nOpened draft PR for ${integrationBranch} → ${BASE_BRANCH}.`);
