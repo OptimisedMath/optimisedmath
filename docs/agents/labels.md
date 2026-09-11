@@ -26,7 +26,7 @@ Orthogonal to triage — they say what an issue *is*, not what state it is in. A
 | `documentation` | Docs-only work                                                    |
 | `spec`        | A specification issue, typically the parent of a `to-tickets` batch |
 | `research`    | Answered by reading sources, not by changing code                   |
-| `grilling`    | Answered by a conversation that settles a decision                  |
+| `grilling`    | Answered by a conversation that settles a decision (use the `grill-with-docs` skill) |
 | `future idea` | Worth doing, nobody is doing it, no commitment to when              |
 
 ## Wayfinder labels

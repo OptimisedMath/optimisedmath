@@ -1,0 +1,5 @@
+# Profile owns Selected chapter/topic/level; Streak and Flawless never do
+
+Split out of #220, which found `users` and `sessions` duplicating Selected chapter/topic/level, Streak, and Flawless, and left it to a decision which fields the profile should actually own. We decided Selected chapter/topic/level is a profile fact — a returning Student, even on a new device, resumes exactly the Chapter/Topic/Level they were last on — so `users.selected_chapter_id` / `selected_topic_id` / `selected_level` stay and `load_profile` keeps restoring them. Streak and Flawless are the opposite: every new Session starts Streak at 0 and Flawless at true regardless of what a prior Session ended with, so `users.streak` is dropped entirely and no `flawless_eligible` column is ever added — `DbWritePlan.write_flawless_eligible` is dead weight to be removed along with the restricted-play-mode logic that reads back `persisted["streak"]`.
+
+This is easy to get backwards from the code alone: `sessions.state_json` stores Streak and Flawless right alongside Selected, and CONTEXT.md's Session definition lists all of them together, so nothing marks Selected as the profile-owned outlier.

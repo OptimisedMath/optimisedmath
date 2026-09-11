@@ -29,7 +29,7 @@ The highest Level defined in the Curriculum for a Topic — the full depth of th
 ## Progression
 
 **Streak**:
-Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake, on Level completion, or on Navigation.
+Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake, on Level completion, on Navigation, or on Session start — it does not survive to a new Session, even for a returning Student. Not persisted on the profile.
 _UI (PL)_: Postęp do kolejnego poziomu (gwiazdki as the visual meter)
 _Avoid_: Level Streak, Power of 3, passa
 
@@ -62,7 +62,7 @@ Finishing the last Level of a Topic At the Frontier, which moves the Frontier to
 _Avoid_: Advance
 
 **Flawless**:
-Whether the Student reached the current Level without a penalized mistake since Streak last reset. Earns bonus XP when the Level is finished.
+Whether the Student reached the current Level without a penalized mistake since Streak last reset. Earns bonus XP when the Level is finished. Always starts true at Session start, like Streak it is not persisted on the profile.
 _UI (PL)_: Bonus — Aktywny 💎 / Stracony ❌
 _Avoid_: flawless eligible, flawless bonus
 
@@ -208,7 +208,7 @@ The structured values a Problem was generated from (operands, denominators, dime
 _Avoid_: params (unqualified), problem data
 
 **Selected**:
-Prefix for the Chapter, Topic, or Level the Session is currently set to — where the Student is playing now, not necessarily At the Frontier. Used as Selected chapter, Selected topic, Selected level.
+Prefix for the Chapter, Topic, or Level the Session is currently set to — where the Student is playing now, not necessarily At the Frontier. Persisted on the profile, so a new Session seeds Selected from wherever the Student last left off, even on a new device. Used as Selected chapter, Selected topic, Selected level.
 _Avoid_: current, active, selection
 
 **Student**:
@@ -219,7 +219,7 @@ _Avoid_: player
 The login handle that identifies a Student across sessions.
 
 **Session**:
-One play session: Selected chapter/topic/level, Streak, active Problem, and Feedback state.
+One play session: Selected chapter/topic/level, Streak, active Problem, and Feedback state. Selected chapter/topic/level is seeded from the profile at Session start; Streak and Flawless always start fresh.
 _Avoid_: GameState (code name)
 
 **XP**:
