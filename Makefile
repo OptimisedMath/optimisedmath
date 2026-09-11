@@ -45,5 +45,5 @@ lint: ## Run backend and frontend linters
 	uv run python scripts/check_docs.py
 	npm run lint --prefix frontend
 
-sandcastle: ## Run the Sandcastle pipeline
+sandcastle: ## Run the Sandcastle orchestration loop over every open group
 	npm run sandcastle
