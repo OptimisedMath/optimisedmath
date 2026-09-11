@@ -119,6 +119,11 @@ const hooks = {
 
 const BASE_BRANCH = "main";
 
+// Every git comparison against the base uses the remote's copy, fetched per
+// group. The run never checks anything out on the host, so it cannot `git pull`
+// the local branch, and a stale local main would make shipped work look new.
+const BASE_REF = `origin/${BASE_BRANCH}`;
+
 const DRY_RUN = process.env.SANDCASTLE_DRY_RUN === "1";
 
 const REQUESTED_GROUP = process.argv[2];
@@ -228,23 +233,24 @@ function groupIssueBranches(group: Group): string[] {
  * merged into BASE_BRANCH have shipped and must not be resumed.
  */
 function resolveIntegrationBranch(group: Group): string {
+  execSync(`git fetch origin ${BASE_BRANCH}`, { stdio: "inherit" });
   const shipped = new Set(
-    branchesMergedInto(BASE_BRANCH, batchBranchGlob(group.id)),
+    branchesMergedInto(BASE_REF, batchBranchGlob(group.id)),
   );
   const outstanding = branchesMatching(batchBranchGlob(group.id)).find(
     (branch) => !shipped.has(branch),
   );
 
+  // Neither branch is checked out on the host. Agents work on it in their own
+  // worktree — see onIntegrationBranch — and git refuses a worktree for a
+  // branch that is already checked out somewhere else.
   if (outstanding) {
     console.log(`\nResuming integration branch: ${outstanding}`);
-    sh(`git checkout ${outstanding}`);
     return outstanding;
   }
 
   const fresh = batchBranchName(group.id, Date.now());
-  sh(`git checkout ${BASE_BRANCH}`);
-  execSync(`git pull`, { stdio: "inherit" });
-  sh(`git checkout -b ${fresh}`);
+  sh(`git branch ${fresh} ${BASE_REF}`);
   console.log(`\nCut integration branch: ${fresh}`);
   return fresh;
 }
@@ -261,7 +267,7 @@ function resolveMergedIssues(
   integrationBranch: string,
 ): { id: string; title: string; branch: string }[] {
   const shipped = new Set(
-    branchesMergedInto(BASE_BRANCH, "sandcastle/issue-*"),
+    branchesMergedInto(BASE_REF, "sandcastle/issue-*"),
   );
   const titles = new Map(group.issues.map((i) => [i.number, i.title]));
 
@@ -375,6 +381,20 @@ function throwIfRunFatal(text: string): void {
   }
 }
 
+/**
+ * Where an agent that works on the integration branch gets its checkout.
+ *
+ * Without this, a bind-mount sandbox defaults to the "head" strategy: it mounts
+ * the developer's own checkout. Every setup hook then ran against it, which
+ * replaced the Mac's frontend/node_modules with Linux binaries, rewrote the
+ * lockfile, and let the merger `git stash` the developer's working tree. A
+ * named branch gets a worktree under .sandcastle/worktrees/ instead, exactly as
+ * an issue sandbox always has.
+ */
+function onIntegrationBranch(branch: string) {
+  return { type: "branch", branch } as const;
+}
+
 // ---------------------------------------------------------------------------
 // Phase 0: pick up finished work from a prior run
 // ---------------------------------------------------------------------------
@@ -406,6 +426,7 @@ async function pickUpPriorWork(
   await sandcastle.run({
     hooks,
     sandbox: docker(),
+    branchStrategy: onIntegrationBranch(integrationBranch),
     name: "merger",
     maxIterations: 1,
     agent: sandcastle.claudeCode("claude-sonnet-5"),
@@ -434,6 +455,7 @@ async function pickUpPriorWork(
 async function planGroup(
   group: Group,
   alreadyMerged: number[],
+  integrationBranch: string,
 ): Promise<{ id: string; title: string; branch: string }[]> {
   const remaining = group.issues.filter(
     (issue) => !alreadyMerged.includes(issue.number),
@@ -452,6 +474,7 @@ async function planGroup(
   const plan = await sandcastle.run({
     hooks,
     sandbox: docker(),
+    branchStrategy: onIntegrationBranch(integrationBranch),
     name: "planner",
     maxIterations: 1,
     agent: sandcastle.claudeCode("claude-opus-5"),
@@ -526,13 +549,16 @@ async function runImplementer(
 }
 
 /** Implement one issue, then review it if the implementer committed. */
-async function workIssue(issue: {
-  id: string;
-  title: string;
-  branch: string;
-}): Promise<{ commits: { sha: string }[]; completed: boolean }> {
+async function workIssue(
+  issue: { id: string; title: string; branch: string },
+  integrationBranch: string,
+): Promise<{ commits: { sha: string }[]; completed: boolean }> {
   const sandbox = await sandcastle.createSandbox({
     branch: issue.branch,
+    // A new issue branch forks from the batch so far, so it builds on what this
+    // group has already merged. The default is the host's HEAD, which is only
+    // the batch when something has checked it out — and nothing does any more.
+    baseBranch: integrationBranch,
     sandbox: docker(),
     hooks,
   });
@@ -570,7 +596,7 @@ async function workIssue(issue: {
  * — the next run grows the same PR — but it is not worth anyone's review yet.
  */
 function publish(group: Group, integrationBranch: string, complete: boolean): boolean {
-  if (commitsAhead(BASE_BRANCH, integrationBranch) === 0) {
+  if (commitsAhead(BASE_REF, integrationBranch) === 0) {
     console.log(`\n${GROUP_LABEL_PREFIX}${group.id}: no commits produced. No PR opened.`);
     return false;
   }
@@ -645,7 +671,7 @@ async function runGroup(group: Group): Promise<boolean> {
     const alreadyMerged = resolveMergedIssues(group, integrationBranch).map(
       (issue) => Number(issue.id),
     );
-    planned = await planGroup(group, alreadyMerged);
+    planned = await planGroup(group, alreadyMerged, integrationBranch);
 
     if (planned.length === 0) {
       console.log("No unblocked issues left in this group.");
@@ -657,7 +683,9 @@ async function runGroup(group: Group): Promise<boolean> {
       console.log(`  ${issue.id}: ${issue.title} → ${issue.branch}`);
     }
 
-    const settled = await Promise.allSettled(planned.map(workIssue));
+    const settled = await Promise.allSettled(
+      planned.map((issue) => workIssue(issue, integrationBranch)),
+    );
 
     // A fatal failure in any pipeline ends the run, but only after every other
     // pipeline has settled — killing sibling agents mid-commit would strand
@@ -705,6 +733,7 @@ async function runGroup(group: Group): Promise<boolean> {
     await sandcastle.run({
       hooks,
       sandbox: docker(),
+      branchStrategy: onIntegrationBranch(integrationBranch),
       name: "merger",
       maxIterations: 1,
       agent: sandcastle.claudeCode("claude-sonnet-5"),
