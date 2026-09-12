@@ -234,17 +234,18 @@ def load_user(username: str) -> UserData | None:
             (username,),
         )
         row = cursor.fetchone()
+        if row is None:
+            return None
 
-        if row:
-            raw_frontiers = json.loads(row[4]) if row[4] else {}
-            return {
-                "xp": row[0],
-                "selected_chapter_id": row[1],
-                "selected_topic_id": row[2],
-                "selected_level": row[3],
-                "chapter_frontiers": _parse_chapter_frontiers(raw_frontiers),
-            }
-        return None
+        xp, chapter_id, topic_id, level, frontiers_json = row
+        raw_frontiers = json.loads(frontiers_json) if frontiers_json else {}
+        return {
+            "xp": xp,
+            "selected_chapter_id": chapter_id,
+            "selected_topic_id": topic_id,
+            "selected_level": level,
+            "chapter_frontiers": _parse_chapter_frontiers(raw_frontiers),
+        }
 
 
 def save_user(username: str, state: SessionState) -> None:

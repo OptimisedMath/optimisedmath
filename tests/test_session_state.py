@@ -272,7 +272,6 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
         SessionState(
             username=state.username,
             xp=50,
-            streak=0,
             chapter_frontiers={
                 CHAPTER_ALPHA: ChapterFrontier(
                     frontier_topic_id=TOPIC_MULTI,
@@ -328,7 +327,6 @@ def test_persist_round_trips_flawless_eligible_and_preserved_profile_for_admin(
         SessionState(
             username=state.username,
             xp=50,
-            streak=0,
             chapter_frontiers={
                 CHAPTER_ALPHA: ChapterFrontier(
                     frontier_topic_id=TOPIC_MULTI,
@@ -362,7 +360,6 @@ def test_persist_matches_manual_build_and_sync_sequence_for_student_and_admin(
             SessionState(
                 username="Antonio",
                 xp=50,
-                streak=0,
                 chapter_frontiers={
                     CHAPTER_ALPHA: ChapterFrontier(
                         frontier_topic_id=TOPIC_MULTI,

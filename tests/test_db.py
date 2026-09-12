@@ -59,7 +59,7 @@ def test_init_db_drops_legacy_streak_column():
             INSERT INTO users (
                 username, xp, streak, selected_chapter_id,
                 selected_topic_id, selected_level, chapter_frontiers_json
-            ) VALUES ('legacy-user', 10, 5, 1, 1, 1, '{}')
+            ) VALUES ('legacy-user', 10, 5, 1, 2, 3, '{}')
             """)
         conn.commit()
 
@@ -70,9 +70,13 @@ def test_init_db_drops_legacy_streak_column():
     assert "streak" not in columns
 
     loaded = db.load_user("legacy-user")
-    assert loaded is not None
-    assert loaded["xp"] == 10
-    assert "streak" not in loaded
+    assert loaded == {
+        "xp": 10,
+        "selected_chapter_id": 1,
+        "selected_topic_id": 2,
+        "selected_level": 3,
+        "chapter_frontiers": {},
+    }
 
 
 def test_save_and_load_user_round_trip():
@@ -96,10 +100,10 @@ def test_load_user_returns_none_when_missing():
 
 
 def test_save_user_updates_existing():
-    state = _sample_state(xp=50, streak=1)
+    state = _sample_state(xp=50)
     db.save_user("alice", state)
 
-    updated = _sample_state(xp=200, streak=0, selected_level=1)
+    updated = _sample_state(xp=200, selected_level=1)
     db.save_user("alice", updated)
 
     loaded = db.load_user("alice")
