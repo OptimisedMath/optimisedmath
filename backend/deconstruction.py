@@ -30,6 +30,10 @@ class Step:
     `"ordering"` step instead carries `items` — the choices the Student
     arranges — and `answer` holds their correct order, joined with
     `step_grading.ORDERING_ANSWER_SEPARATOR` (see #186's priority-ladder step).
+    `accepted_orders` names any further orders the grader must also accept as
+    correct, for tiers whose items are interchangeable (#246) — the grader
+    stays a generic membership check and never encodes tier knowledge itself.
+    Absent, an ordering step grades by exact match against `answer` alone.
     """
 
     question: str
@@ -37,6 +41,7 @@ class Step:
     answer: str
     input_type: StepInputType = "typed"
     items: tuple[str, ...] | None = None
+    accepted_orders: tuple[str, ...] | None = None
 
 
 StepBuilder = Callable[[StepParameters], list[Step]]

@@ -263,6 +263,11 @@ def _maybe_trigger_deconstruction(
                 answer=step.answer,
                 input_type=step.input_type,
                 items=list(step.items) if step.items is not None else None,
+                accepted_orders=(
+                    list(step.accepted_orders)
+                    if step.accepted_orders is not None
+                    else None
+                ),
             )
             for step in steps
         ],

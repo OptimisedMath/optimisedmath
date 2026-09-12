@@ -268,6 +268,24 @@ class TestOrderingStepType:
         assert step.input_type == "ordering"
         assert step.items == items
         assert step.answer == "brackets|powers|multiply-divide|add-subtract"
+        assert step.accepted_orders is None
+
+    def test_ordering_step_can_carry_several_accepted_orders(self):
+        items = ("brackets", "powers", "multiply", "divide", "add", "subtract")
+        canonical = ORDERING_ANSWER_SEPARATOR.join(items)
+        swapped_tiers = ORDERING_ANSWER_SEPARATOR.join(
+            ("brackets", "powers", "divide", "multiply", "subtract", "add")
+        )
+        step = Step(
+            question="Order the priority ladder.",
+            working_line=None,
+            answer=canonical,
+            input_type="ordering",
+            items=items,
+            accepted_orders=(swapped_tiers,),
+        )
+
+        assert step.accepted_orders == (swapped_tiers,)
 
 
 class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
