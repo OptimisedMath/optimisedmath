@@ -151,7 +151,7 @@ def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
 
 
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id/
+    """Drop telemetry_logs if it predates changes
     problem_snapshot columns.
 
     Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
