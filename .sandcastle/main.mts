@@ -84,24 +84,31 @@ const MAX_IMPLEMENTER_ITERATIONS = 100;
 // Every sandbox installs from cold, and the 60s default is a budget for a
 // top-up rather than an install. A hook that times out throws the whole group
 // away *after* the agents have done their expensive work. Slow is recoverable;
-// dead is not.
-const HOOK_TIMEOUT_MS = 10 * 60 * 1000;
+// dead is not — and this one budget now covers the whole chain below, which
+// runs in sequence rather than three installs racing each other.
+const HOOK_TIMEOUT_MS = 20 * 60 * 1000;
 
 const hooks = {
   sandbox: {
     onSandboxReady: [
-      { command: "npm install", timeoutMs: HOOK_TIMEOUT_MS },
-      { command: "npm install --prefix frontend", timeoutMs: HOOK_TIMEOUT_MS },
-      { command: "uv sync", timeoutMs: HOOK_TIMEOUT_MS },
-      // An install can still rewrite a lockfile, which leaves the worktree dirty
-      // before the agent has touched anything.
+      // One command, not four. Sandcastle runs the entries of this list
+      // concurrently, so a reset listed after the installs does not follow them:
+      // it finished first, npm rewrote frontend/package-lock.json behind it, and
+      // every sandbox handed its agent a worktree that was already dirty.
+      //
       // That dirt is indistinguishable from an interrupted agent, so Phase 0
       // refuses to pick the branch up — permanently, since every run redoes the
-      // same install. Finished commits then never reach a PR. Setup must leave
-      // no trace; this runs before the agent starts, so a lockfile change the
-      // agent genuinely intends is unaffected.
+      // same install. Finished commits then never reach a PR, and `gh pr merge`
+      // cannot clean up the worktree afterwards. Setup must leave no trace;
+      // this all runs before the agent starts, so a lockfile change the agent
+      // genuinely intends is unaffected.
       {
-        command: "git checkout -- package-lock.json frontend/package-lock.json",
+        command: [
+          "npm install",
+          "npm install --prefix frontend",
+          "uv sync",
+          "git checkout -- package-lock.json frontend/package-lock.json",
+        ].join(" && "),
         timeoutMs: HOOK_TIMEOUT_MS,
       },
     ],
