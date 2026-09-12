@@ -9,13 +9,27 @@ Session, state, or HTTP imports; nothing here reads or writes a Session.
 
 from __future__ import annotations
 
+import dataclasses
 import math
+import random
 from dataclasses import dataclass
 from decimal import Decimal
+from fractions import Fraction
 from typing import Callable, Literal
 
 from backend.core.utils import fmt_dec, format_answers, format_fraction_question
 from backend.curriculum_loader import set_deconstruction_registry
+from backend.expression import (
+    BinOp,
+    Node,
+    Notation,
+    Power,
+    Value,
+    evaluate,
+    parse,
+    render,
+)
+from backend.step_grading import ORDERING_ANSWER_SEPARATOR
 
 StepParameters = dict[str, int | float | str]
 
@@ -604,6 +618,197 @@ def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[S
             answer=sign,
         ),
     ]
+
+
+# --- Batch two, walkthrough 6: ignores_the_order_of_operations ---
+#
+# Priority-ladder shape (#186, #218): the only walkthrough whose first step asks
+# nothing about the Problem at all. Six ladder items, always in full and shuffled,
+# graded as an ordering step (#198) against four tier-equivalent orders (#246) —
+# mnożenie/dzielenie and dodawanie/odejmowanie may each appear in either order
+# within their tier. Every remaining step resolves exactly one operation of the
+# Problem's own `expression` parameter (#245), walked from the innermost ready
+# operation outward: an operation is "ready" once its own operands have already
+# been reduced to a value, and the ladder breaks ties among several operations
+# ready at once — bracket before power before multiply/divide before
+# add/subtract, leftmost first within a tier (the two brackets of
+# `(a+b) * (c-d)`, or the two multiplications of `a*b + c*d`). Never collapses a
+# bracket's contents or the final operation into one step, so a Student who
+# cannot sequence cannot produce a lucky-looking answer.
+#
+# The walkthrough is chapter-agnostic: `expression.Value.notation` (fraction or
+# decimal) is read once from the parsed tree and carried through every value that
+# replaces a resolved operation, so every step's `working_line` and answer render
+# in whichever notation the Problem itself uses — `n/d` in Ułamki Zwykłe
+# (mirroring the generators' own `_frac`, never a bare integer for a whole
+# answer), a trailing-zero-stripped decimal comma in Ułamki Dziesiętne
+# (mirroring `fmt_dec(_q(ans))`). That is also what makes the final step's
+# answer string-exact against the Problem's own: it is authored in the same
+# convention as every step before it, not specially formatted at the end.
+
+_LADDER_TIERS = (
+    "nawiasy",
+    "potęgi",
+    "mnożenie",
+    "dzielenie",
+    "dodawanie",
+    "odejmowanie",
+)
+_TIER_RANK = {tier: rank for rank, tier in enumerate(_LADDER_TIERS)}
+
+# The four orders `grade_ordering_step` must accept: the canonical ladder (first),
+# then each combination of swapping the two tier-interchangeable pairs.
+_LADDER_ACCEPTED_ORDERS = tuple(
+    ORDERING_ANSWER_SEPARATOR.join(("nawiasy", "potęgi", *mul_div, *add_sub))
+    for mul_div in (("mnożenie", "dzielenie"), ("dzielenie", "mnożenie"))
+    for add_sub in (("dodawanie", "odejmowanie"), ("odejmowanie", "dodawanie"))
+)
+_LADDER_CANONICAL_ORDER = _LADDER_ACCEPTED_ORDERS[0]
+_LADDER_TIER_EQUIVALENT_ORDERS = _LADDER_ACCEPTED_ORDERS[1:]
+
+
+def _shuffled_ladder_items() -> tuple[str, ...]:
+    """The six ladder items in random order, reshuffled if the draw already reads
+    as one of the four accepted orders — a Student should not pass by submitting
+    the list untouched."""
+    items = list(_LADDER_TIERS)
+    while True:
+        random.shuffle(items)
+        if ORDERING_ANSWER_SEPARATOR.join(items) not in _LADDER_ACCEPTED_ORDERS:
+            return tuple(items)
+
+
+def _leaves(node: Node) -> list[Value]:
+    """Every `Value` leaf of `node`, depth-first."""
+    if isinstance(node, Value):
+        return [node]
+    if isinstance(node, Power):
+        return _leaves(node.base)
+    return [*_leaves(node.left), *_leaves(node.right)]
+
+
+def _notation_of(node: Node) -> Notation:
+    """The Problem's own notation: decimal if any leaf carries a decimal comma,
+    fraction otherwise. A bare-integer leaf (a whole-number operand in a Decimal
+    Problem, e.g. `a=1` rendered with no comma) parses as `expression.Value`'s
+    "fraction" default regardless of Chapter — one leaf's notation cannot be
+    trusted alone, so every leaf is checked before falling back to fraction."""
+    if any(leaf.notation == "decimal" for leaf in _leaves(node)):
+        return "decimal"
+    return "fraction"
+
+
+def _tier(node: BinOp | Power) -> str:
+    """The ladder tier a ready-to-resolve operation belongs to, in the ladder's
+    own words. A node written inside brackets is `nawiasy` regardless of its own
+    operator — the bracket, not the operation inside it, is what the ladder ranks."""
+    if node.parenthesized:
+        return "nawiasy"
+    if isinstance(node, Power):
+        return "potęgi"
+    return {"*": "mnożenie", ":": "dzielenie", "+": "dodawanie", "-": "odejmowanie"}[
+        node.op
+    ]
+
+
+@dataclass(frozen=True, slots=True)
+class _ReadyOperation:
+    """An operation whose operands are already values, alongside where it sits in
+    reading order — the tie-break when several operations are ready at once."""
+
+    node: BinOp | Power
+    tier: str
+    position: int
+
+
+def _ready_operations(node: Node) -> tuple[list[_ReadyOperation], int]:
+    """Every operation in `node` whose operands are already values, depth-first,
+    alongside the count of leaves visited so far (this node's position, for the
+    leftmost tie-break)."""
+    if isinstance(node, Value):
+        return [], 1
+    if isinstance(node, Power):
+        ready, position = _ready_operations(node.base)
+        if isinstance(node.base, Value):
+            ready = [*ready, _ReadyOperation(node, _tier(node), position)]
+        return ready, position
+    left_ready, left_position = _ready_operations(node.left)
+    right_ready, right_position = _ready_operations(node.right)
+    position = left_position + right_position
+    ready = [*left_ready, *right_ready]
+    if isinstance(node.left, Value) and isinstance(node.right, Value):
+        ready = [*ready, _ReadyOperation(node, _tier(node), position)]
+    return ready, position
+
+
+def _replace_node(node: Node, target: Node, replacement: Node) -> Node:
+    """Rebuild `node` with `target` (matched by identity) replaced by `replacement`."""
+    if node is target:
+        return replacement
+    if isinstance(node, Value):
+        return node
+    if isinstance(node, Power):
+        base = _replace_node(node.base, target, replacement)
+        return node if base is node.base else dataclasses.replace(node, base=base)
+    left = _replace_node(node.left, target, replacement)
+    right = _replace_node(node.right, target, replacement)
+    if left is node.left and right is node.right:
+        return node
+    return dataclasses.replace(node, left=left, right=right)
+
+
+def _format_step_answer(value: Fraction, notation: Notation) -> str:
+    """An operation's answer in the Problem's own convention — `n/d` for Ułamki
+    Zwykłe (mirroring `_frac`, never a bare integer), a trailing-zero-stripped
+    decimal comma for Ułamki Dziesiętne (mirroring `fmt_dec(_q(ans))`)."""
+    if notation == "decimal":
+        return fmt_dec(Decimal(value.numerator) / Decimal(value.denominator))
+    return f"{value.numerator}/{value.denominator}"
+
+
+def _apply_steps(tree: Node, notation: Notation) -> list[Step]:
+    """One Step per operation, resolved in ladder order until `tree` is one value."""
+    steps: list[Step] = []
+    while not isinstance(tree, Value):
+        working_line = render(tree)
+        ready, _ = _ready_operations(tree)
+        target = min(ready, key=lambda op: (_TIER_RANK[op.tier], op.position))
+        value = evaluate(target.node)
+        sub_expression = render(dataclasses.replace(target.node, parenthesized=False))
+        steps.append(
+            Step(
+                question=f"Teraz {target.tier}. Ile wynosi {_math(sub_expression)}?",
+                working_line=working_line,
+                answer=_format_step_answer(value, notation),
+            )
+        )
+        tree = _replace_node(tree, target.node, Value(value, notation))
+    return steps
+
+
+@declares_deconstruction(
+    "ignores_the_order_of_operations",
+    requires=("expression",),
+    answers_the_problem=True,
+)
+def ignores_the_order_of_operations(parameters: StepParameters) -> list[Step]:
+    """Ordering step for the priority ladder, then one step per operation of the
+    Problem's own `expression`, resolved in ladder order."""
+    tree = parse(str(parameters["expression"]))
+    notation = _notation_of(tree)
+
+    ladder_step = Step(
+        question=(
+            "Zanim cokolwiek policzysz, ustaw działania w kolejności, w jakiej "
+            "się je wykonuje."
+        ),
+        working_line=None,
+        answer=_LADDER_CANONICAL_ORDER,
+        input_type="ordering",
+        items=_shuffled_ladder_items(),
+        accepted_orders=_LADDER_TIER_EQUIVALENT_ORDERS,
+    )
+    return [ladder_step, *_apply_steps(tree, notation)]
 
 
 set_deconstruction_registry(_STEP_BUILDERS)
