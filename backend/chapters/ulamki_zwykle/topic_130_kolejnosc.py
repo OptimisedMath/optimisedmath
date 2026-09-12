@@ -2,7 +2,7 @@
 
 import random
 from fractions import Fraction
-from backend.core.utils import build_problem_dict, declares_traps
+from backend.core.utils import build_problem_dict, declares_traps, latex_to_expression
 
 
 def _frac(value: Fraction) -> str:
@@ -62,7 +62,12 @@ def frac_ord_1() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
+        parameters={
+            "a": _frac(a),
+            "b": _frac(b),
+            "c": _frac(c),
+            "expression": latex_to_expression(q),
+        },
     )
     if problem:
         return problem
@@ -117,7 +122,12 @@ def frac_ord_2() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
+        parameters={
+            "a": _frac(a),
+            "b": _frac(b),
+            "c": _frac(c),
+            "expression": latex_to_expression(q),
+        },
     )
     if problem:
         return problem
@@ -167,7 +177,13 @@ def frac_ord_3() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c), "d": _frac(d)},
+        parameters={
+            "a": _frac(a),
+            "b": _frac(b),
+            "c": _frac(c),
+            "d": _frac(d),
+            "expression": latex_to_expression(q),
+        },
     )
 
     if problem:
@@ -207,6 +223,8 @@ def frac_ord_4() -> dict | None:
             "multiplies_by_the_exponent": a - (b * 2),
         }
         instance_parameters = {"a": _frac(a), "b": _frac(b)}
+
+    instance_parameters["expression"] = latex_to_expression(q)
 
     problem = build_problem_dict(
         q,
@@ -257,7 +275,12 @@ def frac_ord_5() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
+        parameters={
+            "a": _frac(a),
+            "b": _frac(b),
+            "c": _frac(c),
+            "expression": latex_to_expression(q),
+        },
     )
     if problem:
         return problem
@@ -288,7 +311,13 @@ def frac_ord_6() -> dict | None:
             "multiplies_by_the_exponent": _frac(a * ((b + c) * 2) - d),
             "squares_the_bracket_terms_separately": _frac(a * (b**2 + c**2) - d),
         },
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c), "d": _frac(d)},
+        parameters={
+            "a": _frac(a),
+            "b": _frac(b),
+            "c": _frac(c),
+            "d": _frac(d),
+            "expression": latex_to_expression(q),
+        },
     )
     if problem:
         return problem
