@@ -52,8 +52,9 @@ def test_init_db_is_idempotent(tmp_path):
 
 
 def test_init_db_drops_legacy_streak_column():
-    """ADR-0006: `users.streak` is retired — pre-existing rows heal in place.
-    TO BE DELETED AFTER THE STALE TABLE IS SUCCESSFULLY DROPPED. CHECK IF THIS CAN BE      DELETED"""
+    """ADR-0006: `users.streak` is retired — pre-existing rows heal in place."""
+    # Delete this test together with `_drop_stale_streak_column` once every database
+    # that could still carry the column has been through the migration.
     with db.get_connection() as conn:
         conn.execute("ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 0")
         conn.execute("""

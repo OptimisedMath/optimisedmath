@@ -26,9 +26,17 @@ def _q(value: Decimal) -> Decimal:
     return value.quantize(_QUANT, rounding=ROUND_HALF_UP)
 
 
-def _params(**operands: Decimal) -> dict[str, float]:
-    """`build_problem_dict`'s `parameters` type has no `Decimal` member, so cast back."""
-    return {name: float(value) for name, value in operands.items()}
+def _params(q: str, **operands: Decimal) -> dict[str, int | float | str]:
+    """The Problem's `parameters`: every operand, plus `q` as an ASCII `expression`.
+
+    Operands are cast to float because `build_problem_dict`'s `parameters` type has no
+    `Decimal` member.
+    """
+    parameters: dict[str, int | float | str] = {
+        name: float(value) for name, value in operands.items()
+    }
+    parameters["expression"] = latex_to_expression(q)
+    return parameters
 
 
 @declares_traps(
@@ -92,14 +100,11 @@ def dec_order_1() -> dict | None:
                 "flattens_to_all_subtraction": a - c - b,
             }
 
-        parameters = _params(a=a, b=b, c=c)
-        parameters["expression"] = latex_to_expression(q)
-
         problem = build_problem_dict(
             q,
             fmt_dec(_q(ans)),
             traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-            parameters=parameters,
+            parameters=_params(q, a=a, b=b, c=c),
         )
 
         # If the dictionary built successfully (no collisions), return it.
@@ -175,14 +180,11 @@ def dec_order_2() -> dict | None:
                 "replaces_division_with_multiplication": a * (b - c),
             }
 
-        parameters = _params(a=a, b=b, c=c)
-        parameters["expression"] = latex_to_expression(q)
-
         problem = build_problem_dict(
             q,
             fmt_dec(_q(ans)),
             traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-            parameters=parameters,
+            parameters=_params(q, a=a, b=b, c=c),
         )
 
         if problem is not None:
@@ -209,7 +211,6 @@ def dec_order_3() -> dict | None:
     # Poziom 3: Potęgowanie + Podstawy (4 wariacje)
     template = random.choice(["pow_add", "add_pow", "sub_pow", "pow_mul"])
 
-    parameters = {}
     if template == "pow_add":
         a, b, c = [_tenths(2, 5) for _ in range(3)]
         q = f"{fmt_dec(a)}^2 + {fmt_dec(b)} \\cdot {fmt_dec(c)}"
@@ -219,7 +220,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": (a * 2) + (b * c),
             "ignores_the_exponent": a + (b * c),
         }
-        parameters = _params(a=a, b=b, c=c)
+        parameters = _params(q, a=a, b=b, c=c)
     elif template == "add_pow":
         a, b = [_tenths(2, 5) for _ in range(2)]
         q = f"{fmt_dec(a)} + {fmt_dec(b)}^2"
@@ -229,7 +230,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": a + (b * 2),
             "replaces_addition_with_multiplication": a * (b**2),
         }
-        parameters = _params(a=a, b=b)
+        parameters = _params(q, a=a, b=b)
     elif template == "sub_pow":
         a = _tenths(10, 20)
         b = _tenths(2, 5)
@@ -240,7 +241,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": a - (b * 2),
             "flips_the_final_sign": a + (b**2),
         }
-        parameters = _params(a=a, b=b)
+        parameters = _params(q, a=a, b=b)
     else:  # pow_mul
         a, b = [_tenths(2, 5) for _ in range(2)]
         q = f"{fmt_dec(a)}^2 \\cdot {fmt_dec(b)}"
@@ -250,9 +251,7 @@ def dec_order_3() -> dict | None:
             "multiplies_by_the_exponent": (a * 2) * b,
             "replaces_multiplication_with_addition": (a**2) + b,
         }
-        parameters = _params(a=a, b=b)
-
-    parameters["expression"] = latex_to_expression(q)
+        parameters = _params(q, a=a, b=b)
 
     problem = build_problem_dict(
         q,
@@ -299,14 +298,11 @@ def dec_order_4() -> dict | None:
             "flattens_to_all_addition": a + b + c + d,
         }
 
-    parameters = _params(a=a, b=b, c=c, d=d)
-    parameters["expression"] = latex_to_expression(q)
-
     problem = build_problem_dict(
         q,
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-        parameters=parameters,
+        parameters=_params(q, a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
@@ -347,14 +343,11 @@ def dec_order_5() -> dict | None:
             "squares_the_bracket_terms_separately": a - (b**2 + c**2),
         }
 
-    parameters = _params(a=a, b=b, c=c)
-    parameters["expression"] = latex_to_expression(q)
-
     problem = build_problem_dict(
         q,
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-        parameters=parameters,
+        parameters=_params(q, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -386,14 +379,11 @@ def dec_order_6() -> dict | None:
         "squares_the_bracket_terms_separately": a * (b**2 + c**2) - d,
     }
 
-    parameters = _params(a=a, b=b, c=c, d=d)
-    parameters["expression"] = latex_to_expression(q)
-
     problem = build_problem_dict(
         q,
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-        parameters=parameters,
+        parameters=_params(q, a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
