@@ -2,11 +2,23 @@
 
 import random
 from fractions import Fraction
-from backend.core.utils import build_problem_dict, declares_traps
+from backend.core.utils import build_problem_dict, declares_traps, latex_to_expression
 
 
 def _frac(value: Fraction) -> str:
+    """Format a Fraction as the improper `n/d` string answers and parameters carry."""
     return f"{value.numerator}/{value.denominator}"
+
+
+def _params(q: str, **operands: Fraction) -> dict[str, int | float | str]:
+    """The Problem's `parameters`: every operand as `n/d`, plus `q` as an ASCII
+    `expression`.
+    """
+    parameters: dict[str, int | float | str] = {
+        name: _frac(value) for name, value in operands.items()
+    }
+    parameters["expression"] = latex_to_expression(q)
+    return parameters
 
 
 @declares_traps(
@@ -62,7 +74,7 @@ def frac_ord_1() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
+        parameters=_params(q, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -117,7 +129,7 @@ def frac_ord_2() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
+        parameters=_params(q, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -167,7 +179,7 @@ def frac_ord_3() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c), "d": _frac(d)},
+        parameters=_params(q, a=a, b=b, c=c, d=d),
     )
 
     if problem:
@@ -195,7 +207,7 @@ def frac_ord_4() -> dict | None:
             "ignores_the_exponent": a + (b * c),
             "multiplies_by_the_exponent": (a * 2) + (b * c),
         }
-        instance_parameters = {"a": _frac(a), "b": _frac(b), "c": _frac(c)}
+        instance_parameters = _params(q, a=a, b=b, c=c)
     else:
         b = Fraction(1, random.choice([2, 3, 4]))
         a = (b**2) + Fraction(random.randint(1, 2), random.choice([2, 3]))
@@ -206,7 +218,7 @@ def frac_ord_4() -> dict | None:
             "ignores_the_exponent": a - b,
             "multiplies_by_the_exponent": a - (b * 2),
         }
-        instance_parameters = {"a": _frac(a), "b": _frac(b)}
+        instance_parameters = _params(q, a=a, b=b)
 
     problem = build_problem_dict(
         q,
@@ -257,7 +269,7 @@ def frac_ord_5() -> dict | None:
         q,
         _frac(ans),
         traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c)},
+        parameters=_params(q, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -288,7 +300,7 @@ def frac_ord_6() -> dict | None:
             "multiplies_by_the_exponent": _frac(a * ((b + c) * 2) - d),
             "squares_the_bracket_terms_separately": _frac(a * (b**2 + c**2) - d),
         },
-        parameters={"a": _frac(a), "b": _frac(b), "c": _frac(c), "d": _frac(d)},
+        parameters=_params(q, a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
