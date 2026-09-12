@@ -559,7 +559,7 @@ def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curricu
         state, problem, fixture_curriculum, resolve_play_mode(state.username)
     )
     session.ACTIVE_SESSIONS[state.session_id] = state
-    db.save_user(state.username, state.model_copy(update={"streak": 0}))
+    db.save_user(state.username, state)
 
     response = session.auto_solve_problem(
         AutoSolveRequest(session_id=state.session_id, problem_id="p1")
@@ -571,7 +571,6 @@ def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curricu
     loaded = db.load_user(state.username)
     assert loaded is not None
     assert loaded["xp"] == 40
-    assert loaded["streak"] == 0
 
 
 def test_admin_navigates_to_locked_topic_without_bypass(fixture_curriculum: Curriculum):

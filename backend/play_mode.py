@@ -68,14 +68,15 @@ class AdminPlayMode:
 
 @dataclass(frozen=True, slots=True)
 class DbWritePlan:
-    """Per-field DB write eligibility for one persist operation."""
+    """Per-field DB write eligibility for one persist operation.
+
+    Streak and Flawless never appear here — ADR-0006 makes both Session-only,
+    with no profile column for either to write to.
+    """
 
     write_xp: bool
-    write_streak: bool
-    write_flawless_eligible: bool
     write_chapter_frontiers: bool
     profile_xp: int | None = None
-    profile_streak: int | None = None
     profile_chapter_frontiers: dict[int, ChapterFrontier] | None = None
 
     @classmethod
@@ -83,8 +84,6 @@ class DbWritePlan:
         """All profile fields may be written from the current session state."""
         return cls(
             write_xp=True,
-            write_streak=True,
-            write_flawless_eligible=True,
             write_chapter_frontiers=True,
         )
 

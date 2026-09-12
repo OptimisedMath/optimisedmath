@@ -285,11 +285,8 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
     plan = session_state.build_db_write_plan(state, AdminPlayMode())
 
     assert plan.write_xp is False
-    assert plan.write_streak is False
     assert plan.write_chapter_frontiers is False
-    assert plan.write_flawless_eligible is True
     assert plan.profile_xp == 50
-    assert plan.profile_streak == 0
     assert plan.profile_chapter_frontiers[CHAPTER_ALPHA] == ChapterFrontier(
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
@@ -297,7 +294,7 @@ def test_build_db_write_plan_admin_preserves_profile_progression_fields(
 
     persisted = session_state.overlay_db_write_plan(state, plan)
     assert persisted.xp == 50
-    assert persisted.streak == 0
+    assert persisted.streak == 4
     assert persisted.flawless_eligible is False
     assert persisted.chapter_frontiers[CHAPTER_ALPHA] == ChapterFrontier(
         frontier_topic_id=TOPIC_MULTI,

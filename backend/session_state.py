@@ -146,30 +146,20 @@ def build_db_write_plan(state: SessionState, play_mode: PlayMode) -> DbWritePlan
 
     return DbWritePlan(
         write_xp=False,
-        write_streak=False,
-        write_flawless_eligible=True,
         write_chapter_frontiers=False,
         profile_xp=persisted["xp"],
-        profile_streak=persisted["streak"],
         profile_chapter_frontiers=persisted["chapter_frontiers"],
     )
 
 
 def overlay_db_write_plan(state: SessionState, write_plan: DbWritePlan) -> SessionState:
     """Return session snapshot for DB writes according to ``write_plan``."""
-    if (
-        write_plan.write_xp
-        and write_plan.write_streak
-        and write_plan.write_flawless_eligible
-        and write_plan.write_chapter_frontiers
-    ):
+    if write_plan.write_xp and write_plan.write_chapter_frontiers:
         return state
 
     persist_state = state.model_copy(deep=True)
     if not write_plan.write_xp and write_plan.profile_xp is not None:
         persist_state.xp = write_plan.profile_xp
-    if not write_plan.write_streak and write_plan.profile_streak is not None:
-        persist_state.streak = write_plan.profile_streak
     if (
         not write_plan.write_chapter_frontiers
         and write_plan.profile_chapter_frontiers is not None
@@ -220,7 +210,6 @@ def load_profile(
 
     if user_data:
         state.xp = user_data["xp"]
-        state.streak = user_data["streak"]
         state.selected_chapter_id = user_data["selected_chapter_id"]
         state.selected_topic_id = user_data["selected_topic_id"]
         state.selected_level = user_data["selected_level"]
