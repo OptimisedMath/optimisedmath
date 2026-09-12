@@ -14,7 +14,6 @@ from backend.models import ChapterFrontier, SessionState
 
 class UserData(TypedDict):
     xp: int
-    streak: int
     selected_chapter_id: int | None
     selected_topic_id: int | None
     selected_level: int
@@ -59,13 +58,13 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
                 xp INTEGER DEFAULT 0,
-                streak INTEGER DEFAULT 0,
                 selected_chapter_id INTEGER,
                 selected_topic_id INTEGER,
                 selected_level INTEGER,
                 chapter_frontiers_json TEXT
             )
         """)
+        _drop_stale_streak_column(cursor)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
@@ -142,8 +141,17 @@ def init_db() -> None:
         conn.commit()
 
 
+def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
+    """Drop `users.streak`, retired by ADR-0006 — Streak is Session-only, never
+    persisted on the profile. Other profile fields on pre-existing rows are kept.
+    """
+    columns = {row[1] for row in cursor.execute("PRAGMA table_info(users)")}
+    if "streak" in columns:
+        cursor.execute("ALTER TABLE users DROP COLUMN streak")
+
+
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id/
+    """Drop telemetry_logs if it predates changes
     problem_snapshot columns.
 
     Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
@@ -219,25 +227,25 @@ def load_user(username: str) -> UserData | None:
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT xp, streak, selected_chapter_id, selected_topic_id,
+            SELECT xp, selected_chapter_id, selected_topic_id,
                    selected_level, chapter_frontiers_json
             FROM users WHERE username = ?
             """,
             (username,),
         )
         row = cursor.fetchone()
+        if row is None:
+            return None
 
-        if row:
-            raw_frontiers = json.loads(row[5]) if row[5] else {}
-            return {
-                "xp": row[0],
-                "streak": row[1],
-                "selected_chapter_id": row[2],
-                "selected_topic_id": row[3],
-                "selected_level": row[4],
-                "chapter_frontiers": _parse_chapter_frontiers(raw_frontiers),
-            }
-        return None
+        xp, chapter_id, topic_id, level, frontiers_json = row
+        raw_frontiers = json.loads(frontiers_json) if frontiers_json else {}
+        return {
+            "xp": xp,
+            "selected_chapter_id": chapter_id,
+            "selected_topic_id": topic_id,
+            "selected_level": level,
+            "chapter_frontiers": _parse_chapter_frontiers(raw_frontiers),
+        }
 
 
 def save_user(username: str, state: SessionState) -> None:
@@ -254,13 +262,12 @@ def save_user(username: str, state: SessionState) -> None:
         cursor.execute(
             """
             INSERT INTO users (
-                username, xp, streak, selected_chapter_id,
+                username, xp, selected_chapter_id,
                 selected_topic_id, selected_level, chapter_frontiers_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(username) DO UPDATE SET
                 xp=excluded.xp,
-                streak=excluded.streak,
                 selected_chapter_id=excluded.selected_chapter_id,
                 selected_topic_id=excluded.selected_topic_id,
                 selected_level=excluded.selected_level,
@@ -269,7 +276,6 @@ def save_user(username: str, state: SessionState) -> None:
             (
                 username,
                 state.xp,
-                state.streak,
                 state.selected_chapter_id,
                 state.selected_topic_id,
                 state.selected_level,

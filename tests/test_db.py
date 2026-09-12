@@ -51,6 +51,35 @@ def test_init_db_is_idempotent(tmp_path):
     assert db.load_user("alice") is not None
 
 
+def test_init_db_drops_legacy_streak_column():
+    """ADR-0006: `users.streak` is retired — pre-existing rows heal in place.
+    TO BE DELETED AFTER THE STALE TABLE IS SUCCESSFULLY DROPPED. CHECK IF THIS CAN BE      DELETED"""
+    with db.get_connection() as conn:
+        conn.execute("ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 0")
+        conn.execute("""
+            INSERT INTO users (
+                username, xp, streak, selected_chapter_id,
+                selected_topic_id, selected_level, chapter_frontiers_json
+            ) VALUES ('legacy-user', 10, 5, 1, 2, 3, '{}')
+            """)
+        conn.commit()
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
+    assert "streak" not in columns
+
+    loaded = db.load_user("legacy-user")
+    assert loaded == {
+        "xp": 10,
+        "selected_chapter_id": 1,
+        "selected_topic_id": 2,
+        "selected_level": 3,
+        "chapter_frontiers": {},
+    }
+
+
 def test_save_and_load_user_round_trip():
     state = _sample_state()
     db.save_user("alice", state)
@@ -59,7 +88,6 @@ def test_save_and_load_user_round_trip():
 
     assert loaded is not None
     assert loaded["xp"] == 120
-    assert loaded["streak"] == 2
     assert loaded["selected_chapter_id"] == 10
     assert loaded["selected_topic_id"] == 20
     assert loaded["selected_level"] == 3
@@ -73,16 +101,15 @@ def test_load_user_returns_none_when_missing():
 
 
 def test_save_user_updates_existing():
-    state = _sample_state(xp=50, streak=1)
+    state = _sample_state(xp=50)
     db.save_user("alice", state)
 
-    updated = _sample_state(xp=200, streak=0, selected_level=1)
+    updated = _sample_state(xp=200, selected_level=1)
     db.save_user("alice", updated)
 
     loaded = db.load_user("alice")
     assert loaded is not None
     assert loaded["xp"] == 200
-    assert loaded["streak"] == 0
     assert loaded["selected_level"] == 1
 
 

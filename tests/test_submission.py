@@ -122,7 +122,6 @@ class AdminProfileBaseline:
     """Persisted profile snapshot before admin submissions mutate session state."""
 
     xp: int
-    streak: int
     chapter_frontiers: dict[int, ChapterFrontier]
 
 
@@ -151,12 +150,10 @@ def _admin_state_at(
     state.level_completed = False
     state.topic_completed = False
     baseline_state = state.model_copy(deep=True)
-    baseline_state.streak = 0
     db.save_user(_username(state), baseline_state)
     db.save_session(state.session_id, _username(state), baseline_state)
     baseline = AdminProfileBaseline(
         xp=baseline_state.xp,
-        streak=baseline_state.streak,
         chapter_frontiers=dict(baseline_state.chapter_frontiers),
     )
     return state, baseline
@@ -295,7 +292,6 @@ def _assert_admin_profile_unchanged(
     loaded = db.load_user(_username(state))
     assert loaded is not None
     assert loaded["xp"] == baseline.xp
-    assert loaded["streak"] == baseline.streak
     assert loaded["chapter_frontiers"] == baseline.chapter_frontiers
 
 
@@ -372,7 +368,6 @@ def test_correct_answer_updates_session_and_logs_telemetry(
     )
     loaded = db.load_user(_username(state))
     assert loaded is not None
-    assert loaded["streak"] == 1
     assert loaded["xp"] == 10 + config.XP_REWARDS[1]
 
 
