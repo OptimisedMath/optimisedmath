@@ -55,14 +55,12 @@ def test_init_db_drops_legacy_streak_column():
     """ADR-0006: `users.streak` is retired — pre-existing rows heal in place."""
     with db.get_connection() as conn:
         conn.execute("ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 0")
-        conn.execute(
-            """
+        conn.execute("""
             INSERT INTO users (
                 username, xp, streak, selected_chapter_id,
                 selected_topic_id, selected_level, chapter_frontiers_json
             ) VALUES ('legacy-user', 10, 5, 1, 1, 1, '{}')
-            """
-        )
+            """)
         conn.commit()
 
     db.init_db()
