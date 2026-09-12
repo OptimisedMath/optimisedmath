@@ -135,7 +135,7 @@ The name a Misconception is known by in the catalogue — a stable, human-readab
 _Avoid_: misconception_id, misconception number
 
 **Wrong**:
-An incorrect answer with no Misconception behind it — a slip, where the Student's rules were sound but their execution was not. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong is a grading outcome, not a category of authored answer: a Wrong answer is very often an authored Trap with its own prose, because whether a person anticipated it and whether it maps to a Misconception are separate facts.
+An incorrect answer that matched no declared Trap — unanticipated, so it carries only the generic message. Typically a slip, where the Student's rules were sound but their execution was not. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong and Trap are exclusive: an anticipated answer grades as a Trap even where no Misconception sits behind it.
 _Avoid_: w1, w2 (internal ids)
 
 **Unit**:
@@ -147,12 +147,12 @@ A hash of a Problem's question, correct answer, and options — identifies when 
 _Avoid_: dedup key, content hash
 
 **Soft Error**:
-The answer could not be read as a maths expression, or used a notation the Problem did not ask for. Does not penalize Streak or forfeit Flawless. Only applies where the required form was not itself part of the question — otherwise the answer is Wrong.
+The answer could not be read as a maths expression, used a notation the Problem did not ask for, or wrote the right value in a form that was not the simplest. Does not penalize Streak or forfeit Flawless. Only applies where the required form was not itself part of the question — otherwise the answer is Wrong.
 _Avoid_: format error
 
 **Answer Outcome**:
-Which of the above one Submission landed in — what the grader returns alongside its feedback. Telemetry records it with the Misconception slug and the Trap slug where each applies.
-_Avoid_: trap_id, misconception_id, error code, result
+Which of Correct, Trap, Wrong and Soft Error one Submission landed in — what the grader returns alongside its feedback, and the only vocabulary telemetry records a result in. The four are exclusive and exhaustive: every Submission is exactly one of them. Finer distinctions — which kind of notation fault, whether a Wrong answer's value happened to be right — are read back off the answer as recorded, not off this term. Telemetry stores the Outcome with the Misconception slug and the Trap slug where each applies.
+_Avoid_: trap_id, misconception_id, error code, result, format mismatch / unsimplified / syntax error / exact match violation (recorded shapes, not Outcomes)
 
 ## Session
 
