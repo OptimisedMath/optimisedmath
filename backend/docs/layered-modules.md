@@ -13,6 +13,7 @@ The stack, top to bottom. Each layer may import from layers below it, from `mode
 | Access | `unlock.py` (pure) |
 | Grading | `answer_grading.py`, `step_grading.py` (pure) |
 | Deconstruction | `deconstruction.py` (pure), `deconstruction_step.py` |
+| Expression | `expression.py` (pure) |
 | Problems | `problem_generation.py` (pure) |
 | Navigation | `navigation_snapshot.py`, `navigation_resolve.py` |
 | Curriculum | `curriculum.py`, `curriculum_loader.py` |

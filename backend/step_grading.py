@@ -61,11 +61,17 @@ def _split_order(order: str) -> list[str]:
     return [item.strip() for item in order.split(ORDERING_ANSWER_SEPARATOR)]
 
 
-def grade_ordering_step(user_input: str, answer: str) -> StepEvalResult:
-    """Grade an ordering step: exact match of the submitted order against the target.
+def grade_ordering_step(
+    user_input: str, answer: str, accepted_orders: list[str] | None = None
+) -> StepEvalResult:
+    """Grade an ordering step: exact match against `answer`, or membership in
+    `accepted_orders` when the step declares other orders as equally correct
+    (tier equivalence, e.g. `mnożenie`/`dzielenie` interchangeable — #246).
 
-    Both sides are `ORDERING_ANSWER_SEPARATOR`-joined item lists. There is no
+    Every side is a `ORDERING_ANSWER_SEPARATOR`-joined item list. There is no
     format-mismatch notion here — unlike a typed numeric answer, an ordering
     has no equivalent notation to fumble, so a mismatch is simply wrong.
     """
-    return {"is_correct": _split_order(user_input) == _split_order(answer)}
+    submitted = _split_order(user_input)
+    accepted = [answer, *(accepted_orders or [])]
+    return {"is_correct": any(submitted == _split_order(order) for order in accepted)}

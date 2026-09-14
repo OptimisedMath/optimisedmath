@@ -151,8 +151,10 @@ def submit_step(
     deconstruction, step = _require_deconstruction_step(state)
     answered_step_index = deconstruction.step_index
 
-    grade = grade_ordering_step if step.input_type == "ordering" else grade_step
-    eval_result = grade(user_input, step.answer)
+    if step.input_type == "ordering":
+        eval_result = grade_ordering_step(user_input, step.answer, step.accepted_orders)
+    else:
+        eval_result = grade_step(user_input, step.answer)
     is_correct = bool(eval_result.get("is_correct"))
 
     if not is_correct and not eval_result.get("soft_error"):

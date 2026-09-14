@@ -1741,6 +1741,55 @@ def test_reveal_fires_on_an_ordering_step_same_as_typed(monkeypatch):
     assert state.deconstruction.step_index == 1
 
 
+def _ordering_step_with_accepted_orders(accepted_orders, question="q"):
+    return DeconstructionStep(
+        question=question,
+        working_line=None,
+        answer=_ORDERING_ANSWER,
+        input_type="ordering",
+        items=_ORDERING_ITEMS,
+        accepted_orders=accepted_orders,
+    )
+
+
+def test_ordering_step_grades_an_accepted_order_other_than_answer_correct():
+    swapped = ORDERING_ANSWER_SEPARATOR.join(["a", "b", "d", "c"])
+    state = make_state(_trap_problem("p-ordering-accepted"), input_mode="radio")
+    _arm_deconstruction(
+        state,
+        [
+            _ordering_step_with_accepted_orders([swapped]),
+            DeconstructionStep(question="q2", working_line=None, answer="5"),
+        ],
+    )
+
+    response = _submit_step(state, swapped)
+
+    assert response.is_correct is True
+    assert state.deconstruction.step_index == 1
+
+
+def test_ordering_step_still_rejects_a_non_member_order():
+    swapped = ORDERING_ANSWER_SEPARATOR.join(["a", "b", "d", "c"])
+    state = make_state(_trap_problem("p-ordering-non-member"), input_mode="radio")
+    _arm_deconstruction(state, [_ordering_step_with_accepted_orders([swapped])])
+
+    response = _submit_step(state, "d|c|b|a")
+
+    assert response.is_correct is False
+    assert state.deconstruction.step_index == 0
+
+
+def test_ordering_step_response_never_exposes_accepted_orders():
+    swapped = ORDERING_ANSWER_SEPARATOR.join(["a", "b", "d", "c"])
+    state = make_state(_trap_problem("p-ordering-hidden"), input_mode="radio")
+    _arm_deconstruction(state, [_ordering_step_with_accepted_orders([swapped])])
+
+    response = run(main.deconstruction_next(state.session_id))
+
+    assert not hasattr(response, "accepted_orders")
+
+
 def test_deconstruction_steps_row_tracks_attempts_and_revealed(monkeypatch):
     """Issue #195: one `deconstruction_steps` row per step carries step_index, attempts, revealed."""
     monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)

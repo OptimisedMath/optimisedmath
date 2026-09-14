@@ -245,9 +245,9 @@ class TestExpandsToTargetDenominatorWithoutFindingFactor:
 
 class TestOrderingStepType:
     """Pure coverage for the ordering-input step type (#198): the wire contract
-    and control only. #186's priority-ladder walkthrough for
-    `ignores_the_order_of_operations` is batch two and not authored here, so
-    these exercise the type mechanism with stand-in items."""
+    and control in isolation, with stand-in items. `TestIgnoresTheOrderOfOperations`
+    below exercises the same mechanism through #186's real priority-ladder
+    walkthrough."""
 
     def test_typed_step_defaults(self):
         step = Step(question="q", working_line=None, answer="5")
@@ -268,6 +268,24 @@ class TestOrderingStepType:
         assert step.input_type == "ordering"
         assert step.items == items
         assert step.answer == "brackets|powers|multiply-divide|add-subtract"
+        assert step.accepted_orders is None
+
+    def test_ordering_step_can_carry_several_accepted_orders(self):
+        items = ("brackets", "powers", "multiply", "divide", "add", "subtract")
+        canonical = ORDERING_ANSWER_SEPARATOR.join(items)
+        swapped_tiers = ORDERING_ANSWER_SEPARATOR.join(
+            ("brackets", "powers", "divide", "multiply", "subtract", "add")
+        )
+        step = Step(
+            question="Order the priority ladder.",
+            working_line=None,
+            answer=canonical,
+            input_type="ordering",
+            items=items,
+            accepted_orders=(swapped_tiers,),
+        )
+
+        assert step.accepted_orders == (swapped_tiers,)
 
 
 class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
@@ -578,3 +596,151 @@ class TestComparesDecimalsByWrongDigitOrder:
         assert parameters["s2"] in find_places_step.question
         assert parameters["s1"] in compare_sign_step.question
         assert parameters["s2"] in compare_sign_step.question
+
+
+_LADDER_TIERS = (
+    "nawiasy",
+    "potęgi",
+    "mnożenie",
+    "dzielenie",
+    "dodawanie",
+    "odejmowanie",
+)
+_CANONICAL_LADDER_ORDER = ORDERING_ANSWER_SEPARATOR.join(_LADDER_TIERS)
+
+
+class TestIgnoresTheOrderOfOperations:
+    """Table-driven: representative `expression` shapes for the priority-ladder
+    walkthrough (#186, #218) — no bracket, one bracket, bracket plus power, and
+    two brackets, covering both Chapters' notations. Expected `working_line`s and
+    answers are hand-computed against `backend.expression`'s own grammar, not
+    against a real generator, since the walkthrough is chapter-agnostic."""
+
+    @pytest.mark.parametrize(
+        ("expression", "expected_apply_steps"),
+        [
+            pytest.param(
+                "0,2 + 0,3 * 0,4",
+                [
+                    ("mnożenie", "0,2 + 0,3 \\cdot 0,4", "0,3 \\cdot 0,4", "0,12"),
+                    ("dodawanie", "0,2 + 0,12", "0,2 + 0,12", "0,32"),
+                ],
+                id="no-bracket-decimal",
+            ),
+            pytest.param(
+                "(1/2 + 1/4) * 1/3",
+                [
+                    (
+                        "nawiasy",
+                        r"(\frac{1}{2} + \frac{1}{4}) \cdot \frac{1}{3}",
+                        r"\frac{1}{2} + \frac{1}{4}",
+                        "3/4",
+                    ),
+                    (
+                        "mnożenie",
+                        r"\frac{3}{4} \cdot \frac{1}{3}",
+                        r"\frac{3}{4} \cdot \frac{1}{3}",
+                        "1/4",
+                    ),
+                ],
+                id="one-bracket-fraction",
+            ),
+            pytest.param(
+                "(0,3 + 0,3)^2 - 0,1",
+                [
+                    ("nawiasy", "(0,3 + 0,3)^2 - 0,1", "0,3 + 0,3", "0,6"),
+                    ("potęgi", "0,6^2 - 0,1", "0,6^2", "0,36"),
+                    ("odejmowanie", "0,36 - 0,1", "0,36 - 0,1", "0,26"),
+                ],
+                id="bracket-plus-power-decimal",
+            ),
+            pytest.param(
+                "(1/2 + 1/4) * (1/2 - 1/4)",
+                [
+                    (
+                        "nawiasy",
+                        r"(\frac{1}{2} + \frac{1}{4}) \cdot (\frac{1}{2} - \frac{1}{4})",
+                        r"\frac{1}{2} + \frac{1}{4}",
+                        "3/4",
+                    ),
+                    (
+                        "nawiasy",
+                        r"\frac{3}{4} \cdot (\frac{1}{2} - \frac{1}{4})",
+                        r"\frac{1}{2} - \frac{1}{4}",
+                        "1/4",
+                    ),
+                    (
+                        "mnożenie",
+                        r"\frac{3}{4} \cdot \frac{1}{4}",
+                        r"\frac{3}{4} \cdot \frac{1}{4}",
+                        "3/16",
+                    ),
+                ],
+                id="two-brackets-fraction",
+            ),
+        ],
+    )
+    def test_ladder_step_then_one_apply_step_per_operation(
+        self, expression, expected_apply_steps
+    ):
+        steps = build_steps(
+            "ignores_the_order_of_operations", {"expression": expression}
+        )
+
+        ladder_step = steps[0]
+        assert ladder_step.input_type == "ordering"
+        assert ladder_step.working_line is None
+        assert sorted(ladder_step.items) == sorted(_LADDER_TIERS)
+        assert ladder_step.answer == _CANONICAL_LADDER_ORDER
+        assert ladder_step.accepted_orders is not None
+        assert len(ladder_step.accepted_orders) == 3
+        assert _CANONICAL_LADDER_ORDER not in ladder_step.accepted_orders
+        # The shuffle never lands on an already-correct order (the reshuffle
+        # guard covered directly below).
+        shuffled_order = ORDERING_ANSWER_SEPARATOR.join(ladder_step.items)
+        assert shuffled_order not in (
+            ladder_step.answer,
+            *ladder_step.accepted_orders,
+        )
+
+        apply_steps = steps[1:]
+        assert len(apply_steps) == len(expected_apply_steps)
+
+        previous_working_line = None
+        for step, (tier, working_line, sub_expression, answer) in zip(
+            apply_steps, expected_apply_steps
+        ):
+            assert tier in step.question
+            assert f"${sub_expression}$" in step.question
+            assert step.working_line == working_line
+            assert step.working_line != previous_working_line
+            assert step.answer == answer
+            previous_working_line = step.working_line
+
+    def test_reshuffles_when_the_draw_lands_on_the_canonical_order(self, monkeypatch):
+        """The guard: a shuffle that happens to reproduce a Student's free pass
+        (the untouched, already-correct list) is discarded and redrawn."""
+        import backend.deconstruction as deconstruction_module
+
+        calls = {"count": 0}
+
+        def fake_shuffle(items):
+            calls["count"] += 1
+            if calls["count"] == 1:
+                items[:] = list(_LADDER_TIERS)
+            else:
+                items[0], items[1] = items[1], items[0]
+
+        monkeypatch.setattr(deconstruction_module.random, "shuffle", fake_shuffle)
+
+        steps = build_steps(
+            "ignores_the_order_of_operations", {"expression": "0,2 + 0,3 * 0,4"}
+        )
+
+        assert calls["count"] == 2
+        shuffled_order = ORDERING_ANSWER_SEPARATOR.join(steps[0].items)
+        assert shuffled_order not in (steps[0].answer, *steps[0].accepted_orders)
+
+    def test_rejects_missing_expression_parameter(self):
+        with pytest.raises(DeconstructionContractError):
+            build_steps("ignores_the_order_of_operations", {})

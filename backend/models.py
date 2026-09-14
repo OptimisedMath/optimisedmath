@@ -68,13 +68,18 @@ DeconstructionStepInputType = Literal["typed", "ordering"]
 
 
 class DeconstructionStep(BaseModel):
-    """One computed walkthrough question, mirroring `deconstruction.Step`."""
+    """One computed walkthrough question, mirroring `deconstruction.Step`.
+
+    `accepted_orders` never appears on `DeconstructionStepResponse` — otherwise a
+    Student reading network traffic would be handed every correct order at once.
+    """
 
     question: str
     working_line: Optional[str] = None
     answer: str
     input_type: DeconstructionStepInputType = "typed"
     items: Optional[list[str]] = None
+    accepted_orders: Optional[list[str]] = None
 
 
 class DeconstructionState(BaseModel):
