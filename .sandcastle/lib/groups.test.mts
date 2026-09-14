@@ -161,9 +161,17 @@ test("only the last N iterations count, so early exploration is forgiven", () =>
 });
 
 test("a group is complete only when nothing is planned and nothing is stranded", () => {
-  assert.ok(isGroupComplete({ plannedIssues: 0, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 1, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 0, strandedBranches: 1 }));
+  const settled = false;
+  assert.ok(isGroupComplete({ plannedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }));
+  assert.ok(!isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: settled, strandedBranches: 0 }));
+  assert.ok(!isGroupComplete({ plannedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 1 }));
+});
+
+test("a group whose last planned issues settled with nothing to do is complete", () => {
+  // #248 of sandcastle:218: its deliverable was an issue comment, so it
+  // signalled completion with no commits, and the PR stayed a draft.
+  assert.ok(isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: true, strandedBranches: 0 }));
+  assert.ok(!isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: true, strandedBranches: 1 }));
 });
 
 test("an incomplete group's PR references the parent spec without closing it", () => {

@@ -671,6 +671,7 @@ async function runGroup(group: Group): Promise<boolean> {
   await pickUpPriorWork(group, integrationBranch);
 
   let planned: { id: string; title: string; branch: string }[] = [];
+  let settledWithNothingToDo = false;
 
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     console.log(`\n=== ${GROUP_LABEL_PREFIX}${group.id} — cycle ${iteration}/${MAX_ITERATIONS} ===\n`);
@@ -728,6 +729,7 @@ async function runGroup(group: Group): Promise<boolean> {
       }));
       if (isSettledWithNothingToDo(outcomes)) {
         console.log("Every issue reports its work was already done. Group finished.");
+        settledWithNothingToDo = true;
         break;
       }
 
@@ -759,6 +761,7 @@ async function runGroup(group: Group): Promise<boolean> {
 
   const complete = isGroupComplete({
     plannedIssues: planned.length,
+    settledWithNothingToDo,
     strandedBranches: strandedBranches(group, integrationBranch).length,
   });
 

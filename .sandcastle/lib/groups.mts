@@ -192,12 +192,18 @@ export function isDeadRun(
  * Both halves matter: an empty plan alone would call a group done while one of
  * its branches sat stranded with unmerged commits, and that PR would go out as
  * ready for review with work missing from it.
+ *
+ * A plan is also exhausted when its issues settled with nothing to do (see
+ * isSettledWithNothingToDo): the loop stops on that before replanning, so the
+ * last plan is still non-empty even though nothing in it is outstanding.
  */
 export function isGroupComplete(state: {
   plannedIssues: number;
+  settledWithNothingToDo: boolean;
   strandedBranches: number;
 }): boolean {
-  return state.plannedIssues === 0 && state.strandedBranches === 0;
+  const planExhausted = state.plannedIssues === 0 || state.settledWithNothingToDo;
+  return planExhausted && state.strandedBranches === 0;
 }
 
 /** Title the PR for a group's batch. */

@@ -114,6 +114,14 @@ _Avoid_: exercise, item
 **Correct**:
 Mathematically right answer for this Problem.
 
+**Distinct Problem**:
+The unit a Level's pool is counted in — one combination of the values a generator draws, regardless of which Traps and Fillers happen to be served beside it. Two Problems asking the same question are the same Distinct Problem even when the options differ.
+_Avoid_: unique problem, variation, distinct instance (an instance is one serving, not one question)
+
+**Pool**:
+How many Distinct Problems a Level can draw. The whole space the generator can reach, not what one Student met.
+_Avoid_: variety, problem count, sample size
+
 **Trap**:
 An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception; a Trap whose error is a slip rather than a believed rule references none, and still carries its own prose. An answer matching no Trap is Wrong too, but unanticipated.
 _Avoid_: distractor, diagnostic answer, "wrong" as a Trap's identity (a Trap may grade as Wrong; and w1/w2 were Fillers, never Traps)
@@ -123,7 +131,7 @@ The name a Trap is known by within one generator — one slug per wrong rule tha
 _Avoid_: t1, t2, t3 (positional slots, not identities)
 
 **Filler**:
-A wrong option that exists only to fill a radio button when a Level has fewer Traps than slots — an arbitrary near miss with no anticipated rule behind it, so it carries no prose and no Misconception. It grades as Wrong with the generic message, exactly as an unanticipated answer does. Once we can say how the mistake was made, it is a Trap, not a Filler.
+A wrong option that exists only to fill a radio button when fewer of a Problem's Traps can be offered than there are slots — an arbitrary near miss with no anticipated rule behind it, so it carries no prose and no Misconception. It grades as Wrong with the generic message, exactly as an unanticipated answer does. Once we can say how the mistake was made, it is a Trap, not a Filler.
 _Avoid_: w1, w2 (positional slots), padding option
 
 **Misconception**:
