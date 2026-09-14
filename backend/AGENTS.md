@@ -8,6 +8,7 @@ Pure Python FastAPI service — no UI framework imports. Game rules live here �
 - **Submission** — [submission.md](docs/submission.md) for grading one answer through persist.
 - **Play mode** — [play-mode.md](docs/play-mode.md) for Admin mode, effective unlock, or profile persistence.
 - **Curriculum / generators** — [backend-map.md](docs/backend-map.md) when adding chapters or problem generators.
+- **Geometry** — [geometry-conventions.md](docs/geometry-conventions.md) when a generator draws a figure or writes geometry in its prose.
 - **API contract** — request/response shapes are `models.py` (Pydantic) mirrored by `frontend/lib/session/types.ts` and `frontend/lib/types.ts`; JSON field names are stable wire format — see `CONTEXT.md`.
 - **Tests** — DB isolated via pytest fixtures; run from repo root.
 - **Documentation** — [documentation.md](../docs/agents/documentation.md) when writing or skipping a docstring or comment.

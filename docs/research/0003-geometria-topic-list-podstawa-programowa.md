@@ -1,5 +1,7 @@
 # Geometria: the Topic list, decided against the podstawa programowa
 
+> **Findings, not rules.** What the app adopts, and what it deliberately does not, is [geometry-conventions.md](../../backend/docs/geometry-conventions.md).
+
 Research findings for [#208](https://github.com/OptimisedMath/optimisedmath/issues/208). Part of the map [#207](https://github.com/OptimisedMath/optimisedmath/issues/207). Blocks [#211](https://github.com/OptimisedMath/optimisedmath/issues/211) and [#213](https://github.com/OptimisedMath/optimisedmath/issues/213).
 
 **Question**: which 2D plane-geometry Topics belong to a `Geometria` Chapter for klasy 4–8, and — the load-bearing half — **what must be drawn** for each, so the SVG drawing layer has a requirements list rather than a guess.

@@ -1,5 +1,7 @@
 # Geometria: figure notation conventions, and where the app breaks them
 
+> **Findings, not rules.** What the app adopts, and what it deliberately does not, is [geometry-conventions.md](../../backend/docs/geometry-conventions.md).
+
 Research findings for [#281](https://github.com/OptimisedMath/optimisedmath/issues/281). Part of the map [#207](https://github.com/OptimisedMath/optimisedmath/issues/207). Companion to [0003](0003-geometria-topic-list-podstawa-programowa.md), which decided *what* to draw; this decides *how to mark it up*.
 
 **Question**: how does a Polish klasa 4–8 figure mark itself up — vertices, sides, unknowns, heights, right angles, equalities, circles — and which of those does the drawing layer currently get wrong?
