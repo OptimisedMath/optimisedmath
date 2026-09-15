@@ -240,7 +240,7 @@ def _maybe_trigger_deconstruction(
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
     hits = db.count_misconception_hits(
-        state.session_id, misconception_slug, chapter_name, topic_name, level
+        state.session_id, misconception_slug, chapter_id, topic_id, level
     )
     if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
         return

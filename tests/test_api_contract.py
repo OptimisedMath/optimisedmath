@@ -1126,6 +1126,31 @@ def test_telemetry_problem_id_column_is_indexed():
     assert "problem_id" in index_columns
 
 
+def test_deconstruction_trigger_lookup_is_covered_by_a_composite_index():
+    """Issue #255: the trigger's hit count runs inside every Submission, so its
+    lookup (session, Misconception, Chapter, Topic, Level) must be an index
+    lookup rather than a table scan."""
+    expected_columns = [
+        "session_id",
+        "misconception_slug",
+        "chapter_id",
+        "topic_id",
+        "level_number",
+    ]
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        index_names = [
+            row[1] for row in conn.execute("PRAGMA index_list(telemetry_logs)")
+        ]
+        for index_name in index_names:
+            columns = [
+                row[2] for row in conn.execute(f"PRAGMA index_info({index_name})")
+            ]
+            if columns == expected_columns:
+                return
+
+    pytest.fail("no index on telemetry_logs covers " f"{expected_columns} in order")
+
+
 # --- Deconstruction trigger (#194) ---
 
 _UNLIKE_FRACTIONS_PARAMETERS = {"n1": 1, "d1": 2, "n2": 1, "d2": 3, "operation": "+"}
@@ -1236,6 +1261,34 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
     assert [s.answer for s in state.deconstruction.steps] == [
         s.answer for s in expected_steps
     ]
+
+
+def test_renaming_topic_mid_session_does_not_split_the_hit_count(monkeypatch):
+    """Issue #255: the trigger keys on Chapter/Topic id, not display name, so
+    renaming a Topic between the first and second hit still arms the
+    Deconstruction on the second hit."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+
+    from backend.curriculum import Curriculum
+
+    original_topic_name = Curriculum.topic_name
+    renamed_topic_names = iter(["Original Topic Name", "Renamed Topic Name"])
+
+    def fake_topic_name(self, chapter_id, topic_id):
+        return next(
+            renamed_topic_names, original_topic_name(self, chapter_id, topic_id)
+        )
+
+    monkeypatch.setattr(Curriculum, "topic_name", fake_topic_name)
+
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-second-hit")
+
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
 
 
 def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatch):
