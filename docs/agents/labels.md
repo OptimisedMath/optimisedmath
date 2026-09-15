@@ -46,4 +46,6 @@ Sandcastle works one **group** at a time and opens one PR per group, so the labe
 
 `<id>` is free-form, but a **numeric id names the parent spec issue** — `sandcastle:218` means "part of #218", and merging that group's PR closes #218 once the group has nothing outstanding. Use the spec's number whenever the work has one; two issues from different specs must never share a group, or they share a review.
 
+A `sandcastle:<id>` label doesn't exist until someone creates it. When creating one, give it the same color as the plain `sandcastle` label (`gh label list --search sandcastle` to check the current value) so every group reads as one family at a glance — never the tool's default color.
+
 Groups run in one sequence per Sandcastle run: numeric ids ascending, then named ids alphabetically, then solo issues. An interrupted run resumes at the same end of the queue, so put the work you most want finished behind the lowest number.
