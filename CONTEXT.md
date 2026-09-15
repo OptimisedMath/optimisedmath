@@ -147,7 +147,7 @@ An incorrect answer that matched no declared Trap — unanticipated, so it carri
 _Avoid_: w1, w2 (internal ids)
 
 **Unit**:
-The physical dimension marker an answer carries — `cm²`, `m`, `ha`. How a Level declares Units and how the grader converts and matches them is [ADR-0005](docs/adr/0005-conversion-aware-unit-grading.md).
+The marker a quantity is measured in — `cm²`, `kg`, `zł` — whether it appears in a question or an answer carries it. How a Level declares Units and how the grader converts and matches them is [ADR-0005](docs/adr/0005-conversion-aware-unit-grading.md).
 _Avoid_: measure, dimension (for the marker itself), suffix
 
 **Problem fingerprint**:
