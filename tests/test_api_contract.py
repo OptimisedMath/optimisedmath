@@ -552,7 +552,7 @@ def test_radio_only_topic_keeps_radio_input():
     state.selected_chapter_id = disabled_chapter_id
     state.selected_topic_id = disabled_topic["topic_id"]
     submission.run_submission_cycle(
-        state, problem, "a", False, resolve_curriculum(), StudentPlayMode()
+        state, problem, "a", "radio", resolve_curriculum(), StudentPlayMode()
     )
 
     assert state.streak == 1

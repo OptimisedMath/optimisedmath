@@ -177,11 +177,12 @@ def _log_submission_telemetry(
     frontier = play_mode.resolve_frontier(
         list(curriculum.topics(chapter_id)), state.chapter_frontiers[chapter_id]
     )
+    relation = frontier_relation(topic_id, state.selected_level, frontier)
 
     db.log_telemetry(
         session_id=state.session_id,
         username=username,
-        play_mode="admin" if play_mode.is_admin else "student",
+        play_mode=play_mode.name,
         chapter_id=chapter_id,
         chapter_name=chapter_name,
         topic_id=topic_id,
@@ -190,7 +191,7 @@ def _log_submission_telemetry(
         input_mode=input_mode,
         streak_before_answer=state.streak,
         flawless_eligible=state.flawless_eligible,
-        frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
+        frontier_relation=relation,
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_outcome=eval_result.get("answer_outcome"),

@@ -147,30 +147,9 @@ def init_db() -> None:
         conn.commit()
 
 
-def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
-    """Drop `users.streak`, retired by ADR-0006 — Streak is Session-only, never
-    persisted on the profile. Other profile fields on pre-existing rows are kept.
-    """
-    columns = {row[1] for row in cursor.execute("PRAGMA table_info(users)")}
-    if "streak" in columns:
-        cursor.execute("ALTER TABLE users DROP COLUMN streak")
-
-
-def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id/
-    problem_snapshot columns, or #254's row-context columns (play_mode, chapter_id,
-    topic_id, input_mode, streak_before_answer, flawless_eligible, frontier_relation,
-    time_spent_ms).
-
-    Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
-    """
-    table_exists = cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
-    ).fetchone()
-    if not table_exists:
-        return
-    columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    required = {
+# Columns whose absence marks a telemetry_logs table from an older schema shape.
+_TELEMETRY_SHAPE_COLUMNS = frozenset(
+    {
         "misconception_slug",
         "trap_slug",
         "problem_id",
@@ -184,7 +163,31 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
         "frontier_relation",
         "time_spent_ms",
     }
-    if not required.issubset(columns):
+)
+
+
+def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
+    """Drop `users.streak`, retired by ADR-0006 — Streak is Session-only, never
+    persisted on the profile. Other profile fields on pre-existing rows are kept.
+    """
+    columns = {row[1] for row in cursor.execute("PRAGMA table_info(users)")}
+    if "streak" in columns:
+        cursor.execute("ALTER TABLE users DROP COLUMN streak")
+
+
+def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
+    """Drop telemetry_logs if it predates any column `log_telemetry` now writes.
+
+    Pre-existing telemetry rows are dropped, not migrated, when the schema changes
+    shape, so every new telemetry column joins `_TELEMETRY_SHAPE_COLUMNS` too.
+    """
+    table_exists = cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
+    ).fetchone()
+    if not table_exists:
+        return
+    columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
+    if not _TELEMETRY_SHAPE_COLUMNS.issubset(columns):
         cursor.execute("DROP TABLE telemetry_logs")
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import pytest
@@ -15,9 +15,10 @@ import backend.session_state as session_state
 import backend.submission as submission
 from backend.core import db
 from backend.curriculum import Curriculum
-from backend.models import ChapterFrontier, SessionState
-from backend.play_mode import AdminPlayMode, StudentPlayMode
+from backend.models import ChapterFrontier, InputMode, SessionState
+from backend.play_mode import AdminPlayMode, PlayModeName, StudentPlayMode
 from backend.progression import SubmissionOutcome
+from backend.unlock import FrontierRelation
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
     TOPIC_MULTI,
@@ -59,7 +60,11 @@ class ExpectedSession:
 
 @dataclass(frozen=True)
 class ExpectedTelemetry:
-    """One telemetry row produced per Submission."""
+    """One telemetry row produced per Submission.
+
+    Every field is named after the `telemetry_logs` column it expects, which is what
+    lets `_assert_telemetry` check the row by name instead of by position.
+    """
 
     is_correct: bool
     user_input: str
@@ -68,11 +73,11 @@ class ExpectedTelemetry:
     topic_id: int
     topic: str
     level_number: int
-    input_mode: str
-    play_mode: str
+    input_mode: InputMode
+    play_mode: PlayModeName
     streak_before_answer: int
     flawless_eligible: bool
-    frontier_relation: str
+    frontier_relation: FrontierRelation
     answer_outcome: str | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
@@ -213,7 +218,7 @@ def _submit(
     state: SessionState,
     problem: dict[str, Any],
     user_input: str,
-    input_mode: str,
+    input_mode: InputMode,
     curriculum: Curriculum,
     play_mode: StudentPlayMode | AdminPlayMode,
 ) -> dict[str, Any]:
@@ -234,15 +239,13 @@ def _telemetry_count(session_id: str) -> int:
     return int(row[0])
 
 
-def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
+def _latest_telemetry(session_id: str) -> dict[str, Any]:
+    """Return the newest telemetry row for a session, keyed by column name."""
     with sqlite3.connect(db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
         row = conn.execute(
             """
-            SELECT problem_snapshot, is_correct, user_input, chapter_id, chapter,
-                   topic_id, topic, level_number, input_mode, play_mode,
-                   streak_before_answer, flawless_eligible, frontier_relation,
-                   answer_outcome, misconception_slug, trap_slug
-            FROM telemetry_logs
+            SELECT * FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
             LIMIT 1
@@ -250,7 +253,7 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
             (session_id,),
         ).fetchone()
     assert row is not None, "expected one telemetry row for session"
-    return row
+    return dict(row)
 
 
 def _assert_session(state: SessionState, expected: ExpectedSession) -> None:
@@ -274,27 +277,16 @@ def _assert_telemetry(
     problem: dict[str, Any],
     expected: ExpectedTelemetry,
 ) -> None:
+    """Assert the newest telemetry row matches `expected`, column by column."""
     row = _latest_telemetry(session_id)
-    stored = json.loads(row[0])
+    stored = json.loads(row["problem_snapshot"])
     for key in _TELEMETRY_STRIP_KEYS:
         assert key not in stored
     assert stored["question"] == problem["question"]
     assert stored["correct"] == problem["correct"]
-    assert row[1] == (1 if expected.is_correct else 0)
-    assert row[2] == expected.user_input
-    assert row[3] == expected.chapter_id
-    assert row[4] == expected.chapter
-    assert row[5] == expected.topic_id
-    assert row[6] == expected.topic
-    assert row[7] == expected.level_number
-    assert row[8] == expected.input_mode
-    assert row[9] == expected.play_mode
-    assert row[10] == expected.streak_before_answer
-    assert row[11] == (1 if expected.flawless_eligible else 0)
-    assert row[12] == expected.frontier_relation
-    assert row[13] == expected.answer_outcome
-    assert row[14] == expected.misconception_slug
-    assert row[15] == expected.trap_slug
+    for column, value in asdict(expected).items():
+        # SQLite stores the boolean columns as 0/1, which compare equal to False/True.
+        assert row[column] == value, f"telemetry column {column}"
 
 
 def _assert_admin_profile_unchanged(
@@ -674,7 +666,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     selected_level: int,
     initial_streak: int,
     expect_streak: int,
-    expect_relation: str,
+    expect_relation: FrontierRelation,
 ):
     state, baseline = _admin_state_at(
         fixture_curriculum,

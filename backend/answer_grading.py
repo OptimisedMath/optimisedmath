@@ -154,13 +154,13 @@ def grade(
 ) -> EvalResult:
     """Grade a submission against a generated problem.
 
-    Handles multiple-choice (options_map), open-text (parse + grading_policy),
+    Handles Radio mode (options_map), Typing mode (parse + grading_policy),
     trap/wrong feedback, and format-mismatch soft errors.
     """
     options_map = problem.get("options_map", {})
 
     # --- 1. RADIO MODE ---
-    if input_mode != "typing" and "options" in problem and len(problem["options"]) > 0:
+    if input_mode == "radio" and "options" in problem and len(problem["options"]) > 0:
         is_correct = options_map.get(user_input) == "correct"
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
