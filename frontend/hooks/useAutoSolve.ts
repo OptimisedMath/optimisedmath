@@ -1,7 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { Problem, SubmitAnswerHandler } from '@/lib/session';
-
-type AutoSolveInputMode = 'radio' | 'typing';
+import type { InputMode, Problem, SubmitAnswerHandler } from '@/lib/session';
 
 interface UseAutoSolveOptions {
   problem: Problem | null;
@@ -9,7 +7,7 @@ interface UseAutoSolveOptions {
   answerLocked: boolean;
   adminMode: boolean;
   onSubmit: SubmitAnswerHandler;
-  inputMode: AutoSolveInputMode;
+  inputMode: InputMode;
   value: string;
   setValue: (value: string) => void;
 }

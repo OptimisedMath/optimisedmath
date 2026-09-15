@@ -14,8 +14,8 @@ DB_PATH = PROJECT_ROOT / "storage" / "users.db"
 # resets on mastery, so it can never exceed this value.
 MAX_STREAK = 3
 
-# Streak count required to enable input mode (instead of radio mode)
-STREAK_THRESHOLD_FOR_INPUT_MODE = 1
+# Streak count required to enable Typing mode (instead of Radio mode)
+STREAK_THRESHOLD_FOR_TYPING_MODE = 1
 
 # --- GAME MECHANICS: DECONSTRUCTION ---
 # Hits on the same Misconception at the current Level before a Deconstruction

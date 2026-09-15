@@ -62,6 +62,11 @@ class NavigationView(BaseModel):
 # --- Session state ---
 
 
+# Which control the Student answers with — CONTEXT.md's Radio mode and Typing mode.
+# Wire format, so these strings are stable JSON, not just internal names.
+InputMode = Literal["radio", "typing"]
+
+
 # Wire mirror of `deconstruction.StepInputType`, redeclared rather than imported so
 # `models.py` stays the shared leaf every layer may import (import rule 2).
 DeconstructionStepInputType = Literal["typed", "ordering"]
@@ -112,7 +117,7 @@ class SessionState(BaseModel):
     selected_level: int = Field(default=1, ge=1)
 
     problem_answered: bool = False
-    current_input_mode: str = "radio"
+    current_input_mode: InputMode = "radio"
     topic_completed: bool = False
 
     feedback_type: Optional[str] = None
@@ -200,7 +205,7 @@ class SessionResponse(BaseModel):
     selected_level: int = Field(default=1, ge=1)
 
     problem_answered: bool = False
-    current_input_mode: str = "radio"
+    current_input_mode: InputMode = "radio"
     topic_completed: bool = False
 
     feedback_type: Optional[str] = None

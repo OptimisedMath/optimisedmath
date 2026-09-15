@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
 import { InlineMath } from 'react-katex';
 import { getRevealedCorrectAnswer } from '@/lib/session';
-import type { Feedback, Problem } from '@/lib/session';
+import type { Feedback, InputMode, Problem } from '@/lib/session';
 import 'katex/dist/katex.min.css';
 
 interface FeedbackCardProps {
   feedback: Feedback;
   problem: Problem | null;
-  inputMode: string;
+  inputMode: InputMode;
   topicCompleted: boolean;
   levelCompleted: boolean;
   hasNextUnlockedTopic: boolean;

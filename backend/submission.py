@@ -13,7 +13,12 @@ from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
 import backend.deconstruction_step as deconstruction_step
-from backend.models import DeconstructionState, DeconstructionStep, SessionState
+from backend.models import (
+    DeconstructionState,
+    DeconstructionStep,
+    InputMode,
+    SessionState,
+)
 from backend.play_mode import PlayMode
 from backend.progression import (
     SubmissionContext,
@@ -41,7 +46,7 @@ def run_submission_cycle(
     state: SessionState,
     problem: ProblemDict,
     user_input: str,
-    input_mode: str,
+    input_mode: InputMode,
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> EvalResult:
@@ -141,7 +146,7 @@ def _log_submission_telemetry(
     state: SessionState,
     problem: ProblemDict,
     user_input: str,
-    input_mode: str,
+    input_mode: InputMode,
     eval_result: EvalResult,
     curriculum: Curriculum,
     misconception_slug: str | None,

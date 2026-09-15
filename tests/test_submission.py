@@ -716,7 +716,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
     _assert_admin_profile_unchanged(state, baseline)
 
 
-def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
+def test_admin_ahead_of_unlock_reaches_typing_mode_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
     state, _baseline = _admin_state_at(

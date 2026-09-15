@@ -134,7 +134,7 @@ def test_next_problem_hides_answer_contract_fields():
     assert response.state.can_submit is True
 
 
-def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
+def test_typing_submit_uses_mobile_sanitizer_and_keeps_typing_mode():
     problem = {
         "problem_id": "p-mobile",
         "question": "q",
@@ -215,7 +215,7 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
     assert response.state.streak_meter == 2
 
 
-def test_input_mode_defers_radio_to_input_until_next_problem():
+def test_input_mode_defers_radio_to_typing_until_next_problem():
     problem = {
         "problem_id": "p-radio-defer",
         "question": "q",
@@ -245,7 +245,7 @@ def test_input_mode_defers_radio_to_input_until_next_problem():
     assert "input_mode" not in next_response.problem
 
 
-def test_input_mode_defers_input_to_radio_until_next_problem():
+def test_input_mode_defers_typing_to_radio_until_next_problem():
     problem = {
         "problem_id": "p-text-defer",
         "question": "q",

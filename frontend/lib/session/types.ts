@@ -2,6 +2,9 @@
 // note the backend also has its own SessionState class for persisted sessions, which this
 // interface does not mirror.
 
+/** Which control the Student answers with — Radio mode or Typing mode. */
+export type InputMode = 'radio' | 'typing';
+
 export interface ChapterFrontier {
   frontier_topic_id: number;
   frontier_level: number;
@@ -46,7 +49,7 @@ export interface SessionResponse {
   selected_topic_id: number | null;
   selected_level: number;
   problem_answered: boolean;
-  current_input_mode: string;
+  current_input_mode: InputMode;
   topic_completed: boolean;
   feedback_type: string | null;
   feedback_msg: string;
@@ -209,7 +212,7 @@ export interface SessionView {
   flawlessEligible: boolean;
   streakMeter: number;
   maxStreak: number;
-  currentInputMode: string;
+  currentInputMode: InputMode;
   selectedChapterId: number;
   selectedTopicId: number;
   selectedLevel: number;

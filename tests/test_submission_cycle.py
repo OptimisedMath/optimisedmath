@@ -166,7 +166,7 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
     state = _fresh_state(fixture_curriculum)
     problem = {"problem_id": "p1", "question": "q", "correct": "1", "options": ["1"]}
 
-    state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
     submission_cycle.begin_problem(
         state, problem, fixture_curriculum, StudentPlayMode()
     )

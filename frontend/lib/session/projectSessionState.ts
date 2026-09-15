@@ -1,4 +1,5 @@
 import type {
+  InputMode,
   NavigationChapterOption,
   NavigationProgress,
   NavigationTopicOption,
@@ -12,7 +13,7 @@ export interface SessionDisplayProjection {
   flawlessEligible: boolean;
   streakMeter: number;
   maxStreak: number;
-  currentInputMode: string;
+  currentInputMode: InputMode;
   selectedChapterId: number;
   selectedTopicId: number;
   selectedLevel: number;

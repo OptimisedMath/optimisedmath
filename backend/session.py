@@ -25,6 +25,7 @@ from backend.models import (
     DeconstructionStepResponse,
     DeconstructionSubmissionRequest,
     DeconstructionSubmissionResponse,
+    InputMode,
     SessionResponse,
     SessionState,
     ProblemResponse,
@@ -353,7 +354,7 @@ def _submit_active_problem(
     *,
     problem_id: str | None,
     user_input: str,
-    input_mode: str,
+    input_mode: InputMode,
     require_admin: bool = False,
 ) -> SubmissionResponse:
     """Shared submission path — grade, apply outcome, and return updated state."""
