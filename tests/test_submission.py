@@ -18,6 +18,7 @@ from backend.curriculum import Curriculum
 from backend.models import ChapterFrontier, InputMode, SessionState
 from backend.play_mode import AdminPlayMode, PlayModeName, StudentPlayMode
 from backend.progression import SubmissionOutcome
+from backend.submission import TrapSource
 from backend.unlock import FrontierRelation
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
@@ -81,7 +82,7 @@ class ExpectedTelemetry:
     answer_outcome: str | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
-    trap_source: str | None = None
+    trap_source: TrapSource | None = None
 
 
 def _fresh_state(

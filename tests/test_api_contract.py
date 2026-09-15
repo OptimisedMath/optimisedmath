@@ -1,6 +1,7 @@
 """FastAPI integration tests for session flow, grading, and API contract."""
 
 import asyncio
+import itertools
 import json
 import sqlite3
 import uuid
@@ -1172,14 +1173,14 @@ def test_deconstruction_trigger_lookup_is_covered_by_a_composite_index():
         index_names = [
             row[1] for row in conn.execute("PRAGMA index_list(telemetry_logs)")
         ]
-        for index_name in index_names:
-            columns = [
-                row[2] for row in conn.execute(f"PRAGMA index_info({index_name})")
-            ]
-            if columns == expected_columns:
-                return
+        indexed_columns = [
+            [row[2] for row in conn.execute(f"PRAGMA index_info({index_name})")]
+            for index_name in index_names
+        ]
 
-    pytest.fail("no index on telemetry_logs covers " f"{expected_columns} in order")
+    assert (
+        expected_columns in indexed_columns
+    ), f"no index on telemetry_logs covers {expected_columns} in order"
 
 
 # --- Deconstruction trigger (#194) ---
@@ -1296,20 +1297,19 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
 
 def test_renaming_topic_mid_session_does_not_split_the_hit_count(monkeypatch):
     """Issue #255: the trigger keys on Chapter/Topic id, not display name, so
-    renaming a Topic between the first and second hit still arms the
-    Deconstruction on the second hit."""
+    renaming a Topic mid-Session still arms the Deconstruction on the second hit."""
     _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
     from backend.curriculum import Curriculum
 
-    original_topic_name = Curriculum.topic_name
-    renamed_topic_names = iter(["Original Topic Name", "Renamed Topic Name"])
+    # A fresh name on every read, so no two telemetry rows can agree on one. That
+    # is stricter than a single rename, and it does not depend on how many times
+    # a Submission happens to read the Topic's name.
+    renames = itertools.count()
 
     def fake_topic_name(self, chapter_id, topic_id):
-        return next(
-            renamed_topic_names, original_topic_name(self, chapter_id, topic_id)
-        )
+        return f"Topic Name Revision {next(renames)}"
 
     monkeypatch.setattr(Curriculum, "topic_name", fake_topic_name)
 

@@ -83,13 +83,13 @@ def run_submission_cycle(
     _log_submission_telemetry(
         state,
         problem,
-        user_input,
-        input_mode,
         eval_result,
         curriculum,
-        misconception_slug,
-        trap_source,
         play_mode,
+        user_input=user_input,
+        input_mode=input_mode,
+        misconception_slug=misconception_slug,
+        trap_source=trap_source,
     )
     if is_discounted_retry:
         _apply_discounted_retry_outcome(state, eval_result)
@@ -170,13 +170,14 @@ def _resolve_trap_source(eval_result: EvalResult) -> TrapSource | None:
 def _log_submission_telemetry(
     state: SessionState,
     problem: ProblemDict,
-    user_input: str,
-    input_mode: InputMode,
     eval_result: EvalResult,
     curriculum: Curriculum,
+    play_mode: PlayMode,
+    *,
+    user_input: str,
+    input_mode: InputMode,
     misconception_slug: str | None,
     trap_source: TrapSource | None,
-    play_mode: PlayMode,
 ) -> None:
     """Persist one submission attempt with sanitized problem state.
 
@@ -196,12 +197,9 @@ def _log_submission_telemetry(
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
-    trap_slug = eval_result.get("trap_slug")
-
     frontier = play_mode.resolve_frontier(
         list(curriculum.topics(chapter_id)), state.chapter_frontiers[chapter_id]
     )
-    relation = frontier_relation(topic_id, state.selected_level, frontier)
 
     db.log_telemetry(
         session_id=state.session_id,
@@ -215,12 +213,12 @@ def _log_submission_telemetry(
         input_mode=input_mode,
         streak_before_answer=state.streak,
         flawless_eligible=state.flawless_eligible,
-        frontier_relation=relation,
+        frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
-        trap_slug=trap_slug,
+        trap_slug=eval_result.get("trap_slug"),
         trap_source=trap_source,
         time_spent_ms=time_spent_ms,
         problem_snapshot=_sanitize_problem_for_telemetry(problem),

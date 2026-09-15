@@ -154,23 +154,37 @@ def init_db() -> None:
         conn.commit()
 
 
-# Columns whose absence marks a telemetry_logs table from an older schema shape.
-_TELEMETRY_SHAPE_COLUMNS = frozenset(
-    {
-        "misconception_slug",
-        "trap_slug",
-        "trap_source",
-        "problem_id",
-        "problem_snapshot",
-        "play_mode",
-        "chapter_id",
-        "topic_id",
-        "input_mode",
-        "streak_before_answer",
-        "flawless_eligible",
-        "frontier_relation",
-        "time_spent_ms",
-    }
+# Every telemetry_logs column `log_telemetry` writes, in INSERT order. The INSERT
+# statement below is built from this list, and `_drop_stale_telemetry_table` reads
+# it as the shape a pre-existing table has to match — so a new telemetry column is
+# added here and to the `CREATE TABLE` above, and nowhere else.
+_TELEMETRY_COLUMNS = (
+    "session_id",
+    "username",
+    "play_mode",
+    "chapter_id",
+    "chapter",
+    "topic_id",
+    "topic",
+    "level_number",
+    "input_mode",
+    "streak_before_answer",
+    "flawless_eligible",
+    "frontier_relation",
+    "answer_outcome",
+    "misconception_slug",
+    "trap_slug",
+    "trap_source",
+    "is_correct",
+    "user_input",
+    "time_spent_ms",
+    "problem_snapshot",
+    "problem_id",
+)
+
+_INSERT_TELEMETRY_SQL = (
+    f"INSERT INTO telemetry_logs ({', '.join(_TELEMETRY_COLUMNS)}) "
+    f"VALUES ({', '.join('?' * len(_TELEMETRY_COLUMNS))})"
 )
 
 
@@ -187,7 +201,7 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     """Drop telemetry_logs if it predates any column `log_telemetry` now writes.
 
     Pre-existing telemetry rows are dropped, not migrated, when the schema changes
-    shape, so every new telemetry column joins `_TELEMETRY_SHAPE_COLUMNS` too.
+    shape — adding a column to `_TELEMETRY_COLUMNS` is what makes that happen.
     """
     table_exists = cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
@@ -195,7 +209,7 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    if not _TELEMETRY_SHAPE_COLUMNS.issubset(columns):
+    if not set(_TELEMETRY_COLUMNS).issubset(columns):
         cursor.execute("DROP TABLE telemetry_logs")
 
 
@@ -321,6 +335,7 @@ def save_user(username: str, state: SessionState) -> None:
 
 
 def log_telemetry(
+    *,
     session_id: str,
     username: str,
     play_mode: str,
@@ -343,42 +358,39 @@ def log_telemetry(
     problem_snapshot: str | None = None,
     problem_id: str | None = None,
 ) -> None:
-    """Record one answer attempt for analytics and debugging."""
+    """Record one answer attempt for analytics and debugging.
+
+    Keyword-only: the row is too wide, and too many of its columns share a type,
+    for a positional call to be readable or safe at the call site.
+    """
+    row: dict[str, object] = {
+        "session_id": session_id,
+        "username": username,
+        "play_mode": play_mode,
+        "chapter_id": chapter_id,
+        "chapter": chapter_name,
+        "topic_id": topic_id,
+        "topic": topic_name,
+        "level_number": level_number,
+        "input_mode": input_mode,
+        "streak_before_answer": streak_before_answer,
+        "flawless_eligible": flawless_eligible,
+        "frontier_relation": frontier_relation,
+        "answer_outcome": answer_outcome,
+        "misconception_slug": misconception_slug,
+        "trap_slug": trap_slug,
+        "trap_source": trap_source,
+        "is_correct": is_correct,
+        "user_input": str(user_input) if user_input is not None else None,
+        "time_spent_ms": time_spent_ms,
+        "problem_snapshot": problem_snapshot,
+        "problem_id": problem_id,
+    }
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            """
-            INSERT INTO telemetry_logs (
-                session_id, username, play_mode, chapter_id, chapter, topic_id, topic,
-                level_number, input_mode, streak_before_answer, flawless_eligible,
-                frontier_relation, answer_outcome, misconception_slug, trap_slug,
-                trap_source, is_correct, user_input, time_spent_ms, problem_snapshot,
-                problem_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                session_id,
-                username,
-                play_mode,
-                chapter_id,
-                chapter_name,
-                topic_id,
-                topic_name,
-                level_number,
-                input_mode,
-                streak_before_answer,
-                flawless_eligible,
-                frontier_relation,
-                answer_outcome,
-                misconception_slug,
-                trap_slug,
-                trap_source,
-                is_correct,
-                str(user_input) if user_input is not None else None,
-                time_spent_ms,
-                problem_snapshot,
-                problem_id,
-            ),
+            _INSERT_TELEMETRY_SQL,
+            tuple(row[column] for column in _TELEMETRY_COLUMNS),
         )
         conn.commit()
 

@@ -41,7 +41,7 @@ function FeedbackCard({
   }, [feedback, showNextButton, disabled, nextButtonRef]);
 
   const correctAnswer =
-    inputMode !== 'radio'
+    inputMode === 'typing'
       ? getRevealedCorrectAnswer(problem, feedback)
       : undefined;
 
