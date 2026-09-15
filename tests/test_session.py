@@ -162,7 +162,7 @@ def test_session_response_from_state_copies_shared_fields():
         selected_topic_id=20,
         selected_level=3,
         problem_answered=True,
-        current_input_mode="input",
+        current_input_mode="typing",
         topic_completed=True,
         feedback_type="success",
         feedback_msg="Nice!",
@@ -193,7 +193,7 @@ def test_session_response_from_state_copies_shared_fields():
     assert response.selected_topic_id == 20
     assert response.selected_level == 3
     assert response.problem_answered is True
-    assert response.current_input_mode == "input"
+    assert response.current_input_mode == "typing"
     assert response.topic_completed is True
     assert response.feedback_type == "success"
     assert response.feedback_msg == "Nice!"
@@ -408,7 +408,7 @@ def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode(
 ):
     state = _fresh_state(fixture_curriculum)
     state.username = next(iter(config.ADMIN_USERNAMES))
-    state.current_input_mode = "input"
+    state.current_input_mode = "typing"
     problem = {
         "problem_id": "p1",
         "question": "q",
@@ -509,7 +509,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(
         resolve_play_mode(manual_state.username),
     )
     session.ACTIVE_SESSIONS[manual_state.session_id] = manual_state
-    assert manual_state.current_input_mode == "input"
+    assert manual_state.current_input_mode == "typing"
 
     manual_response = session.submit_problem(
         ProblemSubmissionRequest(

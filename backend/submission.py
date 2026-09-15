@@ -41,7 +41,7 @@ def run_submission_cycle(
     state: SessionState,
     problem: ProblemDict,
     user_input: str,
-    is_input_mode: bool,
+    input_mode: str,
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> EvalResult:
@@ -63,7 +63,7 @@ def run_submission_cycle(
 
     is_discounted_retry = problem.get("problem_id") == state.discounted_problem_id
 
-    eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
+    eval_result = grade(user_input, problem, input_mode=input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
 
     misconception_slug = _resolve_misconception_slug(state, curriculum, eval_result)
@@ -71,7 +71,7 @@ def run_submission_cycle(
         state,
         problem,
         user_input,
-        is_input_mode,
+        input_mode,
         eval_result,
         curriculum,
         misconception_slug,
@@ -141,7 +141,7 @@ def _log_submission_telemetry(
     state: SessionState,
     problem: ProblemDict,
     user_input: str,
-    is_input_mode: bool,
+    input_mode: str,
     eval_result: EvalResult,
     curriculum: Curriculum,
     misconception_slug: str | None,
@@ -167,7 +167,7 @@ def _log_submission_telemetry(
         chapter_name=chapter_name,
         topic_name=topic_name,
         level_number=state.selected_level,
-        is_input_mode=is_input_mode,
+        is_input_mode=input_mode == "typing",
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_outcome=eval_result.get("answer_outcome"),

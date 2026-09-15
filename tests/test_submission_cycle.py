@@ -171,7 +171,7 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
         state, problem, fixture_curriculum, StudentPlayMode()
     )
 
-    assert state.current_input_mode == "input"
+    assert state.current_input_mode == "typing"
 
 
 def test_resolve_next_problem_navigates_to_frontier_topic(

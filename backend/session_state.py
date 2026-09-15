@@ -28,7 +28,7 @@ def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
     topic_cfg = curriculum.topic_by_id(int(chapter_id), int(topic_id)) or {}
     radio_only = topic_cfg.get("radio_only", False)
     if not radio_only and state.streak >= config.STREAK_THRESHOLD_FOR_INPUT_MODE:
-        return "input"
+        return "typing"
     return "radio"
 
 

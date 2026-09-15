@@ -149,7 +149,7 @@ def _grade_with_unit(
 
 
 def grade(
-    user_input: str, problem: ProblemDict, *, is_input_mode: bool = False
+    user_input: str, problem: ProblemDict, *, input_mode: str = "radio"
 ) -> EvalResult:
     """Grade a submission against a generated problem.
 
@@ -159,7 +159,7 @@ def grade(
     options_map = problem.get("options_map", {})
 
     # --- 1. MULTIPLE CHOICE MODE ---
-    if not is_input_mode and "options" in problem and len(problem["options"]) > 0:
+    if input_mode != "typing" and "options" in problem and len(problem["options"]) > 0:
         is_correct = options_map.get(user_input) == "correct"
         if is_correct:
             return {"is_correct": True, "lock_answer": True}

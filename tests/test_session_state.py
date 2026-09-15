@@ -52,7 +52,7 @@ def test_init_defaults_sets_session_and_chapter_frontiers(
         assert state.chapter_frontiers[chapter_id].frontier_level == 1
 
 
-def test_resolve_input_mode_switches_to_input_after_streak_threshold(
+def test_resolve_input_mode_switches_to_typing_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
@@ -60,7 +60,7 @@ def test_resolve_input_mode_switches_to_input_after_streak_threshold(
     state.selected_topic_id = TOPIC_MULTI
 
     state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
     state.streak = 0
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
@@ -171,8 +171,8 @@ def _polluted_submission_cycle_state(
     state.feedback_type = "error"
     state.feedback_msg = "wrong"
     state.current_problem = {"problem_id": "p1"}
-    state.current_input_mode = "input"
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+    state.current_input_mode = "typing"
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
 
 def _submission_cycle_field_snapshot(state: SessionState) -> dict[str, object]:

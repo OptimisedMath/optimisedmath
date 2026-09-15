@@ -97,7 +97,7 @@ def test_wrong_text_submit_reveals_correct_answer():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -143,7 +143,7 @@ def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
         "options_map": {"1 \\frac{1}{2}": "correct", "1": "w1", "2": "w2"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -157,7 +157,7 @@ def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
 
     assert response.is_correct is True
     assert response.state.streak == 1
-    assert response.state.current_input_mode == "input"
+    assert response.state.current_input_mode == "typing"
 
 
 def test_level_completing_submit_serves_full_streak_meter():
@@ -169,7 +169,7 @@ def test_level_completing_submit_serves_full_streak_meter():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=2, input_mode="input")
+    state = make_state(problem, streak=2, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -197,7 +197,7 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=1, input_mode="input")
+    state = make_state(problem, streak=1, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -241,7 +241,7 @@ def test_input_mode_defers_radio_to_input_until_next_problem():
     assert submit_response.state.current_input_mode == "radio"
 
     next_response = run(main.problem_next(state.session_id))
-    assert next_response.state.current_input_mode == "input"
+    assert next_response.state.current_input_mode == "typing"
     assert "input_mode" not in next_response.problem
 
 
@@ -254,7 +254,7 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=1, input_mode="input")
+    state = make_state(problem, streak=1, input_mode="typing")
 
     submit_response = run(
         main.problem_submit(
@@ -268,7 +268,7 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
 
     assert submit_response.is_correct is False
     assert submit_response.state.streak == 0
-    assert submit_response.state.current_input_mode == "input"
+    assert submit_response.state.current_input_mode == "typing"
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "radio"
@@ -284,7 +284,7 @@ def test_soft_syntax_error_does_not_lock_problem():
         "options_map": {"3/4": "correct", "1/2": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -310,7 +310,7 @@ def test_soft_syntax_error_preserves_flawless_eligible():
         "options_map": {"3/4": "correct", "1/2": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -335,7 +335,7 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
         "options_map": {"1/2": "correct", "2/4": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -862,7 +862,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         == "Liczby nie są równe — nie wybieraj znaku równości!"
     )
 
-    eval_result = grade(">", problem, is_input_mode=False)
+    eval_result = grade(">", problem, input_mode="radio")
     assert eval_result.get("answer_outcome") == "trap"
     assert eval_result.get("trap_slug") == "compares_by_the_lower_place_digit"
     assert eval_result.get("feedback_msg") == branch_message

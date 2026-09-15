@@ -115,7 +115,7 @@ def public_problem(
     if image_html and not _is_safe_svg_fragment(str(image_html)):
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
-    if state.current_input_mode != "input":
+    if state.current_input_mode != "typing":
         # Radio mode only. The client appends this to all four buttons, so the
         # Student reads `24 cm²` but the Unit can never be the discriminator
         # (#213). Printing it beside a text input would hand away the very
@@ -134,7 +134,7 @@ def public_problem(
     elif play_mode.reveals_correct_answer:
         correct = problem.get("correct")
         if correct is not None:
-            if state.current_input_mode == "input":
+            if state.current_input_mode == "typing":
                 public["correct_answer"] = clean_latex(correct)
             else:
                 public["correct_answer"] = correct
@@ -353,7 +353,7 @@ def _submit_active_problem(
     *,
     problem_id: str | None,
     user_input: str,
-    is_input_mode: bool,
+    input_mode: str,
     require_admin: bool = False,
 ) -> SubmissionResponse:
     """Shared submission path — grade, apply outcome, and return updated state."""
@@ -381,7 +381,7 @@ def _submit_active_problem(
         raise SessionError(f"Chapter id {chapter_id} not found")
 
     eval_result = submission.run_submission_cycle(
-        state, problem, user_input, is_input_mode, curriculum, play_mode
+        state, problem, user_input, input_mode, curriculum, play_mode
     )
 
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
@@ -397,15 +397,17 @@ def _submit_active_problem(
 def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
     """Grade an answer, update streak and XP, and persist session state."""
     state = get_session(request.session_id)
-    is_input_mode = state.current_input_mode == "input"
+    input_mode = state.current_input_mode
     user_input = (
-        clean_mobile_input(request.user_input) if is_input_mode else request.user_input
+        clean_mobile_input(request.user_input)
+        if input_mode == "typing"
+        else request.user_input
     )
     return _submit_active_problem(
         request.session_id,
         problem_id=request.problem_id,
         user_input=user_input,
-        is_input_mode=is_input_mode,
+        input_mode=input_mode,
     )
 
 
@@ -456,17 +458,19 @@ def abandon_deconstruction(request: DeconstructionAbandonRequest) -> SessionResp
 def auto_solve_problem(request: AutoSolveRequest) -> SubmissionResponse:
     """Submit the correct answer for admin or dev testing."""
     state = get_session(request.session_id)
-    is_input_mode = state.current_input_mode == "input"
+    input_mode = state.current_input_mode
     problem = state.current_problem
     user_input = ""
     if problem is not None:
         user_input = (
-            clean_latex(problem["correct"]) if is_input_mode else problem["correct"]
+            clean_latex(problem["correct"])
+            if input_mode == "typing"
+            else problem["correct"]
         )
     return _submit_active_problem(
         request.session_id,
         problem_id=request.problem_id,
         user_input=user_input,
-        is_input_mode=is_input_mode,
+        input_mode=input_mode,
         require_admin=True,
     )
