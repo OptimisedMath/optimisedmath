@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { Problem, SubmitAnswerHandler } from '@/lib/session';
 
-type AutoSolveInputMode = 'radio' | 'input';
+type AutoSolveInputMode = 'radio' | 'typing';
 
 interface UseAutoSolveOptions {
   problem: Problem | null;

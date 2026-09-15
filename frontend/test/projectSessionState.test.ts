@@ -87,7 +87,7 @@ describe('projectSessionState', () => {
       flawlessEligible: false,
       streakMeter: 0,
       maxStreak: 0,
-      currentInputMode: 'input',
+      currentInputMode: 'typing',
       selectedChapterId: 0,
       selectedTopicId: 1,
       selectedLevel: 1,
