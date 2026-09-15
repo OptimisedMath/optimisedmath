@@ -115,7 +115,7 @@ _Avoid_: exercise, item
 Mathematically right answer for this Problem.
 
 **Answer form**:
-The notation an answer was written in, with LaTeX normalized away and nothing else changed — a Radio tap and a typed answer that mean the same thing become one Answer form. Not Answer value: on `exact_match_only` Levels the notation is part of the answer, so `2/4` and `4/8` stay two different Answer forms although they are one Answer value.
+The notation an answer was written in, with LaTeX normalized away and nothing else changed — a Radio tap and the same answer typed become one Answer form. Not Answer value: on `exact_match_only` Levels the notation is part of the answer, so `2/4` and `4/8` stay two different Answer forms although they are one Answer value.
 _Avoid_: normalized answer, cleaned answer, notation
 
 **Answer value**:
