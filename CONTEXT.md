@@ -114,6 +114,14 @@ _Avoid_: exercise, item
 **Correct**:
 Mathematically right answer for this Problem.
 
+**Answer form**:
+The notation an answer was written in, with LaTeX normalized away and nothing else changed — a Radio tap and a typed answer that mean the same thing become one Answer form. Not Answer value: on `exact_match_only` Levels the notation is part of the answer, so `2/4` and `4/8` stay two different Answer forms although they are one Answer value.
+_Avoid_: normalized answer, cleaned answer, notation
+
+**Answer value**:
+The exact rational an answer denotes, with notation erased — `0,5`, `1/2` and `2/4` are one Answer value. Not Answer form: value is what erases the exact distinction `exact_match_only` Levels grade on, so it cannot stand in for form on those Levels.
+_Avoid_: parsed answer, numeric answer, magnitude
+
 **Distinct Problem**:
 The unit a Level's pool is counted in — one combination of the values a generator draws, regardless of which Traps and Fillers happen to be served beside it. Two Problems asking the same question are the same Distinct Problem even when the options differ.
 _Avoid_: unique problem, variation, distinct instance (an instance is one serving, not one question)
