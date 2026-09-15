@@ -34,7 +34,7 @@ export function baseSession(overrides: Partial<SessionResponse> = {}): SessionRe
     selected_topic_id: 1,
     selected_level: 1,
     problem_answered: false,
-    current_input_mode: 'input',
+    current_input_mode: 'typing',
     topic_completed: false,
     feedback_type: null,
     feedback_msg: '',

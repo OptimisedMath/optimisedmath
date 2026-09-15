@@ -207,7 +207,7 @@ def _submit(
     state: SessionState,
     problem: dict[str, Any],
     user_input: str,
-    is_input_mode: bool,
+    input_mode: str,
     curriculum: Curriculum,
     play_mode: StudentPlayMode | AdminPlayMode,
 ) -> dict[str, Any]:
@@ -215,7 +215,7 @@ def _submit(
     state.problem_start_time = 0
     session_state.persist(state, play_mode)
     return submission.run_submission_cycle(
-        state, problem, user_input, is_input_mode, curriculum, play_mode
+        state, problem, user_input, input_mode, curriculum, play_mode
     )
 
 
@@ -334,7 +334,7 @@ def test_correct_answer_updates_session_and_logs_telemetry(
     problem = _correct_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is True
     _assert_session(
@@ -381,7 +381,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
     problem = _wrong_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "3", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "3", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is not True
     _assert_session(
@@ -425,7 +425,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
     problem = _soft_error_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "2/4", True, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2/4", "typing", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is None
     _assert_session(
@@ -470,7 +470,7 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
     problem = _trap_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "1/3", True, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "1/3", "typing", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is None
     _assert_session(
@@ -523,7 +523,7 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
     base_xp = config.XP_REWARDS[1]
     expected_xp = base_xp + config.FLAWLESS_LEVEL_BONUS
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is True
     _assert_session(
@@ -569,7 +569,7 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
     )
     problem = _correct_problem()
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is True
     _assert_session(
@@ -632,7 +632,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     problem = _correct_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
 
     assert result.get("is_correct") is True
     assert "XP" not in (state.feedback_msg or "")
@@ -681,7 +681,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
     )
     problem = _wrong_problem()
 
-    _submit(state, problem, "3", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "3", "radio", fixture_curriculum, _ADMIN)
 
     _assert_session(
         state,
@@ -716,7 +716,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
     _assert_admin_profile_unchanged(state, baseline)
 
 
-def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
+def test_admin_ahead_of_unlock_reaches_typing_mode_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
     state, _baseline = _admin_state_at(
@@ -728,9 +728,9 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
         streak=0,
     )
 
-    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
 
 def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
@@ -745,7 +745,7 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
         streak=2,
     )
 
-    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
     assert state.streak == 3
     _assert_admin_profile_unchanged(state, baseline)
@@ -761,7 +761,7 @@ def test_admin_trap_answer_sets_warning_feedback_type(fixture_curriculum: Curric
         streak=2,
     )
 
-    _submit(state, _trap_problem(), "1/3", True, fixture_curriculum, _ADMIN)
+    _submit(state, _trap_problem(), "1/3", "typing", fixture_curriculum, _ADMIN)
 
     assert state.feedback_type == "warning"
     assert state.streak == 1
@@ -778,7 +778,7 @@ def test_admin_soft_error_preserves_session_streak(fixture_curriculum: Curriculu
         streak=2,
     )
 
-    _submit(state, _soft_error_problem(), "2/4", True, fixture_curriculum, _ADMIN)
+    _submit(state, _soft_error_problem(), "2/4", "typing", fixture_curriculum, _ADMIN)
 
     assert state.feedback_type == "info"
     assert state.streak == 2
@@ -797,7 +797,7 @@ def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
         streak=2,
     )
 
-    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
     assert state.streak == 3
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
@@ -816,7 +816,7 @@ def test_admin_resets_streak_at_stored_frontier_boundary(
     )
     problem = _correct_problem()
 
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
 
     _assert_session(
         state,
@@ -862,17 +862,17 @@ def test_admin_level_completion_sequence_leaves_stored_frontier_unchanged(
     )
     problem = _correct_problem()
 
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
     assert state.streak == 1
     _assert_admin_profile_unchanged(state, baseline)
 
     state.problem_answered = False
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
     assert state.streak == 2
     _assert_admin_profile_unchanged(state, baseline)
 
     state.problem_answered = False
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
     assert state.streak == 0
     assert state.level_completed is False
     assert state.selected_level == 1

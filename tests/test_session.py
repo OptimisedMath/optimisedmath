@@ -162,7 +162,7 @@ def test_session_response_from_state_copies_shared_fields():
         selected_topic_id=20,
         selected_level=3,
         problem_answered=True,
-        current_input_mode="input",
+        current_input_mode="typing",
         topic_completed=True,
         feedback_type="success",
         feedback_msg="Nice!",
@@ -193,7 +193,7 @@ def test_session_response_from_state_copies_shared_fields():
     assert response.selected_topic_id == 20
     assert response.selected_level == 3
     assert response.problem_answered is True
-    assert response.current_input_mode == "input"
+    assert response.current_input_mode == "typing"
     assert response.topic_completed is True
     assert response.feedback_type == "success"
     assert response.feedback_msg == "Nice!"
@@ -403,12 +403,12 @@ def test_public_problem_hides_correct_answer_for_non_admin_before_answered(
     assert "correct_answer" not in public
 
 
-def test_public_problem_includes_cleaned_correct_answer_for_admin_input_mode(
+def test_public_problem_includes_cleaned_correct_answer_for_admin_typing_mode(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
     state.username = next(iter(config.ADMIN_USERNAMES))
-    state.current_input_mode = "input"
+    state.current_input_mode = "typing"
     problem = {
         "problem_id": "p1",
         "question": "q",
@@ -486,7 +486,7 @@ def test_manual_submit_and_auto_solve_produce_identical_state_deltas(
     assert manual_response.feedback == auto_response.feedback
 
 
-def test_manual_submit_and_auto_solve_match_in_input_mode(
+def test_manual_submit_and_auto_solve_match_in_typing_mode(
     fixture_curriculum: Curriculum,
 ):
     problem = {
@@ -501,7 +501,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(
 
     manual_state = _fresh_state(fixture_curriculum)
     manual_state.username = next(iter(config.ADMIN_USERNAMES))
-    manual_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    manual_state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
     submission_cycle.begin_problem(
         manual_state,
         dict(problem),
@@ -509,7 +509,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(
         resolve_play_mode(manual_state.username),
     )
     session.ACTIVE_SESSIONS[manual_state.session_id] = manual_state
-    assert manual_state.current_input_mode == "input"
+    assert manual_state.current_input_mode == "typing"
 
     manual_response = session.submit_problem(
         ProblemSubmissionRequest(
@@ -521,7 +521,7 @@ def test_manual_submit_and_auto_solve_match_in_input_mode(
 
     auto_state = _fresh_state(fixture_curriculum)
     auto_state.username = manual_state.username
-    auto_state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    auto_state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
     submission_cycle.begin_problem(
         auto_state,
         dict(problem),

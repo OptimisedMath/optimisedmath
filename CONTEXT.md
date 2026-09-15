@@ -97,12 +97,12 @@ _Avoid_: review mode, practice mode
 Four-option multiple choice (ABCD). Active when Streak is 0, or for the whole Topic on radio-only topics.
 _Avoid_: ABCD mode, multiple choice, text mode
 
-**Input mode**:
+**Typing mode**:
 The Student types the answer. Active when Streak ≥ 1 on Topics that allow it.
-_Avoid_: open answer, text mode, open-ended, free text
+_Avoid_: input mode, text mode, open answer, open-ended, free text
 
 **Radio-only topic**:
-A Topic that never switches to Input mode, regardless of Streak.
+A Topic that never switches to Typing mode, regardless of Streak.
 _Avoid_: text_mode_disabled, input disabled
 
 ## Answers

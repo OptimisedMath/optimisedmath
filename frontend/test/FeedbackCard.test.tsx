@@ -18,7 +18,7 @@ describe('FeedbackCard', () => {
       <FeedbackCard
         feedback={correctFeedback()}
         problem={baseProblem()}
-        inputMode="input"
+        inputMode="typing"
         topicCompleted={false}
         levelCompleted={false}
         hasNextUnlockedTopic={true}
@@ -36,7 +36,7 @@ describe('FeedbackCard', () => {
       <FeedbackCard
         feedback={correctFeedback()}
         problem={baseProblem()}
-        inputMode="input"
+        inputMode="typing"
         topicCompleted={false}
         levelCompleted={true}
         hasNextUnlockedTopic={true}
@@ -54,7 +54,7 @@ describe('FeedbackCard', () => {
       <FeedbackCard
         feedback={correctFeedback()}
         problem={baseProblem()}
-        inputMode="input"
+        inputMode="typing"
         topicCompleted={true}
         levelCompleted={false}
         hasNextUnlockedTopic={true}
@@ -71,7 +71,7 @@ describe('FeedbackCard', () => {
       <FeedbackCard
         feedback={correctFeedback()}
         problem={baseProblem()}
-        inputMode="input"
+        inputMode="typing"
         topicCompleted={true}
         levelCompleted={false}
         hasNextUnlockedTopic={false}
@@ -89,7 +89,7 @@ describe('FeedbackCard', () => {
       <FeedbackCard
         feedback={wrongFeedback()}
         problem={baseProblem({ correct_answer: '4' })}
-        inputMode="input"
+        inputMode="typing"
         topicCompleted={false}
         levelCompleted={false}
         hasNextUnlockedTopic={true}

@@ -70,7 +70,7 @@ function TextAnswerInput({
     answerLocked,
     adminMode,
     onSubmit,
-    inputMode: 'input',
+    inputMode: 'typing',
     value,
     setValue,
   });
