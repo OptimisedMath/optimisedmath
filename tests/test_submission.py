@@ -81,6 +81,7 @@ class ExpectedTelemetry:
     answer_outcome: str | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
+    trap_source: str | None = None
 
 
 def _fresh_state(
@@ -211,6 +212,18 @@ def _soft_error_problem() -> dict[str, Any]:
         "problem_id": "p-soft-error",
         "question": "q",
         "correct": "1/2",
+    }
+
+
+def _unit_dimension_trap_problem() -> dict[str, Any]:
+    """A Geometria-shaped problem whose wrong-dimension answer the grader itself
+    turns into a Trap (ADR-0005) — no `options_map`/`messages` needed, since the
+    grader synthesizes the Trap rather than looking one up."""
+    return {
+        "problem_id": "p-unit-trap",
+        "question": "q",
+        "correct": "84",
+        "expected_unit": "cm²",
     }
 
 
@@ -430,6 +443,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
             frontier_relation="at_frontier",
             answer_outcome="trap",
             trap_slug="w1",
+            trap_source="authored",
         ),
     )
 
@@ -483,6 +497,67 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
     )
 
 
+# --- Trap source (#257) ---
+
+
+def test_resolve_trap_source_is_absent_without_a_trap():
+    assert submission._resolve_trap_source({"answer_outcome": "wrong"}) is None
+
+
+def test_resolve_trap_source_is_authored_for_a_plain_trap_slug():
+    assert (
+        submission._resolve_trap_source({"trap_slug": "w1", "answer_outcome": "trap"})
+        == "authored"
+    )
+
+
+def test_resolve_trap_source_is_synthesized_when_the_grader_names_its_own_misconception():
+    eval_result = {
+        "trap_slug": config.UNIT_DIMENSION_TRAP_SLUG,
+        "misconception_slug": config.UNIT_DIMENSION_MISCONCEPTION,
+        "answer_outcome": "trap",
+    }
+    assert submission._resolve_trap_source(eval_result) == "synthesized"
+
+
+def test_synthesized_unit_trap_logs_trap_source_synthesized(
+    fixture_curriculum: Curriculum,
+):
+    """Acceptance: the synthesized route is reachable via a wrong-dimension Unit
+    on a Geometria Level, and the stored row is proven directly."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _unit_dimension_trap_problem()
+    telemetry_before = _telemetry_count(state.session_id)
+
+    result = _submit(state, problem, "84 cm", "typing", fixture_curriculum, _STUDENT)
+
+    assert result["trap_slug"] == config.UNIT_DIMENSION_TRAP_SLUG
+    assert result["misconception_slug"] == config.UNIT_DIMENSION_MISCONCEPTION
+    assert _telemetry_count(state.session_id) == telemetry_before + 1
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            is_correct=False,
+            user_input="84 cm",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="trap",
+            misconception_slug=config.UNIT_DIMENSION_MISCONCEPTION,
+            trap_slug=config.UNIT_DIMENSION_TRAP_SLUG,
+            trap_source="synthesized",
+        ),
+    )
+
+
 # --- Trap ---
 
 
@@ -531,6 +606,7 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
             frontier_relation="at_frontier",
             answer_outcome="trap",
             trap_slug="t1",
+            trap_source="authored",
         ),
     )
 
@@ -771,6 +847,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
             frontier_relation="behind_frontier",
             answer_outcome="trap",
             trap_slug="w1",
+            trap_source="authored",
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)

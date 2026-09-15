@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from typing import Literal
 
 import backend.config as config
 from backend.answer_grading import EvalResult, grade
@@ -29,6 +30,11 @@ import backend.session_state as session_state
 from backend.unlock import frontier_relation
 
 logger = logging.getLogger(__name__)
+
+# Whether a Trap came from a Level's authored `traps:` block or was raised by the
+# grader itself (Units, ADR-0005). Absent from telemetry entirely when there is no
+# Trap — see `_resolve_trap_source`.
+TrapSource = Literal["authored", "synthesized"]
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
@@ -73,6 +79,7 @@ def run_submission_cycle(
     state.problem_answered = eval_result.get("lock_answer", False)
 
     misconception_slug = _resolve_misconception_slug(state, curriculum, eval_result)
+    trap_source = _resolve_trap_source(eval_result)
     _log_submission_telemetry(
         state,
         problem,
@@ -81,6 +88,7 @@ def run_submission_cycle(
         eval_result,
         curriculum,
         misconception_slug,
+        trap_source,
         play_mode,
     )
     if is_discounted_retry:
@@ -144,6 +152,21 @@ def _resolve_misconception_slug(
     return level_config.trap_misconceptions.get(trap_slug)
 
 
+def _resolve_trap_source(eval_result: EvalResult) -> TrapSource | None:
+    """Classify the graded Trap, if any, as `authored` or `synthesized`.
+
+    `EvalResult.misconception_slug` is only ever set by a grader-synthesized Trap
+    (see its docstring), so its presence is what distinguishes the two — not
+    whether `_resolve_misconception_slug` found a catalogue Misconception, which
+    an authored Trap can legitimately miss (#188).
+    """
+    if eval_result.get("trap_slug") is None:
+        return None
+    if eval_result.get("misconception_slug") is not None:
+        return "synthesized"
+    return "authored"
+
+
 def _log_submission_telemetry(
     state: SessionState,
     problem: ProblemDict,
@@ -152,6 +175,7 @@ def _log_submission_telemetry(
     eval_result: EvalResult,
     curriculum: Curriculum,
     misconception_slug: str | None,
+    trap_source: TrapSource | None,
     play_mode: PlayMode,
 ) -> None:
     """Persist one submission attempt with sanitized problem state.
@@ -197,6 +221,7 @@ def _log_submission_telemetry(
         answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
         trap_slug=trap_slug,
+        trap_source=trap_source,
         time_spent_ms=time_spent_ms,
         problem_snapshot=_sanitize_problem_for_telemetry(problem),
         problem_id=problem.get("problem_id"),

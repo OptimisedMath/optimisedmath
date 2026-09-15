@@ -1005,7 +1005,7 @@ def _fetch_last_telemetry_row(session_id):
     with sqlite3.connect(main.db.DB_PATH) as conn:
         return conn.execute(
             """
-            SELECT answer_outcome, misconception_slug, trap_slug, problem_id
+            SELECT answer_outcome, misconception_slug, trap_slug, trap_source, problem_id
             FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
@@ -1058,7 +1058,7 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("trap", "test_misconception", "w1", "p-mapped-trap")
+    assert row == ("trap", "test_misconception", "w1", "authored", "p-mapped-trap")
 
 
 def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
@@ -1084,7 +1084,7 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("trap", None, "w1", "p-unmapped-trap")
+    assert row == ("trap", None, "w1", "authored", "p-unmapped-trap")
 
 
 def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
@@ -1110,7 +1110,38 @@ def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("wrong", None, None, "p-filler")
+    assert row == ("wrong", None, None, None, "p-filler")
+
+
+def test_synthesized_unit_trap_writes_trap_source_synthesized():
+    """Issue #257: a grader-synthesized Trap (ADR-0005 unit grading) writes
+    trap_source=synthesized, distinguishing it from an authored Trap."""
+    problem = {
+        "problem_id": "p-wrong-dimension",
+        "question": "q",
+        "correct": "84",
+        "expected_unit": "cm²",
+    }
+    state = make_state(problem, input_mode="typing")
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-wrong-dimension",
+                user_input="84 cm",
+            )
+        )
+    )
+
+    row = _fetch_last_telemetry_row(state.session_id)
+    assert row == (
+        "trap",
+        config.UNIT_DIMENSION_MISCONCEPTION,
+        config.UNIT_DIMENSION_TRAP_SLUG,
+        "synthesized",
+        "p-wrong-dimension",
+    )
 
 
 def test_telemetry_problem_id_column_is_indexed():

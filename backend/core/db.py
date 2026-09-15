@@ -93,6 +93,7 @@ def init_db() -> None:
                 answer_outcome TEXT,
                 misconception_slug TEXT,
                 trap_slug TEXT,
+                trap_source TEXT,
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
                 time_spent_ms INTEGER,
@@ -158,6 +159,7 @@ _TELEMETRY_SHAPE_COLUMNS = frozenset(
     {
         "misconception_slug",
         "trap_slug",
+        "trap_source",
         "problem_id",
         "problem_snapshot",
         "play_mode",
@@ -336,6 +338,7 @@ def log_telemetry(
     answer_outcome: str | None = None,
     misconception_slug: str | None = None,
     trap_slug: str | None = None,
+    trap_source: str | None = None,
     time_spent_ms: int | None = None,
     problem_snapshot: str | None = None,
     problem_id: str | None = None,
@@ -349,8 +352,9 @@ def log_telemetry(
                 session_id, username, play_mode, chapter_id, chapter, topic_id, topic,
                 level_number, input_mode, streak_before_answer, flawless_eligible,
                 frontier_relation, answer_outcome, misconception_slug, trap_slug,
-                is_correct, user_input, time_spent_ms, problem_snapshot, problem_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                trap_source, is_correct, user_input, time_spent_ms, problem_snapshot,
+                problem_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 session_id,
@@ -368,6 +372,7 @@ def log_telemetry(
                 answer_outcome,
                 misconception_slug,
                 trap_slug,
+                trap_source,
                 is_correct,
                 str(user_input) if user_input is not None else None,
                 time_spent_ms,

@@ -241,6 +241,66 @@ def test_log_telemetry_persists_entry():
     assert count == 1
 
 
+def test_log_telemetry_trap_source_defaults_to_null():
+    """Issue #257: `trap_source` is absent (NULL) when the caller passes none."""
+    db.save_user("alice", _sample_state())
+
+    db.log_telemetry(
+        session_id="sess-no-trap",
+        username="alice",
+        play_mode="student",
+        chapter_id=10,
+        chapter_name="Ułamki",
+        topic_id=20,
+        topic_name="Dodawanie",
+        level_number=2,
+        input_mode="typing",
+        streak_before_answer=1,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
+        is_correct=True,
+    )
+
+    with db.get_connection() as conn:
+        row = conn.execute(
+            "SELECT trap_source FROM telemetry_logs WHERE session_id = ?",
+            ("sess-no-trap",),
+        ).fetchone()
+
+    assert row[0] is None
+
+
+def test_log_telemetry_persists_trap_source():
+    db.save_user("alice", _sample_state())
+
+    db.log_telemetry(
+        session_id="sess-trap-source",
+        username="alice",
+        play_mode="student",
+        chapter_id=10,
+        chapter_name="Ułamki",
+        topic_id=20,
+        topic_name="Dodawanie",
+        level_number=2,
+        input_mode="typing",
+        streak_before_answer=1,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
+        is_correct=False,
+        answer_outcome="trap",
+        trap_slug="answers_in_the_wrong_dimension",
+        trap_source="synthesized",
+    )
+
+    with db.get_connection() as conn:
+        row = conn.execute(
+            "SELECT trap_source FROM telemetry_logs WHERE session_id = ?",
+            ("sess-trap-source",),
+        ).fetchone()
+
+    assert row[0] == "synthesized"
+
+
 def test_get_connection_closes_after_use(monkeypatch):
     connections: list[sqlite3.Connection] = []
     original_connect = sqlite3.connect
