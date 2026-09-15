@@ -921,7 +921,7 @@ def test_start_next_submit_logs_time_spent_telemetry():
     with sqlite3.connect(main.db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT time_spent_seconds FROM telemetry_logs
+            SELECT time_spent_ms FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
             LIMIT 1

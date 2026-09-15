@@ -63,10 +63,16 @@ class ExpectedTelemetry:
 
     is_correct: bool
     user_input: str
+    chapter_id: int
     chapter: str
+    topic_id: int
     topic: str
     level_number: int
-    is_input_mode: bool
+    input_mode: str
+    play_mode: str
+    streak_before_answer: int
+    flawless_eligible: bool
+    frontier_relation: str
     answer_outcome: str | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
@@ -232,9 +238,10 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
     with sqlite3.connect(db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT problem_snapshot, is_correct, user_input, chapter, topic,
-                   level_number, is_input_mode, answer_outcome, misconception_slug,
-                   trap_slug
+            SELECT problem_snapshot, is_correct, user_input, chapter_id, chapter,
+                   topic_id, topic, level_number, input_mode, play_mode,
+                   streak_before_answer, flawless_eligible, frontier_relation,
+                   answer_outcome, misconception_slug, trap_slug
             FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
@@ -275,13 +282,19 @@ def _assert_telemetry(
     assert stored["correct"] == problem["correct"]
     assert row[1] == (1 if expected.is_correct else 0)
     assert row[2] == expected.user_input
-    assert row[3] == expected.chapter
-    assert row[4] == expected.topic
-    assert row[5] == expected.level_number
-    assert row[6] == (1 if expected.is_input_mode else 0)
-    assert row[7] == expected.answer_outcome
-    assert row[8] == expected.misconception_slug
-    assert row[9] == expected.trap_slug
+    assert row[3] == expected.chapter_id
+    assert row[4] == expected.chapter
+    assert row[5] == expected.topic_id
+    assert row[6] == expected.topic
+    assert row[7] == expected.level_number
+    assert row[8] == expected.input_mode
+    assert row[9] == expected.play_mode
+    assert row[10] == expected.streak_before_answer
+    assert row[11] == (1 if expected.flawless_eligible else 0)
+    assert row[12] == expected.frontier_relation
+    assert row[13] == expected.answer_outcome
+    assert row[14] == expected.misconception_slug
+    assert row[15] == expected.trap_slug
 
 
 def _assert_admin_profile_unchanged(
@@ -360,10 +373,16 @@ def test_correct_answer_updates_session_and_logs_telemetry(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=0,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
         ),
     )
     loaded = db.load_user(_username(state))
@@ -407,10 +426,16 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
         ExpectedTelemetry(
             is_correct=False,
             user_input="3",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             answer_outcome="trap",
             trap_slug="w1",
         ),
@@ -451,10 +476,16 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         ExpectedTelemetry(
             is_correct=False,
             user_input="2/4",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=True,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             answer_outcome="unsimplified",
         ),
     )
@@ -496,10 +527,16 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
         ExpectedTelemetry(
             is_correct=False,
             user_input="1/3",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=True,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             answer_outcome="trap",
             trap_slug="t1",
         ),
@@ -548,10 +585,16 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
         ),
     )
 
@@ -594,10 +637,16 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=2,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
         ),
     )
 
@@ -606,11 +655,17 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
 
 
 @pytest.mark.parametrize(
-    ("selected_topic_id", "selected_level", "initial_streak", "expect_streak"),
+    (
+        "selected_topic_id",
+        "selected_level",
+        "initial_streak",
+        "expect_streak",
+        "expect_relation",
+    ),
     [
-        (TOPIC_MULTI, 2, 0, 1),
-        (TOPIC_RADIO, 1, 0, 1),
-        (TOPIC_MULTI, 1, 1, 2),
+        (TOPIC_MULTI, 2, 0, 1, "behind_frontier"),
+        (TOPIC_RADIO, 1, 0, 1, "at_frontier"),
+        (TOPIC_MULTI, 1, 1, 2, "behind_frontier"),
     ],
 )
 def test_admin_correct_increments_session_streak_without_profile_writes(
@@ -619,6 +674,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     selected_level: int,
     initial_streak: int,
     expect_streak: int,
+    expect_relation: str,
 ):
     state, baseline = _admin_state_at(
         fixture_curriculum,
@@ -659,10 +715,16 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=selected_topic_id,
             topic=fixture_curriculum.topic_name(CHAPTER_ALPHA, selected_topic_id) or "",
             level_number=selected_level,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="admin",
+            streak_before_answer=initial_streak,
+            flawless_eligible=True,
+            frontier_relation=expect_relation,
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)
@@ -705,10 +767,16 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
         ExpectedTelemetry(
             is_correct=False,
             user_input="3",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=2,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="admin",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="behind_frontier",
             answer_outcome="trap",
             trap_slug="w1",
         ),
@@ -840,10 +908,16 @@ def test_admin_resets_streak_at_stored_frontier_boundary(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="admin",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="behind_frontier",
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)

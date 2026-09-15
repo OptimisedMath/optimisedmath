@@ -26,6 +26,7 @@ from backend.progression import (
     resolve_submission_outcome,
 )
 import backend.session_state as session_state
+from backend.unlock import frontier_relation
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ def run_submission_cycle(
         eval_result,
         curriculum,
         misconception_slug,
+        play_mode,
     )
     if is_discounted_retry:
         _apply_discounted_retry_outcome(state, eval_result)
@@ -150,35 +152,51 @@ def _log_submission_telemetry(
     eval_result: EvalResult,
     curriculum: Curriculum,
     misconception_slug: str | None,
+    play_mode: PlayMode,
 ) -> None:
-    """Persist one submission attempt with sanitized problem state."""
+    """Persist one submission attempt with sanitized problem state.
+
+    Runs before progression mutates `state.streak`/`state.flawless_eligible`, so
+    reading them here is exactly the Session context the Student was answering
+    against — the Streak and Flawless standing *before* this Submission's verdict.
+    """
     username = state.username
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
     assert username is not None and chapter_id is not None and topic_id is not None
 
-    time_spent = None
+    time_spent_ms = None
     if state.problem_start_time is not None:
-        time_spent = int(time.time() - state.problem_start_time)
+        time_spent_ms = int((time.time() - state.problem_start_time) * 1000)
 
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
     trap_slug = eval_result.get("trap_slug")
 
+    frontier = play_mode.resolve_frontier(
+        list(curriculum.topics(chapter_id)), state.chapter_frontiers[chapter_id]
+    )
+
     db.log_telemetry(
         session_id=state.session_id,
         username=username,
+        play_mode="admin" if play_mode.is_admin else "student",
+        chapter_id=chapter_id,
         chapter_name=chapter_name,
+        topic_id=topic_id,
         topic_name=topic_name,
         level_number=state.selected_level,
-        is_input_mode=input_mode == "typing",
+        input_mode=input_mode,
+        streak_before_answer=state.streak,
+        flawless_eligible=state.flawless_eligible,
+        frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
         trap_slug=trap_slug,
-        time_spent_seconds=time_spent,
+        time_spent_ms=time_spent_ms,
         problem_snapshot=_sanitize_problem_for_telemetry(problem),
         problem_id=problem.get("problem_id"),
     )

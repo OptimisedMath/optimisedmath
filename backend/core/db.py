@@ -80,16 +80,22 @@ def init_db() -> None:
                 session_id TEXT NOT NULL,
                 username TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                play_mode TEXT NOT NULL,
+                chapter_id INTEGER NOT NULL,
                 chapter TEXT NOT NULL,
+                topic_id INTEGER NOT NULL,
                 topic TEXT NOT NULL,
                 level_number INTEGER NOT NULL,
-                is_input_mode BOOLEAN NOT NULL,
+                input_mode TEXT NOT NULL,
+                streak_before_answer INTEGER NOT NULL,
+                flawless_eligible BOOLEAN NOT NULL,
+                frontier_relation TEXT NOT NULL,
                 answer_outcome TEXT,
                 misconception_slug TEXT,
                 trap_slug TEXT,
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
-                time_spent_seconds INTEGER,
+                time_spent_ms INTEGER,
                 problem_snapshot TEXT,
                 problem_id TEXT,
                 FOREIGN KEY (username) REFERENCES users(username)
@@ -152,7 +158,9 @@ def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
 
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id/
-    problem_snapshot columns.
+    problem_snapshot columns, or #254's row-context columns (play_mode, chapter_id,
+    topic_id, input_mode, streak_before_answer, flawless_eligible, frontier_relation,
+    time_spent_ms).
 
     Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
     """
@@ -162,7 +170,20 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    required = {"misconception_slug", "trap_slug", "problem_id", "problem_snapshot"}
+    required = {
+        "misconception_slug",
+        "trap_slug",
+        "problem_id",
+        "problem_snapshot",
+        "play_mode",
+        "chapter_id",
+        "topic_id",
+        "input_mode",
+        "streak_before_answer",
+        "flawless_eligible",
+        "frontier_relation",
+        "time_spent_ms",
+    }
     if not required.issubset(columns):
         cursor.execute("DROP TABLE telemetry_logs")
 
@@ -291,16 +312,22 @@ def save_user(username: str, state: SessionState) -> None:
 def log_telemetry(
     session_id: str,
     username: str,
+    play_mode: str,
+    chapter_id: int,
     chapter_name: str,
+    topic_id: int,
     topic_name: str,
     level_number: int,
-    is_input_mode: bool,
+    input_mode: str,
+    streak_before_answer: int,
+    flawless_eligible: bool,
+    frontier_relation: str,
     is_correct: bool,
     user_input: str | None = None,
     answer_outcome: str | None = None,
     misconception_slug: str | None = None,
     trap_slug: str | None = None,
-    time_spent_seconds: int | None = None,
+    time_spent_ms: int | None = None,
     problem_snapshot: str | None = None,
     problem_id: str | None = None,
 ) -> None:
@@ -310,24 +337,31 @@ def log_telemetry(
         cursor.execute(
             """
             INSERT INTO telemetry_logs (
-                session_id, username, chapter, topic, level_number, is_input_mode,
-                answer_outcome, misconception_slug, trap_slug, is_correct, user_input,
-                time_spent_seconds, problem_snapshot, problem_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                session_id, username, play_mode, chapter_id, chapter, topic_id, topic,
+                level_number, input_mode, streak_before_answer, flawless_eligible,
+                frontier_relation, answer_outcome, misconception_slug, trap_slug,
+                is_correct, user_input, time_spent_ms, problem_snapshot, problem_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 session_id,
                 username,
+                play_mode,
+                chapter_id,
                 chapter_name,
+                topic_id,
                 topic_name,
                 level_number,
-                is_input_mode,
+                input_mode,
+                streak_before_answer,
+                flawless_eligible,
+                frontier_relation,
                 answer_outcome,
                 misconception_slug,
                 trap_slug,
                 is_correct,
                 str(user_input) if user_input is not None else None,
-                time_spent_seconds,
+                time_spent_ms,
                 problem_snapshot,
                 problem_id,
             ),
