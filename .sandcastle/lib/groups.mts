@@ -206,6 +206,37 @@ export function isGroupComplete(state: {
   return planExhausted && state.strandedBranches === 0;
 }
 
+/**
+ * May a cycle skip the planner and reuse the previous cycle's plan?
+ *
+ * The planner is the run's only Opus call, and the dependency graph it reasons
+ * over moves only when a merge lands and unblocks something. A cycle that
+ * merged nothing new therefore pays Opus to be asked the identical question and
+ * return the identical answer — observed seven times in one run of group 244.
+ *
+ * Reuse is refused whenever we cannot prove the question is unchanged: with no
+ * previous plan (cycle 1, and any cycle of a run resumed after a quota death,
+ * which has no in-memory plan at all) and with an empty one (nothing to reuse).
+ * `mergedNow` must come from the integration branch rather than run-local
+ * bookkeeping, so a resumed run sees the merges its predecessor landed.
+ */
+export function canReusePlan(state: {
+  previousPlan: readonly unknown[] | undefined;
+  mergedAtLastPlan: readonly number[] | undefined;
+  mergedNow: readonly number[];
+}): boolean {
+  if (!state.previousPlan || state.previousPlan.length === 0) return false;
+  if (!state.mergedAtLastPlan) return false;
+  return sameIssueSet(state.mergedAtLastPlan, state.mergedNow);
+}
+
+/** Do two lists of issue numbers hold the same members, order and repeats aside? */
+function sameIssueSet(a: readonly number[], b: readonly number[]): boolean {
+  const left = new Set(a);
+  const right = new Set(b);
+  return left.size === right.size && [...left].every((n) => right.has(n));
+}
+
 /** Title the PR for a group's batch. */
 export function buildPrTitle(group: Group, mergedIssues: number): string {
   const scope = group.parentIssue

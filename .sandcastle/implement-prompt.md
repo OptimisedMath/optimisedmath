@@ -28,11 +28,12 @@ rather than inventing more work.
 
 # CONTEXT
 
-Here are the last 10 commits:
+Here are the last 10 commits (subject lines only — see RESUMPTION above for
+the full history of this branch's own work):
 
 <recent-commits>
 
-!`git log -n 10 --format="%H%n%ad%n%B---" --date=short`
+!`git log -n 10 --oneline`
 
 </recent-commits>
 

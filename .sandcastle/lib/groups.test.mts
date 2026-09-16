@@ -8,6 +8,7 @@ import {
   batchBranchName,
   buildPrBody,
   buildPrTitle,
+  canReusePlan,
   classifyFailure,
   groupIdOf,
   isDeadRun,
@@ -312,4 +313,70 @@ test("a spent quota still outranks a network error in the same output", () => {
 test("an ordinary test failure is still local", () => {
   assert.equal(classifyFailure("FAILED tests/test_session.py::test_streak"), "local");
   assert.equal(isRunFatal("local"), false);
+});
+
+// --- plan reuse ------------------------------------------------------------
+
+const somePlan = [{ id: "7" }, { id: "9" }];
+
+test("the first cycle of a group plans, having no previous plan to reuse", () => {
+  assert.equal(
+    canReusePlan({
+      previousPlan: undefined,
+      mergedAtLastPlan: undefined,
+      mergedNow: [],
+    }),
+    false,
+  );
+});
+
+test("a cycle that merged nothing new reuses the previous plan", () => {
+  assert.equal(
+    canReusePlan({
+      previousPlan: somePlan,
+      mergedAtLastPlan: [3],
+      mergedNow: [3],
+    }),
+    true,
+  );
+});
+
+test("a cycle that merged something new replans, to pick up what it unblocked", () => {
+  assert.equal(
+    canReusePlan({
+      previousPlan: somePlan,
+      mergedAtLastPlan: [3],
+      mergedNow: [3, 7],
+    }),
+    false,
+  );
+});
+
+test("the merged set is compared by membership, not by order", () => {
+  assert.equal(
+    canReusePlan({
+      previousPlan: somePlan,
+      mergedAtLastPlan: [7, 3],
+      mergedNow: [3, 7],
+    }),
+    true,
+  );
+});
+
+test("a run resumed after a quota death plans, since its merges predate any plan", () => {
+  assert.equal(
+    canReusePlan({
+      previousPlan: somePlan,
+      mergedAtLastPlan: undefined,
+      mergedNow: [3, 7],
+    }),
+    false,
+  );
+});
+
+test("an empty previous plan is never reused, since there is nothing in it to work", () => {
+  assert.equal(
+    canReusePlan({ previousPlan: [], mergedAtLastPlan: [], mergedNow: [] }),
+    false,
+  );
 });

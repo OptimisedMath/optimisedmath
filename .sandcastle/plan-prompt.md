@@ -4,7 +4,15 @@ Here are the open issues in this Sandcastle group:
 
 <issues-json>
 
-!`gh issue list --state open --label "{{GROUP_LABEL}}" --limit 100 --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`
+<!-- Comments are deliberately not fetched. They are almost entirely the
+implementers' own progress notes (implement-prompt.md tells them to comment when
+an issue is left incomplete), which say nothing about what blocks what, yet they
+were the bulk of an 8k-token expansion that this prompt re-expanded seven times
+in a single run. The body stays: it is what the dependency graph is reasoned
+from. Resumption is unaffected — it is the implementer, not the planner, that
+reads comments, via `gh issue view --comments`. -->
+
+!`gh issue list --state open --label "{{GROUP_LABEL}}" --limit 100 --json number,title,body,labels --jq '[.[] | {number, title, body, labels: [.labels[].name]}]'`
 
 </issues-json>
 

@@ -41,6 +41,7 @@ import {
   batchBranchName,
   buildPrBody,
   buildPrTitle,
+  canReusePlan,
   classifyFailure,
   DEAD_ITERATION_THRESHOLD,
   GROUP_LABEL_PREFIX,
@@ -457,12 +458,17 @@ async function pickUpPriorWork(
  * Choose the group's unblocked issues.
  *
  * A solo group skips the planner entirely: one issue has no dependency graph,
- * and an Opus call to say so is a call the quota can spend elsewhere.
+ * and an Opus call to say so is a call the quota can spend elsewhere. A cycle
+ * that merged nothing new skips it too — see canReusePlan().
  */
 async function planGroup(
   group: Group,
   alreadyMerged: number[],
   integrationBranch: string,
+  previous?: {
+    plan: { id: string; title: string; branch: string }[];
+    merged: number[] | undefined;
+  },
 ): Promise<{ id: string; title: string; branch: string }[]> {
   const remaining = group.issues.filter(
     (issue) => !alreadyMerged.includes(issue.number),
@@ -477,6 +483,22 @@ async function planGroup(
   }
 
   if (remaining.length === 0) return [];
+
+  if (
+    previous &&
+    canReusePlan({
+      previousPlan: previous.plan,
+      mergedAtLastPlan: previous.merged,
+      mergedNow: alreadyMerged,
+    })
+  ) {
+    console.log(
+      "Nothing new merged since the last plan — reusing it rather than re-invoking the planner.",
+    );
+    return previous.plan.filter(
+      (issue) => !alreadyMerged.includes(Number(issue.id)),
+    );
+  }
 
   const plan = await sandcastle.run({
     hooks,
@@ -508,12 +530,34 @@ async function planGroup(
 // ---------------------------------------------------------------------------
 
 /**
+ * What iterations 2+ send when the implementer's session survived the last one.
+ *
+ * A resumed session still holds the prompt it was given, the repo it explored
+ * and the work it committed, so re-sending the prompt file would pay to rebuild
+ * context the agent already has. The two rules restated here are the ones the
+ * orchestrator itself depends on — commits are how it sees progress, the signal
+ * is how it sees the end — and they are cheap enough to repeat every time.
+ */
+const IMPLEMENTER_CONTINUE_PROMPT = [
+  "Continue working on this issue from where you stopped.",
+  "Commit each coherent step as you finish it. Uncommitted work is invisible to the orchestrator and is lost if this turn is cut off.",
+  "Once everything the issue asks for is committed and verified, output <promise>COMPLETE</promise>.",
+].join("\n\n");
+
+/**
  * Drive the implementer one iteration at a time until it finishes or dies.
  *
  * Handing `maxIterations: 100` to a single run() would mean a quota death
  * burns the remaining 99 iterations inside a call this process cannot see
  * into. Driving the loop here makes each iteration's commits and completion
  * signal observable, which is what lets the breaker and the quota match work.
+ *
+ * The cost of that visibility used to be a cold agent every iteration: a fresh
+ * session re-read the prompt, re-explored the repo and re-derived what it had
+ * already decided. Iterations 2+ now resume the previous iteration's session
+ * instead, which keeps every per-iteration check exactly as it was while the
+ * agent keeps what it learned. `resume` is absent when the provider cannot
+ * store sessions, so the cold path stays as the fallback rather than an error.
  */
 async function runImplementer(
   sandbox: Awaited<ReturnType<typeof sandcastle.createSandbox>>,
@@ -522,8 +566,8 @@ async function runImplementer(
   const history: { commits: number; completed: boolean }[] = [];
   const commits: { sha: string }[] = [];
 
-  for (let i = 1; i <= MAX_IMPLEMENTER_ITERATIONS; i++) {
-    const result = await sandbox.run({
+  const coldStart = () =>
+    sandbox.run({
       name: `implementer#${issue.id}`,
       maxIterations: 1,
       agent: sandcastle.claudeCode("claude-sonnet-5"),
@@ -534,6 +578,22 @@ async function runImplementer(
         BRANCH: issue.branch,
       },
     });
+
+  let previous: Awaited<ReturnType<typeof sandbox.run>> | undefined;
+
+  for (let i = 1; i <= MAX_IMPLEMENTER_ITERATIONS; i++) {
+    if (i > 1 && !previous?.resume) {
+      // Worth saying out loud: a run that silently fell back to cold starts
+      // still works, but it costs several times as much quota per iteration.
+      console.log(
+        `No session to resume for #${issue.id} — iteration ${i} starts cold.`,
+      );
+    }
+
+    const result = previous?.resume
+      ? await previous.resume(IMPLEMENTER_CONTINUE_PROMPT)
+      : await coldStart();
+    previous = result;
 
     // An agent that dies on quota still resolves its run, so the stdout of a
     // successful call is as important a signal as a thrown error.
@@ -671,6 +731,11 @@ async function runGroup(group: Group): Promise<boolean> {
   await pickUpPriorWork(group, integrationBranch);
 
   let planned: { id: string; title: string; branch: string }[] = [];
+  // Which issues the integration branch already carried when `planned` was
+  // produced. Left undefined until the planner has actually run, so the first
+  // cycle of any run — including one resumed after a quota death, which starts
+  // with no plan at all — always plans.
+  let mergedAtLastPlan: number[] | undefined;
   let settledWithNothingToDo = false;
 
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
@@ -679,7 +744,11 @@ async function runGroup(group: Group): Promise<boolean> {
     const alreadyMerged = resolveMergedIssues(group, integrationBranch).map(
       (issue) => Number(issue.id),
     );
-    planned = await planGroup(group, alreadyMerged, integrationBranch);
+    planned = await planGroup(group, alreadyMerged, integrationBranch, {
+      plan: planned,
+      merged: mergedAtLastPlan,
+    });
+    mergedAtLastPlan = alreadyMerged;
 
     if (planned.length === 0) {
       console.log("No unblocked issues left in this group.");
