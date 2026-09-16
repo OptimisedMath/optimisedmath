@@ -559,13 +559,10 @@ def test_radio_only_topic_keeps_radio_input():
     assert state.current_input_mode == "radio"
 
 
-def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
-    import backend.problem_generation as problem_generation
-    import backend.submission_cycle as submission_cycle
-
+def _make_problem_next_state():
+    """Register a session selected at the first chapter/topic on Level 1, no active problem."""
     curriculum = resolve_curriculum()
-    chapter_ids = list(curriculum.chapter_ids())
-    chapter_id = chapter_ids[0]
+    chapter_id = list(curriculum.chapter_ids())[0]
     topic_entry = curriculum.topics(chapter_id)[0]
     session_id = str(uuid.uuid4())
     state = SessionState()
@@ -576,10 +573,14 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     state.selected_topic_id = int(topic_entry["topic_id"])
     state.selected_level = 1
     main.ACTIVE_SESSIONS[session_id] = state
+    return state
 
-    duplicate_problem = {
-        "problem_id": "dup-1",
-        "question": "same question",
+
+def _make_generated_problem(question, problem_id=None):
+    """Build a minimal generated problem whose fingerprint varies only with ``question``."""
+    return {
+        "problem_id": problem_id or question,
+        "question": question,
         "correct": "1",
         "options": ["1", "2"],
         "options_map": {"1": "correct", "2": "w1"},
@@ -589,23 +590,22 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         "level_display": "Test (Lvl 1)",
         "keyboard_type": "default",
     }
+
+
+def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
+    """Serving retries generation while the candidate's fingerprint sits in the recent window."""
+    import backend.problem_generation as problem_generation
+    import backend.submission_cycle as submission_cycle
+
+    state = _make_problem_next_state()
+    duplicate_problem = _make_generated_problem("same question", problem_id="dup-1")
     duplicate_fingerprint = problem_generation.problem_fingerprint(duplicate_problem)
     state.recent_problem_fingerprints = [duplicate_fingerprint]
 
+    unique_problem = _make_generated_problem(
+        "different question", problem_id="unique-1"
+    )
     call_count = {"value": 0}
-
-    def fake_generate_level_problem(_curriculum, _chapter_id, _topic_id, _level):
-        call_count["value"] += 1
-        return {
-            **duplicate_problem,
-            "problem_id": f"dup-{call_count['value']}",
-        }
-
-    unique_problem = {
-        **duplicate_problem,
-        "question": "different question",
-        "problem_id": "unique-1",
-    }
 
     def fake_generate_with_unique_second(_curriculum, _chapter_id, _topic_id, _level):
         call_count["value"] += 1
@@ -620,7 +620,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         submission_cycle, "generate_level_problem", fake_generate_with_unique_second
     )
 
-    response = run(main.problem_next(session_id))
+    response = run(main.problem_next(state.session_id))
 
     assert call_count["value"] == 2
     assert response.problem["question"] == "different question"
@@ -632,50 +632,23 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
 
 
 def test_problem_next_rotates_window_when_every_retry_collides(monkeypatch):
-    """A full fingerprint window must keep rotating even when no candidate is fresh.
+    """A full fingerprint window keeps rotating even when no candidate is fresh.
 
-    Regression test for #316: previously the served fingerprint was only
-    appended inside the "found something new" branch, so once every retry
-    collided the window froze forever and dedupe silently turned off.
+    Regression test for #316: the served fingerprint used to be appended only on
+    the "found something new" path, so once every retry collided the window froze
+    forever and dedupe silently turned off.
     """
     import backend.problem_generation as problem_generation
     import backend.submission_cycle as submission_cycle
 
-    curriculum = resolve_curriculum()
-    chapter_ids = list(curriculum.chapter_ids())
-    chapter_id = chapter_ids[0]
-    topic_entry = curriculum.topics(chapter_id)[0]
-    session_id = str(uuid.uuid4())
-    state = SessionState()
-    main.session_state.init_defaults(state, curriculum)
-    state.session_id = session_id
-    state.username = f"test-{session_id}"
-    state.selected_chapter_id = chapter_id
-    state.selected_topic_id = int(topic_entry["topic_id"])
-    state.selected_level = 1
-
-    def _fake_problem(question: str) -> dict:
-        return {
-            "problem_id": question,
-            "question": question,
-            "correct": "1",
-            "options": ["1", "2"],
-            "options_map": {"1": "correct", "2": "w1"},
-            "messages": {},
-            "level": 1,
-            "level_name": "Test",
-            "level_display": "Test (Lvl 1)",
-            "keyboard_type": "default",
-        }
-
+    state = _make_problem_next_state()
     window_fingerprints = [
-        problem_generation.problem_fingerprint(_fake_problem(f"q{i}"))
-        for i in range(config.RECENT_FINGERPRINT_HISTORY_SIZE)
+        problem_generation.problem_fingerprint(_make_generated_problem(f"q{index}"))
+        for index in range(config.RECENT_FINGERPRINT_HISTORY_SIZE)
     ]
     state.recent_problem_fingerprints = list(window_fingerprints)
-    main.ACTIVE_SESSIONS[session_id] = state
 
-    colliding_problem = _fake_problem("q0")
+    colliding_problem = _make_generated_problem("q0")
     colliding_fingerprint = problem_generation.problem_fingerprint(colliding_problem)
     assert colliding_fingerprint == window_fingerprints[0]
 
@@ -686,14 +659,12 @@ def test_problem_next_rotates_window_when_every_retry_collides(monkeypatch):
         submission_cycle, "generate_level_problem", fake_generate_always_colliding
     )
 
-    run(main.problem_next(session_id))
+    run(main.problem_next(state.session_id))
 
-    assert (
-        len(state.recent_problem_fingerprints) == config.RECENT_FINGERPRINT_HISTORY_SIZE
-    )
-    assert state.recent_problem_fingerprints[-1] == colliding_fingerprint
-    assert state.recent_problem_fingerprints != window_fingerprints
-    assert state.recent_problem_fingerprints[0] == window_fingerprints[1]
+    assert state.recent_problem_fingerprints == [
+        *window_fingerprints[1:],
+        colliding_fingerprint,
+    ]
 
 
 def _make_topic_completed_state(
