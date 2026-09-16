@@ -273,7 +273,7 @@ def dec_order_3() -> dict | None:
 )
 def dec_order_4() -> dict | None:
     """Złożone Działania (poziom 4)."""
-    # Poziom 4: Złożone Działania i Nawiasy (Boss 1)
+    # Poziom 4: Złożone Działania i Nawiasy
     template = random.choice(["brack_mul_brack", "mul_add_mul"])
 
     if template == "brack_mul_brack":
@@ -359,8 +359,8 @@ def dec_order_5() -> dict | None:
     "squares_the_bracket_terms_separately",
 )
 def dec_order_6() -> dict | None:
-    """Boss Level (poziom 6)."""
-    # Poziom 6: Ultimate Boss (Potęgi, Nawiasy i Mnożenie)
+    """Wszystko Naraz (poziom 6)."""
+    # Poziom 6: mnożenie, nawias, potęga i odejmowanie w jednym działaniu
     # Ranges chosen so the squared bracket usually clears d: with the old draw
     # (a from 0,2-0,4 and d up to 0,5) only 4 of 135 combinations were
     # non-negative, so the guard below alone would have starved the Level (#242).
