@@ -108,7 +108,7 @@ _Avoid_: text_mode_disabled, input disabled
 ## Answers
 
 **Problem**:
-One generated question instance for the current Level. A fresh instance is served on each request to prevent memorisation.
+One generated question instance for the current Level. A fresh instance is served on each request to prevent memorisation. A generator cannot know the Level it was drawn for, so what it returns is a `GeneratedProblem` until the Level stamps it — that is an implementation name for a half-built Problem, not a second domain concept.
 _Avoid_: exercise, item
 
 **Correct**:
