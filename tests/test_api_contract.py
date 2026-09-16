@@ -688,7 +688,9 @@ def test_problem_next_rotates_window_when_every_retry_collides(monkeypatch):
 
     run(main.problem_next(session_id))
 
-    assert len(state.recent_problem_fingerprints) == config.RECENT_FINGERPRINT_HISTORY_SIZE
+    assert (
+        len(state.recent_problem_fingerprints) == config.RECENT_FINGERPRINT_HISTORY_SIZE
+    )
     assert state.recent_problem_fingerprints[-1] == colliding_fingerprint
     assert state.recent_problem_fingerprints != window_fingerprints
     assert state.recent_problem_fingerprints[0] == window_fingerprints[1]
