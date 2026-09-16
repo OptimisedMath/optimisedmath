@@ -360,7 +360,7 @@ def dec_order_5() -> dict | None:
 )
 def dec_order_6() -> dict | None:
     """Wszystko Naraz (poziom 6)."""
-    # Poziom 6: mnożenie, nawias, potęga i odejmowanie w jednym działaniu
+    # Poziom 6: nawias, potęgowanie, mnożenie i odejmowanie w jednym działaniu
     # Ranges chosen so the squared bracket usually clears d: with the old draw
     # (a from 0,2-0,4 and d up to 0,5) only 4 of 135 combinations were
     # non-negative, so the guard below alone would have starved the Level (#242).

@@ -282,7 +282,7 @@ def frac_ord_5() -> dict | None:
 )
 def frac_ord_6() -> dict | None:
     """Wszystko Naraz (poziom 6)."""
-    # Poziom 6: mnożenie, nawias, potęga i odejmowanie w jednym działaniu
+    # Poziom 6: nawias, potęgowanie, mnożenie i odejmowanie w jednym działaniu
     a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
     c = Fraction(1, random.choice([2, 3]))
     d = Fraction(1, random.choice([4, 5]))
