@@ -234,5 +234,5 @@ _Avoid_: GameState (code name)
 Experience points earned per correct answer and Level completion.
 
 **Admin mode**:
-A play mode for designated Usernames that makes every Topic and Level Reachable without earned progression and never writes XP, Flawless, or Frontier to the profile. Invisible to normal Students.
+A play mode for designated Usernames that makes every Topic and Level Reachable and plays each of them as At the Frontier, without earning XP or moving the Frontier. Invisible to normal Students.
 _Avoid_: cheat mode, debug mode, preview mode, QA mode
