@@ -544,7 +544,7 @@ topics:
             misconception: ignores_the_order_of_operations
             explanation: "Odjąłeś przed potęgowaniem! Potęga wygrywa z odejmowaniem."
       - level: 6
-        name: "Boss Level"
+        name: "Wszystko Naraz"
         function: "dec_order_6"
         traps:
           multiplies_before_squaring:

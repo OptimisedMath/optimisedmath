@@ -237,7 +237,7 @@ def dec_number_line_5() -> dict | None:
 )
 def dec_number_line_6() -> dict | None:
     """Dziwne przedziały (poziom 6)."""
-    # Level 6: Exam Boss. Scattered labels, calculate the step.
+    # Level 6: Scattered labels, calculate the step.
     ticks = 10
     step = random.choice([0.1, 0.2, 0.05])
     base = random.randint(1, 50) * step

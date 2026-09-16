@@ -563,7 +563,7 @@ topics:
             misconception: distributes_power_over_bracket_terms
             explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
       - level: 6
-        name: "Boss Level"
+        name: "Wszystko Naraz"
         function: "frac_ord_6"
         traps:
           multiplies_before_squaring:
