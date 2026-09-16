@@ -143,21 +143,25 @@ def serve_next_problem(
     level = state.selected_level
     recent_fingerprints = list(state.recent_problem_fingerprints)
     problem: ProblemDict | None = None
+    fingerprint: str | None = None
 
     for _ in range(config.MAX_RETRIES_DUPLICATE_CHECK):
         candidate = generate_level_problem(curriculum, chapter_id, topic_id, level)
         fingerprint = problem_fingerprint(candidate)
-        if fingerprint not in recent_fingerprints:
-            problem = candidate
-            recent_fingerprints.append(fingerprint)
-            break
         problem = candidate
+        if fingerprint not in recent_fingerprints:
+            break
 
-    if problem is None:
+    if problem is None or fingerprint is None:
         raise ProblemServeError(
             f"Could not generate problem for "
             f"chapter {chapter_id}/topic {topic_id}/level {level}"
         )
+
+    # The served Problem's fingerprint always rotates into the window, even when
+    # every retry collided — a stalled window would otherwise disable dedupe for
+    # the rest of the Session once a small Pool is exhausted (#316).
+    recent_fingerprints.append(fingerprint)
 
     begin_problem(
         state,
