@@ -189,9 +189,13 @@ export function isDeadRun(
 /**
  * Decide whether a group has nothing left outstanding.
  *
- * Both halves matter: an empty plan alone would call a group done while one of
- * its branches sat stranded with unmerged commits, and that PR would go out as
- * ready for review with work missing from it.
+ * Three halves matter: an empty plan alone would call a group done while one
+ * of its branches sat stranded with unmerged commits (that PR would go out as
+ * ready for review with work missing from it), and it would also call a group
+ * done while one of its issues is open but blocked — that issue isn't
+ * finished, it's just not this batch's to do anything about right now. A
+ * blocked issue leaves the PR a draft indefinitely; a future run that finds it
+ * unblocked folds it into the same PR.
  *
  * A plan is also exhausted when its issues settled with nothing to do (see
  * isSettledWithNothingToDo): the loop stops on that before replanning, so the
@@ -199,42 +203,27 @@ export function isDeadRun(
  */
 export function isGroupComplete(state: {
   plannedIssues: number;
+  blockedIssues: number;
   settledWithNothingToDo: boolean;
   strandedBranches: number;
 }): boolean {
   const planExhausted = state.plannedIssues === 0 || state.settledWithNothingToDo;
-  return planExhausted && state.strandedBranches === 0;
+  return planExhausted && state.blockedIssues === 0 && state.strandedBranches === 0;
 }
 
 /**
- * May a cycle skip the planner and reuse the previous cycle's plan?
- *
- * The planner is the run's only Opus call, and the dependency graph it reasons
- * over moves only when a merge lands and unblocks something. A cycle that
- * merged nothing new therefore pays Opus to be asked the identical question and
- * return the identical answer — observed seven times in one run of group 244.
- *
- * Reuse is refused whenever we cannot prove the question is unchanged: with no
- * previous plan (cycle 1, and any cycle of a run resumed after a quota death,
- * which has no in-memory plan at all) and with an empty one (nothing to reuse).
- * `mergedNow` must come from the integration branch rather than run-local
- * bookkeeping, so a resumed run sees the merges its predecessor landed.
+ * A `Blocked by: #<n>, #<n>` line at the top of an issue body — the documented
+ * fallback (docs/agents/issue-tracker.md:42) for a blocker that predates
+ * native GitHub issue dependencies or was never wired up natively.
  */
-export function canReusePlan(state: {
-  previousPlan: readonly unknown[] | undefined;
-  mergedAtLastPlan: readonly number[] | undefined;
-  mergedNow: readonly number[];
-}): boolean {
-  if (!state.previousPlan || state.previousPlan.length === 0) return false;
-  if (!state.mergedAtLastPlan) return false;
-  return sameIssueSet(state.mergedAtLastPlan, state.mergedNow);
-}
+const BLOCKED_BY_LINE = /^Blocked by:\s*(#\d+(?:\s*,\s*#\d+)*)\s*$/im;
 
-/** Do two lists of issue numbers hold the same members, order and repeats aside? */
-function sameIssueSet(a: readonly number[], b: readonly number[]): boolean {
-  const left = new Set(a);
-  const right = new Set(b);
-  return left.size === right.size && [...left].every((n) => right.has(n));
+/** Issue numbers named on a `Blocked by:` line, or none if the body has no such line. */
+export function parseBlockedByLine(body: string | undefined): number[] {
+  if (!body) return [];
+  const match = body.match(BLOCKED_BY_LINE);
+  if (!match) return [];
+  return [...match[1].matchAll(/\d+/g)].map((m) => Number(m[0]));
 }
 
 /** Title the PR for a group's batch. */
@@ -257,9 +246,10 @@ export function buildPrTitle(group: Group, mergedIssues: number): string {
 export function buildPrBody(options: {
   group: Group;
   mergedIssues: { id: string; title: string }[];
+  blockedIssues: { id: string; title: string; blockedBy: number[] }[];
   complete: boolean;
 }): string {
-  const { group, mergedIssues, complete } = options;
+  const { group, mergedIssues, blockedIssues, complete } = options;
   const lines = [
     `Automated batch for \`${GROUP_LABEL_PREFIX}${group.id}\`, completed by Sandcastle.`,
     "",
@@ -270,6 +260,17 @@ export function buildPrBody(options: {
   } else {
     lines.push(
       "Carried forward from an earlier interrupted run; see the commits on this branch.",
+    );
+  }
+
+  if (blockedIssues.length > 0) {
+    lines.push("");
+    lines.push("Excluded this batch — blocked:");
+    lines.push(
+      ...blockedIssues.map(
+        (i) =>
+          `- #${i.id}: ${i.title} (blocked by ${i.blockedBy.map((n) => `#${n}`).join(", ")})`,
+      ),
     );
   }
 

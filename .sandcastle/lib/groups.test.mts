@@ -8,7 +8,6 @@ import {
   batchBranchName,
   buildPrBody,
   buildPrTitle,
-  canReusePlan,
   classifyFailure,
   groupIdOf,
   isDeadRun,
@@ -17,6 +16,7 @@ import {
   isSettledWithNothingToDo,
   issueNumberOfBranch,
   parentIssueOf,
+  parseBlockedByLine,
   partitionIntoGroups,
   type Issue,
 } from "./groups.mts";
@@ -161,24 +161,44 @@ test("only the last N iterations count, so early exploration is forgiven", () =>
   assert.ok(!isDeadRun([dead, dead, dead, alive]));
 });
 
-test("a group is complete only when nothing is planned and nothing is stranded", () => {
+test("a group is complete only when nothing is planned, blocked or stranded", () => {
   const settled = false;
-  assert.ok(isGroupComplete({ plannedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: settled, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 1 }));
+  assert.ok(
+    isGroupComplete({ plannedIssues: 0, blockedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 1, blockedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 0, blockedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 1 }),
+  );
 });
 
 test("a group whose last planned issues settled with nothing to do is complete", () => {
   // #248 of sandcastle:218: its deliverable was an issue comment, so it
   // signalled completion with no commits, and the PR stayed a draft.
-  assert.ok(isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: true, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: true, strandedBranches: 1 }));
+  assert.ok(
+    isGroupComplete({ plannedIssues: 1, blockedIssues: 0, settledWithNothingToDo: true, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 1, blockedIssues: 0, settledWithNothingToDo: true, strandedBranches: 1 }),
+  );
+});
+
+test("a group with an open but permanently blocked issue is never complete", () => {
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 0, blockedIssues: 1, settledWithNothingToDo: false, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 0, blockedIssues: 1, settledWithNothingToDo: true, strandedBranches: 0 }),
+  );
 });
 
 test("an incomplete group's PR references the parent spec without closing it", () => {
   const body = buildPrBody({
     group: { id: "218", parentIssue: 218, issues: [] },
     mergedIssues: [{ id: "245", title: "Emit expression structure" }],
+    blockedIssues: [],
     complete: false,
   });
 
@@ -192,6 +212,7 @@ test("a complete group's PR closes the parent spec", () => {
   const body = buildPrBody({
     group: { id: "218", parentIssue: 218, issues: [] },
     mergedIssues: [{ id: "245", title: "Emit expression structure" }],
+    blockedIssues: [],
     complete: true,
   });
 
@@ -204,6 +225,7 @@ test("a named group closes its children but has no parent spec to close", () => 
   const body = buildPrBody({
     group: { id: "telemetry", parentIssue: undefined, issues: [] },
     mergedIssues: [{ id: "300", title: "Something" }],
+    blockedIssues: [],
     complete: true,
   });
 
@@ -216,10 +238,23 @@ test("a resumed branch with no newly merged issues still explains itself", () =>
   const body = buildPrBody({
     group: { id: "218", parentIssue: 218, issues: [] },
     mergedIssues: [],
+    blockedIssues: [],
     complete: false,
   });
 
   assert.ok(body.includes("Carried forward from an earlier interrupted run"));
+});
+
+test("a group with a blocked issue lists it and why, even though the batch is complete otherwise", () => {
+  const body = buildPrBody({
+    group: { id: "218", parentIssue: 218, issues: [] },
+    mergedIssues: [{ id: "245", title: "Emit expression structure" }],
+    blockedIssues: [{ id: "242", title: "Render the expression", blockedBy: [239] }],
+    complete: false,
+  });
+
+  assert.ok(body.includes("Excluded this batch — blocked:"));
+  assert.ok(body.includes("#242: Render the expression (blocked by #239)"));
 });
 
 test("the PR title names the spec a group serves", () => {
@@ -315,68 +350,27 @@ test("an ordinary test failure is still local", () => {
   assert.equal(isRunFatal("local"), false);
 });
 
-// --- plan reuse ------------------------------------------------------------
+// --- blocked-by fallback line ------------------------------------------------
 
-const somePlan = [{ id: "7" }, { id: "9" }];
-
-test("the first cycle of a group plans, having no previous plan to reuse", () => {
-  assert.equal(
-    canReusePlan({
-      previousPlan: undefined,
-      mergedAtLastPlan: undefined,
-      mergedNow: [],
-    }),
-    false,
-  );
+test("a Blocked by line names one blocker", () => {
+  assert.deepEqual(parseBlockedByLine("Blocked by: #239\n\nRest of the body."), [239]);
 });
 
-test("a cycle that merged nothing new reuses the previous plan", () => {
-  assert.equal(
-    canReusePlan({
-      previousPlan: somePlan,
-      mergedAtLastPlan: [3],
-      mergedNow: [3],
-    }),
-    true,
-  );
+test("a Blocked by line names several blockers", () => {
+  assert.deepEqual(parseBlockedByLine("Blocked by: #239, #240\n\nRest."), [239, 240]);
 });
 
-test("a cycle that merged something new replans, to pick up what it unblocked", () => {
-  assert.equal(
-    canReusePlan({
-      previousPlan: somePlan,
-      mergedAtLastPlan: [3],
-      mergedNow: [3, 7],
-    }),
-    false,
-  );
+test("a body with no Blocked by line has no blockers", () => {
+  assert.deepEqual(parseBlockedByLine("Just an ordinary issue body."), []);
 });
 
-test("the merged set is compared by membership, not by order", () => {
-  assert.equal(
-    canReusePlan({
-      previousPlan: somePlan,
-      mergedAtLastPlan: [7, 3],
-      mergedNow: [3, 7],
-    }),
-    true,
-  );
+test("an undefined body has no blockers", () => {
+  assert.deepEqual(parseBlockedByLine(undefined), []);
 });
 
-test("a run resumed after a quota death plans, since its merges predate any plan", () => {
-  assert.equal(
-    canReusePlan({
-      previousPlan: somePlan,
-      mergedAtLastPlan: undefined,
-      mergedNow: [3, 7],
-    }),
-    false,
-  );
-});
-
-test("an empty previous plan is never reused, since there is nothing in it to work", () => {
-  assert.equal(
-    canReusePlan({ previousPlan: [], mergedAtLastPlan: [], mergedNow: [] }),
-    false,
+test("the Blocked by line is matched anywhere in the body, case-insensitively", () => {
+  assert.deepEqual(
+    parseBlockedByLine("Some context first.\n\nblocked BY: #12\n\nMore text."),
+    [12],
   );
 });

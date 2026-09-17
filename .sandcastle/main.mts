@@ -8,9 +8,13 @@
 // Per group:
 //   Phase 0 (Pick up):          Merge `sandcastle/issue-<N>` branches belonging
 //                               to THIS group that a prior run left finished.
-//   Phase 1 (Plan):             An opus agent reads the group's open issues,
-//                               builds a dependency graph, and outputs a <plan>
-//                               JSON listing unblocked issues with branch names.
+//   Phase 1 (Plan):             Each remaining issue is checked against
+//                               GitHub's own record of what blocks it — native
+//                               issue dependencies, or a `Blocked by:` line in
+//                               the body as a fallback. Blocked issues are
+//                               skipped, not attempted; there is no inferred
+//                               dependency graph and no fallback candidate
+//                               forced through when everything is blocked.
 //   Phase 2 (Execute + Review): Per issue, a sandbox is created. The implementer
 //                               is driven one iteration at a time so a dead run
 //                               can be cut short; the reviewer follows if it
@@ -18,7 +22,8 @@
 //   Phase 3 (Merge):            One agent merges the completed branches.
 //   Phase 4 (PR):               Push and open (or refresh) a DRAFT PR. It is
 //                               marked ready for review only once the group has
-//                               nothing planned and nothing stranded.
+//                               nothing planned, nothing blocked, and nothing
+//                               stranded.
 //
 // A run is built to be killed. Quota exhaustion mid-run is the expected case,
 // not an exception: whatever merged is pushed as a draft PR, and the next run
@@ -32,7 +37,6 @@
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { defaultImageName, docker } from "@ai-hero/sandcastle/sandboxes/docker";
-import { z } from "zod";
 import { execFileSync, execSync } from "node:child_process";
 
 import { reportOutcome } from "./notify.mts";
@@ -41,7 +45,6 @@ import {
   batchBranchName,
   buildPrBody,
   buildPrTitle,
-  canReusePlan,
   classifyFailure,
   DEAD_ITERATION_THRESHOLD,
   GROUP_LABEL_PREFIX,
@@ -52,16 +55,11 @@ import {
   isSettledWithNothingToDo,
   issueBranchName,
   issueNumberOfBranch,
+  parseBlockedByLine,
   partitionIntoGroups,
   type Group,
   type Issue,
 } from "./lib/groups.mts";
-
-const planSchema = z.object({
-  issues: z.array(
-    z.object({ id: z.string(), title: z.string(), branch: z.string() }),
-  ),
-});
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -184,21 +182,63 @@ function assertSafeGroupId(id: string): void {
 // Reading the board
 // ---------------------------------------------------------------------------
 
-/** Fetch every open issue with its labels, in one call. */
+/** Fetch every open issue with its labels and body, in one call. */
 function fetchOpenIssues(): Issue[] {
   const json = sh(
-    `gh issue list --state open --limit 200 --json number,title,labels`,
+    `gh issue list --state open --limit 200 --json number,title,body,labels`,
   );
   const raw = JSON.parse(json) as {
     number: number;
     title: string;
+    body: string;
     labels: { name: string }[];
   }[];
   return raw.map((issue) => ({
     number: issue.number,
     title: issue.title,
+    body: issue.body,
     labels: issue.labels.map((label) => label.name),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Blocking
+// ---------------------------------------------------------------------------
+
+/**
+ * Open issue numbers currently blocking this issue — the deterministic
+ * replacement for a planner inferring dependencies from issue text.
+ *
+ * Native GitHub issue dependencies (docs/agents/issue-tracker.md:42) are the
+ * primary signal, checked against every open issue in the repo, not just
+ * Sandcastle-labelled ones: a dependency is real regardless of whether its
+ * blocker happens to carry a Sandcastle label. A `Blocked by: #<n>` line at
+ * the top of the body is the documented fallback, used only when the native
+ * check finds nothing — and only for blockers that are themselves still open,
+ * since a stale `Blocked by:` line naming a closed issue is not a live block.
+ *
+ * GET on `dependencies/blocked_by` (the docs only show POST, for adding an
+ * edge) returns a JSON array of the blocking issues, each with a `state` and
+ * `number` — confirmed against a real edge: `gh api
+ * repos/{owner}/{repo}/issues/<n>/dependencies/blocked_by --paginate --jq
+ * '[.[] | select(.state=="open") | .number]'` returned `[345]` for an issue
+ * with a single open native blocker, #345.
+ */
+function fetchBlockers(issue: Issue): number[] {
+  const native = shQuiet(
+    `gh api repos/{owner}/{repo}/issues/${issue.number}/dependencies/blocked_by --paginate --jq '[.[] | select(.state=="open") | .number]'`,
+  );
+  if (native !== undefined) {
+    const numbers = JSON.parse(native.length > 0 ? native : "[]") as number[];
+    if (numbers.length > 0) return numbers;
+  }
+
+  return parseBlockedByLine(issue.body).filter(isIssueOpen);
+}
+
+/** Whether an issue is still open, for validating a `Blocked by:` fallback line. */
+function isIssueOpen(issueNumber: number): boolean {
+  return shQuiet(`gh issue view ${issueNumber} --json state --jq .state`) === "OPEN";
 }
 
 // ---------------------------------------------------------------------------
@@ -455,74 +495,40 @@ async function pickUpPriorWork(
 // ---------------------------------------------------------------------------
 
 /**
- * Choose the group's unblocked issues.
- *
- * A solo group skips the planner entirely: one issue has no dependency graph,
- * and an Opus call to say so is a call the quota can spend elsewhere. A cycle
- * that merged nothing new skips it too — see canReusePlan().
+ * Split the group's remaining issues into what can run now and what is
+ * blocked, by checking each one deterministically rather than inferring a
+ * dependency graph. Applies the same way to a solo group's single issue as to
+ * a multi-issue group — a blocked solo issue simply comes back with nothing
+ * planned and itself in `blocked`.
  */
-async function planGroup(
+function planGroup(
   group: Group,
   alreadyMerged: number[],
-  integrationBranch: string,
-  previous?: {
-    plan: { id: string; title: string; branch: string }[];
-    merged: number[] | undefined;
-  },
-): Promise<{ id: string; title: string; branch: string }[]> {
+): {
+  planned: { id: string; title: string; branch: string }[];
+  blocked: { id: string; title: string; blockedBy: number[] }[];
+} {
   const remaining = group.issues.filter(
     (issue) => !alreadyMerged.includes(issue.number),
   );
 
-  if (group.id.startsWith("solo-")) {
-    return remaining.map((issue) => ({
-      id: String(issue.number),
-      title: issue.title,
-      branch: issueBranchName(issue.number),
-    }));
+  const planned: { id: string; title: string; branch: string }[] = [];
+  const blocked: { id: string; title: string; blockedBy: number[] }[] = [];
+
+  for (const issue of remaining) {
+    const blockedBy = fetchBlockers(issue);
+    if (blockedBy.length > 0) {
+      blocked.push({ id: String(issue.number), title: issue.title, blockedBy });
+    } else {
+      planned.push({
+        id: String(issue.number),
+        title: issue.title,
+        branch: issueBranchName(issue.number),
+      });
+    }
   }
 
-  if (remaining.length === 0) return [];
-
-  if (
-    previous &&
-    canReusePlan({
-      previousPlan: previous.plan,
-      mergedAtLastPlan: previous.merged,
-      mergedNow: alreadyMerged,
-    })
-  ) {
-    console.log(
-      "Nothing new merged since the last plan — reusing it rather than re-invoking the planner.",
-    );
-    return previous.plan.filter(
-      (issue) => !alreadyMerged.includes(Number(issue.id)),
-    );
-  }
-
-  const plan = await sandcastle.run({
-    hooks,
-    sandbox: docker(),
-    branchStrategy: onIntegrationBranch(integrationBranch),
-    name: "planner",
-    maxIterations: 1,
-    agent: sandcastle.claudeCode("claude-opus-5"),
-    promptFile: "./.sandcastle/plan-prompt.md",
-    promptArgs: {
-      GROUP_LABEL: `${GROUP_LABEL_PREFIX}${group.id}`,
-      ALREADY_MERGED:
-        alreadyMerged.length > 0
-          ? alreadyMerged.map((n) => `- #${n}`).join("\n")
-          : "- (none)",
-    },
-    output: sandcastle.Output.object({ tag: "plan", schema: planSchema }),
-  });
-
-  // The planner is told to skip merged issues, but it is an agent; the
-  // integration branch is the authority on what is already done.
-  return plan.output.issues.filter(
-    (issue) => !alreadyMerged.includes(Number(issue.id)),
-  );
+  return { planned, blocked };
 }
 
 // ---------------------------------------------------------------------------
@@ -662,7 +668,12 @@ async function workIssue(
  * Always a draft while work is outstanding: a partial batch is worth publishing
  * — the next run grows the same PR — but it is not worth anyone's review yet.
  */
-function publish(group: Group, integrationBranch: string, complete: boolean): boolean {
+function publish(
+  group: Group,
+  integrationBranch: string,
+  complete: boolean,
+  blocked: { id: string; title: string; blockedBy: number[] }[],
+): boolean {
   if (commitsAhead(BASE_REF, integrationBranch) === 0) {
     console.log(`\n${GROUP_LABEL_PREFIX}${group.id}: no commits produced. No PR opened.`);
     return false;
@@ -672,7 +683,7 @@ function publish(group: Group, integrationBranch: string, complete: boolean): bo
 
   const mergedIssues = resolveMergedIssues(group, integrationBranch);
   const title = buildPrTitle(group, mergedIssues.length);
-  const body = buildPrBody({ group, mergedIssues, complete });
+  const body = buildPrBody({ group, mergedIssues, blockedIssues: blocked, complete });
 
   const existing = sh(
     `gh pr list --head ${integrationBranch} --state open --json url --jq ".[0].url // empty"`,
@@ -731,11 +742,7 @@ async function runGroup(group: Group): Promise<boolean> {
   await pickUpPriorWork(group, integrationBranch);
 
   let planned: { id: string; title: string; branch: string }[] = [];
-  // Which issues the integration branch already carried when `planned` was
-  // produced. Left undefined until the planner has actually run, so the first
-  // cycle of any run — including one resumed after a quota death, which starts
-  // with no plan at all — always plans.
-  let mergedAtLastPlan: number[] | undefined;
+  let blocked: { id: string; title: string; blockedBy: number[] }[] = [];
   let settledWithNothingToDo = false;
 
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
@@ -744,11 +751,16 @@ async function runGroup(group: Group): Promise<boolean> {
     const alreadyMerged = resolveMergedIssues(group, integrationBranch).map(
       (issue) => Number(issue.id),
     );
-    planned = await planGroup(group, alreadyMerged, integrationBranch, {
-      plan: planned,
-      merged: mergedAtLastPlan,
-    });
-    mergedAtLastPlan = alreadyMerged;
+    // Rechecked every cycle, not cached: a blocker that closes mid-run should
+    // let its dependent join this same run, not wait for the next invocation.
+    ({ planned, blocked } = planGroup(group, alreadyMerged));
+
+    if (blocked.length > 0) {
+      console.log(`${blocked.length} issue(s) blocked, skipped this cycle:`);
+      for (const issue of blocked) {
+        console.log(`  #${issue.id}: ${issue.title} (blocked by ${issue.blockedBy.map((n) => `#${n}`).join(", ")})`);
+      }
+    }
 
     if (planned.length === 0) {
       console.log("No unblocked issues left in this group.");
@@ -830,11 +842,12 @@ async function runGroup(group: Group): Promise<boolean> {
 
   const complete = isGroupComplete({
     plannedIssues: planned.length,
+    blockedIssues: blocked.length,
     settledWithNothingToDo,
     strandedBranches: strandedBranches(group, integrationBranch).length,
   });
 
-  return publish(group, integrationBranch, complete);
+  return publish(group, integrationBranch, complete, blocked);
 }
 
 // ---------------------------------------------------------------------------
@@ -865,7 +878,10 @@ for (const group of groups) {
   const parent = group.parentIssue ? ` (closes spec #${group.parentIssue} when complete)` : "";
   console.log(`  ${GROUP_LABEL_PREFIX}${group.id}${parent}`);
   for (const issue of group.issues) {
-    console.log(`    #${issue.number} ${issue.title}`);
+    const blockers = fetchBlockers(issue);
+    const suffix =
+      blockers.length > 0 ? ` [blocked by ${blockers.map((n) => `#${n}`).join(", ")}]` : "";
+    console.log(`    #${issue.number} ${issue.title}${suffix}`);
   }
   console.log(`    → ${batchBranchGlob(group.id)}, one draft PR`);
 }
