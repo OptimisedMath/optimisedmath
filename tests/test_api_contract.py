@@ -63,7 +63,9 @@ def make_state(
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
     state.selected_topic_id = (
-        selected_topic_id if selected_topic_id is not None else int(topic_entry["topic_id"])
+        selected_topic_id
+        if selected_topic_id is not None
+        else int(topic_entry["topic_id"])
     )
     state.selected_level = selected_level
     state.streak = streak
@@ -292,7 +294,10 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_fronti
 
     persisted = db.load_user(state.username)
     persisted_frontier = persisted["chapter_frontiers"][chapter_id]
-    assert (persisted_frontier.frontier_topic_id, persisted_frontier.frontier_level) == (
+    assert (
+        persisted_frontier.frontier_topic_id,
+        persisted_frontier.frontier_level,
+    ) == (
         40,
         2,
     )
@@ -345,7 +350,10 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next
 
     persisted = db.load_user(state.username)
     persisted_frontier = persisted["chapter_frontiers"][chapter_id]
-    assert (persisted_frontier.frontier_topic_id, persisted_frontier.frontier_level) == (
+    assert (
+        persisted_frontier.frontier_topic_id,
+        persisted_frontier.frontier_level,
+    ) == (
         40,
         1,
     )
