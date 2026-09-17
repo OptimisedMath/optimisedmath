@@ -142,6 +142,10 @@ _Avoid_: error pattern, bug, trap type, entry, catalogue entry, t1/t2 (positiona
 The name a Misconception is known by in the catalogue — a stable, human-readable English key, not a database id. Telemetry records it alongside a Trap's own Trap slug.
 _Avoid_: misconception_id, misconception number
 
+**Misconception hit**:
+One Submission whose answer matched a Trap referencing that Misconception. Counted per Misconception for the whole Session, wherever in the Curriculum it happened — the second hit fires that Misconception's Deconstruction, once per Session ([ADR-0014](docs/adr/0014-deconstruction-trigger-counts-per-session.md)). A Trap carrying no Misconception, and a Filler, are not hits; a hit made on a Deconstruction's discounted retry counts like any other.
+_Avoid_: strike, offence, error count, repeat mistake
+
 **Wrong**:
 An incorrect answer that matched no declared Trap — unanticipated, so it carries only the generic message. Typically a slip, where the Student's rules were sound but their execution was not. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong and Trap are exclusive: an anticipated answer grades as a Trap even where no Misconception sits behind it.
 _Avoid_: w1, w2 (internal ids)
@@ -192,7 +196,7 @@ _Avoid_: nav state, navigation model, snapshot (unqualified)
 One Problem lifecycle within a Session: served → answered (Submission) → Feedback → Next problem.
 
 **Deconstruction**:
-A guided walkthrough that takes over when a Student hits the same Misconception repeatedly at a Level, breaking the Problem in front of them into steps they answer themselves before returning them to that same Problem. It is not a Submission — see [ADR-0004](docs/adr/0004-deconstruction-outside-submission-cycle.md).
+A guided walkthrough that takes over when a Student hits the same Misconception a second time in a Session, breaking the Problem in front of them into steps they answer themselves before returning them to that same Problem. It is not a Submission — see [ADR-0004](docs/adr/0004-deconstruction-outside-submission-cycle.md).
 _Avoid_: speed bump, intervention, hint mode, tutorial
 
 **Abandonment**:
