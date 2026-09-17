@@ -315,6 +315,96 @@ def test_streak_only_wrong_decrements_without_flawless_forfeit():
     assert outcome.xp_earned == 0
 
 
+def test_full_progression_no_frontier_move_when_behind_by_topic_topic_complete_shape():
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=10,
+            frontier_topic_id=20,
+            selected_level=2,
+            frontier_level=2,
+            topic_max_level=2,
+            next_topic_ids=(20, 30),
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.xp_earned == config.XP_REWARDS[2]
+    assert "Flawless Bonus" not in (outcome.feedback_msg or "")
+    assert outcome.new_flawless_eligible is True
+    assert outcome.level_unlocked is False
+    assert outcome.topic_completed is False
+    assert outcome.level_completed is False
+    assert outcome.new_frontier_level is None
+    assert outcome.unlock_topic_id is None
+    assert outcome.new_selected_level is None
+
+
+def test_full_progression_no_frontier_move_when_behind_by_topic_level_unlock_shape():
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=10,
+            frontier_topic_id=20,
+            selected_level=1,
+            frontier_level=1,
+            topic_max_level=3,
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.xp_earned == config.XP_REWARDS[1]
+    assert "Flawless Bonus" not in (outcome.feedback_msg or "")
+    assert outcome.new_flawless_eligible is True
+    assert outcome.level_unlocked is False
+    assert outcome.topic_completed is False
+    assert outcome.level_completed is False
+    assert outcome.new_frontier_level is None
+    assert outcome.unlock_topic_id is None
+    assert outcome.new_selected_level is None
+
+
+def test_full_progression_unlocks_at_frontier_with_nondefault_topic_ids():
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=20,
+            frontier_topic_id=20,
+            selected_level=2,
+            frontier_level=2,
+            topic_max_level=3,
+            next_topic_ids=(30,),
+        ),
+    )
+
+    assert outcome.new_streak == 0
+    assert outcome.level_unlocked is True
+    assert outcome.new_frontier_level == 3
+
+
+def test_full_progression_streak_stays_capped_when_behind_by_topic():
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=3,
+            topic_id=10,
+            frontier_topic_id=20,
+            selected_level=2,
+            frontier_level=2,
+            topic_max_level=2,
+            next_topic_ids=(20, 30),
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.level_unlocked is False
+    assert outcome.topic_completed is False
+    assert outcome.new_frontier_level is None
+
+
 def test_streak_only_soft_error_preserves_streak():
     outcome = resolve_submission_outcome(
         {
