@@ -12,6 +12,7 @@ import backend.config as config
 import backend.main as main
 import backend.session as session
 import backend.submission as submission
+from backend.core import db
 from backend.curriculum import resolve_curriculum
 from backend.deconstruction import build_steps
 from backend.models import (
@@ -35,8 +36,22 @@ def isolated_state(isolated_db):
     main.ACTIVE_SESSIONS.clear()
 
 
-def make_state(problem, *, streak=0, input_mode="radio"):
-    """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS."""
+def make_state(
+    problem,
+    *,
+    streak=0,
+    input_mode="radio",
+    selected_topic_id=None,
+    selected_level=1,
+    frontier_topic_id=None,
+    frontier_level=1,
+    flawless_eligible=True,
+):
+    """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS.
+
+    ``frontier_topic_id``/``frontier_level`` override the seeded Chapter Frontier
+    before the Student persist below, so the stored profile holds that Frontier.
+    """
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
     chapter_id = chapter_ids[0]
@@ -47,13 +62,21 @@ def make_state(problem, *, streak=0, input_mode="radio"):
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
-    state.selected_topic_id = int(topic_entry["topic_id"])
-    state.selected_level = 1
+    state.selected_topic_id = (
+        selected_topic_id if selected_topic_id is not None else int(topic_entry["topic_id"])
+    )
+    state.selected_level = selected_level
     state.streak = streak
+    state.flawless_eligible = flawless_eligible
     state.current_input_mode = input_mode
     state.problem_answered = False
     state.current_problem = problem
     state.problem_start_time = 0
+    if frontier_topic_id is not None:
+        state.chapter_frontiers[chapter_id] = ChapterFrontier(
+            frontier_topic_id=frontier_topic_id,
+            frontier_level=frontier_level,
+        )
     main.ACTIVE_SESSIONS[session_id] = state
     main.session_state.persist(state, StudentPlayMode())
     return state
@@ -213,6 +236,119 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
     assert response.state.level_completed is False
     assert response.state.streak == 2
     assert response.state.streak_meter == 2
+
+
+def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_frontier():
+    """Replaying Topic 30 Level 2 while the Frontier is Topic 40 Level 2 (#300):
+    the Level number coincidentally matches the Frontier Level, but the Topic
+    doesn't, so this must behave as an ordinary Replay, not At the Frontier."""
+    chapter_id = 10
+    curriculum = resolve_curriculum()
+    chapter_topic_ids = [int(t["topic_id"]) for t in curriculum.topics(chapter_id)]
+    assert curriculum.topic_by_id(chapter_id, 30)["max_level"] == 2
+    assert chapter_topic_ids[chapter_topic_ids.index(30) + 1] == 40
+    assert curriculum.topic_by_id(chapter_id, 40)["max_level"] >= 2
+
+    problem = {
+        "problem_id": "p-replay-regression",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(
+        problem,
+        streak=2,
+        input_mode="input",
+        selected_topic_id=30,
+        selected_level=2,
+        frontier_topic_id=40,
+        frontier_level=2,
+    )
+    xp_before = state.xp
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-replay-regression",
+                user_input="2",
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    frontier = response.state.chapter_frontiers[chapter_id]
+    assert (frontier.frontier_topic_id, frontier.frontier_level) == (40, 2)
+    assert response.state.level_completed is False
+    assert response.state.topic_completed is False
+    assert response.state.streak == 3
+    assert response.state.streak_meter == 3
+    assert response.state.selected_topic_id == 30
+    assert response.state.selected_level == 2
+    assert response.state.xp - xp_before == config.XP_REWARDS[2]
+    assert "Flawless Bonus" not in response.state.feedback_msg
+
+    persisted = db.load_user(state.username)
+    persisted_frontier = persisted["chapter_frontiers"][chapter_id]
+    assert (persisted_frontier.frontier_topic_id, persisted_frontier.frontier_level) == (
+        40,
+        2,
+    )
+
+    next_response = run(main.problem_next(state.session_id))
+    assert next_response.state.selected_topic_id == 30
+
+
+def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next_level():
+    """Replaying Topic 30 Level 1 while the Frontier is Topic 40 Level 1 (#300):
+    must not open Topic 40 Level 2 before the Student has ever played Topic 40."""
+    chapter_id = 10
+    problem = {
+        "problem_id": "p-replay-unearned",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(
+        problem,
+        streak=2,
+        input_mode="input",
+        selected_topic_id=30,
+        selected_level=1,
+        frontier_topic_id=40,
+        frontier_level=1,
+    )
+    xp_before = state.xp
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-replay-unearned",
+                user_input="2",
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    frontier = response.state.chapter_frontiers[chapter_id]
+    assert (frontier.frontier_topic_id, frontier.frontier_level) == (40, 1)
+    assert response.state.level_completed is False
+    assert response.state.topic_completed is False
+    assert response.state.streak == 3
+    assert response.state.selected_level == 1
+    assert response.state.xp - xp_before == config.XP_REWARDS[1]
+
+    persisted = db.load_user(state.username)
+    persisted_frontier = persisted["chapter_frontiers"][chapter_id]
+    assert (persisted_frontier.frontier_topic_id, persisted_frontier.frontier_level) == (
+        40,
+        1,
+    )
 
 
 def test_input_mode_defers_radio_to_input_until_next_problem():
