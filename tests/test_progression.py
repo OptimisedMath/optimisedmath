@@ -315,7 +315,8 @@ def test_streak_only_wrong_decrements_without_flawless_forfeit():
     assert outcome.xp_earned == 0
 
 
-def test_full_progression_no_frontier_move_when_behind_by_topic_topic_complete_shape():
+def test_replay_on_last_level_matching_frontier_level_does_not_complete_topic():
+    """#300: a Replay is still a Replay when its Level equals the Frontier Level."""
     outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
@@ -341,7 +342,8 @@ def test_full_progression_no_frontier_move_when_behind_by_topic_topic_complete_s
     assert outcome.new_selected_level is None
 
 
-def test_full_progression_no_frontier_move_when_behind_by_topic_level_unlock_shape():
+def test_replay_matching_frontier_level_does_not_unlock_next_level():
+    """#300: Mastery on a Replay must not unlock the next Level of that Topic."""
     outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
@@ -366,7 +368,8 @@ def test_full_progression_no_frontier_move_when_behind_by_topic_level_unlock_sha
     assert outcome.new_selected_level is None
 
 
-def test_full_progression_unlocks_at_frontier_with_nondefault_topic_ids():
+def test_mastery_at_frontier_unlocks_next_level():
+    """Control for #300: Mastery At the Frontier still unlocks the next Level."""
     outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(
@@ -385,7 +388,8 @@ def test_full_progression_unlocks_at_frontier_with_nondefault_topic_ids():
     assert outcome.new_frontier_level == 3
 
 
-def test_full_progression_streak_stays_capped_when_behind_by_topic():
+def test_replay_matching_frontier_level_holds_streak_at_max_without_reset():
+    """#300: a Replay has no Frontier reset, so Streak holds at MAX_STREAK."""
     outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(

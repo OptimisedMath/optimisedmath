@@ -80,15 +80,12 @@ def resolve_submission_outcome(
     )
 
 
-def _is_at_frontier(
-    *,
-    selected_level: int,
-    frontier_level: int,
-    topic_id: int,
-    frontier_topic_id: int,
-) -> bool:
-    """Check whether the Selected topic and level are the stored Frontier."""
-    return selected_level == frontier_level and topic_id == frontier_topic_id
+def _is_at_frontier(ctx: SubmissionContext) -> bool:
+    """Check whether the Selected Topic and Level are the Student's stored Frontier."""
+    return (
+        ctx.topic_id == ctx.frontier_topic_id
+        and ctx.selected_level == ctx.frontier_level
+    )
 
 
 def _advance_streak_only(
@@ -100,13 +97,7 @@ def _advance_streak_only(
         if new_streak < config.MAX_STREAK:
             new_streak += 1
 
-        at_frontier = _is_at_frontier(
-            selected_level=ctx.selected_level,
-            frontier_level=ctx.frontier_level,
-            topic_id=ctx.topic_id,
-            frontier_topic_id=ctx.frontier_topic_id,
-        )
-        if new_streak == config.MAX_STREAK and at_frontier:
+        if new_streak == config.MAX_STREAK and _is_at_frontier(ctx):
             new_streak = 0
 
         return SubmissionOutcome(
@@ -131,6 +122,7 @@ def _advance_streak_only(
 def _advance_streak_and_xp(
     ctx: SubmissionContext, flawless_eligible: bool
 ) -> SubmissionOutcome:
+    """Student path: award XP, and move the Frontier on Mastery At the Frontier."""
     earned_xp = config.XP_REWARDS.get(ctx.selected_level, config.DEFAULT_XP_REWARD)
     feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
 
@@ -146,13 +138,7 @@ def _advance_streak_and_xp(
     unlock_topic_id: int | None = None
     xp_earned = earned_xp
 
-    at_frontier = _is_at_frontier(
-        selected_level=ctx.selected_level,
-        frontier_level=ctx.frontier_level,
-        topic_id=ctx.topic_id,
-        frontier_topic_id=ctx.frontier_topic_id,
-    )
-    if new_streak == config.MAX_STREAK and at_frontier:
+    if new_streak == config.MAX_STREAK and _is_at_frontier(ctx):
         frontier_update = increase_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )

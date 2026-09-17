@@ -45,31 +45,26 @@ def make_state(
     selected_level=1,
     frontier_topic_id=None,
     frontier_level=1,
-    flawless_eligible=True,
 ):
     """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS.
 
-    ``frontier_topic_id``/``frontier_level`` override the seeded Chapter Frontier
-    before the Student persist below, so the stored profile holds that Frontier.
+    A ``frontier_topic_id`` replaces the seeded Chapter Frontier before the profile
+    is persisted, so the stored profile holds that Frontier too.
     """
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
     chapter_id = chapter_ids[0]
-    topic_entry = curriculum.topics(chapter_id)[0]
+    if selected_topic_id is None:
+        selected_topic_id = int(curriculum.topics(chapter_id)[0]["topic_id"])
     session_id = str(uuid.uuid4())
     state = SessionState()
     main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
-    state.selected_topic_id = (
-        selected_topic_id
-        if selected_topic_id is not None
-        else int(topic_entry["topic_id"])
-    )
+    state.selected_topic_id = selected_topic_id
     state.selected_level = selected_level
     state.streak = streak
-    state.flawless_eligible = flawless_eligible
     state.current_input_mode = input_mode
     state.problem_answered = False
     state.current_problem = problem
@@ -241,10 +236,10 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
 
 
 def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_frontier():
-    """Replaying Topic 30 Level 2 while the Frontier is Topic 40 Level 2 (#300):
-    the Level number coincidentally matches the Frontier Level, but the Topic
-    doesn't, so this must behave as an ordinary Replay, not At the Frontier."""
+    """#300: a Replay whose Level equals the Frontier Level must not move the Frontier."""
     chapter_id = 10
+    # The scenario only exercises #300 if Topic 30 sits one Topic behind Topic 40
+    # and both Topics reach Level 2.
     curriculum = resolve_curriculum()
     chapter_topic_ids = [int(t["topic_id"]) for t in curriculum.topics(chapter_id)]
     assert curriculum.topic_by_id(chapter_id, 30)["max_level"] == 2
@@ -282,7 +277,8 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_fronti
 
     assert response.is_correct is True
     frontier = response.state.chapter_frontiers[chapter_id]
-    assert (frontier.frontier_topic_id, frontier.frontier_level) == (40, 2)
+    assert frontier.frontier_topic_id == 40
+    assert frontier.frontier_level == 2
     assert response.state.level_completed is False
     assert response.state.topic_completed is False
     assert response.state.streak == 3
@@ -292,23 +288,16 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_fronti
     assert response.state.xp - xp_before == config.XP_REWARDS[2]
     assert "Flawless Bonus" not in response.state.feedback_msg
 
-    persisted = db.load_user(state.username)
-    persisted_frontier = persisted["chapter_frontiers"][chapter_id]
-    assert (
-        persisted_frontier.frontier_topic_id,
-        persisted_frontier.frontier_level,
-    ) == (
-        40,
-        2,
-    )
+    persisted_frontier = db.load_user(state.username)["chapter_frontiers"][chapter_id]
+    assert persisted_frontier.frontier_topic_id == 40
+    assert persisted_frontier.frontier_level == 2
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.selected_topic_id == 30
 
 
 def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next_level():
-    """Replaying Topic 30 Level 1 while the Frontier is Topic 40 Level 1 (#300):
-    must not open Topic 40 Level 2 before the Student has ever played Topic 40."""
+    """#300: a Replay must not unlock a Level of a Frontier Topic never played yet."""
     chapter_id = 10
     problem = {
         "problem_id": "p-replay-unearned",
@@ -341,22 +330,17 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next
 
     assert response.is_correct is True
     frontier = response.state.chapter_frontiers[chapter_id]
-    assert (frontier.frontier_topic_id, frontier.frontier_level) == (40, 1)
+    assert frontier.frontier_topic_id == 40
+    assert frontier.frontier_level == 1
     assert response.state.level_completed is False
     assert response.state.topic_completed is False
     assert response.state.streak == 3
     assert response.state.selected_level == 1
     assert response.state.xp - xp_before == config.XP_REWARDS[1]
 
-    persisted = db.load_user(state.username)
-    persisted_frontier = persisted["chapter_frontiers"][chapter_id]
-    assert (
-        persisted_frontier.frontier_topic_id,
-        persisted_frontier.frontier_level,
-    ) == (
-        40,
-        1,
-    )
+    persisted_frontier = db.load_user(state.username)["chapter_frontiers"][chapter_id]
+    assert persisted_frontier.frontier_topic_id == 40
+    assert persisted_frontier.frontier_level == 1
 
 
 def test_input_mode_defers_radio_to_input_until_next_problem():
