@@ -73,6 +73,18 @@ def test_persistence_and_reveal_flags(
     assert mode.reveals_correct_answer is reveals_correct_answer
 
 
+@pytest.mark.parametrize(
+    ("mode_factory", "expected_name"),
+    [
+        (StudentPlayMode, "student"),
+        (AdminPlayMode, "admin"),
+    ],
+)
+def test_play_mode_name_is_the_telemetry_label(mode_factory, expected_name):
+    """Each mode owns the name telemetry records it under — #254's `play_mode`."""
+    assert mode_factory().name == expected_name
+
+
 def test_resolve_play_mode_uses_config_admin_usernames():
     admin_name = next(iter(config.ADMIN_USERNAMES))
     assert resolve_play_mode(admin_name).is_admin is True

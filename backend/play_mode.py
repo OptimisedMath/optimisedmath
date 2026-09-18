@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 import backend.config as config
 from backend.curriculum_loader import TopicDict
@@ -14,9 +14,16 @@ from backend.unlock import (
     get_frontier,
 )
 
+# The name a mode is recorded under in telemetry — a named value rather than a
+# boolean flag, so a third mode later costs no schema change (#254).
+PlayModeName = Literal["student", "admin"]
+
 
 class PlayMode(Protocol):
     """Resolved identity and policy for one session request."""
+
+    @property
+    def name(self) -> PlayModeName: ...
 
     @property
     def is_admin(self) -> bool: ...
@@ -38,6 +45,7 @@ class PlayMode(Protocol):
 class StudentPlayMode:
     """Normal student play — persisted Frontier, full profile writes."""
 
+    name: PlayModeName = "student"
     is_admin: bool = False
     persists_profile: bool = True
     reveals_correct_answer: bool = False
@@ -54,6 +62,7 @@ class StudentPlayMode:
 class AdminPlayMode:
     """Admin QA play — effective full unlock, no profile progression writes."""
 
+    name: PlayModeName = "admin"
     is_admin: bool = True
     persists_profile: bool = False
     reveals_correct_answer: bool = True

@@ -1,6 +1,7 @@
 """FastAPI integration tests for session flow, grading, and API contract."""
 
 import asyncio
+import itertools
 import json
 import sqlite3
 import uuid
@@ -117,7 +118,7 @@ def test_wrong_text_submit_reveals_correct_answer():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -154,7 +155,7 @@ def test_next_problem_hides_answer_contract_fields():
     assert response.state.can_submit is True
 
 
-def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
+def test_typing_submit_uses_mobile_sanitizer_and_keeps_typing_mode():
     problem = {
         "problem_id": "p-mobile",
         "question": "q",
@@ -163,7 +164,7 @@ def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
         "options_map": {"1 \\frac{1}{2}": "correct", "1": "w1", "2": "w2"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -177,7 +178,7 @@ def test_input_submit_uses_mobile_sanitizer_and_keeps_input_mode():
 
     assert response.is_correct is True
     assert response.state.streak == 1
-    assert response.state.current_input_mode == "input"
+    assert response.state.current_input_mode == "typing"
 
 
 def test_level_completing_submit_serves_full_streak_meter():
@@ -189,7 +190,7 @@ def test_level_completing_submit_serves_full_streak_meter():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=2, input_mode="input")
+    state = make_state(problem, streak=2, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -217,7 +218,7 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=1, input_mode="input")
+    state = make_state(problem, streak=1, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -257,7 +258,7 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_fronti
     state = make_state(
         problem,
         streak=2,
-        input_mode="input",
+        input_mode="typing",
         selected_topic_id=30,
         selected_level=2,
         frontier_topic_id=40,
@@ -310,7 +311,7 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next
     state = make_state(
         problem,
         streak=2,
-        input_mode="input",
+        input_mode="typing",
         selected_topic_id=30,
         selected_level=1,
         frontier_topic_id=40,
@@ -343,7 +344,7 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next
     assert persisted_frontier.frontier_level == 1
 
 
-def test_input_mode_defers_radio_to_input_until_next_problem():
+def test_input_mode_defers_radio_to_typing_until_next_problem():
     problem = {
         "problem_id": "p-radio-defer",
         "question": "q",
@@ -369,11 +370,11 @@ def test_input_mode_defers_radio_to_input_until_next_problem():
     assert submit_response.state.current_input_mode == "radio"
 
     next_response = run(main.problem_next(state.session_id))
-    assert next_response.state.current_input_mode == "input"
+    assert next_response.state.current_input_mode == "typing"
     assert "input_mode" not in next_response.problem
 
 
-def test_input_mode_defers_input_to_radio_until_next_problem():
+def test_input_mode_defers_typing_to_radio_until_next_problem():
     problem = {
         "problem_id": "p-text-defer",
         "question": "q",
@@ -382,7 +383,7 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
         "options_map": {"2": "correct", "3": "w1"},
         "messages": {},
     }
-    state = make_state(problem, streak=1, input_mode="input")
+    state = make_state(problem, streak=1, input_mode="typing")
 
     submit_response = run(
         main.problem_submit(
@@ -396,7 +397,7 @@ def test_input_mode_defers_input_to_radio_until_next_problem():
 
     assert submit_response.is_correct is False
     assert submit_response.state.streak == 0
-    assert submit_response.state.current_input_mode == "input"
+    assert submit_response.state.current_input_mode == "typing"
 
     next_response = run(main.problem_next(state.session_id))
     assert next_response.state.current_input_mode == "radio"
@@ -412,7 +413,7 @@ def test_soft_syntax_error_does_not_lock_problem():
         "options_map": {"3/4": "correct", "1/2": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -438,7 +439,7 @@ def test_soft_syntax_error_preserves_flawless_eligible():
         "options_map": {"3/4": "correct", "1/2": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -463,7 +464,7 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
         "options_map": {"1/2": "correct", "2/4": "w1"},
         "messages": {},
     }
-    state = make_state(problem, input_mode="input")
+    state = make_state(problem, input_mode="typing")
 
     response = run(
         main.problem_submit(
@@ -680,7 +681,7 @@ def test_radio_only_topic_keeps_radio_input():
     state.selected_chapter_id = disabled_chapter_id
     state.selected_topic_id = disabled_topic["topic_id"]
     submission.run_submission_cycle(
-        state, problem, "a", False, resolve_curriculum(), StudentPlayMode()
+        state, problem, "a", "radio", resolve_curriculum(), StudentPlayMode()
     )
 
     assert state.streak == 1
@@ -1026,7 +1027,7 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
         == "Liczby nie są równe — nie wybieraj znaku równości!"
     )
 
-    eval_result = grade(">", problem, is_input_mode=False)
+    eval_result = grade(">", problem, input_mode="radio")
     assert eval_result.get("answer_outcome") == "trap"
     assert eval_result.get("trap_slug") == "compares_by_the_lower_place_digit"
     assert eval_result.get("feedback_msg") == branch_message
@@ -1085,7 +1086,7 @@ def test_start_next_submit_logs_time_spent_telemetry():
     with sqlite3.connect(main.db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT time_spent_seconds FROM telemetry_logs
+            SELECT time_spent_ms FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
             LIMIT 1
@@ -1169,7 +1170,7 @@ def _fetch_last_telemetry_row(session_id):
     with sqlite3.connect(main.db.DB_PATH) as conn:
         return conn.execute(
             """
-            SELECT answer_outcome, misconception_slug, trap_slug, problem_id
+            SELECT answer_outcome, misconception_slug, trap_slug, trap_source, problem_id
             FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
@@ -1222,7 +1223,7 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("trap", "test_misconception", "w1", "p-mapped-trap")
+    assert row == ("trap", "test_misconception", "w1", "authored", "p-mapped-trap")
 
 
 def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
@@ -1248,7 +1249,7 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("trap", None, "w1", "p-unmapped-trap")
+    assert row == ("trap", None, "w1", "authored", "p-unmapped-trap")
 
 
 def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
@@ -1274,7 +1275,38 @@ def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("wrong", None, None, "p-filler")
+    assert row == ("wrong", None, None, None, "p-filler")
+
+
+def test_synthesized_unit_trap_writes_trap_source_synthesized():
+    """Issue #257: a grader-synthesized Trap (ADR-0005 unit grading) writes
+    trap_source=synthesized, distinguishing it from an authored Trap."""
+    problem = {
+        "problem_id": "p-wrong-dimension",
+        "question": "q",
+        "correct": "84",
+        "expected_unit": "cm²",
+    }
+    state = make_state(problem, input_mode="typing")
+
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-wrong-dimension",
+                user_input="84 cm",
+            )
+        )
+    )
+
+    row = _fetch_last_telemetry_row(state.session_id)
+    assert row == (
+        "trap",
+        config.UNIT_DIMENSION_MISCONCEPTION,
+        config.UNIT_DIMENSION_TRAP_SLUG,
+        "synthesized",
+        "p-wrong-dimension",
+    )
 
 
 def test_telemetry_problem_id_column_is_indexed():
@@ -1288,6 +1320,31 @@ def test_telemetry_problem_id_column_is_indexed():
             )
 
     assert "problem_id" in index_columns
+
+
+def test_deconstruction_trigger_lookup_is_covered_by_a_composite_index():
+    """Issue #255: the trigger's hit count runs inside every Submission, so its
+    lookup (session, Misconception, Chapter, Topic, Level) must be an index
+    lookup rather than a table scan."""
+    expected_columns = [
+        "session_id",
+        "misconception_slug",
+        "chapter_id",
+        "topic_id",
+        "level_number",
+    ]
+    with sqlite3.connect(main.db.DB_PATH) as conn:
+        index_names = [
+            row[1] for row in conn.execute("PRAGMA index_list(telemetry_logs)")
+        ]
+        indexed_columns = [
+            [row[2] for row in conn.execute(f"PRAGMA index_info({index_name})")]
+            for index_name in index_names
+        ]
+
+    assert (
+        expected_columns in indexed_columns
+    ), f"no index on telemetry_logs covers {expected_columns} in order"
 
 
 # --- Deconstruction trigger (#194) ---
@@ -1400,6 +1457,33 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
     assert [s.answer for s in state.deconstruction.steps] == [
         s.answer for s in expected_steps
     ]
+
+
+def test_renaming_topic_mid_session_does_not_split_the_hit_count(monkeypatch):
+    """Issue #255: the trigger keys on Chapter/Topic id, not display name, so
+    renaming a Topic mid-Session still arms the Deconstruction on the second hit."""
+    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+
+    from backend.curriculum import Curriculum
+
+    # A fresh name on every read, so no two telemetry rows can agree on one. That
+    # is stricter than a single rename, and it does not depend on how many times
+    # a Submission happens to read the Topic's name.
+    renames = itertools.count()
+
+    def fake_topic_name(self, chapter_id, topic_id):
+        return f"Topic Name Revision {next(renames)}"
+
+    monkeypatch.setattr(Curriculum, "topic_name", fake_topic_name)
+
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-second-hit")
+
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
 
 
 def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatch):

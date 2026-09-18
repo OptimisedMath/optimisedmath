@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from backend.curriculum_loader import TopicDict
 from backend.models import ChapterFrontier
+
+FrontierRelation = Literal["at_frontier", "behind_frontier"]
 
 
 @dataclass(frozen=True)
@@ -57,6 +60,21 @@ def chapter_max_frontier(chapter_topics: list[TopicDict]) -> Frontier:
         frontier_topic_id=int(last_topic["topic_id"]),
         frontier_level=int(last_topic["max_level"]),
     )
+
+
+def frontier_relation(
+    topic_id: int,
+    level: int,
+    frontier: Frontier,
+) -> FrontierRelation:
+    """Classify a played topic/level against the Frontier.
+
+    Callers only ever ask this of a Reachable position — one already At or
+    Behind the Frontier — so there is no `beyond_frontier` value to return.
+    """
+    if topic_id == frontier.frontier_topic_id and level == frontier.frontier_level:
+        return "at_frontier"
+    return "behind_frontier"
 
 
 def is_reachable(

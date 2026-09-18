@@ -97,12 +97,12 @@ _Avoid_: review mode, practice mode
 Four-option multiple choice (ABCD). Active when Streak is 0, or for the whole Topic on radio-only topics.
 _Avoid_: ABCD mode, multiple choice, text mode
 
-**Input mode**:
+**Typing mode**:
 The Student types the answer. Active when Streak ≥ 1 on Topics that allow it.
-_Avoid_: open answer, text mode, open-ended, free text
+_Avoid_: input mode, text mode, open answer, open-ended, free text
 
 **Radio-only topic**:
-A Topic that never switches to Input mode, regardless of Streak.
+A Topic that never switches to Typing mode, regardless of Streak.
 _Avoid_: text_mode_disabled, input disabled
 
 ## Answers
@@ -113,6 +113,14 @@ _Avoid_: exercise, item
 
 **Correct**:
 Mathematically right answer for this Problem.
+
+**Answer form**:
+The notation an answer was written in, with LaTeX normalized away and nothing else changed — a Radio tap and the same answer typed become one Answer form. Not Answer value: on `exact_match_only` Levels the notation is part of the answer, so `2/4` and `4/8` stay two different Answer forms although they are one Answer value.
+_Avoid_: normalized answer, cleaned answer, notation
+
+**Answer value**:
+The exact rational an answer denotes, with notation erased — `0,5`, `1/2` and `2/4` are one Answer value. Not Answer form: value is what erases the exact distinction `exact_match_only` Levels grade on, so it cannot stand in for form on those Levels.
+_Avoid_: parsed answer, numeric answer, magnitude
 
 **Distinct Problem**:
 The unit a Level's pool is counted in — one combination of the values a generator draws, regardless of which Traps and Fillers happen to be served beside it. Two Problems asking the same question are the same Distinct Problem even when the options differ.

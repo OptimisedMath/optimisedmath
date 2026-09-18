@@ -47,7 +47,7 @@ describe('ADR-0002 leak locks', () => {
 
   it('renders full streak meter from payload during level-completion feedback', async () => {
     const session = baseSession({
-      current_input_mode: 'input',
+      current_input_mode: 'typing',
       streak: 0,
       streak_meter: 2,
       max_streak: 3,
@@ -88,8 +88,8 @@ describe('ADR-0002 leak locks', () => {
     expect(screen.getByText('3/3 gwiazdek')).toBeInTheDocument();
   });
 
-  it('renders input mode from session.current_input_mode alone even when problem has answer options', async () => {
-    const session = baseSession({ current_input_mode: 'input' });
+  it('renders typing mode from session.current_input_mode alone even when problem has answer options', async () => {
+    const session = baseSession({ current_input_mode: 'typing' });
     const problem = baseProblem({
       answer_options: ['1', '2', '3', '4'],
       correct_answer: '2',
@@ -541,7 +541,7 @@ describe('ADR-0002 leak locks', () => {
   });
 
   it('admin auto-solve fills in the correct answer immediately and submits it', async () => {
-    const session = baseSession({ admin_mode: true, current_input_mode: 'input' });
+    const session = baseSession({ admin_mode: true, current_input_mode: 'typing' });
     const problem = baseProblem({ correct_answer: '12' });
 
     const client = wireArenaFlow({

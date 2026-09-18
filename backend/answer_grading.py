@@ -14,6 +14,7 @@ from backend.core.utils import (
     check_text_answer,
     parse_to_fraction,
 )
+from backend.models import InputMode
 
 
 class EvalResult(TypedDict, total=False):
@@ -149,17 +150,17 @@ def _grade_with_unit(
 
 
 def grade(
-    user_input: str, problem: ProblemDict, *, is_input_mode: bool = False
+    user_input: str, problem: ProblemDict, *, input_mode: InputMode = "radio"
 ) -> EvalResult:
     """Grade a submission against a generated problem.
 
-    Handles multiple-choice (options_map), open-text (parse + grading_policy),
+    Handles Radio mode (options_map), Typing mode (parse + grading_policy),
     trap/wrong feedback, and format-mismatch soft errors.
     """
     options_map = problem.get("options_map", {})
 
-    # --- 1. MULTIPLE CHOICE MODE ---
-    if not is_input_mode and "options" in problem and len(problem["options"]) > 0:
+    # --- 1. RADIO MODE ---
+    if input_mode == "radio" and "options" in problem and len(problem["options"]) > 0:
         is_correct = options_map.get(user_input) == "correct"
         if is_correct:
             return {"is_correct": True, "lock_answer": True}
@@ -184,7 +185,7 @@ def grade(
             eval_outcome["trap_slug"] = msg_key
         return eval_outcome
 
-    # --- 2. TEXT INPUT MODE ---
+    # --- 2. TYPING MODE ---
     expected_unit = problem.get("expected_unit")
     if expected_unit:
         return _grade_with_unit(user_input, problem, str(expected_unit))

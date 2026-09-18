@@ -215,14 +215,20 @@ def test_log_telemetry_persists_entry():
     db.log_telemetry(
         session_id="sess-1",
         username="alice",
+        play_mode="student",
+        chapter_id=10,
         chapter_name="Ułamki",
+        topic_id=20,
         topic_name="Dodawanie",
         level_number=2,
-        is_input_mode=True,
+        input_mode="typing",
+        streak_before_answer=1,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
         is_correct=False,
         user_input="1/2",
         answer_outcome="t1",
-        time_spent_seconds=15,
+        time_spent_ms=1500,
         problem_snapshot="1/4 + 1/4",
     )
 
@@ -233,6 +239,66 @@ def test_log_telemetry_persists_entry():
         ).fetchone()[0]
 
     assert count == 1
+
+
+def test_log_telemetry_trap_source_defaults_to_null():
+    """Issue #257: `trap_source` is absent (NULL) when the caller passes none."""
+    db.save_user("alice", _sample_state())
+
+    db.log_telemetry(
+        session_id="sess-no-trap",
+        username="alice",
+        play_mode="student",
+        chapter_id=10,
+        chapter_name="Ułamki",
+        topic_id=20,
+        topic_name="Dodawanie",
+        level_number=2,
+        input_mode="typing",
+        streak_before_answer=1,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
+        is_correct=True,
+    )
+
+    with db.get_connection() as conn:
+        row = conn.execute(
+            "SELECT trap_source FROM telemetry_logs WHERE session_id = ?",
+            ("sess-no-trap",),
+        ).fetchone()
+
+    assert row[0] is None
+
+
+def test_log_telemetry_persists_trap_source():
+    db.save_user("alice", _sample_state())
+
+    db.log_telemetry(
+        session_id="sess-trap-source",
+        username="alice",
+        play_mode="student",
+        chapter_id=10,
+        chapter_name="Ułamki",
+        topic_id=20,
+        topic_name="Dodawanie",
+        level_number=2,
+        input_mode="typing",
+        streak_before_answer=1,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
+        is_correct=False,
+        answer_outcome="trap",
+        trap_slug="answers_in_the_wrong_dimension",
+        trap_source="synthesized",
+    )
+
+    with db.get_connection() as conn:
+        row = conn.execute(
+            "SELECT trap_source FROM telemetry_logs WHERE session_id = ?",
+            ("sess-trap-source",),
+        ).fetchone()
+
+    assert row[0] == "synthesized"
 
 
 def test_get_connection_closes_after_use(monkeypatch):
@@ -261,9 +327,68 @@ def test_log_telemetry_requires_existing_user():
         db.log_telemetry(
             session_id="sess-orphan",
             username="ghost",
+            play_mode="student",
+            chapter_id=10,
             chapter_name="Ułamki",
+            topic_id=20,
             topic_name="Dodawanie",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            streak_before_answer=0,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             is_correct=True,
         )
+
+
+def _log_misconception_hit(
+    *,
+    session_id="sess-hits",
+    misconception_slug="operates_on_unlike_fractions_directly",
+    chapter_id=10,
+    chapter_name="Ułamki",
+    topic_id=20,
+    topic_name="Dodawanie",
+    level_number=1,
+) -> None:
+    db.log_telemetry(
+        session_id=session_id,
+        username="alice",
+        play_mode="student",
+        chapter_id=chapter_id,
+        chapter_name=chapter_name,
+        topic_id=topic_id,
+        topic_name=topic_name,
+        level_number=level_number,
+        input_mode="radio",
+        streak_before_answer=0,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
+        is_correct=False,
+        misconception_slug=misconception_slug,
+    )
+
+
+def test_count_misconception_hits_keys_on_chapter_and_topic_id_not_name():
+    """Issue #255: renaming a Topic between two hits must not split the count."""
+    db.save_user("alice", _sample_state())
+    _log_misconception_hit(topic_name="Dodawanie ułamków")
+    _log_misconception_hit(topic_name="Dodawanie ułamków (nazwa zmieniona)")
+
+    hits = db.count_misconception_hits(
+        "sess-hits", "operates_on_unlike_fractions_directly", 10, 20, 1
+    )
+
+    assert hits == 2
+
+
+def test_count_misconception_hits_ignores_a_different_topic_id():
+    db.save_user("alice", _sample_state())
+    _log_misconception_hit(topic_id=20)
+    _log_misconception_hit(topic_id=21)
+
+    hits = db.count_misconception_hits(
+        "sess-hits", "operates_on_unlike_fractions_directly", 10, 20, 1
+    )
+
+    assert hits == 1

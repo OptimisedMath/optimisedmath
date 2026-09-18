@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from typing import Literal
 
 import backend.config as config
 from backend.answer_grading import EvalResult, grade
@@ -13,7 +14,12 @@ from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
 import backend.deconstruction_step as deconstruction_step
-from backend.models import DeconstructionState, DeconstructionStep, SessionState
+from backend.models import (
+    DeconstructionState,
+    DeconstructionStep,
+    InputMode,
+    SessionState,
+)
 from backend.play_mode import PlayMode
 from backend.progression import (
     SubmissionContext,
@@ -21,8 +27,14 @@ from backend.progression import (
     resolve_submission_outcome,
 )
 import backend.session_state as session_state
+from backend.unlock import frontier_relation
 
 logger = logging.getLogger(__name__)
+
+# Whether a Trap came from a Level's authored `traps:` block or was raised by the
+# grader itself (Units, ADR-0005). Absent from telemetry entirely when there is no
+# Trap — see `_resolve_trap_source`.
+TrapSource = Literal["authored", "synthesized"]
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
@@ -41,7 +53,7 @@ def run_submission_cycle(
     state: SessionState,
     problem: ProblemDict,
     user_input: str,
-    is_input_mode: bool,
+    input_mode: InputMode,
     curriculum: Curriculum,
     play_mode: PlayMode,
 ) -> EvalResult:
@@ -63,18 +75,21 @@ def run_submission_cycle(
 
     is_discounted_retry = problem.get("problem_id") == state.discounted_problem_id
 
-    eval_result = grade(user_input, problem, is_input_mode=is_input_mode)
+    eval_result = grade(user_input, problem, input_mode=input_mode)
     state.problem_answered = eval_result.get("lock_answer", False)
 
     misconception_slug = _resolve_misconception_slug(state, curriculum, eval_result)
+    trap_source = _resolve_trap_source(eval_result)
     _log_submission_telemetry(
         state,
         problem,
-        user_input,
-        is_input_mode,
         eval_result,
         curriculum,
-        misconception_slug,
+        play_mode,
+        user_input=user_input,
+        input_mode=input_mode,
+        misconception_slug=misconception_slug,
+        trap_source=trap_source,
     )
     if is_discounted_retry:
         _apply_discounted_retry_outcome(state, eval_result)
@@ -137,43 +152,75 @@ def _resolve_misconception_slug(
     return level_config.trap_misconceptions.get(trap_slug)
 
 
+def _resolve_trap_source(eval_result: EvalResult) -> TrapSource | None:
+    """Classify the graded Trap, if any, as `authored` or `synthesized`.
+
+    `EvalResult.misconception_slug` is only ever set by a grader-synthesized Trap
+    (see its docstring), so its presence is what distinguishes the two — not
+    whether `_resolve_misconception_slug` found a catalogue Misconception, which
+    an authored Trap can legitimately miss (#188).
+    """
+    if eval_result.get("trap_slug") is None:
+        return None
+    if eval_result.get("misconception_slug") is not None:
+        return "synthesized"
+    return "authored"
+
+
 def _log_submission_telemetry(
     state: SessionState,
     problem: ProblemDict,
-    user_input: str,
-    is_input_mode: bool,
     eval_result: EvalResult,
     curriculum: Curriculum,
+    play_mode: PlayMode,
+    *,
+    user_input: str,
+    input_mode: InputMode,
     misconception_slug: str | None,
+    trap_source: TrapSource | None,
 ) -> None:
-    """Persist one submission attempt with sanitized problem state."""
+    """Persist one submission attempt with sanitized problem state.
+
+    Runs before progression mutates `state.streak`/`state.flawless_eligible`, so
+    reading them here is exactly the Session context the Student was answering
+    against — the Streak and Flawless standing *before* this Submission's verdict.
+    """
     username = state.username
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
     assert username is not None and chapter_id is not None and topic_id is not None
 
-    time_spent = None
+    time_spent_ms = None
     if state.problem_start_time is not None:
-        time_spent = int(time.time() - state.problem_start_time)
+        time_spent_ms = int((time.time() - state.problem_start_time) * 1000)
 
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
-    trap_slug = eval_result.get("trap_slug")
+    frontier = play_mode.resolve_frontier(
+        list(curriculum.topics(chapter_id)), state.chapter_frontiers[chapter_id]
+    )
 
     db.log_telemetry(
         session_id=state.session_id,
         username=username,
+        play_mode=play_mode.name,
+        chapter_id=chapter_id,
         chapter_name=chapter_name,
+        topic_id=topic_id,
         topic_name=topic_name,
         level_number=state.selected_level,
-        is_input_mode=is_input_mode,
+        input_mode=input_mode,
+        streak_before_answer=state.streak,
+        flawless_eligible=state.flawless_eligible,
+        frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
-        trap_slug=trap_slug,
-        time_spent_seconds=time_spent,
+        trap_slug=eval_result.get("trap_slug"),
+        trap_source=trap_source,
+        time_spent_ms=time_spent_ms,
         problem_snapshot=_sanitize_problem_for_telemetry(problem),
         problem_id=problem.get("problem_id"),
     )
@@ -216,7 +263,7 @@ def _maybe_trigger_deconstruction(
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
     hits = db.count_misconception_hits(
-        state.session_id, misconception_slug, chapter_name, topic_name, level
+        state.session_id, misconception_slug, chapter_id, topic_id, level
     )
     if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
         return
