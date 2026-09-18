@@ -315,6 +315,100 @@ def test_streak_only_wrong_decrements_without_flawless_forfeit():
     assert outcome.xp_earned == 0
 
 
+def test_replay_on_last_level_matching_frontier_level_does_not_complete_topic():
+    """#300: a Replay is still a Replay when its Level equals the Frontier Level."""
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=10,
+            frontier_topic_id=20,
+            selected_level=2,
+            frontier_level=2,
+            topic_max_level=2,
+            next_topic_ids=(20, 30),
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.xp_earned == config.XP_REWARDS[2]
+    assert "Flawless Bonus" not in (outcome.feedback_msg or "")
+    assert outcome.new_flawless_eligible is True
+    assert outcome.level_unlocked is False
+    assert outcome.topic_completed is False
+    assert outcome.level_completed is False
+    assert outcome.new_frontier_level is None
+    assert outcome.unlock_topic_id is None
+    assert outcome.new_selected_level is None
+
+
+def test_replay_matching_frontier_level_does_not_unlock_next_level():
+    """#300: Mastery on a Replay must not unlock the next Level of that Topic."""
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=10,
+            frontier_topic_id=20,
+            selected_level=1,
+            frontier_level=1,
+            topic_max_level=3,
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.xp_earned == config.XP_REWARDS[1]
+    assert "Flawless Bonus" not in (outcome.feedback_msg or "")
+    assert outcome.new_flawless_eligible is True
+    assert outcome.level_unlocked is False
+    assert outcome.topic_completed is False
+    assert outcome.level_completed is False
+    assert outcome.new_frontier_level is None
+    assert outcome.unlock_topic_id is None
+    assert outcome.new_selected_level is None
+
+
+def test_mastery_at_frontier_unlocks_next_level():
+    """Control for #300: Mastery At the Frontier still unlocks the next Level."""
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=2,
+            topic_id=20,
+            frontier_topic_id=20,
+            selected_level=2,
+            frontier_level=2,
+            topic_max_level=3,
+            next_topic_ids=(30,),
+        ),
+    )
+
+    assert outcome.new_streak == 0
+    assert outcome.level_unlocked is True
+    assert outcome.new_frontier_level == 3
+
+
+def test_replay_matching_frontier_level_holds_streak_at_max_without_reset():
+    """#300: a Replay has no Frontier reset, so Streak holds at MAX_STREAK."""
+    outcome = resolve_submission_outcome(
+        {"is_correct": True, "lock_answer": True},
+        _ctx(
+            streak=3,
+            topic_id=10,
+            frontier_topic_id=20,
+            selected_level=2,
+            frontier_level=2,
+            topic_max_level=2,
+            next_topic_ids=(20, 30),
+        ),
+    )
+
+    assert outcome.new_streak == 3
+    assert outcome.level_unlocked is False
+    assert outcome.topic_completed is False
+    assert outcome.new_frontier_level is None
+
+
 def test_streak_only_soft_error_preserves_streak():
     outcome = resolve_submission_outcome(
         {

@@ -1,7 +1,7 @@
 """No Level may set a negative number as the answer a Student is asked to reach.
 
 Negative numbers are outside what klasy 4-8 practise in these Chapters, but two
-`Kolejność wykonywania działań` Boss templates could roll one anyway: `dec_order_6`
+`Kolejność wykonywania działań` templates could roll one anyway: `dec_order_6`
 drew `a · (b + c)² − d` with an `a` so small that 131 of its 135 operand
 combinations came out negative, and `dec_order_5`'s `(a + b)² − c` went negative on
 half its draws (#242). Their Ułamki Zwykłe counterparts already discarded such a

@@ -13,6 +13,7 @@ import backend.config as config
 import backend.main as main
 import backend.session as session
 import backend.submission as submission
+from backend.core import db
 from backend.curriculum import resolve_curriculum
 from backend.deconstruction import build_steps
 from backend.models import (
@@ -36,25 +37,44 @@ def isolated_state(isolated_db):
     main.ACTIVE_SESSIONS.clear()
 
 
-def make_state(problem, *, streak=0, input_mode="radio"):
-    """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS."""
+def make_state(
+    problem,
+    *,
+    streak=0,
+    input_mode="radio",
+    selected_topic_id=None,
+    selected_level=1,
+    frontier_topic_id=None,
+    frontier_level=1,
+):
+    """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS.
+
+    A ``frontier_topic_id`` replaces the seeded Chapter Frontier before the profile
+    is persisted, so the stored profile holds that Frontier too.
+    """
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
     chapter_id = chapter_ids[0]
-    topic_entry = curriculum.topics(chapter_id)[0]
+    if selected_topic_id is None:
+        selected_topic_id = int(curriculum.topics(chapter_id)[0]["topic_id"])
     session_id = str(uuid.uuid4())
     state = SessionState()
     main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
     state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
-    state.selected_topic_id = int(topic_entry["topic_id"])
-    state.selected_level = 1
+    state.selected_topic_id = selected_topic_id
+    state.selected_level = selected_level
     state.streak = streak
     state.current_input_mode = input_mode
     state.problem_answered = False
     state.current_problem = problem
     state.problem_start_time = 0
+    if frontier_topic_id is not None:
+        state.chapter_frontiers[chapter_id] = ChapterFrontier(
+            frontier_topic_id=frontier_topic_id,
+            frontier_level=frontier_level,
+        )
     main.ACTIVE_SESSIONS[session_id] = state
     main.session_state.persist(state, StudentPlayMode())
     return state
@@ -214,6 +234,114 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
     assert response.state.level_completed is False
     assert response.state.streak == 2
     assert response.state.streak_meter == 2
+
+
+def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_frontier():
+    """#300: a Replay whose Level equals the Frontier Level must not move the Frontier."""
+    chapter_id = 10
+    # The scenario only exercises #300 if Topic 30 sits one Topic behind Topic 40
+    # and both Topics reach Level 2.
+    curriculum = resolve_curriculum()
+    chapter_topic_ids = [int(t["topic_id"]) for t in curriculum.topics(chapter_id)]
+    assert curriculum.topic_by_id(chapter_id, 30)["max_level"] == 2
+    assert chapter_topic_ids[chapter_topic_ids.index(30) + 1] == 40
+    assert curriculum.topic_by_id(chapter_id, 40)["max_level"] >= 2
+
+    problem = {
+        "problem_id": "p-replay-regression",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(
+        problem,
+        streak=2,
+        input_mode="typing",
+        selected_topic_id=30,
+        selected_level=2,
+        frontier_topic_id=40,
+        frontier_level=2,
+    )
+    xp_before = state.xp
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-replay-regression",
+                user_input="2",
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    frontier = response.state.chapter_frontiers[chapter_id]
+    assert frontier.frontier_topic_id == 40
+    assert frontier.frontier_level == 2
+    assert response.state.level_completed is False
+    assert response.state.topic_completed is False
+    assert response.state.streak == 3
+    assert response.state.streak_meter == 3
+    assert response.state.selected_topic_id == 30
+    assert response.state.selected_level == 2
+    assert response.state.xp - xp_before == config.XP_REWARDS[2]
+    assert "Flawless Bonus" not in response.state.feedback_msg
+
+    persisted_frontier = db.load_user(state.username)["chapter_frontiers"][chapter_id]
+    assert persisted_frontier.frontier_topic_id == 40
+    assert persisted_frontier.frontier_level == 2
+
+    next_response = run(main.problem_next(state.session_id))
+    assert next_response.state.selected_topic_id == 30
+
+
+def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next_level():
+    """#300: a Replay must not unlock a Level of a Frontier Topic never played yet."""
+    chapter_id = 10
+    problem = {
+        "problem_id": "p-replay-unearned",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "w1"},
+        "messages": {},
+    }
+    state = make_state(
+        problem,
+        streak=2,
+        input_mode="typing",
+        selected_topic_id=30,
+        selected_level=1,
+        frontier_topic_id=40,
+        frontier_level=1,
+    )
+    xp_before = state.xp
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-replay-unearned",
+                user_input="2",
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    frontier = response.state.chapter_frontiers[chapter_id]
+    assert frontier.frontier_topic_id == 40
+    assert frontier.frontier_level == 1
+    assert response.state.level_completed is False
+    assert response.state.topic_completed is False
+    assert response.state.streak == 3
+    assert response.state.selected_level == 1
+    assert response.state.xp - xp_before == config.XP_REWARDS[1]
+
+    persisted_frontier = db.load_user(state.username)["chapter_frontiers"][chapter_id]
+    assert persisted_frontier.frontier_topic_id == 40
+    assert persisted_frontier.frontier_level == 1
 
 
 def test_input_mode_defers_radio_to_typing_until_next_problem():
@@ -560,13 +688,10 @@ def test_radio_only_topic_keeps_radio_input():
     assert state.current_input_mode == "radio"
 
 
-def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
-    import backend.problem_generation as problem_generation
-    import backend.submission_cycle as submission_cycle
-
+def _make_problem_next_state():
+    """Register a session selected at the first chapter/topic on Level 1, no active problem."""
     curriculum = resolve_curriculum()
-    chapter_ids = list(curriculum.chapter_ids())
-    chapter_id = chapter_ids[0]
+    chapter_id = list(curriculum.chapter_ids())[0]
     topic_entry = curriculum.topics(chapter_id)[0]
     session_id = str(uuid.uuid4())
     state = SessionState()
@@ -577,10 +702,14 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
     state.selected_topic_id = int(topic_entry["topic_id"])
     state.selected_level = 1
     main.ACTIVE_SESSIONS[session_id] = state
+    return state
 
-    duplicate_problem = {
-        "problem_id": "dup-1",
-        "question": "same question",
+
+def _make_generated_problem(question, problem_id=None):
+    """Build a minimal generated problem whose fingerprint varies only with ``question``."""
+    return {
+        "problem_id": problem_id or question,
+        "question": question,
         "correct": "1",
         "options": ["1", "2"],
         "options_map": {"1": "correct", "2": "w1"},
@@ -590,23 +719,22 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         "level_display": "Test (Lvl 1)",
         "keyboard_type": "default",
     }
+
+
+def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
+    """Serving retries generation while the candidate's fingerprint sits in the recent window."""
+    import backend.problem_generation as problem_generation
+    import backend.submission_cycle as submission_cycle
+
+    state = _make_problem_next_state()
+    duplicate_problem = _make_generated_problem("same question", problem_id="dup-1")
     duplicate_fingerprint = problem_generation.problem_fingerprint(duplicate_problem)
     state.recent_problem_fingerprints = [duplicate_fingerprint]
 
+    unique_problem = _make_generated_problem(
+        "different question", problem_id="unique-1"
+    )
     call_count = {"value": 0}
-
-    def fake_generate_level_problem(_curriculum, _chapter_id, _topic_id, _level):
-        call_count["value"] += 1
-        return {
-            **duplicate_problem,
-            "problem_id": f"dup-{call_count['value']}",
-        }
-
-    unique_problem = {
-        **duplicate_problem,
-        "question": "different question",
-        "problem_id": "unique-1",
-    }
 
     def fake_generate_with_unique_second(_curriculum, _chapter_id, _topic_id, _level):
         call_count["value"] += 1
@@ -621,7 +749,7 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         submission_cycle, "generate_level_problem", fake_generate_with_unique_second
     )
 
-    response = run(main.problem_next(session_id))
+    response = run(main.problem_next(state.session_id))
 
     assert call_count["value"] == 2
     assert response.problem["question"] == "different question"
@@ -630,6 +758,42 @@ def test_problem_next_avoids_recent_duplicate_instances(monkeypatch):
         problem_generation.problem_fingerprint(unique_problem)
         in state.recent_problem_fingerprints
     )
+
+
+def test_problem_next_rotates_window_when_every_retry_collides(monkeypatch):
+    """A full fingerprint window keeps rotating even when no candidate is fresh.
+
+    Regression test for #316: the served fingerprint used to be appended only on
+    the "found something new" path, so once every retry collided the window froze
+    forever and dedupe silently turned off.
+    """
+    import backend.problem_generation as problem_generation
+    import backend.submission_cycle as submission_cycle
+
+    state = _make_problem_next_state()
+    window_fingerprints = [
+        problem_generation.problem_fingerprint(_make_generated_problem(f"q{index}"))
+        for index in range(config.RECENT_FINGERPRINT_HISTORY_SIZE)
+    ]
+    state.recent_problem_fingerprints = list(window_fingerprints)
+
+    colliding_problem = _make_generated_problem("q0")
+    colliding_fingerprint = problem_generation.problem_fingerprint(colliding_problem)
+    assert colliding_fingerprint == window_fingerprints[0]
+
+    def fake_generate_always_colliding(_curriculum, _chapter_id, _topic_id, _level):
+        return dict(colliding_problem)
+
+    monkeypatch.setattr(
+        submission_cycle, "generate_level_problem", fake_generate_always_colliding
+    )
+
+    run(main.problem_next(state.session_id))
+
+    assert state.recent_problem_fingerprints == [
+        *window_fingerprints[1:],
+        colliding_fingerprint,
+    ]
 
 
 def _make_topic_completed_state(

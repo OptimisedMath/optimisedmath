@@ -16,6 +16,7 @@ import {
   isSettledWithNothingToDo,
   issueNumberOfBranch,
   parentIssueOf,
+  parseBlockedByLine,
   partitionIntoGroups,
   type Issue,
 } from "./groups.mts";
@@ -160,24 +161,44 @@ test("only the last N iterations count, so early exploration is forgiven", () =>
   assert.ok(!isDeadRun([dead, dead, dead, alive]));
 });
 
-test("a group is complete only when nothing is planned and nothing is stranded", () => {
+test("a group is complete only when nothing is planned, blocked or stranded", () => {
   const settled = false;
-  assert.ok(isGroupComplete({ plannedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: settled, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 1 }));
+  assert.ok(
+    isGroupComplete({ plannedIssues: 0, blockedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 1, blockedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 0, blockedIssues: 0, settledWithNothingToDo: settled, strandedBranches: 1 }),
+  );
 });
 
 test("a group whose last planned issues settled with nothing to do is complete", () => {
   // #248 of sandcastle:218: its deliverable was an issue comment, so it
   // signalled completion with no commits, and the PR stayed a draft.
-  assert.ok(isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: true, strandedBranches: 0 }));
-  assert.ok(!isGroupComplete({ plannedIssues: 1, settledWithNothingToDo: true, strandedBranches: 1 }));
+  assert.ok(
+    isGroupComplete({ plannedIssues: 1, blockedIssues: 0, settledWithNothingToDo: true, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 1, blockedIssues: 0, settledWithNothingToDo: true, strandedBranches: 1 }),
+  );
+});
+
+test("a group with an open but permanently blocked issue is never complete", () => {
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 0, blockedIssues: 1, settledWithNothingToDo: false, strandedBranches: 0 }),
+  );
+  assert.ok(
+    !isGroupComplete({ plannedIssues: 0, blockedIssues: 1, settledWithNothingToDo: true, strandedBranches: 0 }),
+  );
 });
 
 test("an incomplete group's PR references the parent spec without closing it", () => {
   const body = buildPrBody({
     group: { id: "218", parentIssue: 218, issues: [] },
     mergedIssues: [{ id: "245", title: "Emit expression structure" }],
+    blockedIssues: [],
     complete: false,
   });
 
@@ -191,6 +212,7 @@ test("a complete group's PR closes the parent spec", () => {
   const body = buildPrBody({
     group: { id: "218", parentIssue: 218, issues: [] },
     mergedIssues: [{ id: "245", title: "Emit expression structure" }],
+    blockedIssues: [],
     complete: true,
   });
 
@@ -203,6 +225,7 @@ test("a named group closes its children but has no parent spec to close", () => 
   const body = buildPrBody({
     group: { id: "telemetry", parentIssue: undefined, issues: [] },
     mergedIssues: [{ id: "300", title: "Something" }],
+    blockedIssues: [],
     complete: true,
   });
 
@@ -215,10 +238,23 @@ test("a resumed branch with no newly merged issues still explains itself", () =>
   const body = buildPrBody({
     group: { id: "218", parentIssue: 218, issues: [] },
     mergedIssues: [],
+    blockedIssues: [],
     complete: false,
   });
 
   assert.ok(body.includes("Carried forward from an earlier interrupted run"));
+});
+
+test("a group with a blocked issue lists it and why, even though the batch is complete otherwise", () => {
+  const body = buildPrBody({
+    group: { id: "218", parentIssue: 218, issues: [] },
+    mergedIssues: [{ id: "245", title: "Emit expression structure" }],
+    blockedIssues: [{ id: "242", title: "Render the expression", blockedBy: [239] }],
+    complete: false,
+  });
+
+  assert.ok(body.includes("Excluded this batch — blocked:"));
+  assert.ok(body.includes("#242: Render the expression (blocked by #239)"));
 });
 
 test("the PR title names the spec a group serves", () => {
@@ -312,4 +348,29 @@ test("a spent quota still outranks a network error in the same output", () => {
 test("an ordinary test failure is still local", () => {
   assert.equal(classifyFailure("FAILED tests/test_session.py::test_streak"), "local");
   assert.equal(isRunFatal("local"), false);
+});
+
+// --- blocked-by fallback line ------------------------------------------------
+
+test("a Blocked by line names one blocker", () => {
+  assert.deepEqual(parseBlockedByLine("Blocked by: #239\n\nRest of the body."), [239]);
+});
+
+test("a Blocked by line names several blockers", () => {
+  assert.deepEqual(parseBlockedByLine("Blocked by: #239, #240\n\nRest."), [239, 240]);
+});
+
+test("a body with no Blocked by line has no blockers", () => {
+  assert.deepEqual(parseBlockedByLine("Just an ordinary issue body."), []);
+});
+
+test("an undefined body has no blockers", () => {
+  assert.deepEqual(parseBlockedByLine(undefined), []);
+});
+
+test("the Blocked by line is matched anywhere in the body, case-insensitively", () => {
+  assert.deepEqual(
+    parseBlockedByLine("Some context first.\n\nblocked BY: #12\n\nMore text."),
+    [12],
+  );
 });
