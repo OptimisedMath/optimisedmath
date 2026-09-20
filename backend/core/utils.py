@@ -179,7 +179,11 @@ def _filler_candidates(source: str) -> list[str]:
                 out.append(f"{sign}{whole}\\frac{{{new_num}}}{{{den}}}")
         for delta in _FILLER_DELTAS:
             new_den = den + delta
-            if new_den > 1 and 0 < num < new_den and _in_lowest_terms(num, new_den) == lowest:
+            if (
+                new_den > 1
+                and 0 < num < new_den
+                and _in_lowest_terms(num, new_den) == lowest
+            ):
                 out.append(f"{sign}{whole}\\frac{{{num}}}{{{new_den}}}")
         return out
 
@@ -250,7 +254,9 @@ def _values_equal(a: str, b: str) -> bool:
     return a == b
 
 
-def _is_valid_filler(candidate: str, screen: list[str], allow_negative_options: bool) -> bool:
+def _is_valid_filler(
+    candidate: str, screen: list[str], allow_negative_options: bool
+) -> bool:
     if not allow_negative_options and _is_negative_option(candidate):
         return False
     return not any(_values_equal(candidate, value) for value in screen)
@@ -367,7 +373,9 @@ def build_problem_dict(
     is_comparison = {value for value, _ in option_entries}.issubset({"<", ">", "="})
 
     if fillers is not None:
-        option_entries += [(value, FILLER_SLUG) for value in fillers if value is not None]
+        option_entries += [
+            (value, FILLER_SLUG) for value in fillers if value is not None
+        ]
     elif not is_comparison:
         needed = _MAX_TRAPS - len(accepted_traps)
         trap_values = [value for _, value in trap_items if value is not None]

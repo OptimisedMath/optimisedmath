@@ -249,21 +249,15 @@ class TestBuildProblemDict:
 
     def test_fillers_differ_in_value_from_every_option(self, monkeypatch):
         monkeypatch.setattr(random, "choice", lambda seq: seq[0])
-        problem = build_problem_dict(
-            "q", "1/2", traps={"a": "3/4"}, parameters={}
-        )
-        values = {
-            parse_to_fraction(v) or v for v in problem["options"]
-        }
+        problem = build_problem_dict("q", "1/2", traps={"a": "3/4"}, parameters={})
+        values = {parse_to_fraction(v) or v for v in problem["options"]}
         assert len(values) == len(problem["options"])
         for label in problem["options_map"].values():
             assert label in {"correct", "a", "filler"}
 
     def test_filler_keeps_mixed_shape(self, monkeypatch):
         monkeypatch.setattr(random, "choice", lambda seq: seq[0])
-        problem = build_problem_dict(
-            "q", r"2\frac{1}{5}", parameters={}
-        )
+        problem = build_problem_dict("q", r"2\frac{1}{5}", parameters={})
         for value, label in problem["options_map"].items():
             if label != "filler":
                 continue
@@ -296,9 +290,7 @@ class TestBuildProblemDict:
         assert len(whole_numbers) >= 2
 
     def test_explicit_fillers_replace_the_rule(self):
-        problem = build_problem_dict(
-            "q", "1", fillers=["0,(3)"], parameters={}
-        )
+        problem = build_problem_dict("q", "1", fillers=["0,(3)"], parameters={})
         assert "0,(3)" in problem["options"]
         assert len(problem["options"]) == 2
 

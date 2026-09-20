@@ -285,7 +285,10 @@ def frac_ord_6() -> dict | None:
     # Poziom 6: nawias, potęgowanie, mnożenie i odejmowanie w jednym działaniu
     a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
     c = Fraction(1, random.choice([2, 3]))
-    d = Fraction(1, random.choice([4, 5]))
+    # d small enough that `squares_the_bracket_terms_separately` can land
+    # non-negative without being pinned to the same value as
+    # `multiplies_before_squaring` on every draw where it does (#272).
+    d = Fraction(1, random.choice([6, 8]))
 
     q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} + \\frac{{{c.numerator}}}{{{c.denominator}}})^2 - \\frac{{{d.numerator}}}{{{d.denominator}}}"
     ans = a * ((b + c) ** 2) - d
