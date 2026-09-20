@@ -30,8 +30,8 @@ NUMBER_LINE_GENERATORS = {name for name in FUNCTION_REGISTRY if "number_line" in
 # Below the floor on `main` when it was raised from 5 to 20 (#233). Whether each
 # small pool is the Level's design or a defect is #239's decision, which removes
 # these one at a time — nothing here is a verdict that the pool is acceptable.
-# `frac_ord_5` was removed once its subtracted operand's denominator set was
-# widened to clear the floor (#274).
+# An entry leaves only once its generator's pool is widened past the floor, never
+# by lowering the floor to meet it (#274 widened `frac_ord_5`).
 PENDING_TRIAGE = {
     "frac_pow_2",
     "dec_pow_1",
