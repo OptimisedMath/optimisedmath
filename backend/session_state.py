@@ -6,7 +6,7 @@ import backend.config as config
 from backend.core import db
 from backend.curriculum import Curriculum
 from backend.play_mode import DbWritePlan, PlayMode, resolve_play_mode
-from backend.models import ChapterFrontier, SessionState
+from backend.models import ChapterFrontier, InputMode, SessionState
 from backend.unlock import first_topic_id
 
 
@@ -19,7 +19,7 @@ def _get_first_topic_id(curriculum: Curriculum, chapter_id: int | None) -> int:
     return 1
 
 
-def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
+def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> InputMode:
     """Determine input mode respecting streak threshold and radio-only topics."""
     topic_id = state.selected_topic_id
     chapter_id = state.selected_chapter_id
@@ -27,8 +27,8 @@ def resolve_input_mode(state: SessionState, curriculum: Curriculum) -> str:
         return "radio"
     topic_cfg = curriculum.topic_by_id(int(chapter_id), int(topic_id)) or {}
     radio_only = topic_cfg.get("radio_only", False)
-    if not radio_only and state.streak >= config.STREAK_THRESHOLD_FOR_INPUT_MODE:
-        return "input"
+    if not radio_only and state.streak >= config.STREAK_THRESHOLD_FOR_TYPING_MODE:
+        return "typing"
     return "radio"
 
 

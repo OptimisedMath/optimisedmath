@@ -52,15 +52,15 @@ def test_init_defaults_sets_session_and_chapter_frontiers(
         assert state.chapter_frontiers[chapter_id].frontier_level == 1
 
 
-def test_resolve_input_mode_switches_to_input_after_streak_threshold(
+def test_resolve_input_mode_switches_to_typing_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_MULTI
 
-    state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+    state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
     state.streak = 0
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
@@ -72,13 +72,13 @@ def test_resolve_input_mode_stays_radio_for_radio_only_topics(
     state = _fresh_state(fixture_curriculum)
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_RADIO
-    state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
 
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
 
 
 @pytest.mark.parametrize(
-    "streak", [0, 1, config.STREAK_THRESHOLD_FOR_INPUT_MODE, config.MAX_STREAK]
+    "streak", [0, 1, config.STREAK_THRESHOLD_FOR_TYPING_MODE, config.MAX_STREAK]
 )
 def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
     fixture_curriculum: Curriculum, streak
@@ -163,7 +163,7 @@ def _polluted_submission_cycle_state(
     """Fill cycle fields so a clear is observable."""
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_MULTI
-    state.streak = config.STREAK_THRESHOLD_FOR_INPUT_MODE
+    state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
     state.flawless_eligible = False
     state.problem_answered = True
     state.topic_completed = True
@@ -171,8 +171,8 @@ def _polluted_submission_cycle_state(
     state.feedback_type = "error"
     state.feedback_msg = "wrong"
     state.current_problem = {"problem_id": "p1"}
-    state.current_input_mode = "input"
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+    state.current_input_mode = "typing"
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
 
 def _submission_cycle_field_snapshot(state: SessionState) -> dict[str, object]:
@@ -215,7 +215,7 @@ def test_submission_cycle_clear_entry_points_match_public_helper(
         saved = SessionState(
             username=username,
             xp=10,
-            streak=config.STREAK_THRESHOLD_FOR_INPUT_MODE,
+            streak=config.STREAK_THRESHOLD_FOR_TYPING_MODE,
             selected_chapter_id=CHAPTER_ALPHA,
             selected_topic_id=TOPIC_MULTI,
             selected_level=1,

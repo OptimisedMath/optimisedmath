@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import pytest
@@ -15,9 +15,11 @@ import backend.session_state as session_state
 import backend.submission as submission
 from backend.core import db
 from backend.curriculum import Curriculum
-from backend.models import ChapterFrontier, SessionState
-from backend.play_mode import AdminPlayMode, StudentPlayMode
+from backend.models import ChapterFrontier, InputMode, SessionState
+from backend.play_mode import AdminPlayMode, PlayModeName, StudentPlayMode
 from backend.progression import SubmissionOutcome
+from backend.submission import TrapSource
+from backend.unlock import FrontierRelation
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
     TOPIC_MULTI,
@@ -59,17 +61,28 @@ class ExpectedSession:
 
 @dataclass(frozen=True)
 class ExpectedTelemetry:
-    """One telemetry row produced per Submission."""
+    """One telemetry row produced per Submission.
+
+    Every field is named after the `telemetry_logs` column it expects, which is what
+    lets `_assert_telemetry` check the row by name instead of by position.
+    """
 
     is_correct: bool
     user_input: str
+    chapter_id: int
     chapter: str
+    topic_id: int
     topic: str
     level_number: int
-    is_input_mode: bool
+    input_mode: InputMode
+    play_mode: PlayModeName
+    streak_before_answer: int
+    flawless_eligible: bool
+    frontier_relation: FrontierRelation
     answer_outcome: str | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
+    trap_source: TrapSource | None = None
 
 
 def _fresh_state(
@@ -203,11 +216,23 @@ def _soft_error_problem() -> dict[str, Any]:
     }
 
 
+def _unit_dimension_trap_problem() -> dict[str, Any]:
+    """A Geometria-shaped problem whose wrong-dimension answer the grader itself
+    turns into a Trap (ADR-0005) — no `options_map`/`messages` needed, since the
+    grader synthesizes the Trap rather than looking one up."""
+    return {
+        "problem_id": "p-unit-trap",
+        "question": "q",
+        "correct": "84",
+        "expected_unit": "cm²",
+    }
+
+
 def _submit(
     state: SessionState,
     problem: dict[str, Any],
     user_input: str,
-    is_input_mode: bool,
+    input_mode: InputMode,
     curriculum: Curriculum,
     play_mode: StudentPlayMode | AdminPlayMode,
 ) -> dict[str, Any]:
@@ -215,7 +240,7 @@ def _submit(
     state.problem_start_time = 0
     session_state.persist(state, play_mode)
     return submission.run_submission_cycle(
-        state, problem, user_input, is_input_mode, curriculum, play_mode
+        state, problem, user_input, input_mode, curriculum, play_mode
     )
 
 
@@ -228,14 +253,13 @@ def _telemetry_count(session_id: str) -> int:
     return int(row[0])
 
 
-def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
+def _latest_telemetry(session_id: str) -> dict[str, Any]:
+    """Return the newest telemetry row for a session, keyed by column name."""
     with sqlite3.connect(db.DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
         row = conn.execute(
             """
-            SELECT problem_snapshot, is_correct, user_input, chapter, topic,
-                   level_number, is_input_mode, answer_outcome, misconception_slug,
-                   trap_slug
-            FROM telemetry_logs
+            SELECT * FROM telemetry_logs
             WHERE session_id = ?
             ORDER BY log_id DESC
             LIMIT 1
@@ -243,7 +267,7 @@ def _latest_telemetry(session_id: str) -> tuple[Any, ...]:
             (session_id,),
         ).fetchone()
     assert row is not None, "expected one telemetry row for session"
-    return row
+    return dict(row)
 
 
 def _assert_session(state: SessionState, expected: ExpectedSession) -> None:
@@ -267,21 +291,16 @@ def _assert_telemetry(
     problem: dict[str, Any],
     expected: ExpectedTelemetry,
 ) -> None:
+    """Assert the newest telemetry row matches `expected`, column by column."""
     row = _latest_telemetry(session_id)
-    stored = json.loads(row[0])
+    stored = json.loads(row["problem_snapshot"])
     for key in _TELEMETRY_STRIP_KEYS:
         assert key not in stored
     assert stored["question"] == problem["question"]
     assert stored["correct"] == problem["correct"]
-    assert row[1] == (1 if expected.is_correct else 0)
-    assert row[2] == expected.user_input
-    assert row[3] == expected.chapter
-    assert row[4] == expected.topic
-    assert row[5] == expected.level_number
-    assert row[6] == (1 if expected.is_input_mode else 0)
-    assert row[7] == expected.answer_outcome
-    assert row[8] == expected.misconception_slug
-    assert row[9] == expected.trap_slug
+    for column, value in asdict(expected).items():
+        # SQLite stores the boolean columns as 0/1, which compare equal to False/True.
+        assert row[column] == value, f"telemetry column {column}"
 
 
 def _assert_admin_profile_unchanged(
@@ -334,7 +353,7 @@ def test_correct_answer_updates_session_and_logs_telemetry(
     problem = _correct_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is True
     _assert_session(
@@ -360,10 +379,16 @@ def test_correct_answer_updates_session_and_logs_telemetry(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=0,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
         ),
     )
     loaded = db.load_user(_username(state))
@@ -381,7 +406,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
     problem = _wrong_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "3", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "3", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is not True
     _assert_session(
@@ -407,12 +432,19 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
         ExpectedTelemetry(
             is_correct=False,
             user_input="3",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             answer_outcome="trap",
             trap_slug="w1",
+            trap_source="authored",
         ),
     )
 
@@ -425,7 +457,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
     problem = _soft_error_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "2/4", True, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2/4", "typing", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is None
     _assert_session(
@@ -451,11 +483,78 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         ExpectedTelemetry(
             is_correct=False,
             user_input="2/4",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=True,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             answer_outcome="unsimplified",
+        ),
+    )
+
+
+# --- Trap source (#257) ---
+
+
+def test_resolve_trap_source_is_absent_without_a_trap():
+    assert submission._resolve_trap_source({"answer_outcome": "wrong"}) is None
+
+
+def test_resolve_trap_source_is_authored_for_a_plain_trap_slug():
+    assert (
+        submission._resolve_trap_source({"trap_slug": "w1", "answer_outcome": "trap"})
+        == "authored"
+    )
+
+
+def test_resolve_trap_source_is_synthesized_when_the_grader_names_its_own_misconception():
+    eval_result = {
+        "trap_slug": config.UNIT_DIMENSION_TRAP_SLUG,
+        "misconception_slug": config.UNIT_DIMENSION_MISCONCEPTION,
+        "answer_outcome": "trap",
+    }
+    assert submission._resolve_trap_source(eval_result) == "synthesized"
+
+
+def test_synthesized_unit_trap_logs_trap_source_synthesized(
+    fixture_curriculum: Curriculum,
+):
+    """Acceptance: the synthesized route is reachable via a wrong-dimension Unit
+    on a Geometria Level, and the stored row is proven directly."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _unit_dimension_trap_problem()
+    telemetry_before = _telemetry_count(state.session_id)
+
+    result = _submit(state, problem, "84 cm", "typing", fixture_curriculum, _STUDENT)
+
+    assert result["trap_slug"] == config.UNIT_DIMENSION_TRAP_SLUG
+    assert result["misconception_slug"] == config.UNIT_DIMENSION_MISCONCEPTION
+    assert _telemetry_count(state.session_id) == telemetry_before + 1
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            is_correct=False,
+            user_input="84 cm",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="trap",
+            misconception_slug=config.UNIT_DIMENSION_MISCONCEPTION,
+            trap_slug=config.UNIT_DIMENSION_TRAP_SLUG,
+            trap_source="synthesized",
         ),
     )
 
@@ -470,7 +569,7 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
     problem = _trap_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "1/3", True, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "1/3", "typing", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is None
     _assert_session(
@@ -496,12 +595,19 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
         ExpectedTelemetry(
             is_correct=False,
             user_input="1/3",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=True,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
             answer_outcome="trap",
             trap_slug="t1",
+            trap_source="authored",
         ),
     )
 
@@ -523,7 +629,7 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
     base_xp = config.XP_REWARDS[1]
     expected_xp = base_xp + config.FLAWLESS_LEVEL_BONUS
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is True
     _assert_session(
@@ -548,10 +654,16 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
         ),
     )
 
@@ -569,7 +681,7 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
     )
     problem = _correct_problem()
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _STUDENT)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
     assert result.get("is_correct") is True
     _assert_session(
@@ -594,10 +706,16 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=2,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
         ),
     )
 
@@ -606,11 +724,17 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
 
 
 @pytest.mark.parametrize(
-    ("selected_topic_id", "selected_level", "initial_streak", "expect_streak"),
+    (
+        "selected_topic_id",
+        "selected_level",
+        "initial_streak",
+        "expect_streak",
+        "expect_relation",
+    ),
     [
-        (TOPIC_MULTI, 2, 0, 1),
-        (TOPIC_RADIO, 1, 0, 1),
-        (TOPIC_MULTI, 1, 1, 2),
+        (TOPIC_MULTI, 2, 0, 1, "behind_frontier"),
+        (TOPIC_RADIO, 1, 0, 1, "at_frontier"),
+        (TOPIC_MULTI, 1, 1, 2, "behind_frontier"),
     ],
 )
 def test_admin_correct_increments_session_streak_without_profile_writes(
@@ -619,6 +743,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     selected_level: int,
     initial_streak: int,
     expect_streak: int,
+    expect_relation: FrontierRelation,
 ):
     state, baseline = _admin_state_at(
         fixture_curriculum,
@@ -632,7 +757,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     problem = _correct_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
-    result = _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    result = _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
 
     assert result.get("is_correct") is True
     assert "XP" not in (state.feedback_msg or "")
@@ -659,10 +784,16 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=selected_topic_id,
             topic=fixture_curriculum.topic_name(CHAPTER_ALPHA, selected_topic_id) or "",
             level_number=selected_level,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="admin",
+            streak_before_answer=initial_streak,
+            flawless_eligible=True,
+            frontier_relation=expect_relation,
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)
@@ -681,7 +812,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
     )
     problem = _wrong_problem()
 
-    _submit(state, problem, "3", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "3", "radio", fixture_curriculum, _ADMIN)
 
     _assert_session(
         state,
@@ -705,18 +836,25 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
         ExpectedTelemetry(
             is_correct=False,
             user_input="3",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=2,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="admin",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="behind_frontier",
             answer_outcome="trap",
             trap_slug="w1",
+            trap_source="authored",
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)
 
 
-def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
+def test_admin_ahead_of_unlock_reaches_typing_mode_after_streak_threshold(
     fixture_curriculum: Curriculum,
 ):
     state, _baseline = _admin_state_at(
@@ -728,9 +866,9 @@ def test_admin_ahead_of_unlock_reaches_input_mode_after_streak_threshold(
         streak=0,
     )
 
-    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "input"
+    assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
 
 def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
@@ -745,7 +883,7 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
         streak=2,
     )
 
-    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
     assert state.streak == 3
     _assert_admin_profile_unchanged(state, baseline)
@@ -761,7 +899,7 @@ def test_admin_trap_answer_sets_warning_feedback_type(fixture_curriculum: Curric
         streak=2,
     )
 
-    _submit(state, _trap_problem(), "1/3", True, fixture_curriculum, _ADMIN)
+    _submit(state, _trap_problem(), "1/3", "typing", fixture_curriculum, _ADMIN)
 
     assert state.feedback_type == "warning"
     assert state.streak == 1
@@ -778,7 +916,7 @@ def test_admin_soft_error_preserves_session_streak(fixture_curriculum: Curriculu
         streak=2,
     )
 
-    _submit(state, _soft_error_problem(), "2/4", True, fixture_curriculum, _ADMIN)
+    _submit(state, _soft_error_problem(), "2/4", "typing", fixture_curriculum, _ADMIN)
 
     assert state.feedback_type == "info"
     assert state.streak == 2
@@ -797,7 +935,7 @@ def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
         streak=2,
     )
 
-    _submit(state, _correct_problem(), "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
     assert state.streak == 3
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
@@ -816,7 +954,7 @@ def test_admin_resets_streak_at_stored_frontier_boundary(
     )
     problem = _correct_problem()
 
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
 
     _assert_session(
         state,
@@ -840,10 +978,16 @@ def test_admin_resets_streak_at_stored_frontier_boundary(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
             topic="Multi Level Topic",
             level_number=1,
-            is_input_mode=False,
+            input_mode="radio",
+            play_mode="admin",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="behind_frontier",
         ),
     )
     _assert_admin_profile_unchanged(state, baseline)
@@ -862,17 +1006,17 @@ def test_admin_level_completion_sequence_leaves_stored_frontier_unchanged(
     )
     problem = _correct_problem()
 
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
     assert state.streak == 1
     _assert_admin_profile_unchanged(state, baseline)
 
     state.problem_answered = False
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
     assert state.streak == 2
     _assert_admin_profile_unchanged(state, baseline)
 
     state.problem_answered = False
-    _submit(state, problem, "2", False, fixture_curriculum, _ADMIN)
+    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
     assert state.streak == 0
     assert state.level_completed is False
     assert state.selected_level == 1

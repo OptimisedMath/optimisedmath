@@ -30,6 +30,7 @@ export type {
   DeconstructionView,
   Feedback,
   FeedbackPhase,
+  InputMode,
   NavigateIntent,
   NavigationChapterOption,
   NavigationProgress,

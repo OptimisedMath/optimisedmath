@@ -8,6 +8,7 @@ from backend.unlock import (
     Frontier,
     FrontierUpdate,
     accessible_topics,
+    frontier_relation,
     increase_frontier_on_mastery,
     is_reachable,
     chapter_max_frontier,
@@ -64,6 +65,26 @@ def test_can_access_allows_replaying_completed_topic():
     frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
     assert is_reachable(10, 3, frontier) is True
+
+
+@pytest.mark.parametrize(
+    ("topic_id", "level", "expected"),
+    [
+        (20, 2, "at_frontier"),
+        (20, 1, "behind_frontier"),
+        (10, 2, "behind_frontier"),
+        (10, 3, "behind_frontier"),
+    ],
+)
+def test_frontier_relation_names_only_the_exact_frontier_position(
+    topic_id, level, expected
+):
+    """Only the Frontier's own Topic *and* Level is At; every other Reachable
+    position — earlier Level, earlier Topic, even a later Level of an earlier
+    Topic — is Behind."""
+    frontier = Frontier(frontier_topic_id=20, frontier_level=2)
+
+    assert frontier_relation(topic_id, level, frontier) == expected
 
 
 def test_chapter_max_frontier_uses_last_topic_and_its_max_level():

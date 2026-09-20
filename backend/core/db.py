@@ -80,16 +80,23 @@ def init_db() -> None:
                 session_id TEXT NOT NULL,
                 username TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                play_mode TEXT NOT NULL,
+                chapter_id INTEGER NOT NULL,
                 chapter TEXT NOT NULL,
+                topic_id INTEGER NOT NULL,
                 topic TEXT NOT NULL,
                 level_number INTEGER NOT NULL,
-                is_input_mode BOOLEAN NOT NULL,
+                input_mode TEXT NOT NULL,
+                streak_before_answer INTEGER NOT NULL,
+                flawless_eligible BOOLEAN NOT NULL,
+                frontier_relation TEXT NOT NULL,
                 answer_outcome TEXT,
                 misconception_slug TEXT,
                 trap_slug TEXT,
+                trap_source TEXT,
                 is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
-                time_spent_seconds INTEGER,
+                time_spent_ms INTEGER,
                 problem_snapshot TEXT,
                 problem_id TEXT,
                 FOREIGN KEY (username) REFERENCES users(username)
@@ -107,6 +114,12 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_telemetry_deconstruction_trigger
+            ON telemetry_logs(
+                session_id, misconception_slug, chapter_id, topic_id, level_number
+            )
+            """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstructions (
                 deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,6 +154,40 @@ def init_db() -> None:
         conn.commit()
 
 
+# Every telemetry_logs column `log_telemetry` writes, in INSERT order. The INSERT
+# statement below is built from this list, and `_drop_stale_telemetry_table` reads
+# it as the shape a pre-existing table has to match — so a new telemetry column is
+# added here and to the `CREATE TABLE` above, and nowhere else.
+_TELEMETRY_COLUMNS = (
+    "session_id",
+    "username",
+    "play_mode",
+    "chapter_id",
+    "chapter",
+    "topic_id",
+    "topic",
+    "level_number",
+    "input_mode",
+    "streak_before_answer",
+    "flawless_eligible",
+    "frontier_relation",
+    "answer_outcome",
+    "misconception_slug",
+    "trap_slug",
+    "trap_source",
+    "is_correct",
+    "user_input",
+    "time_spent_ms",
+    "problem_snapshot",
+    "problem_id",
+)
+
+_INSERT_TELEMETRY_SQL = (
+    f"INSERT INTO telemetry_logs ({', '.join(_TELEMETRY_COLUMNS)}) "
+    f"VALUES ({', '.join('?' * len(_TELEMETRY_COLUMNS))})"
+)
+
+
 def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
     """Drop `users.streak`, retired by ADR-0006 — Streak is Session-only, never
     persisted on the profile. Other profile fields on pre-existing rows are kept.
@@ -151,10 +198,10 @@ def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
 
 
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs if it predates the misconception_slug/trap_slug/problem_id/
-    problem_snapshot columns.
+    """Drop telemetry_logs if it predates any column `log_telemetry` now writes.
 
-    Pre-existing telemetry rows are dropped, not migrated, when the schema changes shape.
+    Pre-existing telemetry rows are dropped, not migrated, when the schema changes
+    shape — adding a column to `_TELEMETRY_COLUMNS` is what makes that happen.
     """
     table_exists = cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
@@ -162,8 +209,7 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    required = {"misconception_slug", "trap_slug", "problem_id", "problem_snapshot"}
-    if not required.issubset(columns):
+    if not set(_TELEMETRY_COLUMNS).issubset(columns):
         cursor.execute("DROP TABLE telemetry_logs")
 
 
@@ -289,48 +335,62 @@ def save_user(username: str, state: SessionState) -> None:
 
 
 def log_telemetry(
+    *,
     session_id: str,
     username: str,
+    play_mode: str,
+    chapter_id: int,
     chapter_name: str,
+    topic_id: int,
     topic_name: str,
     level_number: int,
-    is_input_mode: bool,
+    input_mode: str,
+    streak_before_answer: int,
+    flawless_eligible: bool,
+    frontier_relation: str,
     is_correct: bool,
     user_input: str | None = None,
     answer_outcome: str | None = None,
     misconception_slug: str | None = None,
     trap_slug: str | None = None,
-    time_spent_seconds: int | None = None,
+    trap_source: str | None = None,
+    time_spent_ms: int | None = None,
     problem_snapshot: str | None = None,
     problem_id: str | None = None,
 ) -> None:
-    """Record one answer attempt for analytics and debugging."""
+    """Record one answer attempt for analytics and debugging.
+
+    Keyword-only: the row is too wide, and too many of its columns share a type,
+    for a positional call to be readable or safe at the call site.
+    """
+    row: dict[str, object] = {
+        "session_id": session_id,
+        "username": username,
+        "play_mode": play_mode,
+        "chapter_id": chapter_id,
+        "chapter": chapter_name,
+        "topic_id": topic_id,
+        "topic": topic_name,
+        "level_number": level_number,
+        "input_mode": input_mode,
+        "streak_before_answer": streak_before_answer,
+        "flawless_eligible": flawless_eligible,
+        "frontier_relation": frontier_relation,
+        "answer_outcome": answer_outcome,
+        "misconception_slug": misconception_slug,
+        "trap_slug": trap_slug,
+        "trap_source": trap_source,
+        "is_correct": is_correct,
+        "user_input": str(user_input) if user_input is not None else None,
+        "time_spent_ms": time_spent_ms,
+        "problem_snapshot": problem_snapshot,
+        "problem_id": problem_id,
+    }
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            """
-            INSERT INTO telemetry_logs (
-                session_id, username, chapter, topic, level_number, is_input_mode,
-                answer_outcome, misconception_slug, trap_slug, is_correct, user_input,
-                time_spent_seconds, problem_snapshot, problem_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                session_id,
-                username,
-                chapter_name,
-                topic_name,
-                level_number,
-                is_input_mode,
-                answer_outcome,
-                misconception_slug,
-                trap_slug,
-                is_correct,
-                str(user_input) if user_input is not None else None,
-                time_spent_seconds,
-                problem_snapshot,
-                problem_id,
-            ),
+            _INSERT_TELEMETRY_SQL,
+            tuple(row[column] for column in _TELEMETRY_COLUMNS),
         )
         conn.commit()
 
@@ -341,15 +401,17 @@ def log_telemetry(
 def count_misconception_hits(
     session_id: str,
     misconception_slug: str,
-    chapter_name: str,
-    topic_name: str,
+    chapter_id: int,
+    topic_id: int,
     level_number: int,
 ) -> int:
     """Count this Session's telemetry hits for one Misconception at one Level.
 
     The per-Level hit counter the trigger reads is derived from `telemetry_logs`
     rather than stored on `SessionState` — a Level change naturally starts it
-    fresh, since rows for a different Level never match this query.
+    fresh, since rows for a different Level never match this query. Keyed on
+    Chapter and Topic id, not display name, so renaming a Topic mid-Session
+    cannot split its hit count in two.
     """
     with get_connection() as conn:
         cursor = conn.cursor()
@@ -357,9 +419,9 @@ def count_misconception_hits(
             """
             SELECT COUNT(*) FROM telemetry_logs
             WHERE session_id = ? AND misconception_slug = ?
-              AND chapter = ? AND topic = ? AND level_number = ?
+              AND chapter_id = ? AND topic_id = ? AND level_number = ?
             """,
-            (session_id, misconception_slug, chapter_name, topic_name, level_number),
+            (session_id, misconception_slug, chapter_id, topic_id, level_number),
         )
         return int(cursor.fetchone()[0])
 
