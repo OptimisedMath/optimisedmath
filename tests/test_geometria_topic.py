@@ -48,7 +48,7 @@ class TestSceneInvariant:
             assert figure.p("C")[0] < 0
 
     def test_an_unknown_height_is_named_h(self):
-        """#293: the height's symbol is fixed, not pooled."""
+        """#293: the height is always `h`, never one of the edge letters."""
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         altitude = Altitude(apex="C", base="AB", unknown=True)
         svg = Scene(figure, [Outline(), altitude]).to_svg()
@@ -61,11 +61,12 @@ class TestSceneInvariant:
         svg = Scene(
             figure, [Outline(), Altitude(apex="C", base="AB", unit_label="cm")]
         ).to_svg()
+        assert ">12 cm<" in svg
         assert ">h<" not in svg
 
     def test_unknown_edges_are_named_a_b_c_in_figure_order(self):
-        """#293: pooled letters are gone — each unknown edge claims the next letter
-        in the order its EdgeLabel was drawn."""
+        """#293: each unknown edge claims the next letter, in the order its
+        EdgeLabel is drawn."""
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         ab = EdgeLabel("AB", "cm", unknown=True)
         bc = EdgeLabel("BC", "cm", unknown=True)

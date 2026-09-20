@@ -42,11 +42,14 @@ MUTED = "#94a3b8"
 #: Letters claimed by unknown edge lengths, in figure order (#293).
 _EDGE_SYMBOLS = "abcdefghijklmnopqrstuvwxyz"
 
-#: An unknown symbol opts out of the figure's upright sans stack — italic and
-#: serif, so it reads as a variable the way the question prose's KaTeX does,
-#: without naming a KaTeX webfont the backend has no business knowing about.
-_UPRIGHT_FONT = "system-ui, -apple-system, sans-serif"
-_ITALIC_FONT = "Georgia, 'Times New Roman', serif"
+#: Numbers, Units and vertex names — the figure's own voice.
+_KNOWN_FONT = 'font-family="system-ui, -apple-system, sans-serif"'
+
+#: An unknown symbol opts out of that upright sans stack — italic and serif, so
+#: it reads as a variable the way the question prose's KaTeX does, without
+#: naming a KaTeX webfont the backend has no business knowing about. The two
+#: attributes travel together: serif alone would not read as a variable.
+_UNKNOWN_FONT = 'font-family="Georgia, \'Times New Roman\', serif" font-style="italic"'
 
 
 def _fmt(v: float) -> str:
@@ -82,7 +85,8 @@ class Label:
     gap: float
     half_w: float
     half_h: float
-    italic: bool = False
+    #: withheld values are drawn as variables, in `_UNKNOWN_FONT`
+    unknown: bool = False
 
     def reach(self) -> float:
         """Half-extent of the glyph box along the placement direction, so the
@@ -175,10 +179,10 @@ class Ctx:
         inward = b if self.fig.is_convex_at(v) else mul(b, -1)
         return mul(inward, -1)
 
-    def next_edge_symbol(self) -> str:
-        """The next letter for an unknown edge length, `a` then `b`, `c` — figure
-        order, because each `EdgeLabel` claims one as it renders and annotations
-        render in the order the generator listed them."""
+    def claim_edge_symbol(self) -> str:
+        """Take the next letter for an unknown edge length — `a`, then `b`, `c`.
+        Figure order, because each `EdgeLabel` claims one as it renders and
+        annotations render in the order the generator listed them."""
         symbol = _EDGE_SYMBOLS[self.edge_symbol_count]
         self.edge_symbol_count += 1
         return symbol
@@ -248,7 +252,7 @@ class Ctx:
         color: str = INK,
         scale: float = 1.0,
         gap: float = 1.6,
-        italic: bool = False,
+        unknown: bool = False,
     ) -> None:
         """Rule 1. Request a label placed outside the figure along `direction`.
 
@@ -268,7 +272,7 @@ class Ctx:
                 gap=gap,
                 half_w=0.30 * size * max(1, len(label)),
                 half_h=0.58 * size,
-                italic=italic,
+                unknown=unknown,
             )
         )
 
@@ -317,11 +321,10 @@ class Ctx:
             placed.append(best_box)
             cx = (best_box[0] + best_box[2]) / 2
             cy = (best_box[1] + best_box[3]) / 2
-            family = _ITALIC_FONT if lab.italic else _UPRIGHT_FONT
-            style = ' font-style="italic"' if lab.italic else ""
+            font = _UNKNOWN_FONT if lab.unknown else _KNOWN_FONT
             self.parts.append(
                 f'<text x="{cx:.3f}" y="{-cy:.3f}" fill="{lab.color}" font-size="{lab.size:.3f}" '
-                f'font-family="{family}" font-weight="600"{style} '
+                f'{font} font-weight="600" '
                 f'text-anchor="middle" dominant-baseline="central">{lab.text}</text>'
             )
             self.include((best_box[0], best_box[1]), (best_box[2], best_box[3]))
@@ -424,11 +427,9 @@ class EdgeLabel(Annotation):
     The text is DERIVED from the constructed edge, so it cannot contradict the
     picture. `unknown` withholds the value and prints a letter instead — the
     only supported way to withhold it, and the generator still cannot print a
-    *different* number. The letter is claimed from `Ctx.next_edge_symbol` at
-    render time — `a`, then `b`, `c` in figure order — and kept on
-    `unknown_text` so a generator can read the exact symbol the figure drew,
-    for the question prose to name the same one. A caller may also pin a
-    specific letter up front by setting `unknown_text` itself.
+    *different* number. The letter is claimed on first render — `a`, then `b`,
+    `c` in figure order — and pinned to `unknown_text`, so a generator reads
+    the symbol the figure drew instead of naming it a second time (#293).
     """
 
     edge: str
@@ -438,10 +439,13 @@ class EdgeLabel(Annotation):
     inside: bool = False
 
     def text_for(self, ctx: Ctx) -> str:
-        """The label's text, read off the constructed edge unless withheld."""
+        """The label's text, read off the constructed edge unless withheld.
+
+        Claims and pins `unknown_text` the first time a withheld label renders.
+        """
         if self.unknown:
             if self.unknown_text is None:
-                self.unknown_text = ctx.next_edge_symbol()
+                self.unknown_text = ctx.claim_edge_symbol()
             return self.unknown_text
         value = _fmt(ctx.fig.edge_length(self.edge))
         return f"{value} {self.unit_label}".strip()
@@ -452,7 +456,7 @@ class EdgeLabel(Annotation):
         n = ctx.outward_normal(self.edge)
         if self.inside:
             n = mul(n, -1)
-        ctx.text(mid, n, self.text_for(ctx), italic=self.unknown)
+        ctx.text(mid, n, self.text_for(ctx), unknown=self.unknown)
 
 
 #: #212 found the placement floor by scanning: below this, `place_labels` cannot
@@ -583,10 +587,10 @@ class Altitude(Annotation):
     case of Topic 130 — it also draws the dotted base extension, because the
     figure is wrong without it.
 
-    `unknown` withholds the length and prints `unknown_text` instead — `h`,
-    always: unlike an unknown edge, the height's symbol is fixed rather than
-    pooled, so a generator reads `unknown_text` off the annotation for its
-    question prose rather than hardcoding the letter a second time.
+    `unknown` withholds the length and prints `h` instead — always that letter,
+    never claimed from the edge letters. It is kept on `unknown_text` so a
+    generator reads the symbol off the annotation, the same way it reads one
+    off an `EdgeLabel`, instead of naming it a second time in its prose (#293).
     """
 
     apex: str
@@ -645,7 +649,7 @@ class Altitude(Annotation):
                 if self.unknown
                 else f"{_fmt(norm(sub(p, foot)))} {self.unit_label}".strip()
             )
-            ctx.text(mid, n, text, color=ACCENT, scale=0.9, italic=self.unknown)
+            ctx.text(mid, n, text, color=ACCENT, scale=0.9, unknown=self.unknown)
 
 
 @dataclass
