@@ -34,6 +34,14 @@ def test_frac_pow_trap_multiplies_only_the_numerator(name):
         n, d, p = parameters["n"], parameters["d"], parameters["p"]
         question_fraction, _ = format_answers(n, d)
         expected_trap, _ = format_answers(n * p, d)
+        raises_only_trap, _ = format_answers(n**p, d)
+
+        if expected_trap == raises_only_trap:
+            # n**p == n*p (only n=2, p=2 in these domains): the two Traps
+            # collide, and ADR-0008's declaration order keeps
+            # `raises_only_the_numerator`, its earlier-declared neighbour,
+            # instead — this draw's slot goes to a Filler.
+            continue
 
         assert (
             problem["options_map"].get(expected_trap) == "multiplies_by_the_exponent"
