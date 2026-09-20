@@ -116,17 +116,26 @@ def public_problem(
     if image_html and not _is_safe_svg_fragment(str(image_html)):
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
+    expected_unit = problem.get("expected_unit")
     if state.current_input_mode == "radio":
         # Radio mode only. The client appends this to all four buttons, so the
         # Student reads `24 cm²` but the Unit can never be the discriminator
         # (#213). Printing it beside a text input would hand away the very
         # distinction `confuses_length_and_area_units` exists to detect.
-        expected_unit = problem.get("expected_unit")
         if expected_unit:
             public["expected_unit"] = expected_unit
+    # Radio's `correct_answer` stays bare even when a Unit is expected: it is
+    # matched against `answer_options`, which ADR-0005 keeps bare so the Unit
+    # can never be the discriminator, and the highlighted option already shows
+    # the Unit via `expected_unit` above. Only typing mode's reveal — the one
+    # a Student can retype — needs to agree with what the grader accepts.
+    units_this_reveal = expected_unit if state.current_input_mode == "typing" else None
     if state.problem_answered:
         if state.deconstruction is None:
-            public["correct_answer"] = problem.get("correct")
+            correct_answer = problem.get("correct")
+            if correct_answer is not None and units_this_reveal:
+                correct_answer = f"{correct_answer} {units_this_reveal}"
+            public["correct_answer"] = correct_answer
         # else: a triggering Submission withholds it — the walkthrough still
         # has something to arrive at. Withholding is a spoiler rule only; the
         # client learns a Deconstruction is running from
@@ -136,9 +145,10 @@ def public_problem(
         correct = problem.get("correct")
         if correct is not None:
             if state.current_input_mode == "typing":
-                public["correct_answer"] = clean_latex(correct)
-            else:
-                public["correct_answer"] = correct
+                correct = clean_latex(correct)
+            if units_this_reveal:
+                correct = f"{correct} {units_this_reveal}"
+            public["correct_answer"] = correct
     return public
 
 
