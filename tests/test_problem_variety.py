@@ -33,7 +33,6 @@ NUMBER_LINE_GENERATORS = {name for name in FUNCTION_REGISTRY if "number_line" in
 PENDING_TRIAGE = {
     "frac_pow_2",
     "dec_pow_1",
-    "frac_ord_6",
     "dec_to_frac_4",
     "frac_ord_5",
     "frac_pow_3",
