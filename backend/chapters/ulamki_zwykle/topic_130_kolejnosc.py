@@ -69,6 +69,11 @@ def frac_ord_1() -> dict | None:
             "flattens_to_all_subtraction": a - b - c,
             "replaces_multiplication_with_addition": a - b + c,
         }
+        # Ułamki Zwykłe forbids negative options (ADR-0007), so a draw where
+        # all three Traps go negative offers none of them — the template
+        # would test nothing (#272).
+        if all(value < 0 for value in traps.values()):
+            return None
 
     problem = build_problem_dict(
         q,

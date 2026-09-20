@@ -7,8 +7,9 @@ combinations came out negative, and `dec_order_5`'s `(a + b)² − c` went negat
 half its draws (#242). Their Ułamki Zwykłe counterparts already discarded such a
 roll, so the defect was one generator disagreeing with its sibling.
 
-Traps are deliberately exempt — a Student who multiplies before squaring may well
-land on a negative number, and hiding that would remove the Trap.
+This test checks the correct answer only. A Trap or Filler that would be
+negative in these Chapters is never offered — `build_problem_dict` skips it
+(ADR-0007) — so it needs no sweep of its own.
 """
 
 import pytest
