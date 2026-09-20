@@ -116,20 +116,24 @@ def dec_to_frac_3() -> dict | None:
 def dec_to_frac_4() -> dict | None:
     """Ze zwykłego na dziesiętny (dzielenie) (poziom 4)."""
     d = random.choice([3, 9])
-    n = random.randint(1, d - 1)
+    n = random.randint(1, 2 * d - 1)
+    if n % d == 0:
+        return None
+
+    w, r = divmod(n, d)
 
     q_str = rf"\text{{Rozwiń ułamek: }} \frac{{{n}}}{{{d}}}"
 
-    val = int((n / d) * 10)
-    c_str = f"0,({val})"
+    val = int((r / d) * 10)
+    c_str = f"{w},({val})"
 
     problem = build_problem_dict(
         q_str,
         c_str,
         traps={
-            "omits_the_period_brackets": f"0,{val}",
-            "adds_a_leading_zero_before_the_period": f"0,0({val})",
-            "gets_the_period_digit_wrong": f"0,({val + 1})",
+            "omits_the_period_brackets": f"{w},{val}",
+            "adds_a_leading_zero_before_the_period": f"{w},0({val})",
+            "gets_the_period_digit_wrong": f"{w},({val + 1})",
         },
         parameters={"n": n, "d": d},
     )
