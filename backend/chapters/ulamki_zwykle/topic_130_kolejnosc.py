@@ -283,6 +283,8 @@ def frac_ord_5() -> dict | None:
 def frac_ord_6() -> dict | None:
     """Wszystko Naraz (poziom 6)."""
     # Poziom 6: nawias, potęgowanie, mnożenie i odejmowanie w jednym działaniu
+    # A non-unit `a` and a small `d` are what keep every Trap positive, as
+    # ADR-0007 requires; on unit fractions two of the three were always negative.
     a = random.choice([Fraction(2, 3), Fraction(3, 4)])
     b = random.choice([Fraction(1, 2), Fraction(1, 3)])
     c = random.choice([Fraction(1, 2), Fraction(1, 3)])
