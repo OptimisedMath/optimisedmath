@@ -243,7 +243,7 @@ def frac_ord_5() -> dict | None:
 
     if template == "brack_sq_sub":
         a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
-        c = Fraction(1, random.choice([2, 3, 4]))
+        c = Fraction(1, random.choice([2, 3, 4, 5]))
         q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}})^2 - \\frac{{{c.numerator}}}{{{c.denominator}}}"
         ans = ((a + b) ** 2) - c
         if ans < 0:
@@ -256,7 +256,7 @@ def frac_ord_5() -> dict | None:
     else:
         a = Fraction(1, random.choice([2, 3]))
         b = Fraction(3, random.choice([4, 5]))
-        c = Fraction(1, random.choice([4, 5]))
+        c = Fraction(1, random.choice([4, 5, 6]))
         q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} - \\frac{{{c.numerator}}}{{{c.denominator}}})^2"
         ans = a * ((b - c) ** 2)
         traps = {
