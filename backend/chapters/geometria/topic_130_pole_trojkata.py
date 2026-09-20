@@ -52,11 +52,11 @@ def _int_sqrt(n: int) -> int | None:
 
 
 def _distinct(*values: int) -> bool:
-    """Whether every option value differs — a collision would drop the Problem."""
+    """Whether every option value differs — a collision would cost a Trap its slot."""
     return len(set(values)) == len(values)
 
 
-def _side_read_as_height(base: int, side_a: int, side_b: int) -> int:
+def _side_read_as_height(side_a: int, side_b: int) -> int:
     """The labelled side a Student is likeliest to multiply by instead of the height.
 
     The longer side, which is the one the dashed altitude runs nearest to.
@@ -211,7 +211,7 @@ def geo_triangle_area_1() -> dict | None:
         ],
     ).to_svg()
 
-    side_as_height = _side_read_as_height(base, side_a, side_b)
+    side_as_height = _side_read_as_height(side_a, side_b)
     return _area_problem(
         _FORWARD_QUESTION,
         svg,
@@ -258,7 +258,7 @@ def geo_triangle_area_2() -> dict | None:
         base=base,
         height=height,
         sides=(height, hypotenuse),
-        side_as_height=_side_read_as_height(base, height, hypotenuse),
+        side_as_height=_side_read_as_height(height, hypotenuse),
         unit=unit,
         parameters={
             "base": base,
@@ -290,7 +290,7 @@ def geo_triangle_area_3() -> dict | None:
         ],
     ).to_svg()
 
-    side_as_height = _side_read_as_height(base, side_a, side_b)
+    side_as_height = _side_read_as_height(side_a, side_b)
     return _area_problem(
         _FORWARD_QUESTION,
         svg,

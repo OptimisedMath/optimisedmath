@@ -37,22 +37,16 @@ EXEMPT_GENERATORS = frozenset(
 def _functions_passing_fillers(source: str, path: Path) -> set[str]:
     """Every function name whose body passes a `fillers=` keyword argument."""
     tree = ast.parse(source, filename=str(path))
-    found: set[str] = set()
-    stack: list[str] = []
-
-    class Visitor(ast.NodeVisitor):
-        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-            stack.append(node.name)
-            self.generic_visit(node)
-            stack.pop()
-
-        def visit_Call(self, node: ast.Call) -> None:
-            if stack and any(kw.arg == "fillers" for kw in node.keywords):
-                found.add(stack[-1])
-            self.generic_visit(node)
-
-    Visitor().visit(tree)
-    return found
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and any(
+            isinstance(call, ast.Call)
+            and any(kw.arg == "fillers" for kw in call.keywords)
+            for call in ast.walk(node)
+        )
+    }
 
 
 _CHAPTER_FILES = sorted(CHAPTERS_DIR.rglob("topic_*.py"))
