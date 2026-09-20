@@ -1,5 +1,6 @@
 """Shared formatting, parsing, and problem-dict utilities for generators."""
 
+import math
 import uuid
 import re
 import random
@@ -113,6 +114,204 @@ def declared_units(func: Any) -> tuple[str, ...]:
     return getattr(func, "expected_units", ())
 
 
+# --- Filler generation (ADR-0009) ---
+
+_MAX_TRAPS = 3
+_FILLER_DELTAS = (-3, -2, -1, 1, 2, 3)
+
+_MIXED_RE = re.compile(r"^(-?)(\d+)\\frac\{(\d+)\}\{(\d+)\}$")
+_FRACTION_RE = re.compile(r"^(-?)\\frac\{(\d+)\}\{(\d+)\}$")
+_SLASH_RE = re.compile(r"^(-?)(\d+)/(\d+)$")
+_DECIMAL_RE = re.compile(r"^(-?\d+),(\d+)$")
+_WHOLE_RE = re.compile(r"^-?\d+$")
+
+
+def _is_negative_option(value: str) -> bool:
+    return value.lstrip().startswith("-")
+
+
+def _in_lowest_terms(numerator: int, denominator: int) -> bool:
+    return math.gcd(numerator, denominator) == 1
+
+
+def _answer_form(value: str) -> str:
+    """Which of the five forms in ADR-0009's table `value` is written in."""
+    if _MIXED_RE.fullmatch(value):
+        return "mixed"
+    if _FRACTION_RE.fullmatch(value):
+        return "fraction"
+    if _SLASH_RE.fullmatch(value):
+        return "slash"
+    if _DECIMAL_RE.fullmatch(value):
+        return "decimal"
+    if _WHOLE_RE.fullmatch(value):
+        return "whole"
+    return "unrecognized"
+
+
+def _decimal_from_units(units: int, places: int) -> str:
+    scale = 10**places
+    sign = "-" if units < 0 else ""
+    whole, frac = divmod(abs(units), scale)
+    return f"{sign}{whole},{str(frac).zfill(places)}"
+
+
+def _filler_candidates(source: str) -> list[str]:
+    """Near misses of `source`, written in its own Answer form (ADR-0009's table).
+
+    Each candidate keeps the source's shape: a mixed number stays mixed with a
+    whole part >= 1, a proper fraction stays proper and an improper one improper,
+    the denominator stays above 1, a fraction keeps being in lowest terms iff the
+    source was, and a decimal keeps its number of decimal places.
+    """
+    if m := _MIXED_RE.fullmatch(source):
+        sign, whole_s, num_s, den_s = m.groups()
+        whole, num, den = int(whole_s), int(num_s), int(den_s)
+        lowest = _in_lowest_terms(num, den)
+        out = []
+        for delta in _FILLER_DELTAS:
+            new_whole = whole + delta
+            if new_whole >= 1:
+                out.append(f"{sign}{new_whole}\\frac{{{num}}}{{{den}}}")
+        for delta in _FILLER_DELTAS:
+            new_num = num + delta
+            if 0 < new_num < den and _in_lowest_terms(new_num, den) == lowest:
+                out.append(f"{sign}{whole}\\frac{{{new_num}}}{{{den}}}")
+        for delta in _FILLER_DELTAS:
+            new_den = den + delta
+            if new_den > 1 and 0 < num < new_den and _in_lowest_terms(num, new_den) == lowest:
+                out.append(f"{sign}{whole}\\frac{{{num}}}{{{new_den}}}")
+        return out
+
+    if m := _FRACTION_RE.fullmatch(source):
+        sign, num_s, den_s = m.groups()
+        num, den = int(num_s), int(den_s)
+        proper = num < den
+        lowest = _in_lowest_terms(num, den)
+        out = []
+        for delta in _FILLER_DELTAS:
+            new_num = num + delta
+            if new_num <= 0 or (new_num < den) != proper:
+                continue
+            if _in_lowest_terms(new_num, den) != lowest:
+                continue
+            out.append(f"{sign}\\frac{{{new_num}}}{{{den}}}")
+        for delta in _FILLER_DELTAS:
+            new_den = den + delta
+            if new_den <= 1 or (num < new_den) != proper:
+                continue
+            if _in_lowest_terms(num, new_den) != lowest:
+                continue
+            out.append(f"{sign}\\frac{{{num}}}{{{new_den}}}")
+        return out
+
+    if m := _SLASH_RE.fullmatch(source):
+        sign, num_s, den_s = m.groups()
+        num, den = int(num_s), int(den_s)
+        proper = num < den
+        lowest = _in_lowest_terms(num, den)
+        out = []
+        for delta in _FILLER_DELTAS:
+            new_num = num + delta
+            if new_num <= 0 or (new_num < den) != proper:
+                continue
+            if _in_lowest_terms(new_num, den) != lowest:
+                continue
+            out.append(f"{sign}{new_num}/{den}")
+        for delta in _FILLER_DELTAS:
+            new_den = den + delta
+            if new_den <= 1 or (num < new_den) != proper:
+                continue
+            if _in_lowest_terms(num, new_den) != lowest:
+                continue
+            out.append(f"{sign}{num}/{new_den}")
+        return out
+
+    if m := _DECIMAL_RE.fullmatch(source):
+        whole_s, frac_s = m.groups()
+        places = len(frac_s)
+        negative = whole_s.startswith("-")
+        value = int(whole_s.lstrip("-") + frac_s)
+        units = -value if negative else value
+        return [_decimal_from_units(units + delta, places) for delta in _FILLER_DELTAS]
+
+    if _WHOLE_RE.fullmatch(source):
+        value = int(source)
+        return [str(value + delta) for delta in _FILLER_DELTAS]
+
+    return []
+
+
+def _values_equal(a: str, b: str) -> bool:
+    """Whether `a` and `b` are the same Answer value, per ADR-0009's Filler collision rule."""
+    fraction_a, fraction_b = parse_to_fraction(a), parse_to_fraction(b)
+    if fraction_a is not None and fraction_b is not None:
+        return fraction_a == fraction_b
+    return a == b
+
+
+def _is_valid_filler(candidate: str, screen: list[str], allow_negative_options: bool) -> bool:
+    if not allow_negative_options and _is_negative_option(candidate):
+        return False
+    return not any(_values_equal(candidate, value) for value in screen)
+
+
+def _pooled_candidates(
+    sources: list[str], screen: list[str], allow_negative_options: bool
+) -> list[str]:
+    pool: list[str] = []
+    seen: set[str] = set()
+    for source in sources:
+        for candidate in _filler_candidates(source):
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            if _is_valid_filler(candidate, screen, allow_negative_options):
+                pool.append(candidate)
+    return pool
+
+
+def _make_fillers(
+    authored_values: list[str],
+    trap_values: list[str],
+    correct: str,
+    needed: int,
+    allow_negative_options: bool,
+) -> list[tuple[str, str]]:
+    """Invent up to `needed` Fillers per ADR-0009, or fewer when candidates run out."""
+    if needed <= 0:
+        return []
+
+    screen = list(authored_values)
+    sources = list(dict.fromkeys(trap_values + [correct]))
+    picked: list[str] = []
+
+    correct_form = _answer_form(correct)
+    correct_is_lonely = (
+        sum(_answer_form(value) == correct_form for value in authored_values) == 1
+    )
+    if correct_is_lonely:
+        rescue_pool = [
+            candidate
+            for candidate in _filler_candidates(correct)
+            if _is_valid_filler(candidate, screen, allow_negative_options)
+        ]
+        if rescue_pool:
+            pick = random.choice(rescue_pool)
+            picked.append(pick)
+            screen.append(pick)
+
+    while len(picked) < needed:
+        pool = _pooled_candidates(sources, screen, allow_negative_options)
+        if not pool:
+            break
+        pick = random.choice(pool)
+        picked.append(pick)
+        screen.append(pick)
+
+    return [(value, FILLER_SLUG) for value in picked]
+
+
 # --- Problem dict builder ---
 
 
@@ -126,12 +325,19 @@ def build_problem_dict(
     grading_policy: str = "standard",
     image_html: str | None = None,
     expected_unit: str | None = None,
-) -> ProblemDict | None:
+    allow_negative_options: bool = False,
+) -> ProblemDict:
     """Build the canonical problem dict with options, options_map, and grading_policy.
 
-    `traps` maps Trap slug -> answer string; `fillers` are padding options that carry
-    no rule and all share `FILLER_SLUG`. A `None` value is skipped, so a generator may
-    offer a Trap conditionally. Returns None when two options collide.
+    `traps` maps Trap slug -> answer string, in the order a Problem should offer
+    them (ADR-0008). At most three are offered — the first three whose value is
+    not `None`, not negative (unless `allow_negative_options`), and not a string
+    already taken. A Trap that cannot be offered frees its slot for the next one.
+
+    Any slot the Traps leave empty is filled by a Filler invented from the shared
+    rule in ADR-0009, unless `fillers` is passed explicitly — an escape hatch for
+    a call the rule cannot serve (comparison symbols, an Answer form it cannot
+    parse), which replaces the rule for that call. A `None` Filler is skipped.
 
     `parameters` is the structured values the Problem was generated from, keyed by the
     generator's own operand names, for a Deconstruction walkthrough to consume. Required
@@ -141,21 +347,41 @@ def build_problem_dict(
     Radio mode appends the Unit to all four buttons at render time, so it can never be
     the discriminator (#213) — and the Level must declare it in `expected_units`.
     """
-    option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
-    option_entries += [(value, slug) for slug, value in (traps or {}).items()]
-    option_entries += [(value, FILLER_SLUG) for value in (fillers or [])]
+    trap_items = list((traps or {}).items())
+
+    accepted_traps: list[tuple[str, str]] = []
+    screen = [c_str]
+    for slug, value in trap_items:
+        if len(accepted_traps) >= _MAX_TRAPS:
+            break
+        if value is None:
+            continue
+        if not allow_negative_options and _is_negative_option(value):
+            continue
+        if value in screen:
+            continue
+        accepted_traps.append((value, slug))
+        screen.append(value)
+
+    option_entries: list[tuple[str, str]] = [(c_str, "correct")] + accepted_traps
+    is_comparison = {value for value, _ in option_entries}.issubset({"<", ">", "="})
+
+    if fillers is not None:
+        option_entries += [(value, FILLER_SLUG) for value in fillers if value is not None]
+    elif not is_comparison:
+        needed = _MAX_TRAPS - len(accepted_traps)
+        trap_values = [value for _, value in trap_items if value is not None]
+        option_entries += _make_fillers(
+            screen, trap_values, c_str, needed, allow_negative_options
+        )
 
     options_map: dict[str, str] = {}
     for value, label in option_entries:
-        if value is not None:
-            options_map[value] = label
-
-    if len(options_map) != sum(value is not None for value, _ in option_entries):
-        return None
+        options_map[value] = label
 
     options = list(options_map.keys())
 
-    if set(options).issubset({"<", ">", "="}):
+    if is_comparison:
         order = {"<": 0, "=": 1, ">": 2}
         options.sort(key=lambda x: order.get(x, 3))
     else:
