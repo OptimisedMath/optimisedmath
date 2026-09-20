@@ -39,6 +39,15 @@ INK = "currentColor"
 ACCENT = "#f43f5e"
 MUTED = "#94a3b8"
 
+#: Letters claimed by unknown edge lengths, in figure order (#293).
+_EDGE_SYMBOLS = "abcdefghijklmnopqrstuvwxyz"
+
+#: An unknown symbol opts out of the figure's upright sans stack — italic and
+#: serif, so it reads as a variable the way the question prose's KaTeX does,
+#: without naming a KaTeX webfont the backend has no business knowing about.
+_UPRIGHT_FONT = "system-ui, -apple-system, sans-serif"
+_ITALIC_FONT = "Georgia, 'Times New Roman', serif"
+
 
 def _fmt(v: float) -> str:
     """Polish decimal comma; integers stay bare.
@@ -73,6 +82,7 @@ class Label:
     gap: float
     half_w: float
     half_h: float
+    italic: bool = False
 
     def reach(self) -> float:
         """Half-extent of the glyph box along the placement direction, so the
@@ -121,6 +131,8 @@ class Ctx:
     obstacles: list[tuple[Pt, Pt]] = field(default_factory=list)
     #: how many arcs have been drawn at each vertex, for radius allocation
     arc_count: dict[str, int] = field(default_factory=dict)
+    #: how many unknown edge lengths have claimed a letter, for figure order
+    edge_symbol_count: int = 0
 
     # --- sizes ---------------------------------------------------------
     @property
@@ -162,6 +174,14 @@ class Ctx:
         b = unit(b)
         inward = b if self.fig.is_convex_at(v) else mul(b, -1)
         return mul(inward, -1)
+
+    def next_edge_symbol(self) -> str:
+        """The next letter for an unknown edge length, `a` then `b`, `c` — figure
+        order, because each `EdgeLabel` claims one as it renders and annotations
+        render in the order the generator listed them."""
+        symbol = _EDGE_SYMBOLS[self.edge_symbol_count]
+        self.edge_symbol_count += 1
+        return symbol
 
     def arc_radius(self, v: str) -> float:
         """Rule 2. Sized against the SHORTER adjacent edge so the arc cannot
@@ -228,6 +248,7 @@ class Ctx:
         color: str = INK,
         scale: float = 1.0,
         gap: float = 1.6,
+        italic: bool = False,
     ) -> None:
         """Rule 1. Request a label placed outside the figure along `direction`.
 
@@ -247,6 +268,7 @@ class Ctx:
                 gap=gap,
                 half_w=0.30 * size * max(1, len(label)),
                 half_h=0.58 * size,
+                italic=italic,
             )
         )
 
@@ -295,9 +317,11 @@ class Ctx:
             placed.append(best_box)
             cx = (best_box[0] + best_box[2]) / 2
             cy = (best_box[1] + best_box[3]) / 2
+            family = _ITALIC_FONT if lab.italic else _UPRIGHT_FONT
+            style = ' font-style="italic"' if lab.italic else ""
             self.parts.append(
                 f'<text x="{cx:.3f}" y="{-cy:.3f}" fill="{lab.color}" font-size="{lab.size:.3f}" '
-                f'font-family="system-ui, -apple-system, sans-serif" font-weight="600" '
+                f'font-family="{family}" font-weight="600"{style} '
                 f'text-anchor="middle" dominant-baseline="central">{lab.text}</text>'
             )
             self.include((best_box[0], best_box[1]), (best_box[2], best_box[3]))
@@ -398,19 +422,26 @@ class EdgeLabel(Annotation):
     """A length label on an edge.
 
     The text is DERIVED from the constructed edge, so it cannot contradict the
-    picture. `unknown` prints `x` instead of the value — the only supported way
-    to withhold it, and the generator still cannot print a *different* number.
+    picture. `unknown` withholds the value and prints a letter instead — the
+    only supported way to withhold it, and the generator still cannot print a
+    *different* number. The letter is claimed from `Ctx.next_edge_symbol` at
+    render time — `a`, then `b`, `c` in figure order — and kept on
+    `unknown_text` so a generator can read the exact symbol the figure drew,
+    for the question prose to name the same one. A caller may also pin a
+    specific letter up front by setting `unknown_text` itself.
     """
 
     edge: str
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str = "x"
+    unknown_text: str | None = None
     inside: bool = False
 
     def text_for(self, ctx: Ctx) -> str:
         """The label's text, read off the constructed edge unless withheld."""
         if self.unknown:
+            if self.unknown_text is None:
+                self.unknown_text = ctx.next_edge_symbol()
             return self.unknown_text
         value = _fmt(ctx.fig.edge_length(self.edge))
         return f"{value} {self.unit_label}".strip()
@@ -421,7 +452,7 @@ class EdgeLabel(Annotation):
         n = ctx.outward_normal(self.edge)
         if self.inside:
             n = mul(n, -1)
-        ctx.text(mid, n, self.text_for(ctx))
+        ctx.text(mid, n, self.text_for(ctx), italic=self.unknown)
 
 
 #: #212 found the placement floor by scanning: below this, `place_labels` cannot
@@ -551,6 +582,11 @@ class Altitude(Annotation):
     Derives the foot. When the foot lands off the segment — the rozwartokątny
     case of Topic 130 — it also draws the dotted base extension, because the
     figure is wrong without it.
+
+    `unknown` withholds the length and prints `unknown_text` instead — `h`,
+    always: unlike an unknown edge, the height's symbol is fixed rather than
+    pooled, so a generator reads `unknown_text` off the annotation for its
+    question prose rather than hardcoding the letter a second time.
     """
 
     apex: str
@@ -558,6 +594,7 @@ class Altitude(Annotation):
     label: bool = True
     unit_label: str = ""
     unknown: bool = False
+    unknown_text: str = "h"
 
     def foot(self, ctx: Ctx) -> tuple[Pt, bool]:
         """The altitude's foot, and whether it lands on the base segment."""
@@ -604,11 +641,11 @@ class Altitude(Annotation):
             if dot(n, sub(mid, f.centroid())) < 0:
                 n = mul(n, -1)
             text = (
-                "x"
+                self.unknown_text
                 if self.unknown
                 else f"{_fmt(norm(sub(p, foot)))} {self.unit_label}".strip()
             )
-            ctx.text(mid, n, text, color=ACCENT, scale=0.9)
+            ctx.text(mid, n, text, color=ACCENT, scale=0.9, italic=self.unknown)
 
 
 @dataclass
