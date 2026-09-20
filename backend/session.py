@@ -110,6 +110,7 @@ def public_problem(
         "level_name",
         "level_display",
         "keyboard_type",
+        "exponent_key",
     }
     public = {key: problem.get(key) for key in public_keys if key in problem}
     image_html = public.get("image_html")

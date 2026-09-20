@@ -141,7 +141,17 @@ def generate_level_problem(
     _apply_expected_unit(problem_dict, level_config)
     problem_dict["level_display"] = f"{level_config.name} (Lvl {level})"
     problem_dict["keyboard_type"] = curriculum.keyboard_type(chapter_id)
+    problem_dict["exponent_key"] = _supports_exponent_key(level_config)
     return problem_dict
+
+
+def _supports_exponent_key(level_config: LevelConfig) -> bool:
+    """Whether this Level's declared Units include a squared one (#292).
+
+    The tap key is Level-scoped, not Chapter-scoped: a Chapter's `keyboard_type`
+    cannot tell an area Level from a length Level, but `expected_units` can.
+    """
+    return any(unit.endswith("²") for unit in level_config.expected_units)
 
 
 def _apply_expected_unit(problem: ProblemDict, level_config: LevelConfig) -> None:

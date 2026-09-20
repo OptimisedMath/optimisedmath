@@ -361,6 +361,25 @@ def test_public_problem_strips_unsafe_svg(fixture_curriculum: Curriculum):
     assert "input_mode" not in public
 
 
+def test_public_problem_passes_through_the_exponent_key_signal(
+    fixture_curriculum: Curriculum,
+):
+    """The client must not infer the exponent key from `keyboard_type` (#292) —
+    it reads the Level-scoped signal the backend computed."""
+    state = _fresh_state(fixture_curriculum)
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "1",
+        "options": ["1"],
+        "exponent_key": True,
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["exponent_key"] is True
+
+
 def test_public_problem_includes_correct_answer_when_answered(
     fixture_curriculum: Curriculum,
 ):
