@@ -98,15 +98,17 @@ function TextAnswerInput({
 
   const keyboardType = problem?.keyboard_type || 'default';
   const submitDisabled = value.trim() === '' || !canSubmit || interactionDisabled;
-  // `text` keyboard answers carry a Unit (e.g. `126 mm²`), never a fraction,
-  // so the space in them must not trip the maths-typeset routing.
-  const isFractionCandidate = keyboardType !== 'text' && (value.includes('/') || value.includes(' '));
+  // A `text` keyboard answer carries a Unit (`126 mm²`), never a fraction, so its
+  // space must not route the echo through KaTeX, which would eat the space and
+  // italicise the Unit.
+  const echoAsMath =
+    keyboardType !== 'text' && (value.includes('/') || value.includes(' '));
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
       {answerLocked ? (
         <div className="px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-2xl text-slate-950 dark:text-white rounded-xl w-full max-w-xs sm:w-64 text-center bg-slate-50 dark:bg-slate-950/70 border-2 border-slate-200 dark:border-slate-700 shadow-inner">
-          {isFractionCandidate ? (
+          {echoAsMath ? (
             <InlineMath math={formatInputAsLatex(value)} />
           ) : (
             value
