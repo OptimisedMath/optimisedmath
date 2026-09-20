@@ -78,9 +78,7 @@ class TestSceneInvariant:
     def test_an_unknown_symbol_is_drawn_in_italic(self):
         """#293: the unknown opts out of the figure's upright sans stack."""
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
-        svg = Scene(
-            figure, [Outline(), EdgeLabel("AB", "cm", unknown=True)]
-        ).to_svg()
+        svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm", unknown=True)]).to_svg()
         assert 'font-style="italic"' in svg
 
     def test_a_known_label_stays_upright(self):
