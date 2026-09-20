@@ -424,6 +424,8 @@ def test_public_problem_includes_cleaned_correct_answer_for_admin_typing_mode(
 def test_public_problem_reveal_carries_expected_unit_in_typing_mode(
     fixture_curriculum: Curriculum,
 ):
+    """#290: a typing-mode reveal carries the Level's expected_unit, so a
+    Student who retypes it is graded Correct rather than Wrong again."""
     state = _fresh_state(fixture_curriculum)
     state.current_input_mode = "typing"
     state.problem_answered = True
@@ -443,6 +445,7 @@ def test_public_problem_reveal_carries_expected_unit_in_typing_mode(
 def test_public_problem_reveal_carries_length_unit_on_a_length_level(
     fixture_curriculum: Curriculum,
 ):
+    """#290: the reveal carries a length Unit on a length Level, not only area."""
     state = _fresh_state(fixture_curriculum)
     state.current_input_mode = "typing"
     state.problem_answered = True
@@ -462,6 +465,8 @@ def test_public_problem_reveal_carries_length_unit_on_a_length_level(
 def test_public_problem_reveal_stays_bare_when_no_unit_expected(
     fixture_curriculum: Curriculum,
 ):
+    """#290 negative case: a Level with no expected_unit still reveals a bare
+    answer — this fix must not add a Unit where the grader never wants one."""
     state = _fresh_state(fixture_curriculum)
     state.current_input_mode = "typing"
     state.problem_answered = True
@@ -503,6 +508,8 @@ def test_public_problem_radio_reveal_stays_bare_for_option_matching(
 def test_public_problem_includes_united_correct_answer_for_admin_typing_mode(
     fixture_curriculum: Curriculum,
 ):
+    """#290: the Admin pre-answer reveal (play_mode.reveals_correct_answer)
+    also carries the Unit in typing mode, matching the post-submit reveal."""
     state = _fresh_state(fixture_curriculum)
     state.username = next(iter(config.ADMIN_USERNAMES))
     state.current_input_mode = "typing"
