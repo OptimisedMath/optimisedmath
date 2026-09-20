@@ -45,8 +45,12 @@ const TAP_KEYS: Record<string, { char: string; label?: string }[]> = {
     { char: '/' },
     { char: ' ', label: 'spacja' },
   ],
-  text: [{ char: '²' }],
 };
+
+// `x²` reads as an exponent at phone size; the bare `²` glyph alone reads as a `2`
+// (#292). Whether it appears at all is a Level decision, not a keyboard-type one —
+// see `problem.exponent_key`.
+const EXPONENT_KEY = { char: '²', label: 'x²' };
 
 function TextAnswerInput({
   problem,
@@ -98,6 +102,9 @@ function TextAnswerInput({
 
   const keyboardType = problem?.keyboard_type || 'default';
   const submitDisabled = value.trim() === '' || !canSubmit || interactionDisabled;
+  const tapKeys = problem?.exponent_key
+    ? [...(TAP_KEYS[keyboardType] ?? []), EXPONENT_KEY]
+    : (TAP_KEYS[keyboardType] ?? []);
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
@@ -122,15 +129,15 @@ function TextAnswerInput({
         />
       )}
 
-      {!answerLocked && TAP_KEYS[keyboardType] && (
+      {!answerLocked && tapKeys.length > 0 && (
         <div className="sm:hidden flex gap-3">
-          {TAP_KEYS[keyboardType].map(({ char, label }) => (
+          {tapKeys.map(({ char, label }) => (
             <Button
               key={char}
               type="button"
               variant="outline"
               onClick={() => appendChar(char)}
-              className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] px-5 py-3 text-xl font-mono dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="border-slate-300 text-slate-700 hover:bg-slate-100 active:scale-[0.98] min-h-12 min-w-12 px-5 py-3 text-xl font-mono dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               {label ?? char}
             </Button>
