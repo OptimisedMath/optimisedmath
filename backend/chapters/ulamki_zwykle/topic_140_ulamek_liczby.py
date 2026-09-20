@@ -29,7 +29,6 @@ def frac_frac_of_int_1() -> dict | None:
             "reads_it_as_a_mixed_number": format_answers(k * d + n, d)[0],
             "swaps_the_numerator_and_denominator": format_answers(k * d, n)[0],
         },
-        fillers=[format_answers((k // d) * n + 1, 1)[0]],
         parameters={"n": n, "d": d, "k": k},
     )
     if problem:
@@ -62,7 +61,6 @@ def frac_frac_of_int_2() -> dict | None:
             "inverts_the_fraction_before_multiplying": format_answers(k * d, n)[0],
             "multiplies_the_denominator_too": format_answers(n * k, d * k)[0],
         },
-        fillers=[format_answers(n * k + 1, d)[0]],
         parameters={"n": n, "d": d, "k": k},
     )
     if problem:
@@ -90,7 +88,6 @@ def frac_frac_of_int_3() -> dict | None:
             "uses_one_more_than_the_denominator": str(int((part // n) * (d + 1))),
             "applies_the_fraction_again_instead_of_inverting": str(int(part * n // d)),
         },
-        fillers=[str(whole + d)],
         parameters={"n": n, "d": d, "whole": whole, "part": part},
     )
     if problem:
@@ -121,7 +118,6 @@ def frac_frac_of_int_4() -> dict | None:
                 str(base + n) if is_increase else str(base - n)
             ),
         },
-        fillers=[str(c_val + 1)],
         parameters={"d": d, "n": n, "base": base, "is_increase": is_increase},
     )
     if problem:

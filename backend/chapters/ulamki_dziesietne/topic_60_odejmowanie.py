@@ -24,10 +24,6 @@ def dec_sub_1() -> dict | None:
         q_str,
         c_str,
         traps={"adds_instead_of_subtracting": fmt_dec(round(v1 + v2, 2))},
-        fillers=[
-            fmt_dec(round(v1 - v2 + 0.1, 2)),
-            fmt_dec(round(v1 - v2 - 0.1, 2)),
-        ],
         parameters={"v1": v1, "v2": v2},
     )
     if problem:
@@ -65,7 +61,6 @@ def dec_sub_2() -> dict | None:
                 round(v1 - v2 + 0.09, 2)
             ),
         },
-        fillers=[fmt_dec(round(v1 - v2 + 1, 2))],
         parameters={"v1": v1, "v2": v2, "operation": "-"},
     )
 

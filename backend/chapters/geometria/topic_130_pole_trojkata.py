@@ -56,36 +56,12 @@ def _distinct(*values: int) -> bool:
     return len(set(values)) == len(values)
 
 
-def _side_read_as_height(base: int, side_a: int, side_b: int) -> int | None:
+def _side_read_as_height(base: int, side_a: int, side_b: int) -> int:
     """The labelled side a Student is likeliest to multiply by instead of the height.
 
-    The longer side, which is the one the dashed altitude runs nearest to — unless
-    halving `base × side` would land off the integers, in which case the shorter
-    one. None when neither works, which drops the triangle from the pool.
+    The longer side, which is the one the dashed altitude runs nearest to.
     """
-    for side in sorted((side_a, side_b), reverse=True):
-        if (base * side) % 2 == 0:
-            return side
-    return None
-
-
-def _forward_options_agree(base: int, height: int, side_a: int, side_b: int) -> bool:
-    """Whether the four forward options come out distinct on this triangle.
-
-    Checked while enumerating rather than left to `build_problem_dict`'s collision
-    return: a triangle whose perimeter equals its area is *always* dropped, so
-    leaving it in the pool only burns retries and narrows the Problems a Student
-    actually sees.
-    """
-    side = _side_read_as_height(base, side_a, side_b)
-    if side is None:
-        return False
-    return _distinct(
-        base * height // 2,
-        base * height,
-        base + side_a + side_b,
-        base * side // 2,
-    )
+    return max(side_a, side_b)
 
 
 def _acute_triangles() -> list[tuple[int, int, int, int]]:
@@ -110,8 +86,7 @@ def _acute_triangles() -> list[tuple[int, int, int, int]]:
                 side_a = _int_sqrt(left * left + height * height)
                 side_b = _int_sqrt(right * right + height * height)
                 assert side_a is not None and side_b is not None
-                if _forward_options_agree(base, height, side_a, side_b):
-                    found.append((base, height, side_a, side_b))
+                found.append((base, height, side_a, side_b))
     return found
 
 
@@ -134,8 +109,7 @@ def _obtuse_triangles() -> list[tuple[int, int, int, int, int]]:
                 side_a = _int_sqrt(near * near + height * height)
                 side_b = _int_sqrt(far * far + height * height)
                 assert side_a is not None and side_b is not None
-                if _forward_options_agree(base, height, side_a, side_b):
-                    found.append((base, height, near, side_a, side_b))
+                found.append((base, height, near, side_a, side_b))
     return found
 
 
@@ -148,8 +122,7 @@ def _right_triangles() -> list[tuple[int, int, int]]:
             if hypotenuse is None:
                 continue
             for base, height in ((leg, other), (other, leg)):
-                if _forward_options_agree(base, height, height, hypotenuse):
-                    found.append((base, height, hypotenuse))
+                found.append((base, height, hypotenuse))
     return found
 
 
@@ -239,7 +212,6 @@ def geo_triangle_area_1() -> dict | None:
     ).to_svg()
 
     side_as_height = _side_read_as_height(base, side_a, side_b)
-    assert side_as_height is not None  # the pool only admits triangles where it is
     return _area_problem(
         _FORWARD_QUESTION,
         svg,
@@ -286,7 +258,7 @@ def geo_triangle_area_2() -> dict | None:
         base=base,
         height=height,
         sides=(height, hypotenuse),
-        side_as_height=_side_read_as_height(base, height, hypotenuse) or hypotenuse,
+        side_as_height=_side_read_as_height(base, height, hypotenuse),
         unit=unit,
         parameters={
             "base": base,
@@ -319,7 +291,6 @@ def geo_triangle_area_3() -> dict | None:
     ).to_svg()
 
     side_as_height = _side_read_as_height(base, side_a, side_b)
-    assert side_as_height is not None
     return _area_problem(
         _FORWARD_QUESTION,
         svg,
@@ -379,7 +350,6 @@ def geo_triangle_area_4() -> dict | None:
             TRAP_DOUBLES: str(area // given),
             TRAP_SIDE_AS_HEIGHT: str(base * height // side),
         },
-        fillers=[str(answer + 1)],
         parameters={
             "area": area,
             "base": base,

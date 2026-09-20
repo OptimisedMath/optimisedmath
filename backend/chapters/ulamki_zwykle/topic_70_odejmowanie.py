@@ -25,10 +25,6 @@ def frac_sub_1() -> dict | None:
         q_str,
         c_str,
         traps={"adds_instead_of_subtracting": format_answers(n1 + n2, d)[0]},
-        fillers=[
-            format_answers(max(1, n1 - n2 - 1), d)[0],
-            format_answers(n1 - n2 + 1, d)[0],
-        ],
         parameters={"n1": n1, "n2": n2, "d": d},
     )
     if result:
@@ -60,7 +56,6 @@ def frac_sub_2() -> dict | None:
             ],
             "subtracts_the_denominators": format_answers(abs(n1 - n2), abs(d1 - d2))[0],
         },
-        fillers=[format_answers((n1 * factor) - n2 + 1, d2)[0]],
         parameters={
             "n1": n1,
             "d1": d1,
@@ -135,7 +130,6 @@ def frac_sub_4() -> dict | None:
             )[0],
             "drops_the_whole_parts": format_answers(n1 - n2, d)[0],
         },
-        fillers=[format_answers(total + d, d)[0]],
         parameters={"whole1": whole1, "whole2": whole2, "n1": n1, "n2": n2, "d": d},
     )
     if result:

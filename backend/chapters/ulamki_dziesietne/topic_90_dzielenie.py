@@ -24,7 +24,6 @@ def dec_div_1() -> dict | None:
             "ignores_the_point_in_the_dividend": fmt_dec(round((v1 * 10) / d, 2)),
             "puts_one_place_too_many_in_the_quotient": fmt_dec(round(v1 / (d * 10), 3)),
         },
-        fillers=[fmt_dec(round((v1 / d) + 0.1, 2))],
         parameters={"c": c, "d": d},
     )
     if problem:
@@ -58,7 +57,6 @@ def dec_div_2() -> dict | None:
                 round(v1 / (d * 10), 4)
             ),
         },
-        fillers=[fmt_dec(round((v1 / d) + 0.1, 2))],
         parameters={"t": t, "d": d},
     )
     if problem:
@@ -121,7 +119,6 @@ def dec_div_4() -> dict | None:
                 round((v1 / 100) / v2, 3)
             ),
         },
-        fillers=[fmt_dec(round((v1 / v2) + 1, 2))],
         parameters={"c": c, "d": d},
     )
     if problem:

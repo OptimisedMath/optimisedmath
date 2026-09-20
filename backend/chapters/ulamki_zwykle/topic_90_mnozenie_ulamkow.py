@@ -62,7 +62,6 @@ def frac_mult_2() -> dict | None:
             ),
             "cancels_the_numerators_away": format_answers(1, d1 * d2)[0],
         },
-        fillers=[format_answers(n1 * n2, d1 * d2 + 1)[0]],
         parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if result:
@@ -95,7 +94,6 @@ def frac_mult_3() -> dict | None:
                 n1 + ((w * d2) + n2), d1 + d2
             )[0],
         },
-        fillers=[format_answers(total + 1, d1 * d2)[0]],
         parameters={
             "whole1": 0,
             "n1": n1,
@@ -136,7 +134,6 @@ def frac_mult_4() -> dict | None:
                 n1 * n2, d1 * d2, whole1 + whole2
             )[0],
         },
-        fillers=[format_answers(num1 * num2 + 1, d1 * d2)[0]],
         parameters={
             "whole1": whole1,
             "whole2": whole2,
