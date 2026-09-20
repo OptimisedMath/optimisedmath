@@ -149,7 +149,9 @@ def _supports_exponent_key(level_config: LevelConfig) -> bool:
     """Whether this Level's declared Units include a squared one (#292).
 
     The tap key is Level-scoped, not Chapter-scoped: a Chapter's `keyboard_type`
-    cannot tell an area Level from a length Level, but `expected_units` can.
+    cannot tell an area Level from a length Level, but `expected_units` can. The
+    test is the glyph rather than the dimension — `a` and `ha` are area Units a
+    Student types without a `²`.
     """
     return any(unit.endswith("²") for unit in level_config.expected_units)
 

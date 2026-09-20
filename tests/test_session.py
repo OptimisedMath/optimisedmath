@@ -364,8 +364,7 @@ def test_public_problem_strips_unsafe_svg(fixture_curriculum: Curriculum):
 def test_public_problem_passes_through_the_exponent_key_signal(
     fixture_curriculum: Curriculum,
 ):
-    """The client must not infer the exponent key from `keyboard_type` (#292) —
-    it reads the Level-scoped signal the backend computed."""
+    """The client reads the backend's Level-scoped signal, not `keyboard_type` (#292)."""
     state = _fresh_state(fixture_curriculum)
     problem = {
         "problem_id": "p1",

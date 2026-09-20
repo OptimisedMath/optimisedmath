@@ -40,7 +40,9 @@ const INPUT_MODES: Record<string, 'decimal' | 'numeric' | 'text'> = {
   text: 'text',
 };
 
-const TAP_KEYS: Record<string, { char: string; label?: string }[]> = {
+type TapKey = { char: string; label?: string };
+
+const TAP_KEYS: Record<string, TapKey[]> = {
   default: [
     { char: '/' },
     { char: ' ', label: 'spacja' },
@@ -50,7 +52,7 @@ const TAP_KEYS: Record<string, { char: string; label?: string }[]> = {
 // `x²` reads as an exponent at phone size; the bare `²` glyph alone reads as a `2`
 // (#292). Whether it appears at all is a Level decision, not a keyboard-type one —
 // see `problem.exponent_key`.
-const EXPONENT_KEY = { char: '²', label: 'x²' };
+const EXPONENT_KEY: TapKey = { char: '²', label: 'x²' };
 
 function TextAnswerInput({
   problem,
@@ -102,9 +104,10 @@ function TextAnswerInput({
 
   const keyboardType = problem?.keyboard_type || 'default';
   const submitDisabled = value.trim() === '' || !canSubmit || interactionDisabled;
+  const keyboardTapKeys = TAP_KEYS[keyboardType] ?? [];
   const tapKeys = problem?.exponent_key
-    ? [...(TAP_KEYS[keyboardType] ?? []), EXPONENT_KEY]
-    : (TAP_KEYS[keyboardType] ?? []);
+    ? [...keyboardTapKeys, EXPONENT_KEY]
+    : keyboardTapKeys;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">

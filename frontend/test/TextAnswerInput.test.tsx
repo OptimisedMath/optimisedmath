@@ -2,48 +2,39 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import TextAnswerInput from '@/components/arena/TextAnswerInput';
+import type { Problem } from '@/lib/session';
 import { baseProblem } from './fakeBackend';
+
+function renderInput(overrides: Partial<Problem>) {
+  render(
+    <TextAnswerInput
+      problem={baseProblem(overrides)}
+      answerLocked={false}
+      canSubmit={true}
+      adminMode={false}
+      onSubmit={vi.fn()}
+    />
+  );
+}
+
+const exponentKey = () => screen.queryByRole('button', { name: 'x²' });
 
 describe('TextAnswerInput exponent key (#292)', () => {
   it('does not render an exponent key when the Level cannot take a squared Unit', () => {
-    render(
-      <TextAnswerInput
-        problem={baseProblem({ keyboard_type: 'text', exponent_key: false })}
-        answerLocked={false}
-        canSubmit={true}
-        adminMode={false}
-        onSubmit={vi.fn()}
-      />
-    );
+    renderInput({ keyboard_type: 'text', exponent_key: false });
 
-    expect(screen.queryByRole('button', { name: 'x²' })).not.toBeInTheDocument();
+    expect(exponentKey()).not.toBeInTheDocument();
   });
 
-  it('renders a legible exponent key when the Level allows a squared Unit', () => {
-    render(
-      <TextAnswerInput
-        problem={baseProblem({ keyboard_type: 'text', exponent_key: true })}
-        answerLocked={false}
-        canSubmit={true}
-        adminMode={false}
-        onSubmit={vi.fn()}
-      />
-    );
+  it('labels the exponent key `x²` when the Level allows a squared Unit', () => {
+    renderInput({ keyboard_type: 'text', exponent_key: true });
 
-    expect(screen.getByRole('button', { name: 'x²' })).toBeInTheDocument();
+    expect(exponentKey()).toBeInTheDocument();
   });
 
   it('appends the exponent character when the key is tapped', async () => {
     const user = userEvent.setup();
-    render(
-      <TextAnswerInput
-        problem={baseProblem({ keyboard_type: 'text', exponent_key: true })}
-        answerLocked={false}
-        canSubmit={true}
-        adminMode={false}
-        onSubmit={vi.fn()}
-      />
-    );
+    renderInput({ keyboard_type: 'text', exponent_key: true });
 
     const input = screen.getByPlaceholderText('Wpisz wynik...');
     await user.type(input, 'cm');
@@ -52,17 +43,11 @@ describe('TextAnswerInput exponent key (#292)', () => {
     expect(input).toHaveValue('cm²');
   });
 
-  it('ignores keyboard_type alone: a default-keyboard problem with exponent_key still gets the key', () => {
-    render(
-      <TextAnswerInput
-        problem={baseProblem({ keyboard_type: 'default', exponent_key: true })}
-        answerLocked={false}
-        canSubmit={true}
-        adminMode={false}
-        onSubmit={vi.fn()}
-      />
-    );
+  it('adds the exponent key alongside the default keyboard keys rather than replacing them', () => {
+    renderInput({ keyboard_type: 'default', exponent_key: true });
 
-    expect(screen.getByRole('button', { name: 'x²' })).toBeInTheDocument();
+    expect(exponentKey()).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'spacja' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '/' })).toBeInTheDocument();
   });
 });
