@@ -1,5 +1,6 @@
 """Shared formatting, parsing, and problem-dict utilities for generators."""
 
+import math
 import uuid
 import re
 import random
@@ -113,7 +114,239 @@ def declared_units(func: Any) -> tuple[str, ...]:
     return getattr(func, "expected_units", ())
 
 
+# --- Filler generation (ADR-0009) ---
+
+_FILLER_DELTAS = (-3, -2, -1, 1, 2, 3)
+
+_MIXED_RE = re.compile(r"^(-?)(\d+)\\frac\{(\d+)\}\{(\d+)\}$")
+_FRACTION_RE = re.compile(r"^(-?)\\frac\{(\d+)\}\{(\d+)\}$")
+_SLASH_RE = re.compile(r"^(-?)(\d+)/(\d+)$")
+_DECIMAL_RE = re.compile(r"^(-?\d+),(\d+)$")
+_WHOLE_RE = re.compile(r"^-?\d+$")
+
+
+def _is_negative_option(value: str) -> bool:
+    """Whether an option string reads as a negative number."""
+    return value.lstrip().startswith("-")
+
+
+def _in_lowest_terms(numerator: int, denominator: int) -> bool:
+    """Whether the fraction cannot be reduced any further."""
+    return math.gcd(numerator, denominator) == 1
+
+
+def _answer_form(value: str) -> str:
+    """Which of the five forms in ADR-0009's table `value` is written in."""
+    if _MIXED_RE.fullmatch(value):
+        return "mixed"
+    if _FRACTION_RE.fullmatch(value):
+        return "fraction"
+    if _SLASH_RE.fullmatch(value):
+        return "slash"
+    if _DECIMAL_RE.fullmatch(value):
+        return "decimal"
+    if _WHOLE_RE.fullmatch(value):
+        return "whole"
+    return "unrecognized"
+
+
+def _decimal_from_units(units: int, places: int) -> str:
+    """Render a value counted in its last decimal place back as a decimal string."""
+    scale = 10**places
+    sign = "-" if units < 0 else ""
+    whole, frac = divmod(abs(units), scale)
+    return f"{sign}{whole},{str(frac).zfill(places)}"
+
+
+def _fraction_variants(num: int, den: int, *, proper: bool) -> list[tuple[int, int]]:
+    """Near misses of `num/den`: its numerator moved by a delta, then its denominator.
+
+    Only the variants that keep the source's shape. `proper` is whether the value
+    must stay below 1 — always so for the fractional part of a mixed number, and
+    otherwise whatever the source was; being in lowest terms is preserved either way.
+    A zero numerator moves no denominator, because every such variant is still zero
+    and would collide in value with the source it came from.
+    """
+    lowest = _in_lowest_terms(num, den)
+    variants = [
+        (num + delta, den)
+        for delta in _FILLER_DELTAS
+        if num + delta > 0 and (num + delta < den) == proper
+    ]
+    variants += [
+        (num, den + delta)
+        for delta in _FILLER_DELTAS
+        if num > 0 and den + delta > 1 and (num < den + delta) == proper
+    ]
+    return [
+        (variant_num, variant_den)
+        for variant_num, variant_den in variants
+        if _in_lowest_terms(variant_num, variant_den) == lowest
+    ]
+
+
+def _filler_candidates(source: str) -> list[str]:
+    """Near misses of `source`, written in its own Answer form (ADR-0009's table).
+
+    Each candidate keeps the source's shape: a mixed number stays mixed with a
+    whole part >= 1 and a proper fractional part, a proper fraction stays proper
+    and an improper one improper, the denominator stays above 1, a fraction keeps
+    being in lowest terms iff the source was, and a decimal keeps its number of
+    decimal places.
+    """
+    if m := _MIXED_RE.fullmatch(source):
+        sign, whole_s, num_s, den_s = m.groups()
+        whole, num, den = int(whole_s), int(num_s), int(den_s)
+        moved_wholes = [
+            f"{sign}{whole + delta}\\frac{{{num}}}{{{den}}}"
+            for delta in _FILLER_DELTAS
+            if whole + delta >= 1
+        ]
+        return moved_wholes + [
+            f"{sign}{whole}\\frac{{{variant_num}}}{{{variant_den}}}"
+            for variant_num, variant_den in _fraction_variants(num, den, proper=True)
+        ]
+
+    if m := _FRACTION_RE.fullmatch(source):
+        sign, num_s, den_s = m.groups()
+        num, den = int(num_s), int(den_s)
+        return [
+            f"{sign}\\frac{{{variant_num}}}{{{variant_den}}}"
+            for variant_num, variant_den in _fraction_variants(
+                num, den, proper=num < den
+            )
+        ]
+
+    if m := _SLASH_RE.fullmatch(source):
+        sign, num_s, den_s = m.groups()
+        num, den = int(num_s), int(den_s)
+        return [
+            f"{sign}{variant_num}/{variant_den}"
+            for variant_num, variant_den in _fraction_variants(
+                num, den, proper=num < den
+            )
+        ]
+
+    if m := _DECIMAL_RE.fullmatch(source):
+        whole_s, frac_s = m.groups()
+        places = len(frac_s)
+        units = int(whole_s + frac_s)
+        return [_decimal_from_units(units + delta, places) for delta in _FILLER_DELTAS]
+
+    if _WHOLE_RE.fullmatch(source):
+        return [str(int(source) + delta) for delta in _FILLER_DELTAS]
+
+    return []
+
+
+def _values_equal(a: str, b: str) -> bool:
+    """Whether `a` and `b` are the same Answer value, per ADR-0009's Filler collision rule."""
+    fraction_a, fraction_b = parse_to_fraction(a), parse_to_fraction(b)
+    if fraction_a is not None and fraction_b is not None:
+        return fraction_a == fraction_b
+    return a == b
+
+
+def _is_valid_filler(
+    candidate: str, screen: list[str], allow_negative_options: bool
+) -> bool:
+    """Whether `candidate` may be offered beside the options already on `screen`."""
+    if not allow_negative_options and _is_negative_option(candidate):
+        return False
+    return not any(_values_equal(candidate, value) for value in screen)
+
+
+def _filler_pool(
+    sources: list[str], screen: list[str], allow_negative_options: bool
+) -> list[str]:
+    """Every Filler the `sources` can still offer, deduplicated, in source order."""
+    pool: list[str] = []
+    seen: set[str] = set()
+    for source in sources:
+        for candidate in _filler_candidates(source):
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            if _is_valid_filler(candidate, screen, allow_negative_options):
+                pool.append(candidate)
+    return pool
+
+
+def _correct_answer_stands_alone(correct: str, authored_values: list[str]) -> bool:
+    """Whether the correct answer is the only authored option written in its form.
+
+    ADR-0009's notation exception: when it is, the first Filler is drawn from the
+    correct answer, so that being the lone fraction — or the lone whole number —
+    cannot give it away.
+    """
+    form = _answer_form(correct)
+    return sum(_answer_form(value) == form for value in authored_values) == 1
+
+
+def _make_fillers(
+    authored_values: list[str],
+    trap_values: list[str],
+    correct: str,
+    needed: int,
+    allow_negative_options: bool,
+) -> list[tuple[str, str]]:
+    """Invent up to `needed` Fillers per ADR-0009, or fewer when candidates run out."""
+    if needed <= 0:
+        return []
+
+    screen = list(authored_values)
+    picked: list[str] = []
+
+    def take(pool: list[str]) -> None:
+        pick = random.choice(pool)
+        picked.append(pick)
+        screen.append(pick)
+
+    if _correct_answer_stands_alone(correct, authored_values):
+        rescue_pool = _filler_pool([correct], screen, allow_negative_options)
+        if rescue_pool:
+            take(rescue_pool)
+
+    sources = list(dict.fromkeys(trap_values + [correct]))
+    while len(picked) < needed:
+        pool = _filler_pool(sources, screen, allow_negative_options)
+        if not pool:
+            break
+        take(pool)
+
+    return [(value, FILLER_SLUG) for value in picked]
+
+
 # --- Problem dict builder ---
+
+
+# A Problem offers one correct answer and three wrong options: Traps take the
+# slots first, in declaration order (ADR-0008), and Fillers pad what is left.
+_WRONG_OPTION_SLOTS = 3
+
+
+def _offered_traps(
+    trap_items: list[tuple[str, str | None]],
+    correct: str,
+    allow_negative_options: bool,
+) -> list[tuple[str, str]]:
+    """The `(value, slug)` Traps a Problem offers, in declaration order (ADR-0008).
+
+    The first `_WRONG_OPTION_SLOTS` that can be offered: a Trap skipped for being
+    `None`, negative, or a string already taken frees its slot for the next one.
+    """
+    offered: list[tuple[str, str]] = []
+    taken = {correct}
+    for slug, value in trap_items:
+        if len(offered) >= _WRONG_OPTION_SLOTS:
+            break
+        if value is None or value in taken:
+            continue
+        if not allow_negative_options and _is_negative_option(value):
+            continue
+        offered.append((value, slug))
+        taken.add(value)
+    return offered
 
 
 def build_problem_dict(
@@ -126,12 +359,19 @@ def build_problem_dict(
     grading_policy: str = "standard",
     image_html: str | None = None,
     expected_unit: str | None = None,
-) -> ProblemDict | None:
+    allow_negative_options: bool = False,
+) -> ProblemDict:
     """Build the canonical problem dict with options, options_map, and grading_policy.
 
-    `traps` maps Trap slug -> answer string; `fillers` are padding options that carry
-    no rule and all share `FILLER_SLUG`. A `None` value is skipped, so a generator may
-    offer a Trap conditionally. Returns None when two options collide.
+    `traps` maps Trap slug -> answer string, in the order a Problem should offer
+    them (ADR-0008). At most three are offered — the first three whose value is
+    not `None`, not negative (unless `allow_negative_options`), and not a string
+    already taken. A Trap that cannot be offered frees its slot for the next one.
+
+    Any slot the Traps leave empty is filled by a Filler invented from the shared
+    rule in ADR-0009, unless `fillers` is passed explicitly — an escape hatch for
+    a call the rule cannot serve (comparison symbols, an Answer form it cannot
+    parse), which replaces the rule for that call. A `None` Filler is skipped.
 
     `parameters` is the structured values the Problem was generated from, keyed by the
     generator's own operand names, for a Deconstruction walkthrough to consume. Required
@@ -141,21 +381,33 @@ def build_problem_dict(
     Radio mode appends the Unit to all four buttons at render time, so it can never be
     the discriminator (#213) — and the Level must declare it in `expected_units`.
     """
-    option_entries: list[tuple[str | None, str]] = [(c_str, "correct")]
-    option_entries += [(value, slug) for slug, value in (traps or {}).items()]
-    option_entries += [(value, FILLER_SLUG) for value in (fillers or [])]
+    trap_items = list((traps or {}).items())
+    offered_traps = _offered_traps(trap_items, c_str, allow_negative_options)
+
+    option_entries: list[tuple[str, str]] = [(c_str, "correct")] + offered_traps
+    screen = [value for value, _ in option_entries]
+    is_comparison = set(screen).issubset({"<", ">", "="})
+
+    if fillers is not None:
+        option_entries += [
+            (value, FILLER_SLUG) for value in fillers if value is not None
+        ]
+    elif not is_comparison:
+        option_entries += _make_fillers(
+            authored_values=screen,
+            trap_values=[value for _, value in trap_items if value is not None],
+            correct=c_str,
+            needed=_WRONG_OPTION_SLOTS - len(offered_traps),
+            allow_negative_options=allow_negative_options,
+        )
 
     options_map: dict[str, str] = {}
     for value, label in option_entries:
-        if value is not None:
-            options_map[value] = label
-
-    if len(options_map) != sum(value is not None for value, _ in option_entries):
-        return None
+        options_map[value] = label
 
     options = list(options_map.keys())
 
-    if set(options).issubset({"<", ">", "="}):
+    if is_comparison:
         order = {"<": 0, "=": 1, ">": 2}
         options.sort(key=lambda x: order.get(x, 3))
     else:

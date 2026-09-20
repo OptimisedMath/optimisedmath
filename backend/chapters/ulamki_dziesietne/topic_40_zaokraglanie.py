@@ -20,7 +20,6 @@ def dec_round_1() -> dict | None:
             "rounds_the_wrong_way": (str(int(v)) if round(v) > v else str(int(v) + 1)),
             "leaves_the_number_unrounded": fmt_dec(v),
         },
-        fillers=[str(int(v) + 2) if round(v) > v else str(max(0, int(v) - 1))],
         parameters={"v": v},
     )
     if problem:
@@ -49,7 +48,6 @@ def dec_round_2() -> dict | None:
             ),
             "rounds_to_the_wrong_place": str(round(v)),
         },
-        fillers=[fmt_dec(round(v + 0.1, 1))],
         parameters={"v": v},
     )
     if problem:

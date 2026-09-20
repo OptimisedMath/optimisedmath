@@ -61,10 +61,6 @@ def frac_imp_2() -> dict | None:
 
     c_str, _ = format_answers(n, d, w)
 
-    w_wrong = w + random.choice([-1, 1])
-    if w_wrong < 1:
-        w_wrong = w + 2
-
     result = build_problem_dict(
         q_str,
         c_str,
@@ -72,7 +68,6 @@ def frac_imp_2() -> dict | None:
             "gives_only_the_whole_part": format_answers(w, 1)[0],
             "swaps_the_remainder_and_the_denominator": format_answers(d, n, w)[0],
         },
-        fillers=[format_answers(n, d, w_wrong)[0]],
         parameters={"w": w, "n": n, "d": d},
     )
     if result:

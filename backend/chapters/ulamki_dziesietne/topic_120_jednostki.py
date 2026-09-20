@@ -26,7 +26,6 @@ def _unit_problem(pairs: list[tuple[str, str, int]]) -> dict | None:
                 fmt_dec(round(v / (factor / 10), 4)) if factor > 10 else None
             ),
         }
-        fillers: list[str | None] = [] if factor > 10 else [fmt_dec(v / factor + 1)]
     else:
         v = random.randint(11, 99) / 10
         unit_in, unit_out = unit_large, unit_small
@@ -35,7 +34,6 @@ def _unit_problem(pairs: list[tuple[str, str, int]]) -> dict | None:
             "divides_instead_of_multiplying": fmt_dec(round(v / factor, 4)),
             "multiplies_by_one_power_too_many": fmt_dec(round(v * factor * 10, 4)),
         }
-        fillers = [fmt_dec(round((v * factor) + 1, 4))]
 
     q_str = (
         rf"\text{{Zamień: }} {fmt_dec(v)} \text{{ }} {unit_in} "
@@ -46,7 +44,6 @@ def _unit_problem(pairs: list[tuple[str, str, int]]) -> dict | None:
         q_str,
         c_str,
         traps=traps,
-        fillers=fillers,
         parameters={
             "v": v,
             "unit_in": unit_in,
@@ -99,7 +96,6 @@ def dec_unit_3() -> dict | None:
             "writes_grosze_in_the_tenths_place": fmt_dec(zl + (gr / 10)),
             "writes_grosze_as_tens_of_grosze": f"{zl},{gr}0",
         },
-        fillers=[fmt_dec(zl + ((gr + 1) / 100))],
         parameters={"zl": zl, "gr": gr},
     )
     if problem:

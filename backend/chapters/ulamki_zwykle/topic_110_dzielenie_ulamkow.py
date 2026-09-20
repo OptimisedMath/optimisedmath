@@ -28,7 +28,6 @@ def frac_div_frac_1() -> dict | None:
             "multiplies_without_inverting": format_answers(k * n, d)[0],
             "inverts_the_wrong_way_round": format_answers(n, k * d)[0],
         },
-        fillers=[format_answers((k * d) + 1, n)[0]],
         parameters={"n": n, "d": d, "k": k},
     )
     if problem:
@@ -52,7 +51,6 @@ def frac_div_frac_2() -> dict | None:
             "multiplies_without_inverting": format_answers(n1 * n2, d1 * d2)[0],
             "inverts_the_whole_answer": format_answers(d1 * n2, n1 * d2)[0],
         },
-        fillers=[format_answers((n1 * d2) + 1, d1 * n2)[0]],
         parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if problem:
@@ -80,7 +78,6 @@ def frac_div_frac_3() -> dict | None:
             "cancels_before_inverting": format_answers(trap_n1 * d2, d1 * n2)[0],
             "multiplies_without_inverting": format_answers(n1 * n2, d1 * d2)[0],
         },
-        fillers=[format_answers((n1 * d2) + 1, d1 * n2)[0]],
         parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
 
@@ -107,7 +104,6 @@ def frac_div_frac_4() -> dict | None:
             "inverts_only_the_fraction_part": format_answers(num1 * n2, d1 * d2)[0],
             "multiplies_without_inverting": format_answers(num1 * num2, d1 * d2)[0],
         },
-        fillers=[format_answers(num1 * d2 + 1, d1 * num2)[0]],
         parameters={
             "whole1": whole1,
             "whole2": whole2,

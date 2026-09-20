@@ -32,7 +32,6 @@ def dec_mix_1() -> dict | None:
 
     both_summed, _ = format_answers(n + n2, d + d2)
     numerators_summed, _ = format_answers(n + n2, d * d2)
-    one_too_many, _ = format_answers(c_num + 1, c_den)
 
     problem = build_problem_dict(
         q_str,
@@ -41,7 +40,6 @@ def dec_mix_1() -> dict | None:
             "adds_numerators_and_denominators": both_summed,
             "adds_numerators_without_scaling": numerators_summed,
         },
-        fillers=[one_too_many],
         parameters={"n": n, "d": d, "n2": n2, "d2": d2},
     )
     if problem:
@@ -71,7 +69,6 @@ def dec_mix_2() -> dict | None:
     c_str, _ = format_answers(c_num, c_den)
 
     both_summed, _ = format_answers(n1 + n2, d1 + d2)
-    one_too_many, _ = format_answers(c_num + 1, c_den)
 
     problem = build_problem_dict(
         q_str,
@@ -82,7 +79,6 @@ def dec_mix_2() -> dict | None:
                 round(n1 / d1 + dec_val, 2)
             ),
         },
-        fillers=[one_too_many],
         parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if problem:
@@ -118,14 +114,11 @@ def dec_mix_3() -> dict | None:
         traps = {"multiplies_instead_of_dividing": wrong_rule}
 
     c_str, _ = format_answers(c_num, c_den)
-    numerator_off_by_one, _ = format_answers(c_num + 1, c_den)
-    denominator_off_by_one, _ = format_answers(c_num, c_den + 1)
 
     problem = build_problem_dict(
         q_str,
         c_str,
         traps=traps,
-        fillers=[numerator_off_by_one, denominator_off_by_one],
         parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
     )
     if problem:

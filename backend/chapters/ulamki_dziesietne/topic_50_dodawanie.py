@@ -32,10 +32,6 @@ def dec_add_1() -> dict | None:
         q_str,
         c_str,
         traps={"adds_digits_across_the_point": fmt_dec(trap_value)},
-        fillers=[
-            fmt_dec(dv1 + dv2 + Decimal("0.1")),
-            fmt_dec(dv1 + dv2 + 1),
-        ],
         parameters={"v1": v1, "v2": v2, "operation": "+"},
     )
     if problem:
