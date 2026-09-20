@@ -27,7 +27,7 @@ def frac_pow_1() -> dict | None:
         c_str,
         traps={
             "raises_only_the_numerator": format_answers(n**p, d)[0],
-            "multiplies_by_the_exponent": format_answers(n * p, d * p)[0],
+            "multiplies_by_the_exponent": format_answers(n * p, d)[0],
         },
         fillers=[format_answers((n**p) + 1, d**p)[0]],
         parameters={"n": n, "d": d, "p": p},
@@ -55,7 +55,7 @@ def frac_pow_2() -> dict | None:
         c_str,
         traps={
             "raises_only_the_numerator": format_answers(n**p, d)[0],
-            "multiplies_by_the_exponent": format_answers(n * p, d * p)[0],
+            "multiplies_by_the_exponent": format_answers(n * p, d)[0],
         },
         fillers=[format_answers((n**p) + 1, d**p)[0]],
         parameters={"n": n, "d": d, "p": p},
