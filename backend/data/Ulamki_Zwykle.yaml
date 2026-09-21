@@ -464,6 +464,8 @@ topics:
           raises_only_the_numerator:
             misconception: raises_only_one_part_to_power
             explanation: "Podniosłeś do trzeciej potęgi tylko górę! Licznik i mianownik potęgujemy osobno."
+          squares_instead_of_cubing:
+            explanation: "Podniosłeś do kwadratu zamiast do sześcianu — wykładnik to 3."
       - level: 3
         name: "Potęgowanie liczby mieszanej"
         function: "frac_pow_3"

@@ -35,7 +35,11 @@ def frac_pow_1() -> dict | None:
         return problem
 
 
-@declares_traps("raises_only_the_numerator", "multiplies_by_the_exponent")
+@declares_traps(
+    "raises_only_the_numerator",
+    "multiplies_by_the_exponent",
+    "squares_instead_of_cubing",
+)
 def frac_pow_2() -> dict | None:
     """Sześcian ułamka (poziom 2)."""
     # Keeping denominator up to 5 so cubes don't get absurdly large
@@ -55,6 +59,7 @@ def frac_pow_2() -> dict | None:
         traps={
             "raises_only_the_numerator": format_answers(n**p, d)[0],
             "multiplies_by_the_exponent": format_answers(n * p, d)[0],
+            "squares_instead_of_cubing": format_answers(n**2, d**2)[0],
         },
         parameters={"n": n, "d": d, "p": p},
     )
