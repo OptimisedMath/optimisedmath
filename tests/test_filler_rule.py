@@ -3,8 +3,8 @@
 
 Two properties this frees up, that no per-generator test can check on its own:
 a static one (no new hand-written `fillers=` slips in unnoticed) and a dynamic
-one (every non-exempt generator actually reaches four distinct options now
-that a collision or a skipped Trap no longer discards the Problem).
+one (every generator that is padded at all actually reaches four distinct
+options now that a collision or a skipped Trap no longer discards the Problem).
 """
 
 import ast
@@ -16,11 +16,9 @@ from backend.problem_generation import FUNCTION_REGISTRY
 
 CHAPTERS_DIR = Path(__file__).resolve().parent.parent / "backend" / "chapters"
 
-# Comparison generators draw from {<, >, =} and intend two or three options, so
-# they are never padded. `dec_to_frac_4` writes repeating-decimal options like
-# `0,(3)`, a form the shared rule cannot parse. Both are the rule's declared
-# exemptions (ADR-0009) — grow this set only by editing it here.
-EXEMPT_GENERATORS = frozenset(
+# Comparison Levels draw their options from {<, >, =}: two or three symbols are
+# the whole Problem, so `build_problem_dict` never pads one to four.
+COMPARISON_GENERATORS = frozenset(
     {
         "frac_comp_1",
         "frac_comp_2",
@@ -29,9 +27,14 @@ EXEMPT_GENERATORS = frozenset(
         "dec_compare_2",
         "dec_compare_3",
         "dec_compare_4",
-        "dec_to_frac_4",
     }
 )
+
+# ADR-0009's declared exemptions: the generators whose own `fillers=` the shared
+# rule cannot replace — the comparison symbols have no number to move, and
+# `dec_to_frac_4` writes repeating decimals like `0,(3)`, a form the rule cannot
+# parse. None of them needs the hatch today; grow this set only by editing it here.
+FILLERS_EXEMPT_GENERATORS = COMPARISON_GENERATORS | {"dec_to_frac_4"}
 
 
 def _functions_passing_fillers(source: str, path: Path) -> set[str]:
@@ -58,9 +61,10 @@ _CHAPTER_FILES = sorted(CHAPTERS_DIR.rglob("topic_*.py"))
     ids=[str(p.relative_to(CHAPTERS_DIR)) for p in _CHAPTER_FILES],
 )
 def test_only_the_pinned_exemptions_pass_fillers(path):
+    """No chapter file hand-writes `fillers=` outside ADR-0009's exemptions."""
     offenders = (
         _functions_passing_fillers(path.read_text(encoding="utf-8"), path)
-        - EXEMPT_GENERATORS
+        - FILLERS_EXEMPT_GENERATORS
     )
     assert not offenders, (
         f"{path.relative_to(CHAPTERS_DIR)} passes fillers= from "
@@ -71,8 +75,9 @@ def test_only_the_pinned_exemptions_pass_fillers(path):
 ROLLS = 300
 
 
-@pytest.mark.parametrize("name", sorted(set(FUNCTION_REGISTRY) - EXEMPT_GENERATORS))
-def test_non_exempt_generator_serves_four_distinct_options(name):
+@pytest.mark.parametrize("name", sorted(set(FUNCTION_REGISTRY) - COMPARISON_GENERATORS))
+def test_padded_generator_serves_four_distinct_options(name):
+    """Every generator outside the comparison Levels fills all four slots, on every roll."""
     generator = FUNCTION_REGISTRY[name]
     for _ in range(ROLLS):
         problem = generator()

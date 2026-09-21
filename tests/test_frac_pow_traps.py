@@ -55,6 +55,37 @@ def test_frac_pow_trap_multiplies_only_the_numerator(name):
     assert emitted, f"{name} emitted no Problem in {ROLLS} rolls"
 
 
+def test_frac_pow_2_squares_instead_of_cubing():
+    """Level 2's new slip (#277) squares both parts instead of cubing them.
+
+    It is a slip, not a believed rule: nothing gates it, and #277's exhaustive
+    check over the Level's whole domain (d = 2..5) found it never collides with
+    the two Misconception Traps or the correct answer, so every draw offers it.
+    """
+    generator = FUNCTION_REGISTRY["frac_pow_2"]
+
+    emitted = 0
+    for _ in range(ROLLS):
+        problem = generator()
+        if problem is None:
+            continue
+        emitted += 1
+
+        parameters = problem["parameters"]
+        n, d = parameters["n"], parameters["d"]
+        expected_trap, _ = format_answers(n**2, d**2)
+        correct, _ = format_answers(n**3, d**3)
+
+        assert (
+            problem["options_map"].get(expected_trap) == "squares_instead_of_cubing"
+        ), f"frac_pow_2 did not offer {expected_trap!r} as squares_instead_of_cubing for ({n}/{d})^3"
+        assert (
+            expected_trap != correct
+        ), f"frac_pow_2 offered the correct answer {correct!r} as squares_instead_of_cubing"
+
+    assert emitted, f"frac_pow_2 emitted no Problem in {ROLLS} rolls"
+
+
 def test_frac_pow_2_draws_a_unit_fraction_to_cube():
     """Level 2 reaches n=1, which the old Trap formula collided away (#273).
 
