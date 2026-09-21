@@ -11,7 +11,11 @@
 //   Phase 1 (Plan):             Each remaining issue is checked against
 //                               GitHub's own record of what blocks it — native
 //                               issue dependencies, or a `Blocked by:` line in
-//                               the body as a fallback. Blocked issues are
+//                               the body as a fallback. A blocker whose work is
+//                               already on the integration branch counts as
+//                               resolved, so a group that blocks itself drains
+//                               over successive cycles rather than waiting for
+//                               its own PR to merge. Anything still blocked is
 //                               skipped, not attempted; there is no inferred
 //                               dependency graph and no fallback candidate
 //                               forced through when everything is blocked.
@@ -55,6 +59,7 @@ import {
   isSettledWithNothingToDo,
   issueBranchName,
   issueNumberOfBranch,
+  liveBlockers,
   parseBlockedByLine,
   partitionIntoGroups,
   type Group,
@@ -67,9 +72,14 @@ import {
 
 // Plan→execute→merge cycles per group. The loop exists to pick up issues that
 // a merge unblocks, so it needs to cover the depth of a dependency chain, not
-// the size of the backlog. Deliberately small: with a finite quota, the
-// constant that matters is the one that stops a wedged group eating the night.
-const MAX_ITERATIONS = 4;
+// the size of the backlog — plus slack, because a cycle that produces no
+// commits still spends one. The deepest chain on the board when this was last
+// checked was four (#272,#273 → #277 → #278 → #279 under `sandcastle:262`), so
+// four exactly would drain that group only if nothing went wrong on the way.
+// Still deliberately small: with a finite quota, the constant that matters is
+// the one that stops a wedged group eating the night. Cycles are not spent
+// speculatively — the loop breaks as soon as nothing is plannable.
+const MAX_ITERATIONS = 6;
 
 // Upper bound on implementer iterations per issue. Driven one at a time from
 // here rather than handed to maxIterations, so the circuit breaker below can
@@ -500,6 +510,11 @@ async function pickUpPriorWork(
  * dependency graph. Applies the same way to a solo group's single issue as to
  * a multi-issue group — a blocked solo issue simply comes back with nothing
  * planned and itself in `blocked`.
+ *
+ * `alreadyMerged` does double duty: it drops the issues this batch has already
+ * done, and it satisfies blockers pointing at them, so a group whose own
+ * members block each other drains over successive cycles instead of stalling on
+ * issues GitHub will only close when the batch PR merges.
  */
 function planGroup(
   group: Group,
@@ -516,7 +531,7 @@ function planGroup(
   const blocked: { id: string; title: string; blockedBy: number[] }[] = [];
 
   for (const issue of remaining) {
-    const blockedBy = fetchBlockers(issue);
+    const blockedBy = liveBlockers(fetchBlockers(issue), alreadyMerged);
     if (blockedBy.length > 0) {
       blocked.push({ id: String(issue.number), title: issue.title, blockedBy });
     } else {
@@ -751,8 +766,9 @@ async function runGroup(group: Group): Promise<boolean> {
     const alreadyMerged = resolveMergedIssues(group, integrationBranch).map(
       (issue) => Number(issue.id),
     );
-    // Rechecked every cycle, not cached: a blocker that closes mid-run should
-    // let its dependent join this same run, not wait for the next invocation.
+    // Rechecked every cycle, not cached: a blocker that closes mid-run — or
+    // whose work this run has just merged — should let its dependent join this
+    // same run, not wait for the next invocation.
     ({ planned, blocked } = planGroup(group, alreadyMerged));
 
     if (blocked.length > 0) {
@@ -763,6 +779,8 @@ async function runGroup(group: Group): Promise<boolean> {
     }
 
     if (planned.length === 0) {
+      // Nothing left that this batch can unblock by itself: every remaining
+      // blocker sits outside the integration branch.
       console.log("No unblocked issues left in this group.");
       break;
     }

@@ -193,9 +193,10 @@ export function isDeadRun(
  * of its branches sat stranded with unmerged commits (that PR would go out as
  * ready for review with work missing from it), and it would also call a group
  * done while one of its issues is open but blocked — that issue isn't
- * finished, it's just not this batch's to do anything about right now. A
- * blocked issue leaves the PR a draft indefinitely; a future run that finds it
- * unblocked folds it into the same PR.
+ * finished, it's just not this batch's to do anything about right now. Only a
+ * blocker outside this batch reaches here (see liveBlockers), so the PR stays a
+ * draft until that blocker ships; a future run that finds it closed folds the
+ * dependent into the same PR.
  *
  * A plan is also exhausted when its issues settled with nothing to do (see
  * isSettledWithNothingToDo): the loop stops on that before replanning, so the
@@ -224,6 +225,29 @@ export function parseBlockedByLine(body: string | undefined): number[] {
   const match = body.match(BLOCKED_BY_LINE);
   if (!match) return [];
   return [...match[1].matchAll(/\d+/g)].map((m) => Number(m[0]));
+}
+
+/**
+ * Narrow a blocker list to the blockers this batch is still waiting on.
+ *
+ * A blocker whose own work is already merged into the integration branch is
+ * resolved as far as this batch is concerned, even though GitHub still reports
+ * its issue as open: a Sandcastle issue closes when the batch PR merges, not
+ * when its commits land on the branch. Reading GitHub's state alone deadlocked
+ * exactly the case the cycle loop exists for — a group whose blocker and
+ * dependent are both in the batch could never finish, because the dependent
+ * waited on a close that waited on the PR that waited on the dependent.
+ *
+ * `mergedIssues` must be the issues merged into *this* integration branch. A
+ * blocker merged into some other group's branch is still a live block: its work
+ * is not in this batch, so building on it here would build on nothing.
+ */
+export function liveBlockers(
+  blockers: number[],
+  mergedIssues: number[],
+): number[] {
+  const merged = new Set(mergedIssues);
+  return blockers.filter((blocker) => !merged.has(blocker));
 }
 
 /** Title the PR for a group's batch. */

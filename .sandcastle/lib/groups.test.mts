@@ -15,6 +15,7 @@ import {
   isRunFatal,
   isSettledWithNothingToDo,
   issueNumberOfBranch,
+  liveBlockers,
   parentIssueOf,
   parseBlockedByLine,
   partitionIntoGroups,
@@ -373,4 +374,16 @@ test("the Blocked by line is matched anywhere in the body, case-insensitively", 
     parseBlockedByLine("Some context first.\n\nblocked BY: #12\n\nMore text."),
     [12],
   );
+});
+
+test("a blocker whose work is merged into the batch no longer blocks", () => {
+  assert.deepEqual(liveBlockers([351], [351]), []);
+});
+
+test("a blocker outside the batch keeps blocking even as siblings merge", () => {
+  assert.deepEqual(liveBlockers([293, 323], [323]), [293]);
+});
+
+test("nothing merged yet leaves every blocker live", () => {
+  assert.deepEqual(liveBlockers([272, 273], []), [272, 273]);
 });
