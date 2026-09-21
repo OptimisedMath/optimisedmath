@@ -302,7 +302,7 @@ class TestBuildProblemDict:
         assert len(whole_numbers) >= 2
 
     def test_explicit_fillers_replace_the_rule(self):
-        """`dec_to_frac_4`-shaped escape hatch: a passed list is the whole padding."""
+        """ADR-0009's escape hatch: a passed list is the whole padding, rule skipped."""
         problem = build_problem_dict("q", "1", fillers=["0,(3)"], parameters={})
         assert "0,(3)" in problem["options"]
         assert len(problem["options"]) == 2

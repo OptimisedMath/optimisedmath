@@ -64,7 +64,8 @@ def format_fraction_answer(
 
 # --- Trap slugs ---
 
-# Every Filler shares one label: `answer + 1` has no rule behind it to name.
+# Every Filler shares one label: a near miss invented to pad a slot (ADR-0009)
+# has no rule behind it to name.
 FILLER_SLUG = "filler"
 
 
@@ -136,7 +137,7 @@ def _in_lowest_terms(numerator: int, denominator: int) -> bool:
 
 
 def _answer_form(value: str) -> str:
-    """Which of the five forms in ADR-0009's table `value` is written in."""
+    """Which Answer form the Filler rule reads `value` as, or "unrecognized"."""
     if _MIXED_RE.fullmatch(value):
         return "mixed"
     if _FRACTION_RE.fullmatch(value):
@@ -186,7 +187,7 @@ def _fraction_variants(num: int, den: int, *, proper: bool) -> list[tuple[int, i
 
 
 def _filler_candidates(source: str) -> list[str]:
-    """Near misses of `source`, written in its own Answer form (ADR-0009's table).
+    """Near misses of `source`, written in its own Answer form (ADR-0009).
 
     Each candidate keeps the source's shape: a mixed number stays mixed with a
     whole part >= 1 and a proper fractional part, a proper fraction stays proper
@@ -198,12 +199,12 @@ def _filler_candidates(source: str) -> list[str]:
         sign, whole_s, num_s, den_s = m.groups()
         whole, num, den = int(whole_s), int(num_s), int(den_s)
         moved_wholes = [
-            f"{sign}{whole + delta}\\frac{{{num}}}{{{den}}}"
+            rf"{sign}{whole + delta}\frac{{{num}}}{{{den}}}"
             for delta in _FILLER_DELTAS
             if whole + delta >= 1
         ]
         return moved_wholes + [
-            f"{sign}{whole}\\frac{{{variant_num}}}{{{variant_den}}}"
+            rf"{sign}{whole}\frac{{{variant_num}}}{{{variant_den}}}"
             for variant_num, variant_den in _fraction_variants(num, den, proper=True)
         ]
 
@@ -211,7 +212,7 @@ def _filler_candidates(source: str) -> list[str]:
         sign, num_s, den_s = m.groups()
         num, den = int(num_s), int(den_s)
         return [
-            f"{sign}\\frac{{{variant_num}}}{{{variant_den}}}"
+            rf"{sign}\frac{{{variant_num}}}{{{variant_den}}}"
             for variant_num, variant_den in _fraction_variants(
                 num, den, proper=num < den
             )
@@ -326,7 +327,7 @@ _WRONG_OPTION_SLOTS = 3
 
 
 def _offered_traps(
-    trap_items: list[tuple[str, str | None]],
+    traps: dict[str, str | None],
     correct: str,
     allow_negative_options: bool,
 ) -> list[tuple[str, str]]:
@@ -337,7 +338,7 @@ def _offered_traps(
     """
     offered: list[tuple[str, str]] = []
     taken = {correct}
-    for slug, value in trap_items:
+    for slug, value in traps.items():
         if len(offered) >= _WRONG_OPTION_SLOTS:
             break
         if value is None or value in taken:
@@ -381,8 +382,8 @@ def build_problem_dict(
     Radio mode appends the Unit to all four buttons at render time, so it can never be
     the discriminator (#213) — and the Level must declare it in `expected_units`.
     """
-    trap_items = list((traps or {}).items())
-    offered_traps = _offered_traps(trap_items, c_str, allow_negative_options)
+    authored_traps = traps or {}
+    offered_traps = _offered_traps(authored_traps, c_str, allow_negative_options)
 
     option_entries: list[tuple[str, str]] = [(c_str, "correct")] + offered_traps
     screen = [value for value, _ in option_entries]
@@ -395,17 +396,16 @@ def build_problem_dict(
     elif not is_comparison:
         option_entries += _make_fillers(
             authored_values=screen,
-            trap_values=[value for _, value in trap_items if value is not None],
+            trap_values=[
+                value for value in authored_traps.values() if value is not None
+            ],
             correct=c_str,
             needed=_WRONG_OPTION_SLOTS - len(offered_traps),
             allow_negative_options=allow_negative_options,
         )
 
-    options_map: dict[str, str] = {}
-    for value, label in option_entries:
-        options_map[value] = label
-
-    options = list(options_map.keys())
+    options_map = dict(option_entries)
+    options = list(options_map)
 
     if is_comparison:
         order = {"<": 0, "=": 1, ">": 2}
