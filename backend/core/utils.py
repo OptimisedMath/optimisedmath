@@ -273,29 +273,34 @@ def _filler_pool(
     return pool
 
 
-def _correct_answer_stands_alone(correct: str, authored_values: list[str]) -> bool:
-    """Whether the correct answer is the only authored option written in its form.
+def _correct_answer_stands_alone(correct: str, offered: list[str]) -> bool:
+    """Whether the correct answer is the only offered option written in its form.
 
     ADR-0009's notation exception: when it is, the first Filler is drawn from the
     correct answer, so that being the lone fraction — or the lone whole number —
     cannot give it away.
     """
     form = _answer_form(correct)
-    return sum(_answer_form(value) == form for value in authored_values) == 1
+    return sum(_answer_form(value) == form for value in offered) == 1
 
 
 def _make_fillers(
-    authored_values: list[str],
-    trap_values: list[str],
+    offered: list[str],
     correct: str,
     needed: int,
     allow_negative_options: bool,
 ) -> list[tuple[str, str]]:
-    """Invent up to `needed` Fillers per ADR-0009, or fewer when candidates run out."""
+    """Invent up to `needed` Fillers per ADR-0009, or fewer when candidates run out.
+
+    `offered` is every option already on screen — the correct answer and the Traps
+    that took a slot — and is the only source a Filler is drawn from. A Filler
+    already picked is one more value the next Filler must differ from, but never
+    a source itself.
+    """
     if needed <= 0:
         return []
 
-    screen = list(authored_values)
+    screen = list(offered)
     picked: list[str] = []
 
     def take(pool: list[str]) -> None:
@@ -303,14 +308,13 @@ def _make_fillers(
         picked.append(pick)
         screen.append(pick)
 
-    if _correct_answer_stands_alone(correct, authored_values):
+    if _correct_answer_stands_alone(correct, offered):
         rescue_pool = _filler_pool([correct], screen, allow_negative_options)
         if rescue_pool:
             take(rescue_pool)
 
-    sources = list(dict.fromkeys(trap_values + [correct]))
     while len(picked) < needed:
-        pool = _filler_pool(sources, screen, allow_negative_options)
+        pool = _filler_pool(offered, screen, allow_negative_options)
         if not pool:
             break
         take(pool)
@@ -382,8 +386,7 @@ def build_problem_dict(
     Radio mode appends the Unit to all four buttons at render time, so it can never be
     the discriminator (#213) — and the Level must declare it in `expected_units`.
     """
-    authored_traps = traps or {}
-    offered_traps = _offered_traps(authored_traps, c_str, allow_negative_options)
+    offered_traps = _offered_traps(traps or {}, c_str, allow_negative_options)
 
     option_entries: list[tuple[str, str]] = [(c_str, "correct")] + offered_traps
     screen = [value for value, _ in option_entries]
@@ -395,10 +398,7 @@ def build_problem_dict(
         ]
     elif not is_comparison:
         option_entries += _make_fillers(
-            authored_values=screen,
-            trap_values=[
-                value for value in authored_traps.values() if value is not None
-            ],
+            offered=screen,
             correct=c_str,
             needed=_WRONG_OPTION_SLOTS - len(offered_traps),
             allow_negative_options=allow_negative_options,
