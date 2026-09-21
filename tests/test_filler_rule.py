@@ -37,9 +37,9 @@ COMPARISON_GENERATORS = frozenset(
 FILLERS_EXEMPT_GENERATORS = COMPARISON_GENERATORS | {"dec_to_frac_4"}
 
 
-def _functions_passing_fillers(source: str, path: Path) -> set[str]:
-    """Every function name whose body passes a `fillers=` keyword argument."""
-    tree = ast.parse(source, filename=str(path))
+def _functions_passing_fillers(path: Path) -> set[str]:
+    """Every function in `path` whose body passes a `fillers=` keyword argument."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     return {
         node.name
         for node in ast.walk(tree)
@@ -62,10 +62,7 @@ _CHAPTER_FILES = sorted(CHAPTERS_DIR.rglob("topic_*.py"))
 )
 def test_only_the_pinned_exemptions_pass_fillers(path):
     """No chapter file hand-writes `fillers=` outside ADR-0009's exemptions."""
-    offenders = (
-        _functions_passing_fillers(path.read_text(encoding="utf-8"), path)
-        - FILLERS_EXEMPT_GENERATORS
-    )
+    offenders = _functions_passing_fillers(path) - FILLERS_EXEMPT_GENERATORS
     assert not offenders, (
         f"{path.relative_to(CHAPTERS_DIR)} passes fillers= from "
         f"{sorted(offenders)}, outside the pinned exemption set"
@@ -76,7 +73,7 @@ ROLLS = 300
 
 
 @pytest.mark.parametrize("name", sorted(set(FUNCTION_REGISTRY) - COMPARISON_GENERATORS))
-def test_padded_generator_serves_four_distinct_options(name):
+def test_generator_serves_four_distinct_options(name):
     """Every generator outside the comparison Levels fills all four slots, on every roll."""
     generator = FUNCTION_REGISTRY[name]
     for _ in range(ROLLS):

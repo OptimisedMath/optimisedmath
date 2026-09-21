@@ -18,18 +18,19 @@ from backend.problem_generation import FUNCTION_REGISTRY
 ROLLS = 200
 
 
+def _draws(name: str) -> list[dict]:
+    """Every Problem the named generator emits across ROLLS rolls, rejections dropped."""
+    rolls = (FUNCTION_REGISTRY[name]() for _ in range(ROLLS))
+    return [problem for problem in rolls if problem is not None]
+
+
 @pytest.mark.parametrize("name", ["frac_pow_1", "frac_pow_2"])
 def test_frac_pow_trap_multiplies_only_the_numerator(name):
     """The Trap is n*p over d, and so is never the fraction the question printed."""
-    generator = FUNCTION_REGISTRY[name]
+    problems = _draws(name)
+    assert problems, f"{name} emitted no Problem in {ROLLS} rolls"
 
-    emitted = 0
-    for _ in range(ROLLS):
-        problem = generator()
-        if problem is None:
-            continue
-        emitted += 1
-
+    for problem in problems:
         parameters = problem["parameters"]
         n, d, p = parameters["n"], parameters["d"], parameters["p"]
         question_fraction, _ = format_answers(n, d)
@@ -52,8 +53,6 @@ def test_frac_pow_trap_multiplies_only_the_numerator(name):
             expected_trap != question_fraction
         ), f"{name} offered the question's own fraction {question_fraction!r} as a Trap"
 
-    assert emitted, f"{name} emitted no Problem in {ROLLS} rolls"
-
 
 def test_frac_pow_2_squares_instead_of_cubing():
     """Level 2's new slip (#277) squares both parts instead of cubing them.
@@ -62,15 +61,10 @@ def test_frac_pow_2_squares_instead_of_cubing():
     check over the Level's whole domain (d = 2..5) found it never collides with
     the two Misconception Traps or the correct answer, so every draw offers it.
     """
-    generator = FUNCTION_REGISTRY["frac_pow_2"]
+    problems = _draws("frac_pow_2")
+    assert problems, f"frac_pow_2 emitted no Problem in {ROLLS} rolls"
 
-    emitted = 0
-    for _ in range(ROLLS):
-        problem = generator()
-        if problem is None:
-            continue
-        emitted += 1
-
+    for problem in problems:
         parameters = problem["parameters"]
         n, d = parameters["n"], parameters["d"]
         expected_trap, _ = format_answers(n**2, d**2)
@@ -83,8 +77,6 @@ def test_frac_pow_2_squares_instead_of_cubing():
             expected_trap != correct
         ), f"frac_pow_2 offered the correct answer {correct!r} as squares_instead_of_cubing"
 
-    assert emitted, f"frac_pow_2 emitted no Problem in {ROLLS} rolls"
-
 
 def test_frac_pow_2_draws_a_unit_fraction_to_cube():
     """Level 2 reaches n=1, which the old Trap formula collided away (#273).
@@ -93,12 +85,6 @@ def test_frac_pow_2_draws_a_unit_fraction_to_cube():
     `raises_only_the_numerator` Trap on every unit-fraction draw; the colliding
     options were discarded, leaving the Level a pool of 6 rather than 10.
     """
-    generator = FUNCTION_REGISTRY["frac_pow_2"]
-
-    numerators = set()
-    for _ in range(ROLLS):
-        problem = generator()
-        if problem is not None:
-            numerators.add(problem["parameters"]["n"])
+    numerators = {problem["parameters"]["n"] for problem in _draws("frac_pow_2")}
 
     assert 1 in numerators, f"frac_pow_2 drew no unit fraction in {ROLLS} rolls"

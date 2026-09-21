@@ -1,4 +1,5 @@
 # tests/test_core_logic.py
+import math
 import random
 import re
 
@@ -272,6 +273,27 @@ class TestBuildProblemDict:
             if label != "filler":
                 continue
             assert re.fullmatch(r"\d+\\frac\{\d+\}\{\d+\}", value)
+
+    def test_filler_of_a_proper_fraction_stays_proper(self, monkeypatch):
+        """A Filler padding a proper fraction stays proper, so none stands out by shape."""
+        monkeypatch.setattr(random, "choice", lambda seq: seq[0])
+        problem = build_problem_dict("q", r"\frac{3}{4}", parameters={})
+        for value, label in problem["options_map"].items():
+            if label != "filler":
+                continue
+            fraction = parse_to_fraction(value)
+            assert fraction is not None and fraction < 1, value
+
+    def test_filler_keeps_lowest_terms(self, monkeypatch):
+        """A Filler padding a reduced fraction is reduced too: 1/64 never pads with 2/64."""
+        monkeypatch.setattr(random, "choice", lambda seq: seq[0])
+        problem = build_problem_dict("q", r"\frac{1}{64}", parameters={})
+        for value, label in problem["options_map"].items():
+            if label != "filler":
+                continue
+            parts = re.fullmatch(r"\\frac\{(\d+)\}\{(\d+)\}", value)
+            assert parts, value
+            assert math.gcd(int(parts[1]), int(parts[2])) == 1, value
 
     def test_filler_keeps_decimal_places(self, monkeypatch):
         """A decimal Filler carries as many decimal places as the answer it pads."""

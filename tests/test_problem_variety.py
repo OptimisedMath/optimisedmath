@@ -70,6 +70,7 @@ def _parameters_key(parameters: dict) -> tuple:
     "name", sorted(set(FUNCTION_REGISTRY) - NUMBER_LINE_GENERATORS)
 )
 def test_generator_draws_varied_problems(name):
+    """Each generator clears the floor, or the pool its `VARIETY_EXEMPTIONS` entry records."""
     generator = FUNCTION_REGISTRY[name]
     pool, reason = VARIETY_EXEMPTIONS.get(name, (MIN_DISTINCT, None))
 
