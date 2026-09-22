@@ -23,7 +23,6 @@ def dec_mult_1() -> dict | None:
             "puts_two_places_too_many_in_the_product": fmt_dec(round(v1 * v2 / 100, 3)),
             "ignores_the_point_in_the_factor": fmt_dec(round(v1 * 10 * v2, 2)),
         },
-        fillers=[fmt_dec(round((v1 * 10 * v2 + 1) / 10, 2))],
         parameters={"v1": v1, "v2": v2},
     )
     if problem:
@@ -78,7 +77,6 @@ def dec_mult_3() -> dict | None:
             "puts_one_place_too_few_in_the_product": fmt_dec(round(val * 10, 2)),
             "puts_one_place_too_many_in_the_product": fmt_dec(round(val / 10, 2)),
         },
-        fillers=[fmt_dec(round((v1 * 10 * v2 * 10) + 1, 2))],
         parameters={"v1": v1, "v2": v2},
     )
     if problem:

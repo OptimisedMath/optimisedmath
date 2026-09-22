@@ -1,0 +1,90 @@
+"""`frac_pow_1` and `frac_pow_2`'s `multiplies_by_the_exponent` Trap must multiply
+only the numerator by the exponent (#273).
+
+Multiplying both parts is an equivalent fraction, and the display simplifies it
+back down to the question's own fraction — so a Student who picked the Trap saw
+feedback that did not match what they clicked, and every draw offered the
+question's fraction as one of its own options.
+
+A generator draws its numbers at random, so no single call proves the guarantee —
+the same sweep shape as `test_trap_slugs.py`. Running each generator many times does.
+"""
+
+import pytest
+
+from backend.core.utils import format_answers
+from backend.problem_generation import FUNCTION_REGISTRY
+
+ROLLS = 200
+
+
+def _draws(name: str) -> list[dict]:
+    """Every Problem the named generator emits across ROLLS rolls, rejections dropped."""
+    rolls = (FUNCTION_REGISTRY[name]() for _ in range(ROLLS))
+    return [problem for problem in rolls if problem is not None]
+
+
+@pytest.mark.parametrize("name", ["frac_pow_1", "frac_pow_2"])
+def test_frac_pow_trap_multiplies_only_the_numerator(name):
+    """The Trap is n*p over d, and so is never the fraction the question printed."""
+    problems = _draws(name)
+    assert problems, f"{name} emitted no Problem in {ROLLS} rolls"
+
+    for problem in problems:
+        parameters = problem["parameters"]
+        n, d, p = parameters["n"], parameters["d"], parameters["p"]
+        question_fraction, _ = format_answers(n, d)
+        expected_trap, _ = format_answers(n * p, d)
+        raises_only_trap, _ = format_answers(n**p, d)
+
+        if expected_trap == raises_only_trap:
+            # n**p == n*p (only n=2, p=2 in these domains): the two Traps
+            # collide, and ADR-0008's declaration order keeps
+            # `raises_only_the_numerator`, its earlier-declared neighbour,
+            # instead — this draw's slot goes to a Filler.
+            continue
+
+        assert (
+            problem["options_map"].get(expected_trap) == "multiplies_by_the_exponent"
+        ), f"{name} did not offer {expected_trap!r} as the Trap for ({n}/{d})^{p}"
+        # Multiplying both parts always reduced back to the question's own
+        # fraction; multiplying only the numerator must not.
+        assert (
+            expected_trap != question_fraction
+        ), f"{name} offered the question's own fraction {question_fraction!r} as a Trap"
+
+
+def test_frac_pow_2_squares_instead_of_cubing():
+    """Level 2's new slip (#277) squares both parts instead of cubing them.
+
+    It is a slip, not a believed rule: nothing gates it, and #277's exhaustive
+    check over the Level's whole domain (d = 2..5) found it never collides with
+    the two Misconception Traps or the correct answer, so every draw offers it.
+    """
+    problems = _draws("frac_pow_2")
+    assert problems, f"frac_pow_2 emitted no Problem in {ROLLS} rolls"
+
+    for problem in problems:
+        parameters = problem["parameters"]
+        n, d = parameters["n"], parameters["d"]
+        expected_trap, _ = format_answers(n**2, d**2)
+        correct, _ = format_answers(n**3, d**3)
+
+        assert (
+            problem["options_map"].get(expected_trap) == "squares_instead_of_cubing"
+        ), f"frac_pow_2 did not offer {expected_trap!r} as squares_instead_of_cubing for ({n}/{d})^3"
+        assert (
+            expected_trap != correct
+        ), f"frac_pow_2 offered the correct answer {correct!r} as squares_instead_of_cubing"
+
+
+def test_frac_pow_2_draws_a_unit_fraction_to_cube():
+    """Level 2 reaches n=1, which the old Trap formula collided away (#273).
+
+    Multiplying both parts gave 3n/3d, which reduced to n/d and so equalled the
+    `raises_only_the_numerator` Trap on every unit-fraction draw; the colliding
+    options were discarded, leaving the Level a pool of 6 rather than 10.
+    """
+    numerators = {problem["parameters"]["n"] for problem in _draws("frac_pow_2")}
+
+    assert 1 in numerators, f"frac_pow_2 drew no unit fraction in {ROLLS} rolls"

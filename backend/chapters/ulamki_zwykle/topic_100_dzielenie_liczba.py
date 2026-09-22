@@ -45,7 +45,6 @@ def frac_div_num_1() -> dict | None:
             )[0],
             "multiplies_the_numerator_instead_of_dividing": format_answers(n * k, d)[0],
         },
-        fillers=[format_answers(n + k, d * k)[0]],
         parameters={"n": n, "d": d, "k": k},
     )
     if problem:
@@ -79,7 +78,6 @@ def frac_div_num_2() -> dict | None:
             ],
             "multiplies_the_numerator_instead_of_dividing": format_answers(n * k, d)[0],
         },
-        fillers=[format_answers(n + 1, d * k)[0]],
         parameters={"n": n, "d": d, "k": k},
     )
     if problem:
@@ -113,7 +111,6 @@ def frac_div_num_3() -> dict | None:
                 correct_num * k, d
             )[0],
         },
-        fillers=[format_answers(correct_num + 1, d * k)[0]],
         parameters={
             "whole1": w,
             "n1": n,

@@ -180,7 +180,11 @@ def _apply_expected_unit(problem: ProblemDict, level_config: LevelConfig) -> Non
 
 
 def problem_fingerprint(problem: ProblemDict) -> str:
-    """Stable identity for a generated problem instance (excludes problem_id)."""
-    options = "|".join(sorted(str(opt) for opt in problem.get("options", [])))
-    payload = f"{problem.get('question', '')}|{problem.get('correct', '')}|{options}"
+    """Stable identity for a generated problem instance.
+
+    Hashes the question and correct answer only, matching Distinct Problem in
+    CONTEXT.md: two servings of one question are the same Problem regardless of
+    which Traps and Fillers happen to be served beside it (ADR-0009).
+    """
+    payload = f"{problem.get('question', '')}|{problem.get('correct', '')}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()

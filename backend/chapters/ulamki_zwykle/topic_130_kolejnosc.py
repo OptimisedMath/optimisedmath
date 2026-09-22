@@ -69,6 +69,11 @@ def frac_ord_1() -> dict | None:
             "flattens_to_all_subtraction": a - b - c,
             "replaces_multiplication_with_addition": a - b + c,
         }
+        # Ułamki Zwykłe forbids negative options (ADR-0007), so a draw where
+        # all three Traps go negative offers none of them — the template
+        # would test nothing (#272).
+        if all(value < 0 for value in traps.values()):
+            return None
 
     problem = build_problem_dict(
         q,
@@ -243,7 +248,7 @@ def frac_ord_5() -> dict | None:
 
     if template == "brack_sq_sub":
         a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
-        c = Fraction(1, random.choice([2, 3, 4]))
+        c = Fraction(1, random.choice([2, 3, 4, 5]))
         q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}})^2 - \\frac{{{c.numerator}}}{{{c.denominator}}}"
         ans = ((a + b) ** 2) - c
         if ans < 0:
@@ -256,7 +261,7 @@ def frac_ord_5() -> dict | None:
     else:
         a = Fraction(1, random.choice([2, 3]))
         b = Fraction(3, random.choice([4, 5]))
-        c = Fraction(1, random.choice([4, 5]))
+        c = Fraction(1, random.choice([4, 5, 6]))
         q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} - \\frac{{{c.numerator}}}{{{c.denominator}}})^2"
         ans = a * ((b - c) ** 2)
         traps = {
@@ -283,9 +288,12 @@ def frac_ord_5() -> dict | None:
 def frac_ord_6() -> dict | None:
     """Wszystko Naraz (poziom 6)."""
     # Poziom 6: nawias, potęgowanie, mnożenie i odejmowanie w jednym działaniu
-    a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
-    c = Fraction(1, random.choice([2, 3]))
-    d = Fraction(1, random.choice([4, 5]))
+    # A non-unit `a` and a small `d` are what keep every Trap positive, as
+    # ADR-0007 requires; on unit fractions two of the three were always negative.
+    a = random.choice([Fraction(2, 3), Fraction(3, 4)])
+    b = random.choice([Fraction(1, 2), Fraction(1, 3)])
+    c = random.choice([Fraction(1, 2), Fraction(1, 3)])
+    d = random.choice([Fraction(1, 8), Fraction(1, 9), Fraction(1, 10)])
 
     q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} + \\frac{{{c.numerator}}}{{{c.denominator}}})^2 - \\frac{{{d.numerator}}}{{{d.denominator}}}"
     ans = a * ((b + c) ** 2) - d

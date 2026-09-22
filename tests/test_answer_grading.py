@@ -44,6 +44,12 @@ class TestProblemFingerprint:
         second = _sample_problem(correct="2")
         assert problem_fingerprint(first) != problem_fingerprint(second)
 
+    def test_different_fillers_same_fingerprint(self):
+        """Two servings of one question share a fingerprint despite different Fillers (ADR-0009)."""
+        first = _sample_problem(options=["1", r"\frac{2}{4}", "2"])
+        second = _sample_problem(options=["1", "5", "9"])
+        assert problem_fingerprint(first) == problem_fingerprint(second)
+
 
 class TestRegistryCollision:
     def test_register_generator_rejects_duplicate_names(self):
