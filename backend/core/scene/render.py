@@ -137,6 +137,8 @@ class Ctx:
     arc_count: dict[str, int] = field(default_factory=dict)
     #: how many unknown edge lengths have claimed a letter, for figure order
     edge_symbol_count: int = 0
+    #: rectangles `place_labels` settled on, one per label, in placement order
+    placed_boxes: list[Box] = field(default_factory=list)
 
     # --- sizes ---------------------------------------------------------
     @property
@@ -270,7 +272,12 @@ class Ctx:
                 color=color,
                 size=size,
                 gap=gap,
-                half_w=0.30 * size * max(1, len(label)),
+                # 0.30 was tuned against a regular-weight glyph; the labels
+                # actually render at font-weight 600, which draws wider, so a
+                # flat 0.30 reserved a box narrower than the glyphs it held
+                # and let an adjacent label's box read as clear when the
+                # glyphs themselves would touch (#289).
+                half_w=0.34 * size * max(1, len(label)),
                 half_h=0.58 * size,
                 unknown=unknown,
             )
@@ -284,40 +291,76 @@ class Ctx:
         Sliding along the placement direction is what keeps the result
         *meaningful*: a length label stays on the outward side of its own edge,
         it just moves further out. Nudging sideways would be free but could park
-        a label beside the wrong edge.
+        a label beside the wrong edge — but a *pure* slide can also get stuck:
+        a label boxed in by a near-vertical altitude can share almost the same
+        direction as the side label it collides with, so no distance along that
+        one line ever clears it (#289). A perpendicular nudge, tried at every
+        distance and widened until it clears, gives the search a second axis to
+        route around a fixed box without abandoning the outward side that keeps
+        the label meaningful.
+
+        There is no "place it somewhere, anywhere" fallback: a label that
+        cannot be placed clear of the figure and every already-placed label
+        raises, per the contract that this pass either finds a clean spot or
+        fails loudly rather than shipping labels that sit on top of each other.
         """
         placed: list[Box] = []
         for lab in self.labels:
-            best_box, best_cost = None, None
+            best_box, best_rank, best_overlap = None, None, None
             # Two candidate sides. Sliding outward is tried first and preferred,
             # but a label that starts inside a narrow wedge — the height of a
             # squat trapezoid, the arc of a 25 degree vertex — can never escape
             # by sliding one way, so the opposite side is a candidate too.
             for sign in (1.0, -1.0):
                 d = mul(lab.direction, sign)
+                p = perp(lab.direction)
                 for step in range(0, 14):
-                    c = add(
-                        lab.anchor,
-                        mul(d, lab.gap * self.u + lab.reach() + step * self.u * 1.7),
-                    )
-                    box = (
-                        c[0] - lab.half_w,
-                        c[1] - lab.half_h,
-                        c[0] + lab.half_w,
-                        c[1] + lab.half_h,
-                    )
-                    cost = sum(1.0 for q in placed if _overlap(box, q))
-                    cost += sum(0.75 for seg in self.obstacles if _hits(box, seg))
-                    # tie-breakers: stay near what the label describes, and
-                    # prefer the outward side when both are clear
-                    cost += step * 0.05 + (0.12 if sign < 0 else 0.0)
-                    if best_cost is None or cost < best_cost:
-                        best_box, best_cost = box, cost
-                    if cost < 0.5:
+                    dist = lab.gap * self.u + lab.reach() + step * self.u * 1.7
+                    centre = add(lab.anchor, mul(d, dist))
+                    for shift in (0, 1, -1, 2, -2, 3, -3, 4, -4):
+                        c = add(centre, mul(p, shift * self.u * 1.4))
+                        box = (
+                            c[0] - lab.half_w,
+                            c[1] - lab.half_h,
+                            c[0] + lab.half_w,
+                            c[1] + lab.half_h,
+                        )
+                        # `overlap` is the one thing the contract forbids: two
+                        # label boxes covering the same ground. `hits` — this
+                        # box grazing a figure stroke — is unsightly but not
+                        # what #289 is about, so it stays a soft preference.
+                        # Keeping them apart, instead of folding both into one
+                        # blended cost, matters: a candidate can only be
+                        # accepted as "clear" by the one criterion that governs
+                        # whether this pass may ship it.
+                        overlap = sum(1.0 for q in placed if _overlap(box, q))
+                        hits = sum(1.0 for seg in self.obstacles if _hits(box, seg))
+                        tie = (
+                            step * 0.05
+                            + (0.12 if sign < 0 else 0.0)
+                            + abs(shift) * 0.03
+                        )
+                        # Scaled so that one label overlap always outranks any
+                        # number of stroke hits, and any stroke hit always
+                        # outranks the tie-breakers — a truly clear box found
+                        # on a late step must never lose to a dirtier one
+                        # found early (#289's second fault).
+                        rank = overlap * 1000 + hits * 10 + tie
+                        if best_rank is None or rank < best_rank:
+                            best_box, best_rank, best_overlap = box, rank, overlap
+                        if overlap == 0 and hits == 0:
+                            break
+                    if best_overlap == 0:
                         break
-                if best_cost is not None and best_cost < 0.5:
+                if best_overlap == 0:
                     break
             assert best_box is not None
+            if best_overlap > 0:
+                raise ValueError(
+                    f"could not place label {lab.text!r} clear of every label "
+                    "already placed — the whole-scene placement pass found no "
+                    "position for it that does not overlap another label"
+                )
             placed.append(best_box)
             cx = (best_box[0] + best_box[2]) / 2
             cy = (best_box[1] + best_box[3]) / 2
@@ -328,6 +371,7 @@ class Ctx:
                 f'text-anchor="middle" dominant-baseline="central">{lab.text}</text>'
             )
             self.include((best_box[0], best_box[1]), (best_box[2], best_box[3]))
+        self.placed_boxes = placed
 
     def arc_points(
         self,
@@ -878,6 +922,19 @@ class Scene:
 
     figure: Figure
     annotations: list[Annotation]
+    _label_boxes: list[Box] = field(
+        default_factory=list, init=False, repr=False, compare=False
+    )
+
+    def label_boxes(self) -> list[Box]:
+        """The rectangles the last `to_svg()` call placed its labels at.
+
+        The one seam `to_svg()` needs to make "no two labels overlap"
+        assertable for any figure: a caller reads the boxes back off the
+        `Scene` instead of scraping the SVG string or reaching into `Ctx`,
+        which stays private (#289). Empty until `to_svg()` has run.
+        """
+        return list(self._label_boxes)
 
     def to_svg(self, pad: float = 4.0) -> str:
         """Render the scene: pen unit, then draw, then place labels, then viewBox."""
@@ -901,6 +958,7 @@ class Scene:
         # Pass 2b: resolve every label against every stroke and every other
         # label, now that the whole scene is known.
         ctx.place_labels()
+        self._label_boxes = ctx.placed_boxes
 
         # Pass 3: viewBox from the content bbox — labels included, so nothing clips.
         xs = [p[0] for p in ctx.extent]
