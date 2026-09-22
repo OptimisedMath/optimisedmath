@@ -43,7 +43,7 @@ def _match_trap_feedback(
             matched = opt_val is not None and student_val == opt_val
         if matched:
             msg_text = problem.get("messages", {}).get(
-                opt_type, "Niepoprawna odpowiedź, spróbuj ponownie."
+                opt_type, config.DEFAULT_WRONG_MESSAGE
             )
             return {
                 "lock_answer": True,
@@ -167,7 +167,7 @@ def grade(
 
         msg_key = options_map.get(user_input)
         msg_text = problem.get("messages", {}).get(
-            msg_key or FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
+            msg_key or FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
         )
         if msg_key is None:
             outcome = "wrong"
@@ -216,6 +216,9 @@ def grade(
                 "answer_outcome": "format_mismatch",
             }
 
+        # `exact_match_only` deliberately returns nothing here: on those Levels
+        # the requested form is part of the answer, so a value-equal answer in
+        # another form is Wrong and falls through to section 3 (#312).
         if policy == "equivalent_accepted":
             return {"is_correct": True, "lock_answer": True}
         if policy == "standard":
@@ -232,7 +235,7 @@ def grade(
         return trap_result
 
     msg_text = problem.get("messages", {}).get(
-        FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
+        FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
     )
     return {
         "lock_answer": True,
