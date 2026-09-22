@@ -33,6 +33,19 @@ def _sample_problem(**overrides):
     return base
 
 
+def _exact_match_only_problem():
+    """An `exact_match_only` problem whose options hold no Trap a value-equal answer matches."""
+    return _sample_problem(
+        correct=r"\frac{1}{2}",
+        options=["1", "2"],
+        options_map={
+            "1": "correct",
+            "2": "w1",
+        },
+        grading_policy="exact_match_only",
+    )
+
+
 class TestProblemFingerprint:
     def test_same_content_same_fingerprint(self):
         first = _sample_problem()
@@ -112,18 +125,19 @@ class TestTextGrading:
         assert result["is_correct"] is True
 
     def test_exact_match_only_policy(self):
-        problem = _sample_problem(
-            correct=r"\frac{1}{2}",
-            options=["1", "2"],
-            options_map={
-                "1": "correct",
-                "2": "w1",
-            },
-            grading_policy="exact_match_only",
-        )
-        result = grade("2/4", problem, input_mode="typing")
-        assert result["answer_outcome"] == "exact_match_violation"
+        """Value-equal in the wrong form is Wrong with the generic message, never a Soft Error (#312)."""
+        result = grade("2/4", _exact_match_only_problem(), input_mode="typing")
+        assert result["answer_outcome"] == "wrong"
         assert result["lock_answer"] is True
+        assert result["feedback_type"] == "warning"
+        assert result["feedback_msg"] == "Niepoprawna odpowiedź, spróbuj ponownie."
+
+    def test_exact_match_only_notation_check_still_runs_first(self):
+        """A decimal where a common fraction was asked stays a Soft Error under exact_match_only."""
+        result = grade("0,5", _exact_match_only_problem(), input_mode="typing")
+        assert result["answer_outcome"] == "format_mismatch"
+        assert result["lock_answer"] is False
+        assert result["feedback_type"] == "info"
 
     def test_exact_match_equivalent_trap_shows_trap_message(self):
         problem = _sample_problem(
