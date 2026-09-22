@@ -9,6 +9,7 @@ import {
   buildPrBody,
   buildPrTitle,
   classifyFailure,
+  describeGroup,
   groupIdOf,
   isDeadRun,
   isGroupComplete,
@@ -42,6 +43,17 @@ test("an issue carrying neither label is not admitted", () => {
 
 test("a group label wins over a bare sandcastle label on the same issue", () => {
   assert.equal(groupIdOf(issue(245, ["sandcastle", "sandcastle:218"])), "218");
+});
+
+// --- naming a group in a message -------------------------------------------
+
+test("a group is named by the label that admitted it", () => {
+  assert.equal(describeGroup("218"), "sandcastle:218");
+  assert.equal(describeGroup("telemetry"), "sandcastle:telemetry");
+});
+
+test("a solo group is named by its issue, since its label carries no id", () => {
+  assert.equal(describeGroup("solo-365"), "#365");
 });
 
 test("an empty group suffix does not admit the issue", () => {
@@ -233,6 +245,32 @@ test("a named group closes its children but has no parent spec to close", () => 
   assert.ok(body.includes("Closes #300: Something"));
   assert.ok(!body.includes("Closes #undefined"));
   assert.ok(!/Part of #/.test(body));
+});
+
+test("a solo group's PR opens by naming its issue, not a label that cannot exist", () => {
+  const body = buildPrBody({
+    group: { id: "solo-365", parentIssue: undefined, issues: [] },
+    mergedIssues: [{ id: "365", title: "Rounding 2,96 is graded wrong" }],
+    blockedIssues: [],
+    complete: true,
+  });
+
+  assert.ok(body.startsWith("Automated work on #365, completed by Sandcastle."));
+  assert.ok(!body.includes("sandcastle:solo-365"));
+  assert.ok(body.includes("Closes #365: Rounding 2,96 is graded wrong"));
+});
+
+test("a grouped batch's PR still opens by naming its group label", () => {
+  const body = buildPrBody({
+    group: { id: "268", parentIssue: 268, issues: [] },
+    mergedIssues: [{ id: "290", title: "The revealed answer carries its Unit" }],
+    blockedIssues: [],
+    complete: false,
+  });
+
+  assert.ok(
+    body.startsWith("Automated batch for `sandcastle:268`, completed by Sandcastle."),
+  );
 });
 
 test("a resumed branch with no newly merged issues still explains itself", () => {

@@ -46,6 +46,30 @@ export function parentIssueOf(groupId: string): number | undefined {
   return /^\d+$/.test(groupId) ? Number(groupId) : undefined;
 }
 
+/** A group id of the `solo-<issue>` shape, and the issue number in it. */
+function soloIssueOf(groupId: string): number | undefined {
+  const match = groupId.match(/^solo-(\d+)$/);
+  return match ? Number(match[1]) : undefined;
+}
+
+/**
+ * Name a group the way a message to a human should name it.
+ *
+ * A grouped issue is named by the label that admitted it, because that label
+ * is the thing you would search the board for. A solo group has no such label:
+ * its id is synthesised from the issue number (see groupIdOf), so prefixing it
+ * printed `sandcastle:solo-365` — a label that does not exist and cannot be
+ * created. It names the issue instead.
+ *
+ * Deliberately not shared with buildPrTitle, which renders the same group
+ * differently on purpose: a PR title names the spec a group serves (`#218` for
+ * `sandcastle:218`), while a message names the label (`sandcastle:218`).
+ */
+export function describeGroup(groupId: string): string {
+  const solo = soloIssueOf(groupId);
+  return solo === undefined ? `${GROUP_LABEL_PREFIX}${groupId}` : `#${solo}`;
+}
+
 /**
  * Partition open issues into the groups a run will work, in run order.
  *
@@ -274,8 +298,14 @@ export function buildPrBody(options: {
   complete: boolean;
 }): string {
   const { group, mergedIssues, blockedIssues, complete } = options;
+  const solo = soloIssueOf(group.id);
   const lines = [
-    `Automated batch for \`${GROUP_LABEL_PREFIX}${group.id}\`, completed by Sandcastle.`,
+    // A batch of one is not a batch, and there is no group label to name: a
+    // solo group's PR says what it is instead of naming a label nobody can
+    // find. Both forms keep the "by Sandcastle, not by a human" marker.
+    solo === undefined
+      ? `Automated batch for \`${GROUP_LABEL_PREFIX}${group.id}\`, completed by Sandcastle.`
+      : `Automated work on #${solo}, completed by Sandcastle.`,
     "",
   ];
 

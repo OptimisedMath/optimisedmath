@@ -36,8 +36,16 @@
 // Usage:
 //   npm run sandcastle              # every group, in order
 //   npm run sandcastle -- 244       # one group only
+//   npm run sandcastle -- solo-365  # one solo issue only
 //   SANDCASTLE_DRY_RUN=1 npm run sandcastle
 //   node --test .sandcastle/lib/    # unit tests for the logic below
+//
+// The argument is always a group id, so what you can run by hand is decided by
+// the admission label. An issue carrying the bare `sandcastle` label is the
+// group `solo-<its number>`, which is how you name it above. An issue inside a
+// `sandcastle:<id>` group has no handle of its own: the whole group is the
+// smallest thing a run will take, and the siblings you did not want cost a
+// sandbox each to report they have nothing to do.
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { defaultImageName, docker } from "@ai-hero/sandcastle/sandboxes/docker";
@@ -51,7 +59,7 @@ import {
   buildPrTitle,
   classifyFailure,
   DEAD_ITERATION_THRESHOLD,
-  GROUP_LABEL_PREFIX,
+  describeGroup,
   isDeadRun,
   isGroupComplete,
   isRunFatal,
@@ -379,7 +387,7 @@ function warnAboutUnmergedBranches(
   if (stranded.length === 0) return;
 
   console.warn(
-    `\n⚠️  ${GROUP_LABEL_PREFIX}${group.id}: ${stranded.length} branch(es) carry commits that are NOT in this PR:\n`,
+    `\n⚠️  ${describeGroup(group.id)}: ${stranded.length} branch(es) carry commits that are NOT in this PR:\n`,
   );
 
   for (const branch of stranded) {
@@ -690,7 +698,7 @@ function publish(
   blocked: { id: string; title: string; blockedBy: number[] }[],
 ): boolean {
   if (commitsAhead(BASE_REF, integrationBranch) === 0) {
-    console.log(`\n${GROUP_LABEL_PREFIX}${group.id}: no commits produced. No PR opened.`);
+    console.log(`\n${describeGroup(group.id)}: no commits produced. No PR opened.`);
     return false;
   }
 
@@ -735,9 +743,9 @@ function publish(
     // `gh pr ready` on an already-ready PR is a no-op, so a resumed run that
     // finishes a group needs no check of the current draft state.
     sh(`gh pr ready ${integrationBranch}`);
-    console.log(`Group ${GROUP_LABEL_PREFIX}${group.id} is complete — PR marked ready for review.`);
+    console.log(`Group ${describeGroup(group.id)} is complete — PR marked ready for review.`);
   } else {
-    console.log(`Group ${GROUP_LABEL_PREFIX}${group.id} still has outstanding work — PR left as a draft.`);
+    console.log(`Group ${describeGroup(group.id)} still has outstanding work — PR left as a draft.`);
   }
 
   return true;
@@ -749,7 +757,7 @@ function publish(
 
 async function runGroup(group: Group): Promise<boolean> {
   console.log(`\n${"=".repeat(70)}`);
-  console.log(`Group ${GROUP_LABEL_PREFIX}${group.id} — ${group.issues.length} open issue(s)`);
+  console.log(`Group ${describeGroup(group.id)} — ${group.issues.length} open issue(s)`);
   console.log(`${"=".repeat(70)}`);
 
   const integrationBranch = resolveIntegrationBranch(group);
@@ -761,7 +769,7 @@ async function runGroup(group: Group): Promise<boolean> {
   let settledWithNothingToDo = false;
 
   for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
-    console.log(`\n=== ${GROUP_LABEL_PREFIX}${group.id} — cycle ${iteration}/${MAX_ITERATIONS} ===\n`);
+    console.log(`\n=== ${describeGroup(group.id)} — cycle ${iteration}/${MAX_ITERATIONS} ===\n`);
 
     const alreadyMerged = resolveMergedIssues(group, integrationBranch).map(
       (issue) => Number(issue.id),
@@ -881,7 +889,10 @@ const groups = REQUESTED_GROUP
 
 if (REQUESTED_GROUP && groups.length === 0) {
   console.error(
-    `No open issues carry ${GROUP_LABEL_PREFIX}${REQUESTED_GROUP}. Groups on the board: ${allGroups.map((g) => g.id).join(", ") || "(none)"}`,
+    // The board listing prints raw ids, not describeGroup's rendering: these
+    // are the strings you type as the argument, and a solo group's argument is
+    // `solo-365`, not the `#365` a message about it would say.
+    `No Sandcastle group or solo issue matches ${JSON.stringify(REQUESTED_GROUP)}. Groups on the board: ${allGroups.map((g) => g.id).join(", ") || "(none)"}`,
   );
   process.exit(1);
 }
@@ -894,7 +905,7 @@ if (groups.length === 0) {
 console.log(`\n${groups.length} group(s), in run order:\n`);
 for (const group of groups) {
   const parent = group.parentIssue ? ` (closes spec #${group.parentIssue} when complete)` : "";
-  console.log(`  ${GROUP_LABEL_PREFIX}${group.id}${parent}`);
+  console.log(`  ${describeGroup(group.id)}${parent}`);
   for (const issue of group.issues) {
     const blockers = fetchBlockers(issue);
     const suffix =
@@ -996,7 +1007,7 @@ for (const group of groups) {
     }
     failed++;
     console.error(
-      `\n✗ Group ${GROUP_LABEL_PREFIX}${group.id} failed, continuing to the next group:\n${text}\n`,
+      `\n✗ Group ${describeGroup(group.id)} failed, continuing to the next group:\n${text}\n`,
     );
   }
 }
