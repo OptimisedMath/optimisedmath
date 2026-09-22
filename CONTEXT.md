@@ -29,7 +29,7 @@ The highest Level defined in the Curriculum for a Topic — the full depth of th
 ## Progression
 
 **Streak**:
-Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake, on Level completion, on Navigation, or on Session start — it does not survive to a new Session, even for a returning Student. Not persisted on the profile.
+Consecutive correct answers at the current Level. Resets to 0 on a penalized mistake, on Level completion, on Navigation, or on Session start — it does not survive to a new Session, even for a returning Student, though it does survive a Resume. Not persisted on the profile.
 _UI (PL)_: Postęp do kolejnego poziomu (gwiazdki as the visual meter)
 _Avoid_: Level Streak, Power of 3, passa
 
@@ -62,7 +62,7 @@ Finishing the last Level of a Topic At the Frontier, which moves the Frontier to
 _Avoid_: Advance
 
 **Flawless**:
-Whether the Student reached the current Level without a penalized mistake since Streak last reset. Earns bonus XP when the Level is finished. Always starts true at Session start, like Streak it is not persisted on the profile.
+Whether the Student reached the current Level without a penalized mistake since Streak last reset. Earns bonus XP when the Level is finished. Always starts true at Session start, and a Resume brings it back as it stood; like Streak it is not persisted on the profile.
 _UI (PL)_: Bonus — Aktywny 💎 / Stracony ❌
 _Avoid_: flawless eligible, flawless bonus
 
@@ -151,7 +151,7 @@ The name a Misconception is known by in the catalogue — a stable, human-readab
 _Avoid_: misconception_id, misconception number
 
 **Misconception hit**:
-One Submission whose answer matched a Trap referencing that Misconception. Counted per Misconception for the whole Session, wherever in the Curriculum it happened — the second hit fires that Misconception's Deconstruction, once per Session ([ADR-0014](docs/adr/0014-deconstruction-trigger-counts-per-session.md)). A Trap carrying no Misconception, and a Filler, are not hits; a hit made on a Deconstruction's discounted retry counts like any other.
+One Submission whose answer matched a Trap referencing that Misconception. Counted per Misconception for the whole Session, wherever in the Curriculum it happened, and carried back by a Resume — the second hit fires that Misconception's Deconstruction, once per Session ([ADR-0014](docs/adr/0014-deconstruction-trigger-counts-per-session.md)). A Trap carrying no Misconception, and a Filler, are not hits; a hit made on a Deconstruction's discounted retry counts like any other.
 _Avoid_: strike, offence, error count, repeat mistake
 
 **Wrong**:
@@ -239,8 +239,16 @@ _Avoid_: player
 The login handle that identifies a Student across sessions.
 
 **Session**:
-One play session: Selected chapter/topic/level, Streak, active Problem, and Feedback state. Selected chapter/topic/level is seeded from the profile at Session start; Streak and Flawless always start fresh.
+One play session: Selected chapter/topic/level, Streak, active Problem, and Feedback state. Outlives the page load — see Resume — and ends at logout or by going Stale. Selected chapter/topic/level is seeded from the profile at Session start; Streak and Flawless always start fresh.
 _Avoid_: GameState (code name)
+
+**Resume**:
+Continuing an existing Session rather than starting a new one. Everything the Session owns comes back whole — Streak, Flawless, Misconception hit counts, the deconstructed set, the active Problem and its Feedback — while XP and the Frontier are re-read from the profile that owns them ([ADR-0019](docs/adr/0019-refresh-resumes-the-session.md)). A page load resumes when the browser holds the id of a Session that is not Stale.
+_Avoid_: rehydrate, session restore, reconnect
+
+**Stale Session**:
+A Session untouched for longer than the staleness window, measured from its last Submission or Navigation. Not resumed — reopening the app starts a new Session instead. Nothing on the profile is affected: the Student keeps XP, Frontier and Selected.
+_Avoid_: expired session, session timeout, session lifetime, dead session
 
 **XP**:
 Experience points earned per correct answer and Level completion.
