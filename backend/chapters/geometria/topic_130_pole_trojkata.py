@@ -323,22 +323,21 @@ def geo_triangle_area_4() -> dict | None:
     figure = Triangle.base_height(
         base, height, apex_frac=math.sqrt(side * side - height * height) / base
     )
+    edge_ab = EdgeLabel("AB", unit, unknown=not height_unknown)
+    altitude = Altitude(apex="C", base="AB", unit_label=unit, unknown=height_unknown)
     svg = Scene(
         figure,
-        [
-            Outline(),
-            VertexLabels(),
-            EdgeLabel("AB", unit, unknown=not height_unknown),
-            EdgeLabel("CA", unit),
-            Altitude(apex="C", base="AB", unit_label=unit, unknown=height_unknown),
-        ],
+        [Outline(), VertexLabels(), edge_ab, EdgeLabel("CA", unit), altitude],
     ).to_svg()
 
     given = base if height_unknown else height
     answer = 2 * area // given
+    # The figure claims its own symbol as it renders; read it back rather than
+    # naming the letter again, so the prose and the figure cannot disagree (#293).
+    symbol = altitude.unknown_text if height_unknown else edge_ab.unknown_text
     q_str = (
         rf"\text{{Pole trójkąta wynosi }} {area}\ \text{{{unit}}}^2"
-        rf"\text{{. Oblicz }} x \text{{.}}"
+        rf"\text{{. Oblicz }} {symbol} \text{{.}}"
     )
 
     return build_problem_dict(

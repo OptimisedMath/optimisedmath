@@ -6,7 +6,7 @@ import re
 import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
-from backend.core.scene import EdgeLabel, Outline, Scene, Triangle
+from backend.core.scene import Altitude, EdgeLabel, Outline, Scene, Triangle
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -47,6 +47,47 @@ class TestSceneInvariant:
             figure = Triangle.base_height(base, height, apex_frac=-offset / base)
             assert figure.p("C")[0] < 0
 
+    def test_an_unknown_height_is_named_h(self):
+        """#293: the height is always `h`, never one of the edge letters."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        altitude = Altitude(apex="C", base="AB", unknown=True)
+        svg = Scene(figure, [Outline(), altitude]).to_svg()
+        assert altitude.unknown_text == "h"
+        assert ">h<" in svg
+
+    def test_a_known_height_prints_only_its_number(self):
+        """A known height stays exactly as it was before #293 — no symbol clutter."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(
+            figure, [Outline(), Altitude(apex="C", base="AB", unit_label="cm")]
+        ).to_svg()
+        assert ">12 cm<" in svg
+        assert ">h<" not in svg
+
+    def test_unknown_edges_are_named_a_b_c_in_figure_order(self):
+        """#293: each unknown edge claims the next letter, in the order its
+        EdgeLabel is drawn."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        ab = EdgeLabel("AB", "cm", unknown=True)
+        bc = EdgeLabel("BC", "cm", unknown=True)
+        ca = EdgeLabel("CA", "cm", unknown=True)
+        svg = Scene(figure, [Outline(), ab, bc, ca]).to_svg()
+        assert (ab.unknown_text, bc.unknown_text, ca.unknown_text) == ("a", "b", "c")
+        for letter in "abc":
+            assert f">{letter}<" in svg
+
+    def test_an_unknown_symbol_is_drawn_in_italic(self):
+        """#293: the unknown opts out of the figure's upright sans stack."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm", unknown=True)]).to_svg()
+        assert 'font-style="italic"' in svg
+
+    def test_a_known_label_stays_upright(self):
+        """Numbers and Units never pick up the unknown's italic treatment."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm")]).to_svg()
+        assert 'font-style="italic"' not in svg
+
 
 class TestGenerators:
     @pytest.mark.parametrize("generator", GENERATORS, ids=lambda g: g.__name__)
@@ -86,9 +127,21 @@ class TestGenerators:
             problem = topic.geo_triangle_area_4()
             if problem is None:
                 continue
-            assert ">x<" in problem["image_html"]
-            withheld.add(problem["parameters"]["height_unknown"])
+            height_unknown = problem["parameters"]["height_unknown"]
+            symbol = "h" if height_unknown else "a"
+            assert f">{symbol}<" in problem["image_html"]
+            withheld.add(height_unknown)
         assert withheld == {True, False}
+
+    def test_the_reverse_rung_names_the_same_symbol_in_prose_and_figure(self):
+        """#293: the figure and the question text must never name different letters."""
+        for _ in range(40):
+            problem = topic.geo_triangle_area_4()
+            if problem is None:
+                continue
+            symbol = "h" if problem["parameters"]["height_unknown"] else "a"
+            assert rf"\text{{. Oblicz }} {symbol} " in problem["question"]
+            assert f">{symbol}<" in problem["image_html"]
 
     def test_the_reverse_rung_answers_in_a_length(self):
         """That is what puts both dimensions in the Topic without an `m²` rung."""
