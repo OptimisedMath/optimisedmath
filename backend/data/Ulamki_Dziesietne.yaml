@@ -433,6 +433,7 @@ topics:
             misconception: multiplies_by_exponent_instead_of_powering
             explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (np. 0,3 razy 0,3)."
           one_hundredth_too_large:
+            misconception: misplaces_decimal_point_in_product
             explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
       - level: 2
         name: "Kwadrat liczby większej od 1"
@@ -445,6 +446,7 @@ topics:
             misconception: multiplies_by_exponent_instead_of_powering
             explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (1,2 razy 1,2)."
           one_hundredth_too_large:
+            misconception: misplaces_decimal_point_in_product
             explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
       - level: 3
         name: "Kwadrat małego ułamka dziesiętnego"
