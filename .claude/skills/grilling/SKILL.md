@@ -1,41 +1,56 @@
 ---
 name: grilling
-description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
+description: Grill the user relentlessly about a plan, decision, or idea. Use when the user asks to be grilled, wants a plan or design stress-tested, or wants the open decisions surfaced before building.
 ---
 
 Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
 
-Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round — all of it, however long that runs. Then wait for the user's answers before the next round.
+Open with two or three sentences of plain prose, before the first round: what you understand is being decided, and what you take as already fixed. A misread then costs the user a paragraph instead of a round.
+
+Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round — all of it, however long that runs, hardest first, so the decisions with the widest blast radius meet the user's freshest attention. Then wait for the user's answers before the next round.
 
 Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
 
-Finding _facts_ is your job, never the user's. When a frontier question needs a fact from the environment (filesystem, tools, etc.), dispatch a sub-agent to find it; don't ask the user for anything you could look up yourself. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now. Where a fact stays out of reach, ask anyway and mark the claim ⚠️ — the user can see exactly which line to distrust. The _decisions_ are the user's: put each to them and wait.
+## What earns a question
+
+A branch earns a question when its options differ in something the user would care about — cost, reversibility, user-facing behaviour, scope, or a name they will live with. Every other branch you settle yourself and declare on the round's `Assumed:` line, where their veto turns it back into a question.
+
+Finding _facts_ is your job, never the user's. Read a named file yourself; dispatch a sub-agent for an open-ended lookup — every caller of a symbol, every file matching a convention — so the sweep's output stays out of the interview. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now. Where a fact stays out of reach, ask anyway and mark the claim ⚠️ — the user can see exactly which line to distrust.
+
+The _decisions_ are the user's: put each to them and wait. When an answer collides with a fact you verified, put the collision back to them once, as its own question with the fact restated; if they hold, proceed on their answer.
 
 ## Writing a question
 
 Each question is a **briefing**: the user answers it from the message alone, without opening a file, searching the repo, or scrolling back. Spell out every identifier, ID, filename and prior fact the question leans on — restate the one line you depend on rather than citing an earlier round by number.
 
-Six glyphs carry the roles, so the user can skim the left margin for the one they want:
+**One decision per question**, and the arrow is the test: exactly one ➡️ under every ❓. Two recommendations means it is two questions; none means it isn't finished.
+
+Seven glyphs carry the roles, so the user can skim the left margin for the one they want:
 
 | | |
 |---|---|
 | 📍 | the round's orientation line |
 | 🔎 | a fact you looked up |
+| 🔗 | a decision the user already made, restated |
 | ✏️ | a rendered instance |
 | ❓ | a question |
 | ⚠️ | unverified — distrust this line |
 | ➡️ | your recommendation |
 
+**Tickets.** A question takes the next integer at the moment you emit it, the way a customer takes a number on arrival, so the tickets you hand out run consecutively: Q1, Q2, Q3. Reserving a number in advance for a node you planned to reach is what produces a round of Q1, Q3, Q7. One counter runs the whole session — Round 2 opens where Round 1 stopped, and a decision that exists only because of an earlier answer takes the next free ticket like any other question, carrying 🔗 with the answer it hangs off. After a compaction, recover the counter from the highest ❓ already asked.
+
 The skeleton:
 
 ```
-📍 **Round N** — Settled: <what last round closed>. Open: <what this round covers>.
+📍 **Round N** — Settled: <what last round closed>. Open: <what this round covers>. Assumed: <what you settled yourself>.
 
 ❓ **Q1** — **<question title>**
 
 <what the decision is about, every term spelled out>
 
 🔎 <a fact you verified, stated by content>
+
+🔗 <a decision the user already made, restated in full>
 
 ✏️ <a real instance, rendered as the end user meets it>
 
@@ -48,8 +63,8 @@ The skeleton:
 Write a part only when you have something to put in it. A question with nothing to look up and two clean options is a paragraph, two option lines and a recommendation — the skeleton **collapses** to fit its content, and grows only where the content is genuinely there.
 
 - **Render the artefact.** When the decision is about something concrete — an exercise, a UI string, a filename, a schema row — show a real instance of it (✏️), not just its identifier.
-- **Options stay as lines**, each one labelled and carrying its consequence. A table earns its place for background you looked up — a set of Levels, a set of files — where a grid beats prose.
-- **The recommendation carries its reason.** `➡️ **(b)**` tells the user nothing; one line of why lets them disagree in one word.
+- **Options stay as lines**, lettered `(a)`, `(b)`, `(c)`…, each one carrying its consequence. Offer as many as are genuinely distinct: one is a proposal to accept or reject, two is the common case, five is five. A table earns its place for background you looked up — a set of Levels, a set of files — where a grid beats prose.
+- **The recommendation carries its reason.** `➡️ **(b)**` tells the user nothing; one line of why lets them disagree in one word. With no genuine preference, make the arrow conditional on what would decide it — `➡️ **(a) if the Geometria chapter ships this quarter, else (b)**` — so it still does work for them.
 
 A worked example:
 
@@ -74,4 +89,4 @@ A worked example:
 >
 > ➡️ **(b)** — the suffix is the only Level marker there is, so letting it drift costs every future reader a trip to the registry.
 
-The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
+The session is done when the frontier is empty: every branch of the design tree either asked or declared under `Assumed:`, nothing silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
