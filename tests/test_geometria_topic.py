@@ -120,6 +120,17 @@ class TestLevels:
         """`default` sets inputMode=numeric, which puts `c` and `m` out of reach."""
         assert curriculum.keyboard_type(CHAPTER_ID) == "text"
 
+    @pytest.mark.parametrize("level", [1, 2, 3])
+    def test_an_area_level_offers_the_exponent_key(self, curriculum, level):
+        """Levels 1-3 expect a squared Unit, so the phone needs a way to type `²` (#292)."""
+        problem = generate_level_problem(curriculum, CHAPTER_ID, TOPIC_ID, level)
+        assert problem["exponent_key"] is True
+
+    def test_the_reverse_rung_withholds_the_exponent_key(self, curriculum):
+        """Level 4 expects a length Unit — no squared Unit is possible there (#292)."""
+        problem = generate_level_problem(curriculum, CHAPTER_ID, TOPIC_ID, 4)
+        assert problem["exponent_key"] is False
+
 
 class TestExpectedUnitsValidation:
     def _level(self, **overrides):
