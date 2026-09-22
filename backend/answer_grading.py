@@ -216,24 +216,15 @@ def grade(
                 "answer_outcome": "format_mismatch",
             }
 
-        if policy == "exact_match_only":
-            trap_result = _match_trap_feedback(user_input, student_val, problem)
-            if trap_result:
-                return trap_result
-            return {
-                "lock_answer": True,
-                "feedback_type": "warning",
-                "feedback_msg": "Zapisz ułamek w dokładnie takiej postaci, o jaką prosi polecenie!",
-                "answer_outcome": "exact_match_violation",
-            }
         if policy == "equivalent_accepted":
             return {"is_correct": True, "lock_answer": True}
-        return {
-            "lock_answer": False,
-            "feedback_type": "info",
-            "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
-            "answer_outcome": "unsimplified",
-        }
+        if policy == "standard":
+            return {
+                "lock_answer": False,
+                "feedback_type": "info",
+                "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
+                "answer_outcome": "unsimplified",
+            }
 
     # --- 3. TEXT MODE TRAP SCANNER ---
     trap_result = _match_trap_feedback(user_input, student_val, problem)

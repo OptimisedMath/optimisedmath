@@ -122,8 +122,42 @@ class TestTextGrading:
             grading_policy="exact_match_only",
         )
         result = grade("2/4", problem, input_mode="typing")
-        assert result["answer_outcome"] == "exact_match_violation"
+        assert result["answer_outcome"] == "wrong"
         assert result["lock_answer"] is True
+        assert result["feedback_msg"] == "Niepoprawna odpowiedź, spróbuj ponownie."
+
+    def test_exact_match_only_value_equal_is_not_soft_error(self):
+        # Pins the `unsimplified` fall-through hazard: restructuring by deleting
+        # the exact_match_only arm drops this case into the equivalent_accepted
+        # test, fails it, and reaches `unsimplified` — a lockless Soft Error.
+        problem = _sample_problem(
+            correct=r"\frac{1}{2}",
+            options=["1", "2"],
+            options_map={
+                "1": "correct",
+                "2": "w1",
+            },
+            grading_policy="exact_match_only",
+        )
+        result = grade("2/4", problem, input_mode="typing")
+        assert result["lock_answer"] is True
+        assert result["feedback_type"] != "info"
+        assert result["answer_outcome"] != "unsimplified"
+
+    def test_exact_match_only_notation_check_still_runs_first(self):
+        problem = _sample_problem(
+            correct=r"\frac{1}{2}",
+            options=["1", "2"],
+            options_map={
+                "1": "correct",
+                "2": "w1",
+            },
+            grading_policy="exact_match_only",
+        )
+        result = grade("0,5", problem, input_mode="typing")
+        assert result["answer_outcome"] == "format_mismatch"
+        assert result["lock_answer"] is False
+        assert result["feedback_type"] == "info"
 
     def test_exact_match_equivalent_trap_shows_trap_message(self):
         problem = _sample_problem(
