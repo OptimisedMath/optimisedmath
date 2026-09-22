@@ -138,16 +138,59 @@ class TestGenerators:
             for option in problem["options"]:
                 assert re.fullmatch(r"\d+", option), option
 
-    @pytest.mark.parametrize("generator", GENERATORS[:3], ids=lambda g: g.__name__)
+    @pytest.mark.parametrize("generator", GENERATORS[1:3], ids=lambda g: g.__name__)
     def test_a_forward_rung_labels_a_length_that_is_neither_base_nor_height(
         self, generator
     ):
-        """Without a distractor length, two of the three Traps cannot fire (#237)."""
+        """Without a distractor length, two of the three Traps cannot fire (#237).
+
+        Levels 2 and 3 keep their sides for exactly this reason; Level 1 does not
+        (#294), covered separately below.
+        """
         problem = generator()
         assert problem is not None
         parameters = problem["parameters"]
         extra = set(parameters) - {"base", "height", "unit"}
         assert extra
+
+    def test_level_1_labels_only_base_and_height(self):
+        """#294: the slant sides are gone, so no distractor length remains to name."""
+        for _ in range(20):
+            problem = topic.geo_triangle_area_1()
+            assert problem is not None
+            assert set(problem["parameters"]) == {"base", "height", "unit"}
+
+    def test_level_1_magnitudes_are_small_enough_to_multiply_mentally(self):
+        """#294: dropping the slant sides frees the pool from the Pythagorean-triple
+        constraint that used to force base/height into 13-14-15 territory."""
+        for _ in range(20):
+            problem = topic.geo_triangle_area_1()
+            assert problem is not None
+            parameters = problem["parameters"]
+            assert parameters["base"] <= topic._L1_MAX_DIM
+            assert parameters["height"] <= topic._L1_MAX_DIM
+
+    def test_level_1_no_longer_emits_the_perimeter_or_side_as_height_traps(self):
+        """#294: neither Trap has a visible side to compute its distractor from."""
+        for _ in range(40):
+            problem = topic.geo_triangle_area_1()
+            assert problem is not None
+            slugs = set(problem["options_map"].values())
+            assert topic.TRAP_PERIMETER not in slugs
+            assert topic.TRAP_SIDE_AS_HEIGHT not in slugs
+
+    @pytest.mark.parametrize("generator", GENERATORS[1:3], ids=lambda g: g.__name__)
+    def test_levels_2_and_3_still_emit_the_perimeter_and_side_as_height_traps(
+        self, generator
+    ):
+        """#294: these Traps move off Level 1 but stay put where a side is visible."""
+        seen: set[str] = set()
+        for _ in range(40):
+            problem = generator()
+            assert problem is not None
+            seen |= set(problem["options_map"].values())
+        assert topic.TRAP_PERIMETER in seen
+        assert topic.TRAP_SIDE_AS_HEIGHT in seen
 
     def test_the_reverse_rung_withholds_one_dimension_and_varies_which(self):
         """Fixing which dimension is unknown makes the rung solvable without the figure."""
