@@ -428,10 +428,10 @@ topics:
         traps:
           ignores_the_point_before_powering:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Pominąłeś przecinek przed potęgowaniem. 0,3 ma jedno miejsce, więc wynik ma dwa."
+            explanation: "Pominąłeś przecinek przed potęgowaniem. Podstawa ma jedno miejsce po przecinku, więc wynik ma dwa."
           multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (np. 0,3 razy 0,3)."
+            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie."
           one_hundredth_too_large:
             misconception: misplaces_decimal_point_in_product
             explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
@@ -441,10 +441,10 @@ topics:
         traps:
           ignores_the_point_before_powering:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Pominąłeś przecinek przed potęgowaniem. 1,2 ma jedno miejsce, więc wynik ma dwa."
+            explanation: "Pominąłeś przecinek przed potęgowaniem. Podstawa ma jedno miejsce po przecinku, więc wynik ma dwa."
           multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (1,2 razy 1,2)."
+            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie."
           one_hundredth_too_large:
             misconception: misplaces_decimal_point_in_product
             explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
@@ -454,26 +454,26 @@ topics:
         traps:
           ignores_the_point_before_powering:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Policzyłeś 15 razy 15 i zapomniałeś o przecinku."
+            explanation: "Spotęgowałeś same cyfry i zapomniałeś o przecinku."
           multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
-            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (0,015 razy 0,015)."
+            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie."
           keeps_the_operands_decimal_places:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Cyfry się zgadzają, ale nie przecinek. 0,015 ma trzy miejsca po przecinku, więc wynik ma sześć."
+            explanation: "Cyfry się zgadzają, ale nie przecinek. Kwadrat podwaja liczbę miejsc po przecinku."
       - level: 4
         name: "Sześcian ułamka dziesiętnego"
         function: "dec_pow_4"
         traps:
           ignores_the_point_before_powering:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Policzyłeś 5 razy 5 razy 5 i zapomniałeś o przecinku."
+            explanation: "Spotęgowałeś same cyfry i zapomniałeś o przecinku."
           multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
             explanation: "Pomnożyłeś przez 3! Sześcian to liczba pomnożona przez samą siebie trzy razy."
           keeps_the_operands_decimal_places:
             misconception: misplaces_decimal_point_in_product
-            explanation: "Cyfry się zgadzają, ale nie przecinek. 0,05 ma dwa miejsca po przecinku, a sześcian potraja tę liczbę — wynik ma sześć."
+            explanation: "Cyfry się zgadzają, ale nie przecinek. Sześcian potraja liczbę miejsc po przecinku."
   - id: 110
     name: "Kolejność wykonywania działań"
     levels:
