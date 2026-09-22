@@ -39,6 +39,9 @@ INK = "currentColor"
 ACCENT = "#f43f5e"
 MUTED = "#94a3b8"
 
+#: Sideways nudges tried at each distance, widening until one clears (#289).
+_NUDGES = (0, 1, -1, 2, -2, 3, -3, 4, -4)
+
 #: Letters claimed by unknown edge lengths, in figure order (#293).
 _EDGE_SYMBOLS = "abcdefghijklmnopqrstuvwxyz"
 
@@ -73,6 +76,9 @@ def _pts(points: list[Pt]) -> str:
     return " ".join(f"{x:.3f},{-y:.3f}" for x, y in points)
 
 
+Box = tuple[float, float, float, float]
+
+
 @dataclass
 class Label:
     """A requested label. Its final position is decided by `Ctx.place_labels`."""
@@ -95,8 +101,14 @@ class Label:
             abs(self.direction[0]) * self.half_w + abs(self.direction[1]) * self.half_h
         )
 
-
-Box = tuple[float, float, float, float]
+    def box_at(self, centre: Pt) -> Box:
+        """The glyph box this label would occupy centred on `centre`."""
+        return (
+            centre[0] - self.half_w,
+            centre[1] - self.half_h,
+            centre[0] + self.half_w,
+            centre[1] + self.half_h,
+        )
 
 
 def _overlap(a: Box, b: Box) -> bool:
@@ -285,93 +297,94 @@ class Ctx:
 
     # --- Rule 4: label placement is a whole-scene pass ------------------
     def place_labels(self) -> None:
-        """Push each label out along its own direction until it clears both the
-        strokes of the figure and every label already placed.
-
-        Sliding along the placement direction is what keeps the result
-        *meaningful*: a length label stays on the outward side of its own edge,
-        it just moves further out. Nudging sideways would be free but could park
-        a label beside the wrong edge — but a *pure* slide can also get stuck:
-        a label boxed in by a near-vertical altitude can share almost the same
-        direction as the side label it collides with, so no distance along that
-        one line ever clears it (#289). A perpendicular nudge, tried at every
-        distance and widened until it clears, gives the search a second axis to
-        route around a fixed box without abandoning the outward side that keeps
-        the label meaningful.
+        """Emit every requested label at the best position `_best_box` can find.
 
         There is no "place it somewhere, anywhere" fallback: a label that
-        cannot be placed clear of the figure and every already-placed label
-        raises, per the contract that this pass either finds a clean spot or
-        fails loudly rather than shipping labels that sit on top of each other.
+        cannot be placed clear of every already-placed label raises, per the
+        contract that this pass either finds a clean spot or fails loudly
+        rather than shipping labels that sit on top of each other.
+
+        Raises:
+            ValueError: when no candidate position clears the placed labels.
         """
         placed: list[Box] = []
         for lab in self.labels:
-            best_box, best_rank, best_overlap = None, None, None
-            # Two candidate sides. Sliding outward is tried first and preferred,
-            # but a label that starts inside a narrow wedge — the height of a
-            # squat trapezoid, the arc of a 25 degree vertex — can never escape
-            # by sliding one way, so the opposite side is a candidate too.
-            for sign in (1.0, -1.0):
-                d = mul(lab.direction, sign)
-                p = perp(lab.direction)
-                for step in range(0, 14):
-                    dist = lab.gap * self.u + lab.reach() + step * self.u * 1.7
-                    centre = add(lab.anchor, mul(d, dist))
-                    for shift in (0, 1, -1, 2, -2, 3, -3, 4, -4):
-                        c = add(centre, mul(p, shift * self.u * 1.4))
-                        box = (
-                            c[0] - lab.half_w,
-                            c[1] - lab.half_h,
-                            c[0] + lab.half_w,
-                            c[1] + lab.half_h,
-                        )
-                        # `overlap` is the one thing the contract forbids: two
-                        # label boxes covering the same ground. `hits` — this
-                        # box grazing a figure stroke — is unsightly but not
-                        # what #289 is about, so it stays a soft preference.
-                        # Keeping them apart, instead of folding both into one
-                        # blended cost, matters: a candidate can only be
-                        # accepted as "clear" by the one criterion that governs
-                        # whether this pass may ship it.
-                        overlap = sum(1.0 for q in placed if _overlap(box, q))
-                        hits = sum(1.0 for seg in self.obstacles if _hits(box, seg))
-                        tie = (
-                            step * 0.05
-                            + (0.12 if sign < 0 else 0.0)
-                            + abs(shift) * 0.03
-                        )
-                        # Scaled so that one label overlap always outranks any
-                        # number of stroke hits, and any stroke hit always
-                        # outranks the tie-breakers — a truly clear box found
-                        # on a late step must never lose to a dirtier one
-                        # found early (#289's second fault).
-                        rank = overlap * 1000 + hits * 10 + tie
-                        if best_rank is None or rank < best_rank:
-                            best_box, best_rank, best_overlap = box, rank, overlap
-                        if overlap == 0 and hits == 0:
-                            break
-                    if best_overlap == 0:
-                        break
-                if best_overlap == 0:
-                    break
-            assert best_box is not None
-            if best_overlap > 0:
+            box, overlap = self._best_box(lab, placed)
+            if overlap:
                 raise ValueError(
                     f"could not place label {lab.text!r} clear of every label "
                     "already placed — the whole-scene placement pass found no "
                     "position for it that does not overlap another label"
                 )
-            placed.append(best_box)
-            cx = (best_box[0] + best_box[2]) / 2
-            cy = (best_box[1] + best_box[3]) / 2
+            placed.append(box)
+            cx = (box[0] + box[2]) / 2
+            cy = (box[1] + box[3]) / 2
             font = _UNKNOWN_FONT if lab.unknown else _KNOWN_FONT
             self.parts.append(
                 f'<text x="{cx:.3f}" y="{-cy:.3f}" fill="{lab.color}" font-size="{lab.size:.3f}" '
                 f'{font} font-weight="600" '
                 f'text-anchor="middle" dominant-baseline="central">{lab.text}</text>'
             )
-            self.include((best_box[0], best_box[1]), (best_box[2], best_box[3]))
+            self.include((box[0], box[1]), (box[2], box[3]))
         self.placed_boxes = placed
+
+    def _best_box(self, lab: Label, placed: list[Box]) -> tuple[Box, int]:
+        """The best-ranked box for `lab`, and how many of `placed` it still
+        overlaps — zero when the search found somewhere clean.
+
+        Pushes the label out along its own direction until it clears both the
+        strokes of the figure and every label already placed. Sliding along
+        that direction is what keeps the result *meaningful*: a length label
+        stays on the outward side of its own edge, it just moves further out.
+        Nudging sideways would be free but could park a label beside the wrong
+        edge — but a *pure* slide can also get stuck: a label boxed in by a
+        near-vertical altitude can share almost the same direction as the side
+        label it collides with, so no distance along that one line ever clears
+        it (#289). A perpendicular nudge, tried at every distance and widened
+        until it clears, gives the search a second axis to route around a fixed
+        box without abandoning the outward side that keeps the label meaningful.
+        """
+        best_box: Box | None = None
+        best_rank: float | None = None
+        best_overlap: int | None = None
+        # Two candidate sides. Sliding outward is tried first and preferred,
+        # but a label that starts inside a narrow wedge — the height of a
+        # squat trapezoid, the arc of a 25 degree vertex — can never escape
+        # by sliding one way, so the opposite side is a candidate too.
+        for sign in (1.0, -1.0):
+            out = mul(lab.direction, sign)
+            sideways = perp(lab.direction)
+            for step in range(0, 14):
+                dist = lab.gap * self.u + lab.reach() + step * self.u * 1.7
+                centre = add(lab.anchor, mul(out, dist))
+                for shift in _NUDGES:
+                    box = lab.box_at(add(centre, mul(sideways, shift * self.u * 1.4)))
+                    # `overlap` is the one thing the contract forbids: two
+                    # label boxes covering the same ground. `hits` — this box
+                    # grazing a figure stroke — is unsightly but not what #289
+                    # is about, so it stays a soft preference. Keeping the two
+                    # apart, instead of folding both into one blended cost,
+                    # matters: a candidate can only be accepted as "clear" by
+                    # the one criterion that governs whether it may ship.
+                    overlap = sum(1 for q in placed if _overlap(box, q))
+                    hits = sum(1 for seg in self.obstacles if _hits(box, seg))
+                    tie = step * 0.05 + (0.12 if sign < 0 else 0.0) + abs(shift) * 0.03
+                    # Scaled so that one label overlap always outranks any
+                    # number of stroke hits, and any stroke hit always outranks
+                    # the tie-breakers — among the candidates tried, a truly
+                    # clear box can never lose to a dirtier one found earlier
+                    # (#289's second fault).
+                    rank = overlap * 1000 + hits * 10 + tie
+                    if best_rank is None or rank < best_rank:
+                        best_box, best_rank, best_overlap = box, rank, overlap
+                    if overlap == 0 and hits == 0:
+                        break
+                if best_overlap == 0:
+                    break
+            if best_overlap == 0:
+                break
+        assert best_box is not None and best_overlap is not None
+        return best_box, best_overlap
 
     def arc_points(
         self,
