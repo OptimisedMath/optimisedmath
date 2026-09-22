@@ -45,10 +45,19 @@ function ProblemDisplay({
       </div>
       {problem.image_html && (
         <div className="mb-6 flex justify-center">
-          {/* Capped, not fixed: a scene sizes its own viewBox from its content, so a
-              near-square figure would otherwise take the full card width and about
-              as much height again, pushing the answer below the fold on desktop. */}
-          <div className="w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-950/60" dangerouslySetInnerHTML={{ __html: problem.image_html }} />
+          {/* Height-capped from `sm` up, not just width-capped: a scene sizes its
+              own viewBox from its content, so a tall figure (e.g. a near-isoceles
+              triangle) would otherwise grow to match the card's width and push the
+              answer options below the fold on desktop (#295). The svg ships with
+              `width="100%" height="auto"`; overriding `width` to `auto` lets the
+              intrinsic viewBox ratio drive sizing off the height cap instead, the
+              same technique as `img{max-width;max-height;width:auto;height:auto}`.
+              Left uncapped below `sm`, where the figure already sits inside the
+              phone-width cap and the fold isn't the problem. */}
+          <div
+            className="w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:[&>svg]:mx-auto sm:[&>svg]:w-auto sm:[&>svg]:max-h-[34vh] dark:border-slate-700 dark:bg-slate-950/60"
+            dangerouslySetInnerHTML={{ __html: problem.image_html }}
+          />
         </div>
       )}
     </div>
