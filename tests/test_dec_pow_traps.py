@@ -3,7 +3,10 @@
 `dec_pow_2`, `dec_pow_3`, `dec_pow_4` are new; `dec_pow_1`'s
 `ignores_the_point_before_squaring` Trap is renamed to
 `ignores_the_point_before_powering` because the same Trap now also runs on
-`dec_pow_4`'s cube.
+`dec_pow_4`'s cube. The rename needs no test here — `test_trap_slugs.py` holds
+every generator's declaration to exactly what it emits, and the loader refuses a
+Level whose authored `traps` and declared slugs disagree, so the old slug cannot
+survive in either place.
 
 L3 and L4 must compute in `Decimal`, not floats: `0.015 ** 2` is
 `0.00022500000000000002` as a float, and `fmt_dec` formats exactly what it is
@@ -19,7 +22,7 @@ generator in the registry for both.
 
 from decimal import Decimal
 
-from backend.core.utils import declared_trap_slugs, fmt_dec
+from backend.core.utils import fmt_dec
 from backend.problem_generation import FUNCTION_REGISTRY
 
 ROLLS = 300
@@ -36,11 +39,9 @@ def _exact(digits: int, places: int) -> Decimal:
     return Decimal(digits) / (Decimal(10) ** places)
 
 
-def test_dec_pow_1_trap_renamed():
-    """`ignores_the_point_before_squaring` no longer exists; the Trap runs under the new name."""
-    declared = declared_trap_slugs(FUNCTION_REGISTRY["dec_pow_1"])
-    assert "ignores_the_point_before_powering" in declared
-    assert "ignores_the_point_before_squaring" not in declared
+def _places(value: Decimal) -> int:
+    """How many digits `value` carries after the decimal point."""
+    return -value.as_tuple().exponent
 
 
 def test_dec_pow_2_draws_one_decimal_between_1_and_2():
@@ -70,15 +71,22 @@ def test_dec_pow_2_trap_formulas():
         )
 
 
-def test_dec_pow_3_draws_documented_bases_and_scales():
-    """L3 draws only the bases and decimal places its Level was designed around."""
+def test_dec_pow_3_squares_a_decimal_finer_than_the_earlier_levels():
+    """L3 is "mały ułamek" squared: below 1, and finer than L1 and L2's single place.
+
+    The band is the point, not the base roster — restating the generator's own
+    `random.choice` list would only fail when someone edits it. Two or three
+    places is what makes the square land in the ten-thousandths or below, which
+    is the error this Level's Traps are built to catch.
+    """
     problems = _draws("dec_pow_3")
     assert problems, "dec_pow_3 emitted no Problem in ROLLS rolls"
 
-    bases = {problem["parameters"]["b"] for problem in problems}
-    scales = {problem["parameters"]["k"] for problem in problems}
-    assert bases <= {2, 3, 4, 5, 6, 7, 8, 9, 12, 15, 25}
-    assert scales <= {2, 3}
+    for problem in problems:
+        v = _exact(problem["parameters"]["b"], problem["parameters"]["k"])
+        assert 0 < v < 1
+        assert 2 <= _places(v) <= 3
+        assert "^2" in problem["question"]
 
 
 def test_dec_pow_3_trap_formulas_are_exact_decimal():
@@ -121,15 +129,21 @@ def test_dec_pow_3_b_equals_2_collision_falls_back_to_filler():
         assert "keeps_the_operands_decimal_places" not in options_map.values()
 
 
-def test_dec_pow_4_draws_documented_bases_and_scales():
-    """L4 draws only the bases and decimal places its Level was designed around."""
+def test_dec_pow_4_cubes_a_base_coarse_enough_to_stay_readable():
+    """L4 is the cube, on a base of one or two places so the answer stays readable.
+
+    Cubing triples the decimal places, so the coarser base is deliberate: three
+    places in would put the answer at nine places out. Asserting that band says
+    why the Level draws as it does; listing its bases would not.
+    """
     problems = _draws("dec_pow_4")
     assert problems, "dec_pow_4 emitted no Problem in ROLLS rolls"
 
-    bases = {problem["parameters"]["b"] for problem in problems}
-    scales = {problem["parameters"]["k"] for problem in problems}
-    assert bases <= {2, 3, 4, 5}
-    assert scales <= {1, 2}
+    for problem in problems:
+        v = _exact(problem["parameters"]["b"], problem["parameters"]["k"])
+        assert 0 < v < 1
+        assert 1 <= _places(v) <= 2
+        assert "^3" in problem["question"]
 
 
 def test_dec_pow_4_worked_example_from_the_issue():
