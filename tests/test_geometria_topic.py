@@ -9,6 +9,7 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import Altitude, EdgeLabel, Outline, Scene, Triangle
+from backend.core.scene.render import Box, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -94,17 +95,15 @@ class TestSceneInvariant:
         """#289: sweeps every figure every generator in this Topic can draw, across
         many seeds, and asserts pairwise disjointness of the placed label boxes —
         the fault that let `24 dm` print on top of `25 dm` must not come back."""
-        import backend.core.scene.render as render
-
-        captured: list[list[tuple[float, float, float, float]]] = []
-        original_to_svg = render.Scene.to_svg
+        captured: list[list[Box]] = []
+        original_to_svg = Scene.to_svg
 
         def recording_to_svg(self, *args, **kwargs):
             svg = original_to_svg(self, *args, **kwargs)
             captured.append(self.label_boxes())
             return svg
 
-        monkeypatch.setattr(render.Scene, "to_svg", recording_to_svg)
+        monkeypatch.setattr(Scene, "to_svg", recording_to_svg)
 
         random.seed(0)
         for generator in GENERATORS:
@@ -114,8 +113,7 @@ class TestSceneInvariant:
         assert captured
         for boxes in captured:
             for a, b in itertools.combinations(boxes, 2):
-                overlaps = a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
-                assert not overlaps, f"{a} overlaps {b}"
+                assert not _overlap(a, b), f"{a} overlaps {b}"
 
 
 class TestGenerators:
@@ -167,8 +165,8 @@ class TestGenerators:
             problem = topic.geo_triangle_area_1()
             assert problem is not None
             parameters = problem["parameters"]
-            assert parameters["base"] <= topic._L1_MAX_DIM
-            assert parameters["height"] <= topic._L1_MAX_DIM
+            assert parameters["base"] <= topic._LEVEL_1_MAX_DIM
+            assert parameters["height"] <= topic._LEVEL_1_MAX_DIM
 
     def test_level_1_no_longer_emits_the_perimeter_or_side_as_height_traps(self):
         """#294: neither Trap has a visible side to compute its distractor from."""

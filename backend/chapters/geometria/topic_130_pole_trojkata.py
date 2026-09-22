@@ -45,12 +45,10 @@ _MAX_HEIGHT = 24
 # size of the numbers rather than by the size of the drawing.
 _MAX_AREA = 170
 
-# Level 1 prints no slant side (#294), so the Pythagorean-triple constraint that
-# used to force the pool into 13-14-15 territory does not apply here — the only
-# thing left to bound is the base and height themselves, small enough to hold in
-# the head.
-_L1_MIN_DIM = 3
-_L1_MAX_DIM = 12
+# Level 1's base and height are the only lengths it prints, so they are the only
+# thing to bound — small enough to multiply in the head (#294).
+_LEVEL_1_MIN_DIM = 3
+_LEVEL_1_MAX_DIM = 12
 
 
 def _int_sqrt(n: int) -> int | None:
@@ -72,17 +70,17 @@ def _side_read_as_height(side_a: int, side_b: int) -> int:
     return max(side_a, side_b)
 
 
-def _small_triangles() -> list[tuple[int, int]]:
-    """`(base, height)` pairs small enough to multiply in the head (#294).
+def _small_base_heights() -> list[tuple[int, int]]:
+    """`(base, height)` pairs whose area is a whole number, for Level 1 (#294).
 
     Level 1 draws no slant side, so nothing forces the altitude's feet to be
     legs of a Pythagorean triple — only the area needs to land on a whole
-    number.
+    number, which leaves the pool free to stay small.
     """
     return [
         (base, height)
-        for base in range(_L1_MIN_DIM, _L1_MAX_DIM + 1)
-        for height in range(_L1_MIN_DIM, _L1_MAX_DIM + 1)
+        for base in range(_LEVEL_1_MIN_DIM, _LEVEL_1_MAX_DIM + 1)
+        for height in range(_LEVEL_1_MIN_DIM, _LEVEL_1_MAX_DIM + 1)
         if not (base * height) % 2
     ]
 
@@ -152,7 +150,7 @@ def _reverse_triangles() -> list[tuple[int, int, int]]:
     return found
 
 
-SMALL = _small_triangles()
+SMALL_BASE_HEIGHTS = _small_base_heights()
 OBTUSE = _obtuse_triangles()
 RIGHT = _right_triangles()
 REVERSE = _reverse_triangles()
@@ -191,18 +189,14 @@ _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 @declares_units(*AREA_UNITS)
 @declares_traps(TRAP_DOUBLES)
 def geo_triangle_area_1() -> dict | None:
-    """Wysokość narysowana wewnątrz trójkąta (poziom 1).
-
-    No slant side is drawn or labelled (#294) — `computes_the_perimeter_instead_of_the_area`
-    and `confuses_base_with_height` both need a visible side to fire on, so
-    neither is reachable here; they move to Levels 2 and 3, which keep theirs.
-    """
+    """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
     unit = random.choice(declared_units(geo_triangle_area_1))
     length_unit = _LENGTH_FOR_AREA[unit]
-    base, height = random.choice(SMALL)
-    apex_frac = random.uniform(0.3, 0.7)
+    base, height = random.choice(SMALL_BASE_HEIGHTS)
 
-    figure = Triangle.base_height(base, height, apex_frac=apex_frac)
+    # No printed slant side means the apex is free to sit anywhere (#294); the
+    # range keeps the altitude's foot well inside the base, which is the rung.
+    figure = Triangle.base_height(base, height, apex_frac=random.uniform(0.3, 0.7))
     svg = Scene(
         figure,
         [
