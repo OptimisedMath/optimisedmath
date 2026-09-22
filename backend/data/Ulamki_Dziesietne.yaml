@@ -426,15 +426,52 @@ topics:
         name: "Kwadrat ułamka dziesiętnego"
         function: "dec_pow_1"
         traps:
-          ignores_the_point_before_squaring:
+          ignores_the_point_before_powering:
             misconception: misplaces_decimal_point_in_product
             explanation: "Pominąłeś przecinek przed potęgowaniem. 0,3 ma jedno miejsce, więc wynik ma dwa."
           multiplies_by_the_exponent:
             misconception: multiplies_by_exponent_instead_of_powering
             explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (np. 0,3 razy 0,3)."
           one_hundredth_too_large:
-            misconception: misplaces_decimal_point_in_product
             explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
+      - level: 2
+        name: "Kwadrat liczby większej od 1"
+        function: "dec_pow_2"
+        traps:
+          ignores_the_point_before_powering:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Pominąłeś przecinek przed potęgowaniem. 1,2 ma jedno miejsce, więc wynik ma dwa."
+          multiplies_by_the_exponent:
+            misconception: multiplies_by_exponent_instead_of_powering
+            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (1,2 razy 1,2)."
+          one_hundredth_too_large:
+            explanation: "Wynik jest o jedną setną za duży — przelicz mnożenie jeszcze raz."
+      - level: 3
+        name: "Kwadrat małego ułamka dziesiętnego"
+        function: "dec_pow_3"
+        traps:
+          ignores_the_point_before_powering:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Policzyłeś 15 razy 15 i zapomniałeś o przecinku."
+          multiplies_by_the_exponent:
+            misconception: multiplies_by_exponent_instead_of_powering
+            explanation: "Pomnożyłeś przez 2, a to kwadrat — liczbę mnożymy przez samą siebie (0,015 razy 0,015)."
+          keeps_the_operands_decimal_places:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Cyfry się zgadzają, ale nie przecinek. 0,015 ma trzy miejsca po przecinku, więc wynik ma sześć."
+      - level: 4
+        name: "Sześcian ułamka dziesiętnego"
+        function: "dec_pow_4"
+        traps:
+          ignores_the_point_before_powering:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Policzyłeś 5 razy 5 razy 5 i zapomniałeś o przecinku."
+          multiplies_by_the_exponent:
+            misconception: multiplies_by_exponent_instead_of_powering
+            explanation: "Pomnożyłeś przez 3! Sześcian to liczba pomnożona przez samą siebie trzy razy."
+          keeps_the_operands_decimal_places:
+            misconception: misplaces_decimal_point_in_product
+            explanation: "Cyfry się zgadzają, ale nie przecinek. 0,05 ma dwa miejsca po przecinku, a sześcian potraja tę liczbę — wynik ma sześć."
   - id: 110
     name: "Kolejność wykonywania działań"
     levels:

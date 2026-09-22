@@ -57,7 +57,18 @@ VARIETY_EXEMPTIONS = {
     ),
     "dec_pow_1": (
         8,
-        "the draw is eight one-digit tenths by construction. Tracked as #264.",
+        "eight one-digit tenths 0,2-0,9 — the first rung of a four-Level "
+        "Topic (#264).",
+    ),
+    "dec_pow_2": (
+        9,
+        "1,1-1,9 is every one-decimal value between 1 and 2; the ceiling of "
+        "2 keeps the arithmetic light (#264).",
+    ),
+    "dec_pow_4": (
+        8,
+        "bases 2-5 at one or two decimal places; larger bases leave the "
+        "cubes a Student knows (#264).",
     ),
 }
 
