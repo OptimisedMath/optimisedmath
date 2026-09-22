@@ -49,9 +49,7 @@ def test_dec_pow_2_trap_formulas():
         options_map = problem["options_map"]
 
         assert problem["correct"] == fmt_dec(round(v**2, 2))
-        assert (
-            options_map.get(fmt_dec(round(v * 2, 1))) == "multiplies_by_the_exponent"
-        )
+        assert options_map.get(fmt_dec(round(v * 2, 1))) == "multiplies_by_the_exponent"
         assert (
             options_map.get(fmt_dec(round(v * 10) ** 2))
             == "ignores_the_point_before_powering"
@@ -107,7 +105,9 @@ def test_dec_pow_3_b_equals_2_collision_falls_back_to_filler():
         k = problem["parameters"]["k"]
         trap_value = fmt_dec(Decimal(2) / (Decimal(10) ** k) * 2)
         assert problem["options_map"].get(trap_value) == "multiplies_by_the_exponent"
-        assert "keeps_the_operands_decimal_places" not in problem["options_map"].values()
+        assert (
+            "keeps_the_operands_decimal_places" not in problem["options_map"].values()
+        )
 
 
 def test_dec_pow_4_draws_documented_bases_and_scales():
