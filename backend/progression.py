@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import backend.config as config
 from backend.answer_grading import EvalResult
 from backend.models import SessionState
-from backend.unlock import increase_frontier_on_mastery
+from backend.unlock import Frontier, increase_frontier_on_mastery, is_at_frontier
 
 
 @dataclass(frozen=True)
@@ -80,14 +80,6 @@ def resolve_submission_outcome(
     )
 
 
-def _is_at_frontier(ctx: SubmissionContext) -> bool:
-    """Check whether the Selected Topic and Level are the Student's stored Frontier."""
-    return (
-        ctx.topic_id == ctx.frontier_topic_id
-        and ctx.selected_level == ctx.frontier_level
-    )
-
-
 def _advance_streak_only(
     ctx: SubmissionContext, is_correct: bool, is_soft_error: bool
 ) -> SubmissionOutcome:
@@ -97,7 +89,10 @@ def _advance_streak_only(
         if new_streak < config.MAX_STREAK:
             new_streak += 1
 
-        if new_streak == config.MAX_STREAK and _is_at_frontier(ctx):
+        frontier = Frontier(ctx.frontier_topic_id, ctx.frontier_level)
+        if new_streak == config.MAX_STREAK and is_at_frontier(
+            ctx.topic_id, ctx.selected_level, frontier
+        ):
             new_streak = 0
 
         return SubmissionOutcome(
@@ -138,7 +133,10 @@ def _advance_streak_and_xp(
     unlock_topic_id: int | None = None
     xp_earned = earned_xp
 
-    if new_streak == config.MAX_STREAK and _is_at_frontier(ctx):
+    frontier = Frontier(ctx.frontier_topic_id, ctx.frontier_level)
+    if new_streak == config.MAX_STREAK and is_at_frontier(
+        ctx.topic_id, ctx.selected_level, frontier
+    ):
         frontier_update = increase_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )

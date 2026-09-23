@@ -90,6 +90,15 @@ def is_reachable(
     return True
 
 
+def is_at_frontier(
+    topic_id: int,
+    level: int,
+    frontier: Frontier,
+) -> bool:
+    """Return whether a topic/level is exactly the Frontier's own position."""
+    return topic_id == frontier.frontier_topic_id and level == frontier.frontier_level
+
+
 def level_limit(
     topic_id: int,
     topic_max_level: int,

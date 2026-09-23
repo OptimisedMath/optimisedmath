@@ -10,6 +10,7 @@ from backend.unlock import (
     accessible_topics,
     frontier_relation,
     increase_frontier_on_mastery,
+    is_at_frontier,
     is_reachable,
     chapter_max_frontier,
     first_topic_id,
@@ -85,6 +86,24 @@ def test_frontier_relation_names_only_the_exact_frontier_position(
     frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
     assert frontier_relation(topic_id, level, frontier) == expected
+
+
+@pytest.mark.parametrize(
+    ("topic_id", "level", "expected"),
+    [
+        (20, 2, True),  # At
+        (10, 2, False),  # Behind by Topic, same Level number
+        (20, 1, False),  # Behind by Level
+        (30, 2, False),  # Beyond by Topic
+        (20, 3, False),  # Beyond by Level
+    ],
+)
+def test_is_at_frontier_true_only_when_topic_and_level_both_match(
+    topic_id, level, expected
+):
+    frontier = Frontier(frontier_topic_id=20, frontier_level=2)
+
+    assert is_at_frontier(topic_id, level, frontier) is expected
 
 
 def test_chapter_max_frontier_uses_last_topic_and_its_max_level():
