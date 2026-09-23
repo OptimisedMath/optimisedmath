@@ -823,9 +823,12 @@ class Grid(Annotation):
 
 @dataclass
 class Centre(Annotation):
-    """The centre dot of a circle, optionally labelled."""
+    """The centre dot of a circle, labelled `S` by default (#325) — Polish
+    material's letter for a centre, never `O`, which a Student has been taught
+    means *obwód*. Overridable, so a future figure with two circles can name
+    `S₁` and `S₂`."""
 
-    label: str = "O"
+    label: str = "S"
 
     def render(self, ctx: Ctx) -> None:
         c = ctx.fig.centre
@@ -837,12 +840,24 @@ class Centre(Annotation):
 
 @dataclass
 class Radius(Annotation):
-    """Radius, diameter or chord — all the same primitive at different angles."""
+    """Radius, diameter or chord — all the same primitive at different angles.
+
+    `unknown` withholds the length and prints `unknown_text` instead: `r` for a
+    radius, `d` for a diameter (#325) — fixed by `diameter`, not a free-text
+    field a generator could set to anything else, so a figure can never print
+    a symbol the conventions reject.
+    """
 
     at: float = 35.0
     unit_label: str = ""
     diameter: bool = False
     unknown: bool = False
+
+    @property
+    def unknown_text(self) -> str:
+        """The symbol an unknown radius or diameter prints, so a generator can
+        read it into its question prose instead of retyping it."""
+        return "d" if self.diameter else "r"
 
     def render(self, ctx: Ctx) -> None:
         f = ctx.fig
@@ -852,8 +867,15 @@ class Radius(Annotation):
         start = add(f.centre, mul(d, -f.radius)) if self.diameter else f.centre
         ctx.line(start, end, color=ACCENT)
         length = f.radius * (2 if self.diameter else 1)
-        text = "x" if self.unknown else f"{_fmt(length)} {self.unit_label}".strip()
-        ctx.text(mul(add(start, end), 0.5), perp(d), text, color=ACCENT, scale=0.9)
+        text = self.unknown_text if self.unknown else f"{_fmt(length)} {self.unit_label}".strip()
+        ctx.text(
+            mul(add(start, end), 0.5),
+            perp(d),
+            text,
+            color=ACCENT,
+            scale=0.9,
+            unknown=self.unknown,
+        )
 
 
 @dataclass
