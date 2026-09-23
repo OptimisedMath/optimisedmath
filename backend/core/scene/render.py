@@ -657,11 +657,14 @@ class Ticks(Annotation):
 
 @dataclass
 class Altitude(Annotation):
-    """A height, dashed, from `apex` perpendicular to edge `base`.
+    """A height from `apex` perpendicular to edge `base`.
 
-    Derives the foot. When the foot lands off the segment — the rozwartokątny
-    case of Topic 130 — it also draws the dotted base extension, because the
-    figure is wrong without it.
+    CKE draws a height that is part of the figure as posed solid, and keeps
+    the dash for one whose foot falls outside the triangle — so the stroke is
+    derived from the foot's own on-segment test, solid on the base, dashed off
+    it, with no author flag to pick one. When the foot lands off the segment —
+    the rozwartokątny case of Topic 130 — it also draws the dotted base
+    extension, because the figure is wrong without it.
 
     `unknown` withholds the length and prints `h` instead — always that letter,
     never claimed from the edge letters. It is kept on `unknown_text` so a
@@ -701,7 +704,8 @@ class Altitude(Annotation):
                 width=ctx.thin,
                 dash=f"{ctx.u:.2f} {ctx.u * 2:.2f}",
             )
-        ctx.line(p, foot, color=ACCENT, dash=f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}")
+        dash = "" if on_segment else f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}"
+        ctx.line(p, foot, color=ACCENT, dash=dash)
         toward_apex = unit(sub(p, foot))
         along = unit(sub(r, q))
         if not on_segment:
