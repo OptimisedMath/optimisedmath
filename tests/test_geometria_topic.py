@@ -15,8 +15,8 @@ from backend.core.scene import (
     Radius,
     Scene,
     Triangle,
+    circle,
 )
-from backend.core.scene.geometry import circle
 from backend.core.scene.render import Box, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
@@ -110,17 +110,16 @@ class TestSceneInvariant:
         assert ">S1<" in svg
         assert ">S<" not in svg
 
-    def test_an_unknown_radius_prints_r(self):
-        """#325: an unknown radius is named `r`, the letter for promień — never `x`."""
+    def test_an_unknown_radius_is_named_r(self):
+        """#325: an unknown radius is always `r`, the letter for promień — never `x`."""
         radius = Radius(unknown=True)
         svg = Scene(circle(radius=5), [radius]).to_svg()
         assert ">r<" in svg
         assert ">x<" not in svg
         assert radius.unknown_text == "r"
 
-    def test_an_unknown_diameter_prints_d(self):
-        """#325: an unknown diameter is named `d`, which the prose reads off here
-        rather than retyping it."""
+    def test_an_unknown_diameter_is_named_d(self):
+        """#325: an unknown diameter is always `d`, read off the annotation."""
         diameter = Radius(diameter=True, unknown=True)
         svg = Scene(circle(radius=5), [diameter]).to_svg()
         assert ">d<" in svg

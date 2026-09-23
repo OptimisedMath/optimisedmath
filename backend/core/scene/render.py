@@ -844,10 +844,11 @@ class Centre(Annotation):
 class Radius(Annotation):
     """Radius, diameter or chord — all the same primitive at different angles.
 
-    `unknown` withholds the length and prints `unknown_text` instead, which a
-    generator reads off the annotation rather than naming a second time in its
-    prose. That symbol follows from `diameter` instead of being a free-text
-    field, so a figure can never print one the conventions reject (#325).
+    `unknown` withholds the length and prints `unknown_text` instead, so a
+    generator reads the symbol off the annotation, the same way it reads one off
+    an `Altitude`, instead of naming it a second time in its prose. That symbol
+    is derived from `diameter` rather than being a settable field, so a figure
+    cannot print one the conventions reject (#325).
     """
 
     at: float = 35.0

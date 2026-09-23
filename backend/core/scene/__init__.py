@@ -8,7 +8,8 @@ contradicts its own labels is not expressible (#211).
 
 `unknown=True` on a label is the only supported way to withhold a value; it prints
 a fixed symbol for what it withholds — `h` for a height, `a`/`b`/`c` in figure
-order for an edge length — and still cannot print a *different* number.
+order for an edge length, `r` or `d` for a radius or diameter — and still cannot
+print a *different* number.
 """
 
 from backend.core.scene.geometry import (
