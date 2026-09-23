@@ -137,12 +137,19 @@ class SessionState(BaseModel):
         default=None,
         description="The Deconstruction taking over the Session right now, if any",
     )
+    misconception_hits: Dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Misconception slug -> hit count for this Session, wherever in the "
+            "Curriculum each hit happened (ADR-0014). The trigger reads this "
+            "instead of a telemetry query."
+        ),
+    )
     deconstructed: list[str] = Field(
         default_factory=list,
         description=(
-            "(Misconception, Level) pairs already deconstructed this Session — "
-            "deliberately not folded into the per-Level hit counter, which Level "
-            "changes reset"
+            "Misconception slugs already deconstructed this Session — at most "
+            "one Deconstruction per Misconception per Session (ADR-0014)"
         ),
     )
     discounted_problem_id: Optional[str] = Field(

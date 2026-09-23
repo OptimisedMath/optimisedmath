@@ -1,7 +1,6 @@
 """FastAPI integration tests for session flow, grading, and API contract."""
 
 import asyncio
-import itertools
 import json
 import sqlite3
 import uuid
@@ -1317,31 +1316,6 @@ def test_telemetry_problem_id_column_is_indexed():
     assert "problem_id" in index_columns
 
 
-def test_deconstruction_trigger_lookup_is_covered_by_a_composite_index():
-    """Issue #255: the trigger's hit count runs inside every Submission, so its
-    lookup (session, Misconception, Chapter, Topic, Level) must be an index
-    lookup rather than a table scan."""
-    expected_columns = [
-        "session_id",
-        "misconception_slug",
-        "chapter_id",
-        "topic_id",
-        "level_number",
-    ]
-    with sqlite3.connect(main.db.DB_PATH) as conn:
-        index_names = [
-            row[1] for row in conn.execute("PRAGMA index_list(telemetry_logs)")
-        ]
-        indexed_columns = [
-            [row[2] for row in conn.execute(f"PRAGMA index_info({index_name})")]
-            for index_name in index_names
-        ]
-
-    assert (
-        expected_columns in indexed_columns
-    ), f"no index on telemetry_logs covers {expected_columns} in order"
-
-
 # --- Deconstruction trigger (#194) ---
 
 _UNLIKE_FRACTIONS_PARAMETERS = {"n1": 1, "d1": 2, "n2": 1, "d2": 3, "operation": "+"}
@@ -1454,27 +1428,36 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
     ]
 
 
-def test_renaming_topic_mid_session_does_not_split_the_hit_count(monkeypatch):
-    """Issue #255: the trigger keys on Chapter/Topic id, not display name, so
-    renaming a Topic mid-Session still arms the Deconstruction on the second hit."""
+def _topic_with_a_published_level(chapter_id, level, *, other_than=None):
+    """First Topic id in `chapter_id` publishing `level`, skipping `other_than`."""
+    curriculum = resolve_curriculum()
+    for topic in curriculum.topics(chapter_id):
+        topic_id = int(topic["topic_id"])
+        if topic_id == other_than:
+            continue
+        if curriculum.level_config(chapter_id, topic_id, level) is not None:
+            return topic_id
+    return None
+
+
+def test_two_hits_at_different_topics_triggers_deconstruction(monkeypatch):
+    """Issue #340: the count is keyed on the Misconception slug alone — no
+    Chapter, Topic or Level — so two hits anywhere in the Curriculum accumulate
+    toward the same trigger."""
     _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
-
-    from backend.curriculum import Curriculum
-
-    # A fresh name on every read, so no two telemetry rows can agree on one. That
-    # is stricter than a single rename, and it does not depend on how many times
-    # a Submission happens to read the Topic's name.
-    renames = itertools.count()
-
-    def fake_topic_name(self, chapter_id, topic_id):
-        return f"Topic Name Revision {next(renames)}"
-
-    monkeypatch.setattr(Curriculum, "topic_name", fake_topic_name)
+    chapter_id = state.selected_chapter_id
+    other_topic_id = _topic_with_a_published_level(
+        chapter_id, 1, other_than=state.selected_topic_id
+    )
+    if other_topic_id is None:
+        pytest.skip("Need a second Topic publishing Level 1")
 
     _submit_trap(state, "p-first-hit")
     assert state.deconstruction is None
 
+    state.selected_topic_id = other_topic_id
+    state.selected_level = 1
     _submit_trap(state, "p-second-hit")
 
     assert state.deconstruction is not None
@@ -2293,6 +2276,106 @@ def test_misconception_does_not_retrigger_after_completion(monkeypatch):
     _submit_trap(state, "p-third-hit")
 
     assert state.deconstruction is None
+
+
+def test_deconstructed_misconception_does_not_refire_at_a_second_level(monkeypatch):
+    """Issue #340: the guard widens with the count. A Misconception already
+    deconstructed this Session must not re-fire at a different Level, even
+    though the Session-wide count there already exceeds the threshold — a
+    Session-wide count with a per-Level guard would otherwise punish the
+    Student again after a single hit at every subsequent Level (ADR-0014)."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    chapter_id = resolve_curriculum().chapter_ids()[0]
+    topic_id = _topic_with_a_published_level(chapter_id, 2)
+    if topic_id is None:
+        pytest.skip("Need a Topic publishing Level 2")
+    state = make_state(
+        _trap_problem("p-first-hit"), input_mode="radio", selected_topic_id=topic_id
+    )
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=state.session_id)
+        )
+    )
+    assert state.deconstruction is None
+
+    state.selected_level = 2
+    _submit_trap(state, "p-third-hit")
+
+    assert state.deconstruction is None
+
+
+def test_new_session_rearms_a_misconception_deconstructed_in_an_earlier_session(
+    monkeypatch,
+):
+    """Issue #340: a new Session gets a fresh id, so its hit count and
+    deconstructed set both start empty — the reset falls out of Session
+    identity rather than needing reset code (ADR-0014)."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    first_session = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(first_session, "p-first-hit")
+    _submit_trap(first_session, "p-second-hit")
+    assert first_session.deconstruction is not None
+    run(
+        main.deconstruction_abandon(
+            main.DeconstructionAbandonRequest(session_id=first_session.session_id)
+        )
+    )
+    assert first_session.deconstruction is None
+
+    second_session = make_state(_trap_problem("p-new-first-hit"), input_mode="radio")
+    _submit_trap(second_session, "p-new-first-hit")
+    assert second_session.deconstruction is None
+
+    _submit_trap(second_session, "p-new-second-hit")
+
+    assert second_session.deconstruction is not None
+    assert (
+        second_session.deconstruction.misconception_slug
+        == _UNLIKE_FRACTIONS_MISCONCEPTION
+    )
+
+
+_DECIMAL_ORDER_MISCONCEPTION = "compares_decimals_by_wrong_digit_order"
+_DECIMAL_ORDER_PARAMETERS = {"s1": "1,2", "s2": "1,3"}
+
+
+def test_discounted_retry_hit_counts_toward_a_different_misconception_but_arms_nothing(
+    monkeypatch,
+):
+    """Issue #340: the hit is recorded before the discounted-retry branch — a
+    retry's wrong answer still counts toward another Misconception's trigger,
+    but the retry itself can never arm a Deconstruction on the spot, since the
+    trigger check never runs for it (ADR-0014)."""
+    _map_traps_to_misconceptions(
+        monkeypatch,
+        {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION, "t2": _DECIMAL_ORDER_MISCONCEPTION},
+    )
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    _submit_trap(state, "p-second-hit")
+    assert state.deconstruction is not None
+    for step in list(state.deconstruction.steps):
+        _submit_step(state, step.answer)
+    assert state.deconstruction is None
+    retry_problem_id = state.discounted_problem_id
+    assert retry_problem_id is not None
+
+    _submit_trap(
+        state, retry_problem_id, trap_slug="t2", parameters=_DECIMAL_ORDER_PARAMETERS
+    )
+
+    assert state.deconstruction is None
+
+    _submit_trap(
+        state, "p-b-second-hit", trap_slug="t2", parameters=_DECIMAL_ORDER_PARAMETERS
+    )
+
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _DECIMAL_ORDER_MISCONCEPTION
 
 
 def test_completed_deconstruction_correct_retry_discoverable_by_joining_on_problem_id(
