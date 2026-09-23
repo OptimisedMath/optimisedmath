@@ -19,6 +19,29 @@ TOPIC_MULTI = 101  # Chapter Alpha: levels 1–2 published, level 3 unpublished
 TOPIC_RADIO = 102  # Chapter Alpha: radio-only, single published level
 TOPIC_SINGLE = 201  # Chapter Beta: exactly one published level
 
+# Chapter Trio exists because Alpha and Beta top out at two Topics, which cannot
+# express "the next Topic is not the last one" (#332).
+CHAPTER_TRIO = 900
+TOPIC_TRIO_FIRST = 901
+TOPIC_TRIO_MIDDLE = 902
+TOPIC_TRIO_LAST = 903
+
+
+def _curriculum_from(*bundles: ChapterBundle) -> Curriculum:
+    """Assemble a Curriculum from bundles, deriving every chapter index from them."""
+    store = CurriculumStore(
+        bundles=bundles,
+        chapters=[
+            ChapterSummary(chapter_id=bundle.chapter_id, name=bundle.chapter_name)
+            for bundle in bundles
+        ],
+        bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundles},
+        chapter_name_by_id={
+            bundle.chapter_id: bundle.chapter_name for bundle in bundles
+        },
+    )
+    return Curriculum(_store=store)
+
 
 def build_fixture_curriculum() -> Curriculum:
     """Build a fixture Curriculum covering behaviours later tickets need."""
@@ -106,16 +129,37 @@ def build_fixture_curriculum() -> Curriculum:
         topic_name_by_id={TOPIC_SINGLE: "Single Level Topic"},
     )
 
-    bundles = (bundle_alpha, bundle_beta)
-    store = CurriculumStore(
-        bundles=bundles,
-        chapters=[
-            ChapterSummary(chapter_id=bundle.chapter_id, name=bundle.chapter_name)
-            for bundle in bundles
-        ],
-        bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundles},
-        chapter_name_by_id={
-            bundle.chapter_id: bundle.chapter_name for bundle in bundles
-        },
+    return _curriculum_from(bundle_alpha, bundle_beta)
+
+
+def build_three_topic_curriculum() -> Curriculum:
+    """Build a one-Chapter Curriculum of three Topics, so a next Topic can have a successor."""
+    topics: tuple[TopicDict, ...] = tuple(
+        {
+            "topic_id": topic_id,
+            "name": f"Trio Topic {topic_id}",
+            "max_level": 1,
+            "radio_only": True,
+        }
+        for topic_id in (TOPIC_TRIO_FIRST, TOPIC_TRIO_MIDDLE, TOPIC_TRIO_LAST)
     )
-    return Curriculum(_store=store)
+    bundle = ChapterBundle(
+        chapter_id=CHAPTER_TRIO,
+        chapter_name="Chapter Trio",
+        keyboard_type="default",
+        raw={},
+        topics_meta=topics,
+        topics_by_id={topic["topic_id"]: topic for topic in topics},
+        level_configs={
+            (topic["topic_id"], 1): LevelConfig(
+                level=1,
+                name=f"Trio {topic['topic_id']} L1",
+                function=f"fixture_trio_{topic['topic_id']}",
+                traps={},
+                published=True,
+            )
+            for topic in topics
+        },
+        topic_name_by_id={topic["topic_id"]: topic["name"] for topic in topics},
+    )
+    return _curriculum_from(bundle)
