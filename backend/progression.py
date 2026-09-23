@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import backend.config as config
 from backend.answer_grading import EvalResult
-from backend.models import SessionState
 from backend.unlock import increase_frontier_on_mastery
 
 
@@ -41,13 +40,6 @@ class SubmissionOutcome:
     new_selected_level: int | None = None
     new_frontier_level: int | None = None
     unlock_topic_id: int | None = None
-
-
-def resolve_streak_meter(state: SessionState) -> int:
-    """Streak meter display value for the Session payload."""
-    if state.problem_answered and state.level_completed and state.streak == 0:
-        return state.max_streak
-    return state.streak
 
 
 def resolve_submission_outcome(

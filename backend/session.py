@@ -18,7 +18,6 @@ from backend.play_mode import PlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import ProblemDict, clean_latex, clean_mobile_input
 from backend.problem_generation import ProblemGenerationError
-from backend.progression import resolve_streak_meter
 from backend.models import (
     AutoSolveRequest,
     DeconstructionAbandonRequest,
@@ -183,7 +182,6 @@ def build_session_response(
         current_problem=current_problem,
         can_submit=can_submit,
         can_next_problem=can_next_problem,
-        streak_meter=resolve_streak_meter(state),
         admin_mode=play_mode.is_admin,
         navigation=navigation_view,
     )
