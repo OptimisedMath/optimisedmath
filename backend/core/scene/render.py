@@ -834,9 +834,14 @@ class Grid(Annotation):
 
 @dataclass
 class Centre(Annotation):
-    """The centre dot of a circle, optionally labelled."""
+    """The centre dot of a circle, labelled `S` by default.
 
-    label: str = "O"
+    `S` is Polish material's letter for a centre; `O` is never used, because a
+    Student has been taught that it means *obwód*. The label stays overridable,
+    so a figure with two circles can name each centre apart (#325).
+    """
+
+    label: str = "S"
 
     def render(self, ctx: Ctx) -> None:
         c = ctx.fig.centre
@@ -846,12 +851,24 @@ class Centre(Annotation):
 
 @dataclass
 class Radius(Annotation):
-    """Radius, diameter or chord — all the same primitive at different angles."""
+    """Radius, diameter or chord — all the same primitive at different angles.
+
+    `unknown` withholds the length and prints `unknown_text` instead, so a
+    generator reads the symbol off the annotation, the same way it reads one off
+    an `Altitude`, instead of naming it a second time in its prose. That symbol
+    is derived from `diameter` rather than being a settable field, so a figure
+    cannot print one the conventions reject (#325).
+    """
 
     at: float = 35.0
     unit_label: str = ""
     diameter: bool = False
     unknown: bool = False
+
+    @property
+    def unknown_text(self) -> str:
+        """The symbol an unknown length prints: `d` for a diameter, `r` for a radius."""
+        return "d" if self.diameter else "r"
 
     def render(self, ctx: Ctx) -> None:
         f = ctx.fig
@@ -861,8 +878,19 @@ class Radius(Annotation):
         start = add(f.centre, mul(d, -f.radius)) if self.diameter else f.centre
         ctx.line(start, end, color=ACCENT)
         length = f.radius * (2 if self.diameter else 1)
-        text = "x" if self.unknown else f"{_fmt(length)} {self.unit_label}".strip()
-        ctx.text(mul(add(start, end), 0.5), perp(d), text, color=ACCENT, scale=0.9)
+        text = (
+            self.unknown_text
+            if self.unknown
+            else f"{_fmt(length)} {self.unit_label}".strip()
+        )
+        ctx.text(
+            mul(add(start, end), 0.5),
+            perp(d),
+            text,
+            color=ACCENT,
+            scale=0.9,
+            unknown=self.unknown,
+        )
 
 
 @dataclass

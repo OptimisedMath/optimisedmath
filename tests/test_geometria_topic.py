@@ -10,11 +10,14 @@ import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import (
     AngleArc,
     Altitude,
+    Centre,
     EdgeLabel,
     Outline,
+    Radius,
     RightAngle,
     Scene,
     Triangle,
+    circle,
 )
 from backend.core.scene.render import ACCENT, INK, Box, _fmt, _overlap
 from backend.curriculum import curriculum_from_yaml
@@ -186,6 +189,48 @@ class TestSceneInvariant:
             height_figure, [Outline(), Altitude(apex="C", base="AB")]
         ).to_svg()
         assert re.search(rf'<circle[^>]*fill="{ACCENT}"', height_svg)
+
+    def test_a_circles_centre_defaults_to_s(self):
+        """#325: `S` is the centre's letter — never `O`, which means *obwód*."""
+        svg = Scene(circle(radius=5), [Centre()]).to_svg()
+        assert ">S<" in svg
+        assert ">O<" not in svg
+
+    def test_a_circles_centre_prints_an_override_label(self):
+        """#325: the default stays overridable, for a figure with two circles."""
+        svg = Scene(circle(radius=5), [Centre(label="S1")]).to_svg()
+        assert ">S1<" in svg
+        assert ">S<" not in svg
+
+    def test_an_unknown_radius_is_named_r(self):
+        """#325: an unknown radius is always `r`, the letter for promień — never `x`."""
+        radius = Radius(unknown=True)
+        svg = Scene(circle(radius=5), [radius]).to_svg()
+        assert ">r<" in svg
+        assert ">x<" not in svg
+        assert radius.unknown_text == "r"
+
+    def test_an_unknown_diameter_is_named_d(self):
+        """#325: an unknown diameter is always `d`, read off the annotation."""
+        diameter = Radius(diameter=True, unknown=True)
+        svg = Scene(circle(radius=5), [diameter]).to_svg()
+        assert ">d<" in svg
+        assert diameter.unknown_text == "d"
+
+    def test_an_unknown_radius_symbol_is_drawn_in_italic(self):
+        """#325 keeps #293's convention: the unknown opts out of the upright sans."""
+        svg = Scene(circle(radius=5), [Radius(unknown=True)]).to_svg()
+        assert 'font-style="italic"' in svg
+
+    def test_a_known_radius_and_diameter_print_their_number_upright(self):
+        """#325: a known value keeps printing its number and Unit, unchanged."""
+        svg = Scene(
+            circle(radius=5),
+            [Radius(unit_label="cm"), Radius(diameter=True, at=100, unit_label="cm")],
+        ).to_svg()
+        assert ">5 cm<" in svg
+        assert ">10 cm<" in svg
+        assert 'font-style="italic"' not in svg
 
     def test_no_two_placed_labels_ever_overlap(self, monkeypatch):
         """#289: sweeps every figure every generator in this Topic can draw, across
