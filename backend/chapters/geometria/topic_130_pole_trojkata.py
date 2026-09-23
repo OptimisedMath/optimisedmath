@@ -202,6 +202,7 @@ def geo_triangle_area_1() -> dict | None:
         [
             Outline(),
             VertexLabels(),
+            EdgeLabel("AB", length_unit),
             Altitude(apex="C", base="AB", unit_label=length_unit),
         ],
     ).to_svg()

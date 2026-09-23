@@ -55,7 +55,6 @@ class TestSceneInvariant:
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         altitude = Altitude(apex="C", base="AB", unknown=True)
         svg = Scene(figure, [Outline(), altitude]).to_svg()
-        assert altitude.unknown_text == "h"
         assert ">h<" in svg
 
     def test_a_known_height_prints_only_its_number(self):
@@ -115,6 +114,36 @@ class TestSceneInvariant:
             for a, b in itertools.combinations(boxes, 2):
                 assert not _overlap(a, b), f"{a} overlaps {b}"
 
+    def test_the_drawn_glyphs_of_the_289_figure_do_not_touch(self):
+        """#289's actual fault: the box the renderer reserved was narrower than the
+        bold glyphs it drew, so `label_boxes()` read clear while `26 dm` printed on
+        `24 dm`. Measuring the drawn text independently is the only way to see it."""
+        figure = Triangle.base_height(base=17, height=24, apex_frac=7 / 17)
+        svg = Scene(
+            figure,
+            [
+                Outline(),
+                EdgeLabel("AB", "dm"),
+                EdgeLabel("BC", "dm"),
+                EdgeLabel("CA", "dm"),
+                Altitude(apex="C", base="AB", unit_label="dm"),
+            ],
+        ).to_svg()
+
+        glyphs = []
+        for x, y, size, text in re.findall(
+            r'<text x="([-\d.]+)" y="([-\d.]+)"[^>]*font-size="([\d.]+)"[^>]*>([^<]*)<',
+            svg,
+        ):
+            x, y, size = float(x), float(y), float(size)
+            # How wide a weight-600 system-ui character draws, per unit font size.
+            half_w, half_h = 0.34 * size * len(text), 0.58 * size
+            glyphs.append((text, (x - half_w, y - half_h, x + half_w, y + half_h)))
+
+        assert len(glyphs) == 4
+        for (a, box_a), (b, box_b) in itertools.combinations(glyphs, 2):
+            assert not _overlap(box_a, box_b), f"{a} overlaps {b}"
+
 
 class TestGenerators:
     @pytest.mark.parametrize("generator", GENERATORS, ids=lambda g: g.__name__)
@@ -152,11 +181,20 @@ class TestGenerators:
         assert extra
 
     def test_level_1_labels_only_base_and_height(self):
-        """#294: the slant sides are gone, so no distractor length remains to name."""
+        """#294: the slant sides are gone, so the figure prints exactly the two
+        lengths the formula needs — both of them, or the Problem is unsolvable."""
         for _ in range(20):
             problem = topic.geo_triangle_area_1()
             assert problem is not None
-            assert set(problem["parameters"]) == {"base", "height", "unit"}
+            parameters = problem["parameters"]
+            unit = parameters["unit"]
+            printed = set(
+                re.findall(r"<text[^>]*>([^<]*)</text>", problem["image_html"])
+            )
+            assert printed - {"A", "B", "C"} == {
+                f"{parameters['base']} {unit}",
+                f"{parameters['height']} {unit}",
+            }
 
     def test_level_1_magnitudes_are_small_enough_to_multiply_mentally(self):
         """#294: dropping the slant sides frees the pool from the Pythagorean-triple
@@ -165,8 +203,8 @@ class TestGenerators:
             problem = topic.geo_triangle_area_1()
             assert problem is not None
             parameters = problem["parameters"]
-            assert parameters["base"] <= topic._LEVEL_1_MAX_DIM
-            assert parameters["height"] <= topic._LEVEL_1_MAX_DIM
+            assert parameters["base"] <= 12
+            assert parameters["height"] <= 12
 
     def test_level_1_no_longer_emits_the_perimeter_or_side_as_height_traps(self):
         """#294: neither Trap has a visible side to compute its distractor from."""
