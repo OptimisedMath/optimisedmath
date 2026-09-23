@@ -43,7 +43,7 @@ def _match_trap_feedback(
             matched = opt_val is not None and student_val == opt_val
         if matched:
             msg_text = problem.get("messages", {}).get(
-                opt_type, "Niepoprawna odpowiedź, spróbuj ponownie."
+                opt_type, config.DEFAULT_WRONG_MESSAGE
             )
             return {
                 "lock_answer": True,
@@ -167,7 +167,7 @@ def grade(
 
         msg_key = options_map.get(user_input)
         msg_text = problem.get("messages", {}).get(
-            msg_key or FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
+            msg_key or FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
         )
         if msg_key is None:
             outcome = "wrong"
@@ -216,24 +216,18 @@ def grade(
                 "answer_outcome": "format_mismatch",
             }
 
-        if policy == "exact_match_only":
-            trap_result = _match_trap_feedback(user_input, student_val, problem)
-            if trap_result:
-                return trap_result
-            return {
-                "lock_answer": True,
-                "feedback_type": "warning",
-                "feedback_msg": "Zapisz ułamek w dokładnie takiej postaci, o jaką prosi polecenie!",
-                "answer_outcome": "exact_match_violation",
-            }
+        # `exact_match_only` deliberately returns nothing here: on those Levels
+        # the requested form is part of the answer, so a value-equal answer in
+        # another form is Wrong and falls through to section 3 (#312).
         if policy == "equivalent_accepted":
             return {"is_correct": True, "lock_answer": True}
-        return {
-            "lock_answer": False,
-            "feedback_type": "info",
-            "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
-            "answer_outcome": "unsimplified",
-        }
+        if policy == "standard":
+            return {
+                "lock_answer": False,
+                "feedback_type": "info",
+                "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
+                "answer_outcome": "unsimplified",
+            }
 
     # --- 3. TEXT MODE TRAP SCANNER ---
     trap_result = _match_trap_feedback(user_input, student_val, problem)
@@ -241,7 +235,7 @@ def grade(
         return trap_result
 
     msg_text = problem.get("messages", {}).get(
-        FILLER_SLUG, "Niepoprawna odpowiedź, spróbuj ponownie."
+        FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
     )
     return {
         "lock_answer": True,
