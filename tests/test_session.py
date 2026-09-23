@@ -639,7 +639,9 @@ def test_manual_submit_and_auto_solve_match_in_typing_mode(
     assert manual_response.feedback == auto_response.feedback
 
 
-def test_admin_auto_solve_uses_mirrored_submission_rules(fixture_curriculum: Curriculum):
+def test_admin_auto_solve_uses_mirrored_submission_rules(
+    fixture_curriculum: Curriculum,
+):
     """#333: Admin plays the same rules as a Student — XP counts up in the
     Session on every correct answer — but none of it reaches the profile."""
     state = _fresh_state(fixture_curriculum)

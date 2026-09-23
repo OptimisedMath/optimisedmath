@@ -886,7 +886,9 @@ def test_admin_mastery_unlocks_next_level_regardless_of_stored_frontier(
         streak=2,
     )
 
-    result = _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
+    result = _submit(
+        state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN
+    )
 
     assert result.get("is_correct") is True
     assert state.streak == 0
@@ -914,7 +916,9 @@ def test_admin_mastery_at_last_topic_completes_topic_without_next_topic(
         streak=2,
     )
 
-    result = _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
+    result = _submit(
+        state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN
+    )
 
     assert result.get("is_correct") is True
     assert state.streak == 0
