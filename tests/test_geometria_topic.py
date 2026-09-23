@@ -8,8 +8,8 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import (
-    AngleArc,
     Altitude,
+    AngleArc,
     Centre,
     EdgeLabel,
     Outline,
@@ -18,6 +18,7 @@ from backend.core.scene import (
     Scene,
     Triangle,
     circle,
+    regular_polygon,
 )
 from backend.core.scene.render import ACCENT, INK, MUTED, Box, _fmt, _overlap
 from backend.curriculum import curriculum_from_yaml
@@ -75,6 +76,11 @@ class TestSceneInvariant:
         ).to_svg()
         assert ">12 cm<" in svg
         assert ">h<" not in svg
+
+    def test_altitude_offers_no_free_text_override(self):
+        """#293: `h` is fixed; a generator cannot type a different letter."""
+        with pytest.raises(TypeError):
+            Altitude(apex="C", base="AB", unknown=True, unknown_text="x")
 
     def test_unknown_edges_are_named_a_b_c_in_figure_order(self):
         """#293: each unknown edge claims the next letter, in the order its
@@ -145,6 +151,14 @@ class TestSceneInvariant:
         """#326: the symbol is assigned by the scene; a generator cannot type one."""
         with pytest.raises(TypeError):
             AngleArc(vertex="A", unknown=True, unknown_text="x")
+
+    def test_more_unknown_arcs_than_greek_letters_is_refused(self):
+        """#326: the letters run out after δ, and a scene that needs a fifth is a
+        refusal rather than an arc left holding no symbol at all."""
+        figure = regular_polygon(5, side=10)
+        arcs = [AngleArc(vertex=v, unknown=True) for v in figure.outline]
+        with pytest.raises(ValueError, match="letters"):
+            Scene(figure, [Outline(), *arcs]).to_svg()
 
     def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self):
         """The labelled-arc minimum angle (#212) is still enforced after #326."""
