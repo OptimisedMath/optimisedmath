@@ -39,7 +39,6 @@ export interface NavigationView {
 
 export interface SessionResponse {
   session_id: string;
-  username: string | null;
   xp: number;
   streak: number;
   flawless_eligible: boolean;
@@ -60,8 +59,8 @@ export interface SessionResponse {
   can_next_problem: boolean;
   /** True while a Deconstruction is taking over the Session — the takeover's only trigger. */
   deconstruction_running: boolean;
-  admin_mode?: boolean;
-  navigation?: NavigationView | null;
+  admin_mode: boolean;
+  navigation: NavigationView;
 }
 
 export interface Problem {

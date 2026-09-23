@@ -190,10 +190,15 @@ class SessionResponse(BaseModel):
     passed explicitly by `session.build_session_response()`. Persisted-only fields (e.g.
     `problem_start_time`, `recent_problem_fingerprints`) never leak onto the wire when
     a new persisted field is added unless it is also wired through `from_state()`.
+
+    `streak`, `problem_answered` and `chapter_frontiers` cross the wire with no
+    client reader (#341). They stay: the API contract suite observes the
+    backend-owned progression rules they carry on the route response itself, and
+    removing them would push fourteen assertions down onto `SessionState`.
+    Verify that before deleting one as unused.
     """
 
     session_id: str
-    username: Optional[str] = None
 
     xp: int = Field(default=0, ge=0)
     streak: int = Field(default=0, ge=0)
@@ -236,8 +241,7 @@ class SessionResponse(BaseModel):
         default=False,
         description="Whether the user has admin privileges (all chapters + auto-solve)",
     )
-    navigation: Optional[NavigationView] = Field(
-        default=None,
+    navigation: NavigationView = Field(
         description="Computed UI navigation state (API responses only, not persisted)",
     )
 
@@ -251,12 +255,11 @@ class SessionResponse(BaseModel):
         can_next_problem: bool,
         streak_meter: int,
         admin_mode: bool,
-        navigation: Optional[NavigationView],
+        navigation: NavigationView,
     ) -> SessionResponse:
         """Build a wire payload by copying shared persisted fields plus derived view values."""
         return cls(
             session_id=state.session_id,
-            username=state.username,
             xp=state.xp,
             streak=state.streak,
             flawless_eligible=state.flawless_eligible,
