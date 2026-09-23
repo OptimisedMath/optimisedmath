@@ -45,6 +45,9 @@ _NUDGES = (0, 1, -1, 2, -2, 3, -3, 4, -4)
 #: Letters claimed by unknown edge lengths, in figure order (#293).
 _EDGE_SYMBOLS = "abcdefghijklmnopqrstuvwxyz"
 
+#: Greek letters claimed by unknown angle arcs, in figure order (#326).
+_ANGLE_SYMBOLS = "αβγδ"
+
 #: Numbers, Units and vertex names — the figure's own voice.
 _KNOWN_FONT = 'font-family="system-ui, -apple-system, sans-serif"'
 
@@ -487,13 +490,17 @@ class EdgeLabel(Annotation):
     *different* number. The letter is claimed on first render — `a`, then `b`,
     `c` in figure order — and pinned to `unknown_text`, so a generator reads
     the symbol the figure drew instead of naming it a second time (#293).
+    `unknown_text` is not a constructor argument — there is no free-text
+    override for the letter the scene assigns.
     """
 
     edge: str
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str | None = None
     inside: bool = False
+    unknown_text: str | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def text_for(self, ctx: Ctx) -> str:
         """The label's text, read off the constructed edge unless withheld.
@@ -534,12 +541,22 @@ class AngleArc(Annotation):
     generator-side range limit rather than a placement algorithm to fix
     further: every Geometria generator using AngleArc must keep the angle at
     or above this floor.
+
+    `unknown` withholds the degrees and prints a Greek letter instead — `α`,
+    then `β`, `γ`, `δ` among the scene's unknown arcs, in figure order (the
+    order their vertices sit around the outline, not the order they were
+    listed). `Scene.to_svg` assigns the letters and pins each to
+    `unknown_text` before any arc renders, so a generator reads the symbol
+    the figure drew instead of naming it a second time (#326). Not a
+    constructor argument — there is no free-text override for it.
     """
 
     vertex: str
     unknown: bool = False
-    unknown_text: str = "x"
     show_label: bool = True
+    unknown_text: str | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def render(self, ctx: Ctx) -> None:
         f = ctx.fig
@@ -559,7 +576,13 @@ class AngleArc(Annotation):
             deg = f.interior_angle(self.vertex)
             label = self.unknown_text if self.unknown else f"{_fmt(deg)}°"
             ctx.text(
-                add(v, mul(inward, r)), inward, label, color=ACCENT, scale=0.85, gap=1.2
+                add(v, mul(inward, r)),
+                inward,
+                label,
+                color=ACCENT,
+                scale=0.85,
+                gap=1.2,
+                unknown=self.unknown,
             )
 
 
@@ -648,6 +671,8 @@ class Altitude(Annotation):
     never claimed from the edge letters. It is kept on `unknown_text` so a
     generator reads the symbol off the annotation, the same way it reads one
     off an `EdgeLabel`, instead of naming it a second time in its prose (#293).
+    `unknown_text` is not a constructor argument — the letter is fixed, not
+    overridable.
     """
 
     apex: str
@@ -655,7 +680,7 @@ class Altitude(Annotation):
     label: bool = True
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str = "h"
+    unknown_text: str = field(default="h", init=False, repr=False, compare=False)
 
     def foot(self, ctx: Ctx) -> tuple[Pt, bool]:
         """The altitude's foot, and whether it lands on the base segment."""
@@ -963,6 +988,16 @@ class Scene:
             gw, gh = max(xs) - min(xs), max(ys) - min(ys)
         diag = max(math.hypot(gw, gh), 1e-6)
         ctx = Ctx(fig=f, u=diag / 100.0)
+
+        # Pass 1b: unknown angle arcs claim α, β, γ… up front, in figure order —
+        # the order their vertices sit around the outline — since that order can
+        # differ from the order the generator listed the arcs in (#326).
+        unknown_arcs = sorted(
+            (a for a in self.annotations if isinstance(a, AngleArc) and a.unknown),
+            key=lambda a: f.outline.index(a.vertex),
+        )
+        for arc, symbol in zip(unknown_arcs, _ANGLE_SYMBOLS):
+            arc.unknown_text = symbol
 
         # Pass 2: draw. Every emitter registers what it occupies.
         for a in self.annotations:
