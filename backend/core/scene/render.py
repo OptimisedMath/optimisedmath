@@ -823,10 +823,12 @@ class Grid(Annotation):
 
 @dataclass
 class Centre(Annotation):
-    """The centre dot of a circle, labelled `S` by default (#325) — Polish
-    material's letter for a centre, never `O`, which a Student has been taught
-    means *obwód*. Overridable, so a future figure with two circles can name
-    `S₁` and `S₂`."""
+    """The centre dot of a circle, labelled `S` by default.
+
+    `S` is Polish material's letter for a centre; `O` is never used, because a
+    Student has been taught that it means *obwód*. The label stays overridable,
+    so a figure with two circles can name each centre apart (#325).
+    """
 
     label: str = "S"
 
@@ -842,10 +844,10 @@ class Centre(Annotation):
 class Radius(Annotation):
     """Radius, diameter or chord — all the same primitive at different angles.
 
-    `unknown` withholds the length and prints `unknown_text` instead: `r` for a
-    radius, `d` for a diameter (#325) — fixed by `diameter`, not a free-text
-    field a generator could set to anything else, so a figure can never print
-    a symbol the conventions reject.
+    `unknown` withholds the length and prints `unknown_text` instead, which a
+    generator reads off the annotation rather than naming a second time in its
+    prose. That symbol follows from `diameter` instead of being a free-text
+    field, so a figure can never print one the conventions reject (#325).
     """
 
     at: float = 35.0
@@ -855,8 +857,7 @@ class Radius(Annotation):
 
     @property
     def unknown_text(self) -> str:
-        """The symbol an unknown radius or diameter prints, so a generator can
-        read it into its question prose instead of retyping it."""
+        """The symbol an unknown length prints: `d` for a diameter, `r` for a radius."""
         return "d" if self.diameter else "r"
 
     def render(self, ctx: Ctx) -> None:

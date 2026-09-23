@@ -99,14 +99,13 @@ class TestSceneInvariant:
         assert 'font-style="italic"' not in svg
 
     def test_a_circles_centre_defaults_to_s(self):
-        """#325: `S` is Polish material's centre letter — never `O`, which a Student
-        has been taught means *obwód*."""
+        """#325: `S` is the centre's letter — never `O`, which means *obwód*."""
         svg = Scene(circle(radius=5), [Centre()]).to_svg()
         assert ">S<" in svg
         assert ">O<" not in svg
 
     def test_a_circles_centre_prints_an_override_label(self):
-        """#325: the default stays overridable, for a future figure with two circles."""
+        """#325: the default stays overridable, for a figure with two circles."""
         svg = Scene(circle(radius=5), [Centre(label="S1")]).to_svg()
         assert ">S1<" in svg
         assert ">S<" not in svg
@@ -120,15 +119,15 @@ class TestSceneInvariant:
         assert radius.unknown_text == "r"
 
     def test_an_unknown_diameter_prints_d(self):
-        """#325: an unknown diameter is named `d`, read off the annotation rather
-        than retyped by the generator."""
-        radius = Radius(diameter=True, unknown=True)
-        svg = Scene(circle(radius=5), [radius]).to_svg()
+        """#325: an unknown diameter is named `d`, which the prose reads off here
+        rather than retyping it."""
+        diameter = Radius(diameter=True, unknown=True)
+        svg = Scene(circle(radius=5), [diameter]).to_svg()
         assert ">d<" in svg
-        assert radius.unknown_text == "d"
+        assert diameter.unknown_text == "d"
 
     def test_an_unknown_radius_symbol_is_drawn_in_italic(self):
-        """#325 follows #293's convention: the unknown opts out of the upright sans stack."""
+        """#325 keeps #293's convention: the unknown opts out of the upright sans."""
         svg = Scene(circle(radius=5), [Radius(unknown=True)]).to_svg()
         assert 'font-style="italic"' in svg
 
