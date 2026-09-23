@@ -606,37 +606,6 @@ class Ticks(Annotation):
 
 
 @dataclass
-class ParallelMarks(Annotation):
-    """Matching chevrons marking edges as parallel (the trapezoid's two bases)."""
-
-    edges: list[str]
-    count: int = 1
-
-    def render(self, ctx: Ctx) -> None:
-        reference: Pt | None = None
-        for e in self.edges:
-            a, b = ctx.fig.edge(e)
-            mid = mul(add(a, b), 0.5)
-            d = unit(sub(b, a))
-            if reference is None:
-                reference = d
-            elif dot(d, reference) < 0:
-                d = mul(d, -1)  # keep every chevron in the group pointing alike
-            n = perp(d)
-            s = ctx.u * 2.6
-            for i in range(self.count):
-                c = add(mid, mul(d, (i - (self.count - 1) / 2) * s * 1.3))
-                ctx.path(
-                    [
-                        add(add(c, mul(d, -s * 0.8)), mul(n, s)),
-                        c,
-                        add(add(c, mul(d, -s * 0.8)), mul(n, -s)),
-                    ],
-                    width=ctx.thin,
-                )
-
-
-@dataclass
 class Altitude(Annotation):
     """A height, dashed, from `apex` perpendicular to edge `base`.
 
