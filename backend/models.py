@@ -183,6 +183,17 @@ class SessionState(BaseModel):
         return self.model_dump_json(include=set(SessionState.model_fields))
 
 
+def _resolve_streak_meter(state: SessionState) -> int:
+    """Streak meter display value: stays full through Level-completion Feedback.
+
+    Level completion only ever coincides with Streak reset to 0 (progression
+    zeroes both together), so those two fields alone identify the exception.
+    """
+    if state.level_completed and state.streak == 0:
+        return state.max_streak
+    return state.streak
+
+
 class SessionResponse(BaseModel):
     """Client Session payload — composed from `SessionState` plus derived response view.
 
@@ -253,7 +264,6 @@ class SessionResponse(BaseModel):
         current_problem: Optional[Dict[str, Any]],
         can_submit: bool,
         can_next_problem: bool,
-        streak_meter: int,
         admin_mode: bool,
         navigation: NavigationView,
     ) -> SessionResponse:
@@ -278,7 +288,7 @@ class SessionResponse(BaseModel):
             can_submit=can_submit,
             can_next_problem=can_next_problem,
             deconstruction_running=state.deconstruction is not None,
-            streak_meter=streak_meter,
+            streak_meter=_resolve_streak_meter(state),
             admin_mode=admin_mode,
             navigation=navigation,
         )
