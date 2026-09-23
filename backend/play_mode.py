@@ -74,7 +74,7 @@ class StudentPlayMode:
         frontier_record: ChapterFrontier | None,
     ) -> bool:
         return unlock_is_at_frontier(
-            topic_id, level, get_frontier(frontier_record, chapter_topics)
+            topic_id, level, self.resolve_frontier(chapter_topics, frontier_record)
         )
 
 
@@ -101,6 +101,7 @@ class AdminPlayMode:
         chapter_topics: list[TopicDict],
         frontier_record: ChapterFrontier | None,
     ) -> bool:
+        """Every Level an Admin plays behaves like a Frontier Level (ADR-0013)."""
         return True
 
 

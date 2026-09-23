@@ -1,7 +1,8 @@
 """Streak, XP, and level/topic progression for one Submission.
 
 One rule set runs for both play modes; the caller tells it whether the
-Submission was At the Frontier."""
+Submission was At the Frontier.
+"""
 
 from __future__ import annotations
 
@@ -14,12 +15,15 @@ from backend.unlock import increase_frontier_on_mastery
 
 @dataclass(frozen=True)
 class SubmissionContext:
-    """Session slice needed to apply one Submission's progression rules."""
+    """Session slice needed to apply one Submission's progression rules.
+
+    Carries no Frontier position — ``at_frontier`` is the whole of what the
+    Frontier decides here, resolved by the caller's play mode (ADR-0013).
+    """
 
     selected_level: int
     current_streak: int
     flawless_eligible: bool
-    frontier_level: int
     topic_max_level: int
     next_topic_ids: tuple[int, ...]
     at_frontier: bool
@@ -87,8 +91,10 @@ def _advance_streak_and_xp(
     xp_earned = earned_xp
 
     if new_streak == config.MAX_STREAK and ctx.at_frontier:
+        # At the Frontier, the Level just played is the Frontier Level, so it is
+        # the boundary the Frontier advances from.
         frontier_update = increase_frontier_on_mastery(
-            ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
+            ctx.selected_level, ctx.topic_max_level, ctx.next_topic_ids
         )
         level_unlocked = frontier_update.level_unlocked
         topic_completed = frontier_update.topic_completed

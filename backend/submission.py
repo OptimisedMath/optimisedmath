@@ -329,18 +329,15 @@ def _build_submission_context(
     chapter_id: int,
     topic_id: int,
 ) -> SubmissionContext:
-    chapter_topics = list(curriculum.topics(chapter_id))
-    frontier_record = state.chapter_frontiers.get(chapter_id)
-    at_frontier = play_mode.is_at_frontier(
-        topic_id, state.selected_level, chapter_topics, frontier_record
-    )
+    """Collect the Session slice the pure progression rules run on."""
     topic_meta = curriculum.topic_by_id(chapter_id, topic_id)
     if topic_meta is None:
         raise RuntimeError(f"Topic id {topic_id} not found in chapter {chapter_id}")
+    chapter_topics = list(curriculum.topics(chapter_id))
     next_topic_ids = tuple(
         sorted(
             int(topic_entry["topic_id"])
-            for topic_entry in curriculum.topics(chapter_id)
+            for topic_entry in chapter_topics
             if int(topic_entry["topic_id"]) > topic_id
         )
     )
@@ -348,16 +345,14 @@ def _build_submission_context(
         selected_level=state.selected_level,
         current_streak=state.streak,
         flawless_eligible=state.flawless_eligible,
-        # Whether or not At the Frontier, the level just played is the only
-        # sensible boundary for `increase_frontier_on_mastery` to advance from —
-        # for a Student it is provably equal to the stored Frontier level
-        # whenever `at_frontier` is True (the only time it is read), and Admin
-        # has no stored Frontier for progression to advance from at all
-        # (ADR-0013).
-        frontier_level=state.selected_level,
         topic_max_level=int(topic_meta["max_level"]),
         next_topic_ids=next_topic_ids,
-        at_frontier=at_frontier,
+        at_frontier=play_mode.is_at_frontier(
+            topic_id,
+            state.selected_level,
+            chapter_topics,
+            state.chapter_frontiers.get(chapter_id),
+        ),
     )
 
 

@@ -47,11 +47,14 @@ def make_state(
     selected_level=1,
     frontier_topic_id=None,
     frontier_level=1,
+    play_mode=StudentPlayMode(),
 ):
     """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS.
 
     A ``frontier_topic_id`` replaces the seeded Chapter Frontier before the profile
-    is persisted, so the stored profile holds that Frontier too.
+    is persisted, so the stored profile holds that Frontier too. ``play_mode``
+    picks the Username the profile is written under, and the mode it is written
+    through — see `make_admin_state`.
     """
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
@@ -62,7 +65,10 @@ def make_state(
     state = SessionState()
     main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
-    state.username = f"test-{session_id}"
+    if play_mode.is_admin:
+        state.username = next(iter(config.ADMIN_USERNAMES))
+    else:
+        state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
     state.selected_topic_id = selected_topic_id
     state.selected_level = selected_level
@@ -77,44 +83,25 @@ def make_state(
             frontier_level=frontier_level,
         )
     main.ACTIVE_SESSIONS[session_id] = state
-    main.session_state.persist(state, StudentPlayMode())
+    main.session_state.persist(state, play_mode)
     return state
 
 
-def make_admin_state(
-    problem,
-    *,
-    streak=0,
-    input_mode="radio",
-    selected_topic_id,
-    selected_level=1,
-):
-    """Build an admin SessionState with an active problem, like `make_state`.
+def make_admin_state(problem, *, selected_topic_id, selected_level=1, streak=0):
+    """Build an Admin SessionState with an active problem, via `make_state`.
 
-    Leaves the seeded Chapter Frontier at its default (first Topic, Level 1),
-    so an ``selected_topic_id``/``selected_level`` elsewhere in the Chapter is
-    "away from the Admin's stored Frontier" without any extra setup — Admin
-    mode never reads that record for progression (ADR-0013).
+    Leaves the seeded Chapter Frontier at its default (first Topic, Level 1), so
+    a ``selected_topic_id``/``selected_level`` elsewhere in the Chapter is "away
+    from the Admin's stored Frontier" without any extra setup — Admin mode never
+    reads that record for progression (ADR-0013).
     """
-    curriculum = resolve_curriculum()
-    chapter_ids = list(curriculum.chapter_ids())
-    chapter_id = chapter_ids[0]
-    session_id = str(uuid.uuid4())
-    state = SessionState()
-    main.session_state.init_defaults(state, curriculum)
-    state.session_id = session_id
-    state.username = next(iter(config.ADMIN_USERNAMES))
-    state.selected_chapter_id = chapter_id
-    state.selected_topic_id = selected_topic_id
-    state.selected_level = selected_level
-    state.streak = streak
-    state.current_input_mode = input_mode
-    state.problem_answered = False
-    state.current_problem = problem
-    state.problem_start_time = 0
-    main.ACTIVE_SESSIONS[session_id] = state
-    main.session_state.persist(state, AdminPlayMode())
-    return state
+    return make_state(
+        problem,
+        streak=streak,
+        selected_topic_id=selected_topic_id,
+        selected_level=selected_level,
+        play_mode=AdminPlayMode(),
+    )
 
 
 def test_wrong_radio_submit_reveals_correct_answer():

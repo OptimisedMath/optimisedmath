@@ -965,9 +965,10 @@ def test_admin_soft_error_preserves_session_streak(fixture_curriculum: Curriculu
     _assert_admin_profile_unchanged(state, baseline)
 
 
-def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
+def test_radio_only_topic_stays_radio_past_typing_threshold_for_admin(
     fixture_curriculum: Curriculum,
 ):
+    """A radio-only Topic overrides the typing threshold an Admin's Streak crosses."""
     state, _baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
