@@ -17,6 +17,7 @@ from backend.core.utils import clean_latex
 from backend.models import (
     AutoSolveRequest,
     ChapterFrontier,
+    NavigationView,
     ProblemSubmissionRequest,
     SessionNavigateRequest,
     SessionResponse,
@@ -172,6 +173,13 @@ def test_session_response_from_state_copies_shared_fields():
         recent_problem_fingerprints=["fp1"],
     )
     derived_problem = {"problem_id": "p1", "question": "q?"}
+    navigation = NavigationView(
+        available_chapters=[],
+        available_topics=[],
+        available_levels=[],
+        has_next_unlocked_topic=False,
+        radio_only=False,
+    )
 
     response = SessionResponse.from_state(
         state,
@@ -180,11 +188,10 @@ def test_session_response_from_state_copies_shared_fields():
         can_next_problem=True,
         streak_meter=3,
         admin_mode=True,
-        navigation=None,
+        navigation=navigation,
     )
 
     assert response.session_id == "sid-1"
-    assert response.username == "alice"
     assert response.xp == 100
     assert response.streak == 2
     assert response.flawless_eligible is False
@@ -207,7 +214,8 @@ def test_session_response_from_state_copies_shared_fields():
     assert response.can_next_problem is True
     assert response.streak_meter == 3
     assert response.admin_mode is True
-    assert response.navigation is None
+    assert response.navigation == navigation
+    assert "username" not in SessionResponse.model_fields
     assert "problem_start_time" not in SessionResponse.model_fields
     assert "recent_problem_fingerprints" not in SessionResponse.model_fields
 

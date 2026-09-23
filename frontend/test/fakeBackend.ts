@@ -24,7 +24,6 @@ export function defaultNavigation(): SessionResponse['navigation'] {
 export function baseSession(overrides: Partial<SessionResponse> = {}): SessionResponse {
   return {
     session_id: 'sess-test',
-    username: 'testuser',
     xp: 50,
     streak: 2,
     flawless_eligible: true,
@@ -44,6 +43,7 @@ export function baseSession(overrides: Partial<SessionResponse> = {}): SessionRe
     can_submit: true,
     can_next_problem: false,
     deconstruction_running: false,
+    admin_mode: false,
     navigation: defaultNavigation(),
     ...overrides,
   };

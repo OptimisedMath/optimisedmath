@@ -3,11 +3,12 @@ import {
   emptySessionDisplayProjection,
   projectSessionState,
 } from '@/lib/session/projectSessionState';
+import type { SessionResponse } from '@/lib/session/types';
 import { baseSession, defaultNavigation } from './fakeBackend';
 
 describe('projectSessionState', () => {
   it('projects display fields from a SessionResponse fixture', () => {
-    const navigation = defaultNavigation()!;
+    const navigation = defaultNavigation();
     const state = baseSession({
       xp: 120,
       flawless_eligible: false,
@@ -61,11 +62,14 @@ describe('projectSessionState', () => {
   });
 
   it('returns safe defaults when navigation is missing', () => {
-    const state = baseSession({
+    // #341 made `navigation` non-null on the wire — backend/session.py's single
+    // SessionResponse builder always attaches one — but kept projectSessionState's
+    // fallbacks. The cast reaches the shape the type now forbids, so the fallbacks
+    // stay covered rather than silently rotting.
+    const state = {
+      ...baseSession({ selected_chapter_id: null, selected_topic_id: null }),
       navigation: null,
-      selected_chapter_id: null,
-      selected_topic_id: null,
-    });
+    } as unknown as SessionResponse;
 
     expect(projectSessionState(state)).toMatchObject({
       hasNavigation: false,
