@@ -101,6 +101,7 @@ def test_frontier_relation_names_only_the_exact_frontier_position(
 def test_is_at_frontier_true_only_when_topic_and_level_both_match(
     topic_id, level, expected
 ):
+    """The predicate is equality, not ordering — a Beyond position is False too."""
     frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
     assert is_at_frontier(topic_id, level, frontier) is expected

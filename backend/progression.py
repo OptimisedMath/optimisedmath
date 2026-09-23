@@ -25,6 +25,14 @@ class SubmissionContext:
     next_topic_ids: tuple[int, ...]
     full_progression: bool = True
 
+    @property
+    def frontier(self) -> Frontier:
+        """Return the slice's Frontier as the value type `unlock` rules take."""
+        return Frontier(
+            frontier_topic_id=self.frontier_topic_id,
+            frontier_level=self.frontier_level,
+        )
+
 
 @dataclass(frozen=True)
 class SubmissionOutcome:
@@ -89,9 +97,8 @@ def _advance_streak_only(
         if new_streak < config.MAX_STREAK:
             new_streak += 1
 
-        frontier = Frontier(ctx.frontier_topic_id, ctx.frontier_level)
         if new_streak == config.MAX_STREAK and is_at_frontier(
-            ctx.topic_id, ctx.selected_level, frontier
+            ctx.topic_id, ctx.selected_level, ctx.frontier
         ):
             new_streak = 0
 
@@ -133,9 +140,8 @@ def _advance_streak_and_xp(
     unlock_topic_id: int | None = None
     xp_earned = earned_xp
 
-    frontier = Frontier(ctx.frontier_topic_id, ctx.frontier_level)
     if new_streak == config.MAX_STREAK and is_at_frontier(
-        ctx.topic_id, ctx.selected_level, frontier
+        ctx.topic_id, ctx.selected_level, ctx.frontier
     ):
         frontier_update = increase_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids

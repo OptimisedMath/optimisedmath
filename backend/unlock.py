@@ -62,17 +62,26 @@ def chapter_max_frontier(chapter_topics: list[TopicDict]) -> Frontier:
     )
 
 
+def is_at_frontier(
+    topic_id: int,
+    level: int,
+    frontier: Frontier,
+) -> bool:
+    """Return whether a topic/level is exactly the Frontier's own position."""
+    return topic_id == frontier.frontier_topic_id and level == frontier.frontier_level
+
+
 def frontier_relation(
     topic_id: int,
     level: int,
     frontier: Frontier,
 ) -> FrontierRelation:
-    """Classify a played topic/level against the Frontier.
+    """Name a played topic/level's position relative to the Frontier.
 
     Callers only ever ask this of a Reachable position — one already At or
     Behind the Frontier — so there is no `beyond_frontier` value to return.
     """
-    if topic_id == frontier.frontier_topic_id and level == frontier.frontier_level:
+    if is_at_frontier(topic_id, level, frontier):
         return "at_frontier"
     return "behind_frontier"
 
@@ -88,15 +97,6 @@ def is_reachable(
     if topic_id == frontier.frontier_topic_id and level > frontier.frontier_level:
         return False
     return True
-
-
-def is_at_frontier(
-    topic_id: int,
-    level: int,
-    frontier: Frontier,
-) -> bool:
-    """Return whether a topic/level is exactly the Frontier's own position."""
-    return topic_id == frontier.frontier_topic_id and level == frontier.frontier_level
 
 
 def level_limit(
