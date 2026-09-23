@@ -72,6 +72,11 @@ def _fmt(v: float) -> str:
     return f"{v:.2f}".rstrip("0").rstrip(".").replace(".", ",")
 
 
+def _with_unit(value: float, unit_label: str) -> str:
+    """A measured value beside its Unit, with no trailing space when there is none."""
+    return f"{_fmt(value)} {unit_label}".strip()
+
+
 def _pts(points: list[Pt]) -> str:
     """Points as an SVG `points` attribute, with y flipped at emit."""
     # Maths y is up, SVG y is down: the flip happens here, once, per coordinate
@@ -540,8 +545,7 @@ class EdgeLabel(Annotation):
             if self.unknown_text is None:
                 self.unknown_text = ctx.claim_edge_symbol()
             return self.unknown_text
-        value = _fmt(ctx.fig.edge_length(self.edge))
-        return f"{value} {self.unit_label}".strip()
+        return _with_unit(ctx.fig.edge_length(self.edge), self.unit_label)
 
     def render(self, ctx: Ctx) -> None:
         a, b = ctx.fig.edge(self.edge)
@@ -590,19 +594,19 @@ class AngleArc(Annotation):
     def render(self, ctx: Ctx) -> None:
         f = ctx.fig
         v = f.p(self.vertex)
+        deg = f.interior_angle(self.vertex)
         prev, nxt = f.neighbours(self.vertex)
         u1 = unit(sub(f.p(prev), v))
         u2 = unit(sub(f.p(nxt), v))
-        if self.show_label and f.interior_angle(self.vertex) < MIN_LABELLED_ANGLE:
+        if self.show_label and deg < MIN_LABELLED_ANGLE:
             raise ValueError(
-                f"vertex {self.vertex} is {f.interior_angle(self.vertex):.1f}°, "
+                f"vertex {self.vertex} is {deg:.1f}°, "
                 f"below the {MIN_LABELLED_ANGLE}° minimum for a labelled AngleArc"
             )
         r = ctx.arc_radius(self.vertex)
         inward = mul(ctx.outward_bisector(self.vertex), -1)
         ctx.path(ctx.arc_points(v, r, u1, u2, inward), color=ACCENT, width=ctx.thin)
         if self.show_label:
-            deg = f.interior_angle(self.vertex)
             label = self.unknown_text if self.unknown else f"{_fmt(deg)}°"
             ctx.text(
                 add(v, mul(inward, r)),
@@ -657,18 +661,21 @@ class Ticks(Annotation):
 
 @dataclass
 class Altitude(Annotation):
-    """A height, dashed, from `apex` perpendicular to edge `base`.
+    """A height from `apex` perpendicular to edge `base`.
 
-    Derives the foot. When the foot lands off the segment — the rozwartokątny
-    case of Topic 130 — it also draws the dotted base extension, because the
-    figure is wrong without it.
+    CKE draws a height that is part of the figure as posed solid, and keeps
+    the dash for one whose foot falls outside the triangle — so the stroke is
+    derived from the foot's own on-segment test, solid on the base, dashed off
+    it, with no author flag to pick one. When the foot lands off the segment —
+    the rozwartokątny case of Topic 130 — it also draws the dotted base
+    extension, because the figure is wrong without it.
 
     `unknown` withholds the length and prints `h` instead — always that letter,
     never claimed from the edge letters. It is kept on `unknown_text` so a
     generator reads the symbol off the annotation, the same way it reads one
     off an `EdgeLabel`, instead of naming it a second time in its prose (#293).
-    `unknown_text` is not a constructor argument — the letter is fixed, not
-    overridable.
+    Like `Radius`'s, it is a read-only property rather than a field, so a figure
+    cannot print a letter the conventions reject.
     """
 
     apex: str
@@ -676,7 +683,11 @@ class Altitude(Annotation):
     label: bool = True
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str = field(default="h", init=False, repr=False, compare=False)
+
+    @property
+    def unknown_text(self) -> str:
+        """The symbol an unknown length prints: `h`, for wysokość."""
+        return "h"
 
     def foot(self, ctx: Ctx) -> tuple[Pt, bool]:
         """The altitude's foot, and whether it lands on the base segment."""
@@ -701,7 +712,8 @@ class Altitude(Annotation):
                 width=ctx.thin,
                 dash=f"{ctx.u:.2f} {ctx.u * 2:.2f}",
             )
-        ctx.line(p, foot, color=ACCENT, dash=f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}")
+        dash = "" if on_segment else f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}"
+        ctx.line(p, foot, color=ACCENT, dash=dash)
         toward_apex = unit(sub(p, foot))
         along = unit(sub(r, q))
         if not on_segment:
@@ -715,7 +727,7 @@ class Altitude(Annotation):
             text = (
                 self.unknown_text
                 if self.unknown
-                else f"{_fmt(norm(sub(p, foot)))} {self.unit_label}".strip()
+                else _with_unit(norm(sub(p, foot)), self.unit_label)
             )
             ctx.text(mid, n, text, color=ACCENT, scale=0.9, unknown=self.unknown)
 
@@ -774,7 +786,7 @@ class DimensionLine(Annotation):
         ctx.text(
             mul(add(a2, b2), 0.5),
             unit(n),
-            f"{_fmt(ctx.fig.edge_length(self.edge))} {self.unit_label}".strip(),
+            _with_unit(ctx.fig.edge_length(self.edge), self.unit_label),
             color=MUTED,
             scale=0.85,
         )
@@ -879,9 +891,7 @@ class Radius(Annotation):
         ctx.line(start, end, color=ACCENT)
         length = f.radius * (2 if self.diameter else 1)
         text = (
-            self.unknown_text
-            if self.unknown
-            else f"{_fmt(length)} {self.unit_label}".strip()
+            self.unknown_text if self.unknown else _with_unit(length, self.unit_label)
         )
         ctx.text(
             mul(add(start, end), 0.5),
@@ -986,6 +996,28 @@ class Scene:
         """
         return list(self._label_boxes)
 
+    def _pin_angle_symbols(self) -> None:
+        """Give each unknown angle arc its Greek letter before any of them draws.
+
+        Up front rather than as each arc renders, because the letters run in
+        figure order — the order the vertices sit around the outline — which
+        can differ from the order the generator listed the arcs in (#326).
+
+        Raises:
+            ValueError: when the scene holds more unknown arcs than letters.
+        """
+        arcs = sorted(
+            (a for a in self.annotations if isinstance(a, AngleArc) and a.unknown),
+            key=lambda a: self.figure.outline.index(a.vertex),
+        )
+        if len(arcs) > len(_ANGLE_SYMBOLS):
+            raise ValueError(
+                f"{len(arcs)} unknown angle arcs, but only {len(_ANGLE_SYMBOLS)} "
+                f"letters ({_ANGLE_SYMBOLS}) to name them with"
+            )
+        for arc, symbol in zip(arcs, _ANGLE_SYMBOLS):
+            arc.unknown_text = symbol
+
     def to_svg(self, pad: float = 4.0) -> str:
         """Render the scene: pen unit, then draw, then place labels, then viewBox."""
         f = self.figure
@@ -1001,15 +1033,8 @@ class Scene:
         diag = max(math.hypot(gw, gh), 1e-6)
         ctx = Ctx(fig=f, u=diag / 100.0)
 
-        # Pass 1b: unknown angle arcs claim α, β, γ… up front, in figure order —
-        # the order their vertices sit around the outline — since that order can
-        # differ from the order the generator listed the arcs in (#326).
-        unknown_arcs = sorted(
-            (a for a in self.annotations if isinstance(a, AngleArc) and a.unknown),
-            key=lambda a: f.outline.index(a.vertex),
-        )
-        for arc, symbol in zip(unknown_arcs, _ANGLE_SYMBOLS):
-            arc.unknown_text = symbol
+        # Pass 1b: unknown angle arcs claim α, β, γ… before any of them draws.
+        self._pin_angle_symbols()
 
         # Pass 2: draw. Every emitter registers what it occupies.
         for a in self.annotations:

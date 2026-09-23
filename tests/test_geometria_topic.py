@@ -8,8 +8,8 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import (
-    AngleArc,
     Altitude,
+    AngleArc,
     Centre,
     EdgeLabel,
     Outline,
@@ -18,8 +18,9 @@ from backend.core.scene import (
     Scene,
     Triangle,
     circle,
+    regular_polygon,
 )
-from backend.core.scene.render import ACCENT, INK, Box, _fmt, _overlap
+from backend.core.scene.render import ACCENT, INK, MUTED, Box, _fmt, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -75,6 +76,11 @@ class TestSceneInvariant:
         ).to_svg()
         assert ">12 cm<" in svg
         assert ">h<" not in svg
+
+    def test_altitude_offers_no_free_text_override(self):
+        """#293: `h` is fixed; a generator cannot type a different letter."""
+        with pytest.raises(TypeError):
+            Altitude(apex="C", base="AB", unknown=True, unknown_text="x")
 
     def test_unknown_edges_are_named_a_b_c_in_figure_order(self):
         """#293: each unknown edge claims the next letter, in the order its
@@ -146,6 +152,14 @@ class TestSceneInvariant:
         with pytest.raises(TypeError):
             AngleArc(vertex="A", unknown=True, unknown_text="x")
 
+    def test_more_unknown_arcs_than_greek_letters_is_refused(self):
+        """#326: the letters run out after δ, and a scene that needs a fifth is a
+        refusal rather than an arc left holding no symbol at all."""
+        figure = regular_polygon(5, side=10)
+        arcs = [AngleArc(vertex=v, unknown=True) for v in figure.outline]
+        with pytest.raises(ValueError, match="letters"):
+            Scene(figure, [Outline(), *arcs]).to_svg()
+
     def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self):
         """The labelled-arc minimum angle (#212) is still enforced after #326."""
         figure = Triangle.sas(b=10, angle_a=10, c=10)
@@ -176,6 +190,33 @@ class TestSceneInvariant:
         polylines = re.findall(r'<polyline points="([^"]*)"', svg)
         assert any(len(p.split()) > 3 for p in polylines)
         assert svg.count("<circle") == 1
+
+    def test_a_height_with_its_foot_on_the_base_is_solid(self):
+        """#324: a height that is part of the figure as posed reads solid, as CKE
+        draws it — no dash on the accent line from apex to foot."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), Altitude(apex="C", base="AB")]).to_svg()
+        accent_lines = re.findall(
+            r'<line[^>]*stroke="' + re.escape(ACCENT) + r'"[^>]*/>', svg
+        )
+        assert accent_lines
+        assert all("stroke-dasharray" not in line for line in accent_lines)
+
+    def test_a_height_with_its_foot_outside_the_base_is_dashed(self):
+        """#324: a height falling outside the triangle stays dashed, marking it a
+        construction line — and the dotted base extension is still drawn."""
+        for base, height, offset, _, _ in topic.OBTUSE:
+            figure = Triangle.base_height(base, height, apex_frac=-offset / base)
+            svg = Scene(figure, [Outline(), Altitude(apex="C", base="AB")]).to_svg()
+            accent_lines = re.findall(
+                r'<line[^>]*stroke="' + re.escape(ACCENT) + r'"[^>]*/>', svg
+            )
+            assert accent_lines
+            assert all("stroke-dasharray" in line for line in accent_lines)
+            muted_lines = re.findall(
+                r'<line[^>]*stroke="' + re.escape(MUTED) + r'"[^>]*/>', svg
+            )
+            assert any("stroke-dasharray" in line for line in muted_lines)
 
     def test_each_right_angle_mark_keeps_its_callers_own_colour(self):
         """Ink for `RightAngle`, the accent for the height's foot — unchanged."""
