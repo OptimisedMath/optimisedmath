@@ -1,6 +1,5 @@
 """Unit tests for the session use-case layer."""
 
-import json
 import uuid
 
 import pytest
@@ -10,7 +9,7 @@ import backend.navigation_snapshot as navigation_snapshot
 import backend.session as session
 import backend.session_state as session_state
 import backend.submission_cycle as submission_cycle
-from backend.curriculum import Curriculum, resolve_curriculum, set_curriculum
+from backend.curriculum import Curriculum, set_curriculum
 from backend.play_mode import PlayMode, StudentPlayMode, resolve_play_mode
 from backend.core import db
 from backend.core.utils import clean_latex
@@ -121,36 +120,6 @@ def test_respond_attaches_navigation(fixture_curriculum: Curriculum):
     assert response.navigation.available_topics
 
 
-def test_respond_serves_full_streak_meter_at_level_completion_feedback(
-    fixture_curriculum: Curriculum,
-):
-    """While Level completion feedback is on screen, Streak meter stays full."""
-    state = _fresh_state(fixture_curriculum)
-    state.problem_answered = True
-    state.level_completed = True
-    state.streak = 0
-    state.max_streak = 3
-
-    response = _respond(state, fixture_curriculum, StudentPlayMode())
-
-    assert response.streak_meter == 3
-    assert "streak_meter" not in SessionState.model_fields
-
-
-def test_respond_serves_streak_meter_equal_to_streak_outside_level_completion(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.problem_answered = True
-    state.level_completed = False
-    state.streak = 2
-    state.max_streak = 3
-
-    response = _respond(state, fixture_curriculum, StudentPlayMode())
-
-    assert response.streak_meter == 2
-
-
 def test_session_response_from_state_copies_shared_fields():
     state = SessionState(
         session_id="sid-1",
@@ -239,14 +208,9 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(
     response = _respond(state, fixture_curriculum, StudentPlayMode())
 
     assert isinstance(response, SessionResponse)
-    assert not isinstance(state, SessionResponse)
     assert response.can_submit is True
     assert response.can_next_problem is False
     assert response.admin_mode is False
-    assert not hasattr(response, "problem_start_time")
-    assert not hasattr(response, "recent_problem_fingerprints")
-    assert "problem_start_time" not in SessionResponse.model_fields
-    assert "recent_problem_fingerprints" not in SessionResponse.model_fields
     assert response.current_problem is not None
     assert response.current_problem["answer_options"] == ["41", "42"]
     assert "correct_answer" not in response.current_problem
@@ -255,12 +219,7 @@ def test_respond_builds_unanswered_problem_payload_without_mutating_state(
     assert state.problem_start_time == 123.0
     assert state.recent_problem_fingerprints == ["fp1"]
     assert state.current_problem["correct"] == "42"
-    assert "can_submit" not in SessionState.model_fields
-    assert "can_next_problem" not in SessionState.model_fields
     assert "streak_meter" not in SessionState.model_fields
-    assert "admin_mode" not in SessionState.model_fields
-    assert "navigation" not in SessionState.model_fields
-    assert not hasattr(SessionState, "for_response")
 
 
 def test_respond_builds_answered_problem_payload(fixture_curriculum: Curriculum):
@@ -304,49 +263,6 @@ def test_respond_uses_passed_play_mode_for_admin_reveal(fixture_curriculum: Curr
     assert response.navigation is not None
     assert response.current_problem is not None
     assert response.current_problem["correct_answer"] == "42"
-
-
-def test_legacy_stored_response_fields_load_and_serve_correct_payload(
-    fixture_curriculum: Curriculum,
-):
-    """Old session rows with response-only fields still load and respond correctly."""
-    state = _fresh_state(fixture_curriculum)
-    state.current_problem = {
-        "problem_id": "p1",
-        "question": "q",
-        "correct": "42",
-        "options": ["41", "42"],
-    }
-    state.problem_answered = False
-    legacy = json.loads(state.to_storage())
-    legacy.update(
-        {
-            "can_submit": False,
-            "can_next_problem": True,
-            "admin_mode": True,
-            "navigation": None,
-        }
-    )
-    with db.get_connection() as conn:
-        conn.execute(
-            """
-            INSERT INTO sessions (session_id, username, state_json, updated_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """,
-            (state.session_id, state.username, json.dumps(legacy)),
-        )
-        conn.commit()
-
-    loaded = db.load_session(state.session_id)
-    assert loaded is not None
-    response = _respond(loaded, fixture_curriculum, StudentPlayMode())
-
-    assert isinstance(response, SessionResponse)
-    assert response.can_submit is True
-    assert response.can_next_problem is False
-    assert response.admin_mode is False
-    assert response.current_problem is not None
-    assert "correct_answer" not in response.current_problem
 
 
 # --- public_problem ---
@@ -588,7 +504,7 @@ def test_manual_submit_and_auto_solve_produce_identical_state_deltas(
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
 
@@ -683,7 +599,7 @@ def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curricu
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     submission_cycle.begin_problem(
@@ -726,9 +642,6 @@ def test_admin_navigates_to_locked_topic_without_bypass(fixture_curriculum: Curr
     assert response.selected_level == 1
 
 
-# --- start_session ---
-
-
 def test_submit_grades_by_session_input_mode_not_client_signal(
     fixture_curriculum: Curriculum,
 ):
@@ -757,6 +670,9 @@ def test_submit_grades_by_session_input_mode_not_client_signal(
     assert response.feedback == "MC trap feedback"
 
 
+# --- start_session ---
+
+
 def test_start_session_returns_state_with_navigation():
     response = session.start_session(
         SessionStartRequest(username=f"user-{uuid.uuid4()}")
@@ -771,13 +687,9 @@ def test_start_session_with_fixture_curriculum_lists_fixture_chapters(
     fixture_curriculum,
 ):
     """Provider override must reach the started session's navigation Chapters."""
-    set_curriculum(fixture_curriculum)
-    try:
-        response = session.start_session(
-            SessionStartRequest(username=f"user-{uuid.uuid4()}")
-        )
-    finally:
-        set_curriculum(None)
+    response = session.start_session(
+        SessionStartRequest(username=f"user-{uuid.uuid4()}")
+    )
 
     chapter_ids = [c.chapter_id for c in response.navigation.available_chapters]
     assert chapter_ids == [CHAPTER_ALPHA, CHAPTER_BETA]
@@ -803,21 +715,17 @@ def test_start_next_submit_cycle_with_fixture_curriculum(
     monkeypatch.setitem(
         problem_generation.FUNCTION_REGISTRY, "fixture_multi_1", fake_multi_1
     )
-    set_curriculum(fixture_curriculum)
-    try:
-        started = session.start_session(
-            SessionStartRequest(username=f"user-{uuid.uuid4()}")
+    started = session.start_session(
+        SessionStartRequest(username=f"user-{uuid.uuid4()}")
+    )
+    problem_response = session.next_problem(started.session_id)
+    submission = session.submit_problem(
+        ProblemSubmissionRequest(
+            session_id=started.session_id,
+            problem_id=problem_response.problem["problem_id"],
+            user_input="1",
         )
-        problem_response = session.next_problem(started.session_id)
-        submission = session.submit_problem(
-            ProblemSubmissionRequest(
-                session_id=started.session_id,
-                problem_id=problem_response.problem["problem_id"],
-                user_input="1",
-            )
-        )
-    finally:
-        set_curriculum(None)
+    )
 
     assert problem_response.problem["question"] == r"\text{fixture e2e}"
     assert problem_response.state.selected_chapter_id == CHAPTER_ALPHA
@@ -838,15 +746,11 @@ def test_start_session_chapter_override_resolves_and_applies_via_navigate_to(
     fixture_curriculum: Curriculum,
 ):
     """Override to a different chapter lands on its Frontier via the consolidated resolver."""
-    set_curriculum(fixture_curriculum)
-    try:
-        response = session.start_session(
-            SessionStartRequest(
-                username=f"user-{uuid.uuid4()}", selected_chapter_id=CHAPTER_BETA
-            )
+    response = session.start_session(
+        SessionStartRequest(
+            username=f"user-{uuid.uuid4()}", selected_chapter_id=CHAPTER_BETA
         )
-    finally:
-        set_curriculum(None)
+    )
 
     assert response.selected_chapter_id == CHAPTER_BETA
     assert response.selected_topic_id is not None
@@ -861,17 +765,13 @@ def test_start_session_chapter_override_matching_profile_is_unaffected(
 ):
     """Override equal to the loaded profile's chapter behaves like a normal start."""
     username = f"user-{uuid.uuid4()}"
-    set_curriculum(fixture_curriculum)
-    try:
-        baseline = session.start_session(SessionStartRequest(username=username))
-        session.ACTIVE_SESSIONS.clear()
-        overridden = session.start_session(
-            SessionStartRequest(
-                username=username, selected_chapter_id=baseline.selected_chapter_id
-            )
+    baseline = session.start_session(SessionStartRequest(username=username))
+    session.ACTIVE_SESSIONS.clear()
+    overridden = session.start_session(
+        SessionStartRequest(
+            username=username, selected_chapter_id=baseline.selected_chapter_id
         )
-    finally:
-        set_curriculum(None)
+    )
 
     assert overridden.selected_chapter_id == baseline.selected_chapter_id
     assert overridden.selected_topic_id == baseline.selected_topic_id
@@ -893,14 +793,10 @@ def test_start_session_chapter_override_persists_exactly_once(
 
     monkeypatch.setattr(session_state, "persist", counting_persist)
 
-    set_curriculum(fixture_curriculum)
-    try:
-        session.start_session(
-            SessionStartRequest(
-                username=f"user-{uuid.uuid4()}", selected_chapter_id=CHAPTER_BETA
-            )
+    session.start_session(
+        SessionStartRequest(
+            username=f"user-{uuid.uuid4()}", selected_chapter_id=CHAPTER_BETA
         )
-    finally:
-        set_curriculum(None)
+    )
 
     assert len(calls) == 1

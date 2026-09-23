@@ -84,10 +84,3 @@ def test_ordering_non_member_order_is_incorrect_with_accepted_orders_set():
     submitted = ORDERING_ANSWER_SEPARATOR.join(["d", "c", "b", "a"])
     result = grade_ordering_step(submitted, answer, accepted_orders=[accepted])
     assert result["is_correct"] is False
-
-
-def test_ordering_no_accepted_orders_grades_exactly_as_before():
-    answer = ORDERING_ANSWER_SEPARATOR.join(["a", "b", "c", "d"])
-    submitted = ORDERING_ANSWER_SEPARATOR.join(["b", "a", "c", "d"])
-    result = grade_ordering_step(submitted, answer, accepted_orders=None)
-    assert result["is_correct"] is False

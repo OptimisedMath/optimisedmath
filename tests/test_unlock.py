@@ -55,13 +55,13 @@ def test_get_frontier_reads_progress():
         (20, 1, False),
     ],
 )
-def test_can_access_frontier_topic_and_level(topic_id, level, expected):
+def test_is_reachable_up_to_the_frontier_topic_and_level(topic_id, level, expected):
     frontier = Frontier(frontier_topic_id=10, frontier_level=2)
 
     assert is_reachable(topic_id, level, frontier) is expected
 
 
-def test_can_access_allows_replaying_completed_topic():
+def test_is_reachable_allows_replaying_completed_topic():
     frontier = Frontier(frontier_topic_id=20, frontier_level=2)
 
     assert is_reachable(10, 3, frontier) is True

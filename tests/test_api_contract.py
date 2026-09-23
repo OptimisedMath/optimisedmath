@@ -87,8 +87,8 @@ def test_wrong_radio_submit_reveals_correct_answer():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "Try again"},
     }
     state = make_state(problem, input_mode="radio")
 
@@ -148,7 +148,7 @@ def test_wrong_text_submit_reveals_correct_answer():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem, input_mode="typing")
@@ -194,7 +194,7 @@ def test_typing_submit_uses_mobile_sanitizer_and_keeps_typing_mode():
         "question": "q",
         "correct": "1 \\frac{1}{2}",
         "options": ["1 \\frac{1}{2}", "1", "2"],
-        "options_map": {"1 \\frac{1}{2}": "correct", "1": "w1", "2": "w2"},
+        "options_map": {"1 \\frac{1}{2}": "correct", "1": "t1", "2": "w2"},
         "messages": {},
     }
     state = make_state(problem, input_mode="typing")
@@ -220,7 +220,7 @@ def test_level_completing_submit_serves_full_streak_meter():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem, streak=2, input_mode="typing")
@@ -248,7 +248,7 @@ def test_non_completing_submit_serves_streak_meter_equal_to_streak():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem, streak=1, input_mode="typing")
@@ -285,7 +285,7 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_move_fronti
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(
@@ -338,7 +338,7 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(
@@ -383,7 +383,7 @@ def test_input_mode_defers_radio_to_typing_until_next_problem():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem, streak=0, input_mode="radio")
@@ -413,7 +413,7 @@ def test_input_mode_defers_typing_to_radio_until_next_problem():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem, streak=1, input_mode="typing")
@@ -437,13 +437,13 @@ def test_input_mode_defers_typing_to_radio_until_next_problem():
     assert "input_mode" not in next_response.problem
 
 
-def test_soft_syntax_error_does_not_lock_problem():
+def test_soft_syntax_error_does_not_lock_problem_or_forfeit_flawless():
     problem = {
         "problem_id": "p-soft",
         "question": "q",
         "correct": "3/4",
         "options": ["3/4", "1/2"],
-        "options_map": {"3/4": "correct", "1/2": "w1"},
+        "options_map": {"3/4": "correct", "1/2": "t1"},
         "messages": {},
     }
     state = make_state(problem, input_mode="typing")
@@ -461,30 +461,6 @@ def test_soft_syntax_error_does_not_lock_problem():
     assert response.is_correct is False
     assert response.state.problem_answered is False
     assert response.state.can_submit is True
-
-
-def test_soft_syntax_error_preserves_flawless_eligible():
-    problem = {
-        "problem_id": "p-soft-flawless",
-        "question": "q",
-        "correct": "3/4",
-        "options": ["3/4", "1/2"],
-        "options_map": {"3/4": "correct", "1/2": "w1"},
-        "messages": {},
-    }
-    state = make_state(problem, input_mode="typing")
-
-    response = run(
-        main.problem_submit(
-            main.ProblemSubmissionRequest(
-                session_id=state.session_id,
-                problem_id="p-soft-flawless",
-                user_input="abc",
-            )
-        )
-    )
-
-    assert response.is_correct is False
     assert response.state.flawless_eligible is True
 
 
@@ -494,7 +470,7 @@ def test_unsimplified_fraction_preserves_flawless_eligible():
         "question": "q",
         "correct": "1/2",
         "options": ["1/2", "2/4"],
-        "options_map": {"1/2": "correct", "2/4": "w1"},
+        "options_map": {"1/2": "correct", "2/4": "t1"},
         "messages": {},
     }
     state = make_state(problem, input_mode="typing")
@@ -519,7 +495,7 @@ def test_wrong_answer_forfeits_flawless_eligible():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem)
@@ -544,7 +520,7 @@ def test_stale_and_duplicate_submissions_are_rejected():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
+        "options_map": {"2": "correct", "3": "t1"},
         "messages": {},
     }
     state = make_state(problem)
@@ -707,7 +683,7 @@ def test_radio_only_topic_keeps_radio_input():
         "question": "q",
         "correct": disabled_topic["name"],
         "options": ["a", "b"],
-        "options_map": {"a": "correct", "b": "w1"},
+        "options_map": {"a": "correct", "b": "t1"},
         "messages": {},
     }
     state = make_state(problem, streak=0, input_mode="radio")
@@ -745,7 +721,7 @@ def _make_generated_problem(question, problem_id=None):
         "question": question,
         "correct": "1",
         "options": ["1", "2"],
-        "options_map": {"1": "correct", "2": "w1"},
+        "options_map": {"1": "correct", "2": "t1"},
         "messages": {},
         "level": 1,
         "level_name": "Test",
@@ -861,7 +837,7 @@ def _make_topic_completed_state(
         "question": "q",
         "correct": "1",
         "options": ["1", "2"],
-        "options_map": {"1": "correct", "2": "w1"},
+        "options_map": {"1": "correct", "2": "t1"},
         "messages": {},
     }
     state.problem_start_time = 0
@@ -934,7 +910,7 @@ def test_next_problem_serves_unlocked_level_within_topic():
         "question": "q",
         "correct": "1",
         "options": ["1", "2"],
-        "options_map": {"1": "correct", "2": "w1"},
+        "options_map": {"1": "correct", "2": "t1"},
         "messages": {},
     }
     state.problem_start_time = 0
@@ -1066,20 +1042,6 @@ def test_generator_messages_override_yaml_traps(monkeypatch):
     assert eval_result.get("feedback_msg") == branch_message
 
 
-def test_start_session_persists_problem_start_time():
-    """The start clock must reach SQLite from the start path, not just memory."""
-    response = run(
-        main.session_start(
-            main.SessionStartRequest(username=f"start-user-{uuid.uuid4()}")
-        )
-    )
-
-    persisted = main.db.load_session(response.session_id)
-
-    assert persisted is not None
-    assert persisted.problem_start_time is not None
-
-
 def test_start_session_survives_recovery_from_db():
     """A Session recovered from SQLite after the in-memory cache drops keeps its start clock."""
     response = run(
@@ -1138,8 +1100,8 @@ def test_parameters_never_reaches_public_problem_payload():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "Try again"},
         "parameters": {"n": 1, "d": 2, "op": "+"},
     }
     state = make_state(problem, input_mode="radio")
@@ -1166,8 +1128,8 @@ def test_submission_telemetry_records_parameters_when_present():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "Try again"},
         "parameters": {"n": 1, "d": 2, "op": "+"},
     }
     state = make_state(problem, input_mode="radio")
@@ -1229,7 +1191,7 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
             config,
             trap_misconceptions={
                 **config.trap_misconceptions,
-                "w1": "test_misconception",
+                "t1": "test_misconception",
             },
         )
 
@@ -1240,8 +1202,8 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "Try again"},
     }
     state = make_state(problem, input_mode="radio")
 
@@ -1256,7 +1218,7 @@ def test_mapped_trap_submission_writes_outcome_misconception_and_slug(monkeypatc
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("trap", "test_misconception", "w1", "authored", "p-mapped-trap")
+    assert row == ("trap", "test_misconception", "t1", "authored", "p-mapped-trap")
 
 
 def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
@@ -1266,8 +1228,8 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
         "question": "q",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "Try again"},
     }
     state = make_state(problem, input_mode="radio")
 
@@ -1282,7 +1244,7 @@ def test_unmapped_trap_submission_writes_trap_slug_with_null_misconception():
     )
 
     row = _fetch_last_telemetry_row(state.session_id)
-    assert row == ("trap", None, "w1", "authored", "p-unmapped-trap")
+    assert row == ("trap", None, "t1", "authored", "p-unmapped-trap")
 
 
 def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
@@ -1292,8 +1254,8 @@ def test_filler_submission_writes_wrong_with_null_misconception_and_slug():
         "question": "q",
         "correct": "2",
         "options": ["2", "3", "4"],
-        "options_map": {"2": "correct", "3": "w1", "4": "filler"},
-        "messages": {"w1": "Try again", "filler": "Nope"},
+        "options_map": {"2": "correct", "3": "t1", "4": "filler"},
+        "messages": {"t1": "Try again", "filler": "Nope"},
     }
     state = make_state(problem, input_mode="radio")
 
@@ -1405,7 +1367,7 @@ def _map_traps_to_misconceptions(monkeypatch, mapping):
     monkeypatch.setattr(Curriculum, "level_config", fake_level_config)
 
 
-def _trap_problem(problem_id, *, trap_slug="w1", parameters=None):
+def _trap_problem(problem_id, *, trap_slug="t1", parameters=None):
     return {
         "problem_id": problem_id,
         "question": "q",
@@ -1419,7 +1381,7 @@ def _trap_problem(problem_id, *, trap_slug="w1", parameters=None):
     }
 
 
-def _submit_trap(state, problem_id, *, trap_slug="w1", parameters=None):
+def _submit_trap(state, problem_id, *, trap_slug="t1", parameters=None):
     """Re-arm `state` with a fresh wrong-answer Problem and submit it, like a Next-problem cycle."""
     state.current_problem = _trap_problem(
         problem_id, trap_slug=trap_slug, parameters=parameters
@@ -1454,7 +1416,7 @@ def _fetch_last_deconstruction_row(session_id):
 
 def test_first_hit_of_misconception_does_not_trigger_deconstruction(monkeypatch):
     """Issue #194: the first hit only grades normally — it does not arm a Deconstruction."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
     _submit_trap(state, "p-first-hit")
@@ -1466,7 +1428,7 @@ def test_first_hit_of_misconception_does_not_trigger_deconstruction(monkeypatch)
 def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
     """Issue #194: the second hit of the same Misconception at a Level arms `state.deconstruction`
     with steps computed from the triggering Problem's `parameters`."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     assert state.deconstruction is None
@@ -1495,7 +1457,7 @@ def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
 def test_renaming_topic_mid_session_does_not_split_the_hit_count(monkeypatch):
     """Issue #255: the trigger keys on Chapter/Topic id, not display name, so
     renaming a Topic mid-Session still arms the Deconstruction on the second hit."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
     from backend.curriculum import Curriculum
@@ -1527,7 +1489,7 @@ def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatc
     own prose still fires, the request does not error, and nothing is written to
     `deconstructions` — so telemetry never shows a Deconstruction that never ran.
     """
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     incomplete = {"n1": 1, "d1": 2, "n2": 1, "d2": 3}  # no `operation`
     state = make_state(
         _trap_problem("p-first-hit", parameters=incomplete), input_mode="radio"
@@ -1545,11 +1507,11 @@ def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatc
 def test_repeated_failure_across_different_misconceptions_does_not_trigger(monkeypatch):
     """Issue #194: generic repeated failure — different Misconceptions — is not a trigger."""
     _map_traps_to_misconceptions(
-        monkeypatch, {"w1": "misconception_a", "w2": "misconception_b"}
+        monkeypatch, {"t1": "misconception_a", "w2": "misconception_b"}
     )
-    state = make_state(_trap_problem("p-a", trap_slug="w1"), input_mode="radio")
+    state = make_state(_trap_problem("p-a", trap_slug="t1"), input_mode="radio")
 
-    _submit_trap(state, "p-a", trap_slug="w1")
+    _submit_trap(state, "p-a", trap_slug="t1")
     _submit_trap(state, "p-b", trap_slug="w2")
 
     assert state.deconstruction is None
@@ -1559,7 +1521,7 @@ def test_misconception_without_walkthrough_does_not_trigger_or_crash(monkeypatch
     """Only a Misconception with an authored walkthrough can ever fire a Deconstruction —
     hitting the threshold on one of the other 50 must not raise."""
     _map_traps_to_misconceptions(
-        monkeypatch, {"w1": "misconception_without_walkthrough"}
+        monkeypatch, {"t1": "misconception_without_walkthrough"}
     )
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
@@ -1572,7 +1534,7 @@ def test_misconception_without_walkthrough_does_not_trigger_or_crash(monkeypatch
 def test_trigger_count_is_config_tunable(monkeypatch):
     """Issue #194: the trigger count is read from config, beside MAX_STREAK."""
     monkeypatch.setattr(config, "DECONSTRUCTION_TRIGGER_COUNT", 1)
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-only-hit"), input_mode="radio")
 
     _submit_trap(state, "p-only-hit")
@@ -1582,7 +1544,7 @@ def test_trigger_count_is_config_tunable(monkeypatch):
 
 def test_triggering_submission_grades_streak_xp_flawless_normally(monkeypatch):
     """Issue #194: the triggering Submission is graded exactly like any other wrong Trap."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), streak=2, input_mode="radio")
     _submit_trap(state, "p-first-hit")
     assert state.streak == 1
@@ -1601,7 +1563,7 @@ def test_triggering_submission_grades_streak_xp_flawless_normally(monkeypatch):
 def test_correct_answer_withheld_only_on_triggering_submission(monkeypatch):
     """Issue #194: correct_answer is withheld on a triggering Submission and present on
     every other Submission — the premise-level spoiler bug fixed here."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
     first_response = _submit_trap(state, "p-first-hit")
@@ -1617,7 +1579,7 @@ def test_deconstruction_running_flag_tracks_the_running_deconstruction(monkeypat
     """`SessionResponse.deconstruction_running` is the client's takeover trigger, so it
     must name `state.deconstruction` exactly — not the withheld `correct_answer`, which
     is a spoiler rule the client must never have to infer from."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
     first_response = _submit_trap(state, "p-first-hit")
@@ -1641,7 +1603,7 @@ def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
 ):
     """Issue #194: the `deconstructions` header row exists after trigger detection,
     before the pause, with `outcome` NULL."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     assert _fetch_last_deconstruction_row(state.session_id) is None
@@ -1670,7 +1632,7 @@ def test_deconstructions_row_written_at_trigger_detection_with_null_outcome(
 
 def test_deconstruction_survives_sqlite_reload(monkeypatch):
     """Issue #194: `state.deconstruction` survives re-reading the Session from SQLite."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-second-hit")
@@ -1693,7 +1655,7 @@ def test_deconstruction_survives_sqlite_reload(monkeypatch):
 
 def test_problem_start_time_not_paused_by_trigger(monkeypatch):
     """Issue #194: problem_start_time keeps running unpaused through trigger detection."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
 
@@ -2074,7 +2036,7 @@ def test_ordering_step_response_never_exposes_accepted_orders():
 def test_deconstruction_steps_row_tracks_attempts_and_revealed(monkeypatch):
     """Issue #195: one `deconstruction_steps` row per step carries step_index, attempts, revealed."""
     monkeypatch.setattr(config, "DECONSTRUCTION_REVEAL_THRESHOLD", 3)
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-second-hit")
@@ -2208,7 +2170,7 @@ def test_next_problem_gate_shut_while_deconstruction_active(monkeypatch):
     """The 403 is a backstop, not the Student's experience: `can_next_problem`
     closes while a Deconstruction runs, so the client never offers a door the
     backend would only refuse."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
 
     first_response = _submit_trap(state, "p-first-hit")
@@ -2229,7 +2191,7 @@ def test_next_problem_gate_shut_while_deconstruction_active(monkeypatch):
 def test_exit_control_abandons_from_any_step_and_writes_outcome(monkeypatch):
     """Issue #196: the exit control ends the Deconstruction, writing
     `abandoned_via_control`."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-abandon-control")
@@ -2250,7 +2212,7 @@ def test_exit_control_abandons_from_any_step_and_writes_outcome(monkeypatch):
 def test_abandon_via_control_leaves_problem_locked_revealed_nothing_earned(
     monkeypatch,
 ):
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-abandon-locked")
@@ -2272,7 +2234,7 @@ def test_abandon_via_control_leaves_problem_locked_revealed_nothing_earned(
 def test_navigation_abandons_running_deconstruction_and_writes_outcome(monkeypatch):
     """Issue #196: toolbar Navigation ends a running Deconstruction cleanly,
     writing `abandoned_via_navigation` — the second of the two doors."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-abandon-nav")
@@ -2300,7 +2262,7 @@ def test_navigation_abandons_running_deconstruction_and_writes_outcome(monkeypat
 def test_misconception_does_not_retrigger_after_abandonment_via_control(monkeypatch):
     """Issue #196: either ending disarms the (Misconception, Level) pair for the
     rest of the Session."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-second-hit")
@@ -2318,7 +2280,7 @@ def test_misconception_does_not_retrigger_after_abandonment_via_control(monkeypa
 
 
 def test_misconception_does_not_retrigger_after_completion(monkeypatch):
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-second-hit")
@@ -2339,7 +2301,7 @@ def test_completed_deconstruction_correct_retry_discoverable_by_joining_on_probl
     """Issue #196: joining `deconstructions` to `telemetry_logs` on `problem_id`
     answers whether the Student then solved the triggering Problem — never
     denormalised onto the `deconstructions` row itself."""
-    _map_traps_to_misconceptions(monkeypatch, {"w1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")
     _submit_trap(state, "p-join")

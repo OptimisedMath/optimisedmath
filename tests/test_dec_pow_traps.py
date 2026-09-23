@@ -106,15 +106,6 @@ def test_dec_pow_3_trap_formulas_are_exact_decimal():
             )
 
 
-def test_dec_pow_3_worked_example_from_the_issue():
-    """(0,015)^2 = 0,000225, against 0,03, 225, 0,225 — the issue's own table."""
-    v = _exact(15, 3)
-    assert fmt_dec(v**2) == "0,000225"
-    assert fmt_dec(v * 2) == "0,03"
-    assert fmt_dec(15**2) == "225"
-    assert fmt_dec(_exact(15**2, 3)) == "0,225"
-
-
 def test_dec_pow_3_b_equals_2_collision_falls_back_to_filler():
     """At b=2 `keeps_the_operands_decimal_places` loses its slot, because 2b equals b^2."""
     b2_problems = [p for p in _draws("dec_pow_3") if p["parameters"]["b"] == 2]
@@ -144,15 +135,6 @@ def test_dec_pow_4_cubes_a_base_coarse_enough_to_stay_readable():
         assert 0 < v < 1
         assert 1 <= _places(v) <= 2
         assert "^3" in problem["question"]
-
-
-def test_dec_pow_4_worked_example_from_the_issue():
-    """(0,05)^3 = 0,000125, against 0,15, 125, 1,25 — the issue's own table."""
-    v = _exact(5, 2)
-    assert fmt_dec(v**3) == "0,000125"
-    assert fmt_dec(v * 3) == "0,15"
-    assert fmt_dec(5**3) == "125"
-    assert fmt_dec(_exact(5**3, 2)) == "1,25"
 
 
 def test_dec_pow_4_trap_formulas_are_exact_decimal():

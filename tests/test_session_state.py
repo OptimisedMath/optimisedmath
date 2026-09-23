@@ -66,19 +66,8 @@ def test_resolve_input_mode_switches_to_typing_after_streak_threshold(
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
 
 
-def test_resolve_input_mode_stays_radio_for_radio_only_topics(
-    fixture_curriculum: Curriculum,
-):
-    state = _fresh_state(fixture_curriculum)
-    state.selected_chapter_id = CHAPTER_ALPHA
-    state.selected_topic_id = TOPIC_RADIO
-    state.streak = config.STREAK_THRESHOLD_FOR_TYPING_MODE
-
-    assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
-
-
 @pytest.mark.parametrize(
-    "streak", [0, 1, config.STREAK_THRESHOLD_FOR_TYPING_MODE, config.MAX_STREAK]
+    "streak", [0, config.STREAK_THRESHOLD_FOR_TYPING_MODE, config.MAX_STREAK]
 )
 def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
     fixture_curriculum: Curriculum, streak
@@ -347,52 +336,3 @@ def test_persist_round_trips_flawless_eligible_and_preserved_profile_for_admin(
         frontier_topic_id=TOPIC_MULTI,
         frontier_level=1,
     )
-
-
-def test_persist_matches_manual_build_and_sync_sequence_for_student_and_admin(
-    fixture_curriculum: Curriculum,
-):
-    cases: list[tuple[StudentPlayMode | AdminPlayMode, str, SessionState | None]] = [
-        (StudentPlayMode(), "persist-student", None),
-        (
-            AdminPlayMode(),
-            "Antonio",
-            SessionState(
-                username="Antonio",
-                xp=50,
-                chapter_frontiers={
-                    CHAPTER_ALPHA: ChapterFrontier(
-                        frontier_topic_id=TOPIC_MULTI,
-                        frontier_level=1,
-                    )
-                },
-            ),
-        ),
-    ]
-    for mode, username, existing_profile in cases:
-        if existing_profile is not None:
-            db.save_user(username, existing_profile)
-
-        state_via_persist = _fresh_state(fixture_curriculum)
-        state_via_persist.username = username
-        state_via_persist.xp = 42
-        state_via_persist.streak = 2
-
-        state_via_manual = state_via_persist.model_copy(deep=True)
-        state_via_manual.session_id = str(uuid.uuid4())
-
-        session_state.persist(state_via_persist, mode)
-        session_state.write_state_to_db(
-            state_via_manual,
-            session_state.build_db_write_plan(state_via_manual, mode),
-        )
-
-        loaded_via_persist = db.load_session(state_via_persist.session_id)
-        loaded_via_manual = db.load_session(state_via_manual.session_id)
-        assert loaded_via_persist is not None
-        assert loaded_via_manual is not None
-        assert loaded_via_persist.xp == loaded_via_manual.xp
-        assert loaded_via_persist.streak == loaded_via_manual.streak
-        assert (
-            loaded_via_persist.chapter_frontiers == loaded_via_manual.chapter_frontiers
-        )

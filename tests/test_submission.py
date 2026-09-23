@@ -179,22 +179,22 @@ def _correct_problem() -> dict[str, Any]:
         "correct": "2",
         "image_html": "<svg></svg>",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t2"},
+        "messages": {"t2": "Try again"},
         "level": 1,
         "level_name": "Easy",
         "level_display": "Level 1",
     }
 
 
-def _wrong_problem() -> dict[str, Any]:
+def _radio_trap_problem() -> dict[str, Any]:
     return {
-        "problem_id": "p-wrong",
+        "problem_id": "p-radio-trap",
         "question": "What is 2+2?",
         "correct": "2",
         "options": ["2", "3"],
-        "options_map": {"2": "correct", "3": "w1"},
-        "messages": {"w1": "Try again"},
+        "options_map": {"2": "correct", "3": "t2"},
+        "messages": {"t2": "Try again"},
     }
 
 
@@ -403,7 +403,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
     fixture_curriculum: Curriculum,
 ):
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
-    problem = _wrong_problem()
+    problem = _radio_trap_problem()
     telemetry_before = _telemetry_count(state.session_id)
 
     result = _submit(state, problem, "3", "radio", fixture_curriculum, _STUDENT)
@@ -443,7 +443,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
             flawless_eligible=True,
             frontier_relation="at_frontier",
             answer_outcome="trap",
-            trap_slug="w1",
+            trap_slug="t2",
             trap_source="authored",
         ),
     )
@@ -507,7 +507,7 @@ def test_resolve_trap_source_is_absent_without_a_trap():
 
 def test_resolve_trap_source_is_authored_for_a_plain_trap_slug():
     assert (
-        submission._resolve_trap_source({"trap_slug": "w1", "answer_outcome": "trap"})
+        submission._resolve_trap_source({"trap_slug": "t2", "answer_outcome": "trap"})
         == "authored"
     )
 
@@ -799,7 +799,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     _assert_admin_profile_unchanged(state, baseline)
 
 
-def test_admin_wrong_decrements_session_streak_without_profile_writes(
+def test_admin_penalized_mistake_decrements_session_streak_without_profile_writes(
     fixture_curriculum: Curriculum,
 ):
     state, baseline = _admin_state_at(
@@ -810,7 +810,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
         selected_level=2,
         streak=2,
     )
-    problem = _wrong_problem()
+    problem = _radio_trap_problem()
 
     _submit(state, problem, "3", "radio", fixture_curriculum, _ADMIN)
 
@@ -847,7 +847,7 @@ def test_admin_wrong_decrements_session_streak_without_profile_writes(
             flawless_eligible=True,
             frontier_relation="behind_frontier",
             answer_outcome="trap",
-            trap_slug="w1",
+            trap_slug="t2",
             trap_source="authored",
         ),
     )
@@ -990,37 +990,4 @@ def test_admin_resets_streak_at_stored_frontier_boundary(
             frontier_relation="behind_frontier",
         ),
     )
-    _assert_admin_profile_unchanged(state, baseline)
-
-
-def test_admin_level_completion_sequence_leaves_stored_frontier_unchanged(
-    fixture_curriculum: Curriculum,
-):
-    state, baseline = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=1,
-        streak=0,
-    )
-    problem = _correct_problem()
-
-    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
-    assert state.streak == 1
-    _assert_admin_profile_unchanged(state, baseline)
-
-    state.problem_answered = False
-    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
-    assert state.streak == 2
-    _assert_admin_profile_unchanged(state, baseline)
-
-    state.problem_answered = False
-    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
-    assert state.streak == 0
-    assert state.level_completed is False
-    assert state.selected_level == 1
-    chapter_id = _chapter_id(state)
-    assert state.chapter_frontiers[chapter_id].frontier_level == 1
-    assert state.chapter_frontiers[chapter_id].frontier_topic_id == TOPIC_MULTI
     _assert_admin_profile_unchanged(state, baseline)

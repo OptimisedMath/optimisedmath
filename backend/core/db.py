@@ -64,7 +64,6 @@ def init_db() -> None:
                 chapter_frontiers_json TEXT
             )
         """)
-        _drop_stale_streak_column(cursor)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT PRIMARY KEY,
@@ -186,15 +185,6 @@ _INSERT_TELEMETRY_SQL = (
     f"INSERT INTO telemetry_logs ({', '.join(_TELEMETRY_COLUMNS)}) "
     f"VALUES ({', '.join('?' * len(_TELEMETRY_COLUMNS))})"
 )
-
-
-def _drop_stale_streak_column(cursor: sqlite3.Cursor) -> None:
-    """Drop `users.streak`, retired by ADR-0006 — Streak is Session-only, never
-    persisted on the profile. Other profile fields on pre-existing rows are kept.
-    """
-    columns = {row[1] for row in cursor.execute("PRAGMA table_info(users)")}
-    if "streak" in columns:
-        cursor.execute("ALTER TABLE users DROP COLUMN streak")
 
 
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:

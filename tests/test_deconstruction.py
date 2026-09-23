@@ -243,58 +243,12 @@ class TestExpandsToTargetDenominatorWithoutFindingFactor:
         assert all(step.question for step in steps)
 
 
-class TestOrderingStepType:
-    """Pure coverage for the ordering-input step type (#198): the wire contract
-    and control in isolation, with stand-in items. `TestIgnoresTheOrderOfOperations`
-    below exercises the same mechanism through #186's real priority-ladder
-    walkthrough."""
-
-    def test_typed_step_defaults(self):
-        step = Step(question="q", working_line=None, answer="5")
-
-        assert step.input_type == "typed"
-        assert step.items is None
-
-    def test_ordering_step_carries_its_items_and_delimited_answer(self):
-        items = ("brackets", "powers", "multiply-divide", "add-subtract")
-        step = Step(
-            question="Order the priority tiers.",
-            working_line=None,
-            answer=ORDERING_ANSWER_SEPARATOR.join(items),
-            input_type="ordering",
-            items=items,
-        )
-
-        assert step.input_type == "ordering"
-        assert step.items == items
-        assert step.answer == "brackets|powers|multiply-divide|add-subtract"
-        assert step.accepted_orders is None
-
-    def test_ordering_step_can_carry_several_accepted_orders(self):
-        items = ("brackets", "powers", "multiply", "divide", "add", "subtract")
-        canonical = ORDERING_ANSWER_SEPARATOR.join(items)
-        swapped_tiers = ORDERING_ANSWER_SEPARATOR.join(
-            ("brackets", "powers", "divide", "multiply", "subtract", "add")
-        )
-        step = Step(
-            question="Order the priority ladder.",
-            working_line=None,
-            answer=canonical,
-            input_type="ordering",
-            items=items,
-            accepted_orders=(swapped_tiers,),
-        )
-
-        assert step.accepted_orders == (swapped_tiers,)
-
-
 class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
     """Table-driven: representative `parameters` shapes for the column-layout walkthrough.
 
-    The three shapes mirror the three generators that reference this Misconception —
-    the second operand carrying more decimal places (dec_add_3), the first carrying
-    more (dec_sub_2), and both already tied (dec_add_1) — normalised to a shared
-    `v1`/`v2`/`operation` contract (#199).
+    The shapes cover the second operand carrying more decimal places (dec_add_3),
+    the first carrying more (dec_sub_2), and both already tied — normalised to a
+    shared `v1`/`v2`/`operation` contract (#199).
     """
 
     @pytest.mark.parametrize(
@@ -386,7 +340,7 @@ class TestDoesNotAlignDecimalsBeforeColumnArithmetic:
 class TestOperatesOnMixedNumberWithoutConverting:
     """Table-driven: `parameters` shapes for the precondition-conversion walkthrough.
 
-    Six generators across three topics reference this Misconception — a mixed number
+    Six generators across five topics reference this Misconception — a mixed number
     multiplied, divided, or raised to a power, either alone or against a whole number,
     a plain fraction, or a second mixed number — normalised to a shared
     `whole1`/`n1`/`d1`/`whole2`/`n2`/`d2`/`operation` contract (`p` replaces the second

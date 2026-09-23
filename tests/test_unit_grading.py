@@ -119,7 +119,7 @@ class TestUnitGrading:
         assert grade("84", _area_problem(), input_mode="radio")["is_correct"]
 
     def test_a_problem_without_an_expected_unit_grades_unchanged(self):
-        """The other 95 generators are untouched by any of this."""
+        """A generator that declares no Unit is untouched by any of this."""
         problem = _area_problem()
         del problem["expected_unit"]
         assert grade("84", problem, input_mode="typing")["is_correct"]

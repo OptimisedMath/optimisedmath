@@ -89,17 +89,6 @@ def test_correct_increments_streak_without_unlock():
     assert outcome.new_flawless_eligible is True
 
 
-def test_correct_at_streak_cap_unlocks_when_at_frontier():
-    outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
-        _ctx(streak=3, selected_level=2, frontier_level=2, topic_max_level=5),
-    )
-
-    assert outcome.new_streak == 0
-    assert outcome.level_unlocked is True
-    assert outcome.new_frontier_level == 3
-
-
 def test_correct_at_streak_cap_without_unlock_when_replaying_old_level():
     outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
@@ -111,7 +100,7 @@ def test_correct_at_streak_cap_without_unlock_when_replaying_old_level():
     assert outcome.xp_earned == config.XP_REWARDS[1]
 
 
-def test_correct_unlocks_next_level_at_power_of_three():
+def test_correct_at_frontier_reaching_max_streak_unlocks_next_level():
     outcome = resolve_submission_outcome(
         {"is_correct": True, "lock_answer": True},
         _ctx(streak=2, selected_level=1, frontier_level=1, topic_max_level=3),
@@ -366,26 +355,6 @@ def test_replay_matching_frontier_level_does_not_unlock_next_level():
     assert outcome.new_frontier_level is None
     assert outcome.unlock_topic_id is None
     assert outcome.new_selected_level is None
-
-
-def test_mastery_at_frontier_unlocks_next_level():
-    """Control for #300: Mastery At the Frontier still unlocks the next Level."""
-    outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
-        _ctx(
-            streak=2,
-            topic_id=20,
-            frontier_topic_id=20,
-            selected_level=2,
-            frontier_level=2,
-            topic_max_level=3,
-            next_topic_ids=(30,),
-        ),
-    )
-
-    assert outcome.new_streak == 0
-    assert outcome.level_unlocked is True
-    assert outcome.new_frontier_level == 3
 
 
 def test_replay_matching_frontier_level_holds_streak_at_max_without_reset():

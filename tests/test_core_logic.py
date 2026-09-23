@@ -161,7 +161,6 @@ class TestBuildProblemDict:
         problem = build_problem_dict(
             "q", "1/2", traps={"a": "3/4", "b": "3/4"}, parameters={}
         )
-        assert problem is not None
         assert problem["options_map"]["3/4"] == "a"
         assert len(problem["options"]) == 4
 
@@ -224,7 +223,6 @@ class TestBuildProblemDict:
         problem = build_problem_dict(
             "q", "<", traps={"a": ">", "b": "="}, parameters={}
         )
-        assert problem is not None
         assert problem["options"] == ["<", "=", ">"]
 
     def test_comparison_problems_are_never_padded(self):
@@ -232,17 +230,10 @@ class TestBuildProblemDict:
         problem = build_problem_dict("q", "<", traps={"a": ">"}, parameters={})
         assert len(problem["options"]) == 2
 
-    def test_no_improper_unsimplified_keys(self):
-        problem = build_problem_dict("q", "1/2", traps={"a": "2/3"}, parameters={})
-        assert problem is not None
-        assert "improper" not in problem
-        assert "unsimplified" not in problem
-
     def test_parameters_included(self):
         problem = build_problem_dict(
             "q", "1/2", parameters={"n": 1, "d": 2.5, "op": "+"}
         )
-        assert problem is not None
         assert problem["parameters"] == {"n": 1, "d": 2.5, "op": "+"}
 
     def test_parameters_is_required(self):

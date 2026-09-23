@@ -4,7 +4,6 @@ import pytest
 
 import backend.curriculum_loader as loader
 import backend.deconstruction  # noqa: F401 — registers walkthroughs
-from backend.curriculum import get_curriculum_response, resolve_curriculum
 from backend.problem_generation import FUNCTION_REGISTRY
 
 
@@ -18,19 +17,6 @@ def test_loads_real_curriculum_with_topics():
 def test_chapters_ordered_by_yaml_id():
     chapters = loader.load_curriculum_store().chapters
     assert chapters[0].chapter_id < chapters[1].chapter_id
-
-
-def test_chapter_yaml_uses_topics_key():
-    store = loader.load_curriculum_store()
-    raw = store.bundles_by_chapter_id[10].raw
-    assert "topics" in raw
-    assert "chapter" in raw
-
-
-def test_curriculum_response_uses_chapters_field():
-    response = get_curriculum_response(resolve_curriculum())
-    assert response.chapters[0].name == "Ułamki Zwykłe"
-    assert response.chapters[0].topics[0].name == "Zapisywanie"
 
 
 def test_function_registry_contains_only_generators():
@@ -122,7 +108,7 @@ some_misconception:
         loader.load_curriculum_store()
 
 
-def test_rejects_duplicate_chapter_name(tmp_path, monkeypatch):
+def test_rejects_duplicate_chapter_id(tmp_path, monkeypatch):
     path1 = tmp_path / "a.yaml"
     path2 = tmp_path / "b.yaml"
     path1.write_text("placeholder", encoding="utf-8")

@@ -1,7 +1,6 @@
 """Tests for the Geometria vertical slice — Topic 130, Pole trójkąta (#214)."""
 
 import itertools
-import math
 import random
 import re
 

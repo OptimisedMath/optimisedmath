@@ -5,9 +5,7 @@ import pytest
 from backend.answer_grading import grade
 from backend.problem_generation import (
     GeneratorRegistryError,
-    ProblemGenerationError,
     _register_generator,
-    generate_level_problem,
     problem_fingerprint,
 )
 
@@ -21,11 +19,11 @@ def _sample_problem(**overrides):
         "options_map": {
             "1": "correct",
             r"\frac{2}{4}": "t1",
-            "2": "w1",
+            "2": "t2",
         },
         "messages": {
             "t1": "Trap one",
-            "w1": "Wrong one",
+            "t2": "Trap two",
         },
         "grading_policy": "standard",
     }
@@ -40,7 +38,7 @@ def _exact_match_only_problem():
         options=["1", "2"],
         options_map={
             "1": "correct",
-            "2": "w1",
+            "2": "t2",
         },
         grading_policy="exact_match_only",
     )
@@ -86,12 +84,6 @@ class TestMultipleChoiceGrading:
         assert result["answer_outcome"] == "trap"
         assert result["trap_slug"] == "t1"
         assert result["feedback_msg"] == "Trap one"
-
-    def test_wrong_answer(self):
-        result = grade("2", _sample_problem(), input_mode="radio")
-        assert result["answer_outcome"] == "trap"
-        assert result["trap_slug"] == "w1"
-        assert result["feedback_msg"] == "Wrong one"
 
     def test_unanticipated_answer_not_in_options_map(self):
         """An option absent from options_map is unanticipated: Wrong, not Filler."""
@@ -146,11 +138,11 @@ class TestTextGrading:
             options_map={
                 r"\frac{3}{7}": "correct",
                 r"\frac{9}{21}": "t1",
-                "1": "w1",
+                "1": "t2",
             },
             messages={
                 "t1": "Partially simplified trap",
-                "w1": "Wrong one",
+                "t2": "Trap two",
             },
             grading_policy="exact_match_only",
         )
@@ -164,7 +156,7 @@ class TestTextGrading:
         problem = _sample_problem(correct="1")
         result = grade("2", problem, input_mode="typing")
         assert result["answer_outcome"] == "trap"
-        assert result["trap_slug"] == "w1"
+        assert result["trap_slug"] == "t2"
 
     def test_missing_options_map_does_not_crash(self):
         problem = _sample_problem()
@@ -200,44 +192,3 @@ class TestFormatMismatch:
         result = grade("1/2", problem, input_mode="typing")
         assert result.get("answer_outcome") != "format_mismatch"
         assert result["is_correct"] is True
-
-
-class TestGenerateLevelProblem:
-    def test_generates_problem_from_fixture(self, fixture_curriculum, monkeypatch):
-        import backend.problem_generation as problem_generation
-        from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
-
-        def fake_multi_1():
-            return {
-                "question": r"\text{grading fixture}",
-                "correct": "1",
-                "options": ["1", "2", "3", "4"],
-                "options_map": {"1": "correct", "2": "t1", "3": "t2", "4": "t3"},
-            }
-
-        monkeypatch.setitem(
-            problem_generation.FUNCTION_REGISTRY, "fixture_multi_1", fake_multi_1
-        )
-        problem = generate_level_problem(
-            fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 1
-        )
-        assert problem["question"] == r"\text{grading fixture}"
-        assert problem["correct"] == "1"
-        assert problem["problem_id"]
-        assert "error" not in problem
-
-    def test_missing_chapter_raises(self, fixture_curriculum):
-        with pytest.raises(ProblemGenerationError, match="Missing curriculum"):
-            generate_level_problem(fixture_curriculum, 999, 10, 1)
-
-    def test_missing_topic_raises(self, fixture_curriculum):
-        from tests.support.fixture_curriculum import CHAPTER_ALPHA
-
-        with pytest.raises(ProblemGenerationError, match="Topic id"):
-            generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, 99999, 1)
-
-    def test_missing_level_raises(self, fixture_curriculum):
-        from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
-
-        with pytest.raises(ProblemGenerationError, match="Level 999"):
-            generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 999)

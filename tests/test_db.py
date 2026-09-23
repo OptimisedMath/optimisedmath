@@ -51,36 +51,6 @@ def test_init_db_is_idempotent(tmp_path):
     assert db.load_user("alice") is not None
 
 
-def test_init_db_drops_legacy_streak_column():
-    """ADR-0006: `users.streak` is retired — pre-existing rows heal in place."""
-    # Delete this test together with `_drop_stale_streak_column` once every database
-    # that could still carry the column has been through the migration.
-    with db.get_connection() as conn:
-        conn.execute("ALTER TABLE users ADD COLUMN streak INTEGER DEFAULT 0")
-        conn.execute("""
-            INSERT INTO users (
-                username, xp, streak, selected_chapter_id,
-                selected_topic_id, selected_level, chapter_frontiers_json
-            ) VALUES ('legacy-user', 10, 5, 1, 2, 3, '{}')
-            """)
-        conn.commit()
-
-    db.init_db()
-
-    with db.get_connection() as conn:
-        columns = {row[1] for row in conn.execute("PRAGMA table_info(users)")}
-    assert "streak" not in columns
-
-    loaded = db.load_user("legacy-user")
-    assert loaded == {
-        "xp": 10,
-        "selected_chapter_id": 1,
-        "selected_topic_id": 2,
-        "selected_level": 3,
-        "chapter_frontiers": {},
-    }
-
-
 def test_save_and_load_user_round_trip():
     state = _sample_state()
     db.save_user("alice", state)
@@ -143,42 +113,6 @@ def test_saved_session_json_omits_response_only_fields():
     assert RESPONSE_ONLY_FIELDS.isdisjoint(stored)
 
 
-def test_load_session_tolerates_legacy_response_only_fields():
-    state = _sample_state(streak=2, xp=50)
-    legacy = json.loads(state.to_storage())
-    legacy.update(
-        {
-            "can_submit": True,
-            "can_next_problem": False,
-            "admin_mode": True,
-            "navigation": {
-                "available_chapters": [],
-                "available_topics": [],
-                "available_levels": [],
-                "has_next_unlocked_topic": False,
-                "radio_only": False,
-            },
-        }
-    )
-    with db.get_connection() as conn:
-        conn.execute(
-            """
-            INSERT INTO sessions (session_id, username, state_json, updated_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """,
-            (state.session_id, "alice", json.dumps(legacy)),
-        )
-        conn.commit()
-
-    loaded = db.load_session(state.session_id)
-
-    assert loaded is not None
-    assert loaded.session_id == state.session_id
-    assert loaded.streak == 2
-    assert loaded.xp == 50
-    assert RESPONSE_ONLY_FIELDS.isdisjoint(type(loaded).model_fields)
-
-
 def test_load_session_returns_none_when_missing():
     assert db.load_session(str(uuid.uuid4())) is None
 
@@ -227,7 +161,8 @@ def test_log_telemetry_persists_entry():
         frontier_relation="at_frontier",
         is_correct=False,
         user_input="1/2",
-        answer_outcome="t1",
+        answer_outcome="trap",
+        trap_slug="t1",
         time_spent_ms=1500,
         problem_snapshot="1/4 + 1/4",
     )

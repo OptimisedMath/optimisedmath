@@ -5,10 +5,7 @@ import pytest
 import backend.config as config
 import backend.problem_generation as problem_generation
 from backend.problem_generation import ProblemGenerationError, generate_level_problem
-from tests.support.fixture_curriculum import (
-    CHAPTER_ALPHA,
-    TOPIC_MULTI,
-)
+from tests.support.fixture_curriculum import CHAPTER_ALPHA, TOPIC_MULTI
 
 
 def _fake_multi_1():
@@ -66,3 +63,18 @@ def test_always_failing_generator_surfaces_same_error(fixture_curriculum, monkey
         match=("Failed to generate valid problem for always_fail " "after 3 attempts"),
     ):
         generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 1)
+
+
+def test_missing_chapter_raises(fixture_curriculum):
+    with pytest.raises(ProblemGenerationError, match="Missing curriculum"):
+        generate_level_problem(fixture_curriculum, 999, 10, 1)
+
+
+def test_missing_topic_raises(fixture_curriculum):
+    with pytest.raises(ProblemGenerationError, match="Topic id"):
+        generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, 99999, 1)
+
+
+def test_missing_level_raises(fixture_curriculum):
+    with pytest.raises(ProblemGenerationError, match="Level 999"):
+        generate_level_problem(fixture_curriculum, CHAPTER_ALPHA, TOPIC_MULTI, 999)
