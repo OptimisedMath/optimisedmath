@@ -1481,6 +1481,28 @@ def test_renaming_topic_mid_session_does_not_split_the_hit_count(monkeypatch):
     assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
 
 
+def test_a_hit_in_another_topic_neither_triggers_nor_clears_the_count(monkeypatch):
+    """Issue #339: the Session's hit count is keyed per Topic, so a hit in a second
+    Topic never reaches the threshold and the first Topic keeps its own count."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-topic-hit"), input_mode="radio")
+    first_topic_id = state.selected_topic_id
+    other_topic_id = int(
+        resolve_curriculum().topics(state.selected_chapter_id)[1]["topic_id"]
+    )
+    _submit_trap(state, "p-first-topic-hit")
+
+    state.selected_topic_id = other_topic_id
+    _submit_trap(state, "p-other-topic-hit")
+    assert state.deconstruction is None
+
+    state.selected_topic_id = first_topic_id
+    _submit_trap(state, "p-first-topic-second-hit")
+
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+
+
 def test_contract_violation_skips_the_deconstruction_without_erroring(monkeypatch):
     """Issue #224: curriculum drift costs the Student help, never their Problem.
 

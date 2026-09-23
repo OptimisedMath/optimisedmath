@@ -39,10 +39,11 @@ def _require_deconstruction_step(
 def deconstruction_key(
     misconception_slug: str, chapter_id: int, topic_id: int, level: int
 ) -> str:
-    """Stable identity for one (Misconception, Level) pair in `state.deconstructed`.
+    """Stable identity for one (Misconception, Level) pair on the Session's state.
 
-    Shared with `submission.py`'s trigger check, so an armed Deconstruction and
-    its own ending agree on exactly the same key.
+    Keys both `state.misconception_hits` and `state.deconstructed`, and is shared
+    with `submission.py`'s trigger check, so the hit count, an armed Deconstruction
+    and its own ending all read exactly the same key.
     """
     return f"{misconception_slug}:{chapter_id}:{topic_id}:{level}"
 

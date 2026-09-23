@@ -108,10 +108,9 @@ def run_submission_cycle(
 def _record_misconception_hit(state: SessionState, misconception_slug: str) -> None:
     """Count one hit toward `misconception_slug`'s Deconstruction trigger.
 
-    Called before the discounted-retry branch below: a retry's hit still counts
-    toward whichever Misconception it resolves — even a different one from the
-    Deconstruction just completed — even though the retry itself never arms a
-    Deconstruction (`_apply_discounted_retry_outcome` scores it separately).
+    Called before the discounted-retry branch, so a retry's hit counts toward
+    whichever Misconception it resolves — including one the just-finished
+    Deconstruction never covered — while the retry itself still arms nothing.
     """
     chapter_id = state.selected_chapter_id
     topic_id = state.selected_topic_id
