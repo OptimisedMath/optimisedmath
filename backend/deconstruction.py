@@ -14,7 +14,6 @@ import math
 import random
 from dataclasses import dataclass
 from decimal import Decimal
-from fractions import Fraction
 from typing import Callable, Literal
 
 from backend.core.utils import fmt_dec, format_answers, format_fraction_question
@@ -758,16 +757,6 @@ def _replace_node(node: Node, target: Node, replacement: Node) -> Node:
     return dataclasses.replace(node, left=left, right=right)
 
 
-def _format_step_answer(value: Fraction, notation: Notation) -> str:
-    """An operation's answer, in the same convention the Problem's own options
-    are drawn in: `expression.render_value` (ADR-0017) — a LaTeX `\\frac{n}{d}`
-    or a bare integer for Ułamki Zwykłe, a trailing-zero-stripped decimal comma
-    for Ułamki Dziesiętne. The generator's own leaf formatter calls the same
-    function, which is what keeps this Step's final answer string-exact
-    against the Problem's own."""
-    return render_value(value, notation)
-
-
 def _apply_steps(tree: Node, notation: Notation) -> list[Step]:
     """One Step per operation, resolved in ladder order until `tree` is one value."""
     steps: list[Step] = []
@@ -781,7 +770,7 @@ def _apply_steps(tree: Node, notation: Notation) -> list[Step]:
             Step(
                 question=f"Teraz {target.tier}. Ile wynosi {_math(sub_expression)}?",
                 working_line=working_line,
-                answer=_format_step_answer(value, notation),
+                answer=render_value(value, notation),
             )
         )
         tree = _replace_node(tree, target.node, Value(value, notation))

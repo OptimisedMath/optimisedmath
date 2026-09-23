@@ -22,18 +22,16 @@ import re
 import pytest
 
 from backend.problem_generation import FUNCTION_REGISTRY
+from tests.support.kolejnosc import KOLEJNOSC_GENERATORS
 
 ROLLS = 400
-
-# Both Chapters name their generators `dec_order_N` / `frac_ord_N`, and nothing else
-# in the registry contains "ord".
-KOLEJNOSC_GENERATORS = sorted(name for name in FUNCTION_REGISTRY if "ord" in name)
 
 _FRACTION_OVER_ONE_RE = re.compile(r"\\frac\{-?\d+\}\{1\}")
 
 
 @pytest.mark.parametrize("name", KOLEJNOSC_GENERATORS)
 def test_generator_never_serves_a_fraction_over_one(name):
+    """No question or option written by a Kolejność generator reads `\\frac{n}{1}`."""
     generator = FUNCTION_REGISTRY[name]
 
     for _ in range(ROLLS):

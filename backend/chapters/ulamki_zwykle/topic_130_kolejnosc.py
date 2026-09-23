@@ -20,8 +20,7 @@ def _option(value: Fraction) -> str:
 
 def _params(expr: str, **operands: Fraction) -> dict[str, int | float | str]:
     """The Problem's `parameters`: every operand as `n/d`, plus the ASCII `expr`
-    itself as `expression`.
-    """
+    itself as `expression`."""
     parameters: dict[str, int | float | str] = {
         name: _frac(value) for name, value in operands.items()
     }

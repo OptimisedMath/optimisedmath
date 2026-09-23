@@ -21,12 +21,9 @@ import pytest
 
 from backend import expression
 from backend.problem_generation import FUNCTION_REGISTRY
+from tests.support.kolejnosc import KOLEJNOSC_GENERATORS
 
 ROLLS = 500
-
-# Both Chapters name their generators `dec_order_N` / `frac_ord_N`, and nothing else
-# in the registry contains "ord" — the count below is what keeps that true.
-KOLEJNOSC_GENERATORS = sorted(name for name in FUNCTION_REGISTRY if "ord" in name)
 
 _FRAC_TOKEN_RE = re.compile(r"\\frac\{(-?\d+)\}\{(\d+)\}")
 
@@ -51,7 +48,7 @@ def _answer_as_fraction(correct: str) -> Fraction:
 
 
 def test_the_sweep_covers_every_kolejnosc_generator():
-    """A drifted name filter would leave the sweeps below parametrized over nothing."""
+    """A drifted name filter would leave the sweeps parametrized over nothing."""
     assert len(KOLEJNOSC_GENERATORS) == 12, KOLEJNOSC_GENERATORS
 
 
