@@ -388,34 +388,6 @@ def log_telemetry(
 # --- Deconstructions ---
 
 
-def count_misconception_hits(
-    session_id: str,
-    misconception_slug: str,
-    chapter_id: int,
-    topic_id: int,
-    level_number: int,
-) -> int:
-    """Count this Session's telemetry hits for one Misconception at one Level.
-
-    The per-Level hit counter the trigger reads is derived from `telemetry_logs`
-    rather than stored on `SessionState` — a Level change naturally starts it
-    fresh, since rows for a different Level never match this query. Keyed on
-    Chapter and Topic id, not display name, so renaming a Topic mid-Session
-    cannot split its hit count in two.
-    """
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT COUNT(*) FROM telemetry_logs
-            WHERE session_id = ? AND misconception_slug = ?
-              AND chapter_id = ? AND topic_id = ? AND level_number = ?
-            """,
-            (session_id, misconception_slug, chapter_id, topic_id, level_number),
-        )
-        return int(cursor.fetchone()[0])
-
-
 def create_deconstruction(
     session_id: str,
     username: str,

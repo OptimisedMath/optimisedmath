@@ -1653,6 +1653,26 @@ def test_deconstruction_survives_sqlite_reload(monkeypatch):
     ]
 
 
+def test_misconception_hit_count_survives_sqlite_reload(monkeypatch):
+    """Issue #339: a Session's Misconception hit count survives re-reading it from
+    SQLite, so a first hit before reload plus a second hit after still triggers."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    main.ACTIVE_SESSIONS.clear()
+    recovered = session.get_session(state.session_id)
+    assert recovered.deconstruction is None
+
+    _submit_trap(recovered, "p-second-hit")
+
+    assert recovered.deconstruction is not None
+    assert (
+        recovered.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+    )
+
+
 def test_problem_start_time_not_paused_by_trigger(monkeypatch):
     """Issue #194: problem_start_time keeps running unpaused through trigger detection."""
     _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})

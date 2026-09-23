@@ -140,9 +140,18 @@ class SessionState(BaseModel):
     deconstructed: list[str] = Field(
         default_factory=list,
         description=(
-            "(Misconception, Level) pairs already deconstructed this Session — "
-            "deliberately not folded into the per-Level hit counter, which Level "
-            "changes reset"
+            "(Misconception, Chapter, Topic, Level) identities already deconstructed "
+            "this Session — kept separate from `misconception_hits` so a disarmed "
+            "identity never re-triggers even if its hit count keeps climbing"
+        ),
+    )
+    misconception_hits: Dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Misconception hits this Session, keyed by the same "
+            "(Misconception, Chapter, Topic, Level) identity as `deconstructed` — "
+            "what the Deconstruction trigger compares against "
+            "`config.DECONSTRUCTION_TRIGGER_COUNT`"
         ),
     )
     discounted_problem_id: Optional[str] = Field(
