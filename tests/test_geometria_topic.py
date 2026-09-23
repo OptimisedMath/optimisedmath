@@ -7,7 +7,15 @@ import re
 import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
-from backend.core.scene import Altitude, Centre, EdgeLabel, Outline, Radius, Scene, Triangle
+from backend.core.scene import (
+    Altitude,
+    Centre,
+    EdgeLabel,
+    Outline,
+    Radius,
+    Scene,
+    Triangle,
+)
 from backend.core.scene.geometry import circle
 from backend.core.scene.render import Box, _overlap
 from backend.curriculum import curriculum_from_yaml

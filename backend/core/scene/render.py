@@ -867,7 +867,11 @@ class Radius(Annotation):
         start = add(f.centre, mul(d, -f.radius)) if self.diameter else f.centre
         ctx.line(start, end, color=ACCENT)
         length = f.radius * (2 if self.diameter else 1)
-        text = self.unknown_text if self.unknown else f"{_fmt(length)} {self.unit_label}".strip()
+        text = (
+            self.unknown_text
+            if self.unknown
+            else f"{_fmt(length)} {self.unit_label}".strip()
+        )
         ctx.text(
             mul(add(start, end), 0.5),
             perp(d),
