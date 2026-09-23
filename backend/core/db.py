@@ -114,12 +114,6 @@ def init_db() -> None:
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
         cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_telemetry_deconstruction_trigger
-            ON telemetry_logs(
-                session_id, misconception_slug, chapter_id, topic_id, level_number
-            )
-            """)
-        cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstructions (
                 deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,

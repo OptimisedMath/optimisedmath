@@ -36,29 +36,17 @@ def _require_deconstruction_step(
     return deconstruction, deconstruction.steps[deconstruction.step_index]
 
 
-def deconstruction_key(
-    misconception_slug: str, chapter_id: int, topic_id: int, level: int
-) -> str:
-    """Stable identity for one (Misconception, Level) pair on the Session's state.
-
-    Keys both `state.misconception_hits` and `state.deconstructed`, and is shared
-    with `submission.py`'s trigger check, so the hit count, an armed Deconstruction
-    and its own ending all read exactly the same key.
-    """
-    return f"{misconception_slug}:{chapter_id}:{topic_id}:{level}"
-
-
 def _disarm(state: SessionState, deconstruction: DeconstructionState) -> None:
-    """Record this (Misconception, Level) pair as deconstructed — either ending
-    keeps it from firing again for the rest of the Session."""
-    chapter_id = state.selected_chapter_id
-    topic_id = state.selected_topic_id
-    assert chapter_id is not None and topic_id is not None
-    key = deconstruction_key(
-        deconstruction.misconception_slug, chapter_id, topic_id, state.selected_level
-    )
-    if key not in state.deconstructed:
-        state.deconstructed.append(key)
+    """Record this Misconception as deconstructed — either ending keeps it from
+    firing again for the rest of the Session.
+
+    Reads the slug straight off the active Deconstruction's own state, not off
+    the Session's Selected chapter, topic and level — so nothing about the
+    ending depends on navigation having left those untouched since the
+    trigger armed it (ADR-0014).
+    """
+    if deconstruction.misconception_slug not in state.deconstructed:
+        state.deconstructed.append(deconstruction.misconception_slug)
 
 
 def _abandon(state: SessionState, play_mode: PlayMode, *, outcome: str) -> None:

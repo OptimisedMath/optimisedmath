@@ -69,7 +69,7 @@ def test_reset_submission_cycle_does_not_clear_deconstruction_fields(
         step_attempts=2,
         step_revealed=True,
     )
-    state.deconstructed = ["test_misconception:100:101:1"]
+    state.deconstructed = ["test_misconception"]
     state.discounted_problem_id = "p-discounted"
 
     session_state.reset_submission_cycle(state)
@@ -79,7 +79,7 @@ def test_reset_submission_cycle_does_not_clear_deconstruction_fields(
     assert state.deconstruction.step_index == 1
     assert state.deconstruction.step_attempts == 2
     assert state.deconstruction.step_revealed is True
-    assert state.deconstructed == ["test_misconception:100:101:1"]
+    assert state.deconstructed == ["test_misconception"]
     assert state.discounted_problem_id == "p-discounted"
 
 
