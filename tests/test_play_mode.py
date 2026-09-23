@@ -59,6 +59,27 @@ def test_effective_frontier(mode_factory, expected_topic, expected_level):
 
 
 @pytest.mark.parametrize(
+    ("mode_factory", "topic_id", "level", "expected"),
+    [
+        # Student: tracks the pure `unlock.is_at_frontier` rule against the
+        # stored record (Topic 20, Level 2 here).
+        (StudentPlayMode, 20, 2, True),
+        (StudentPlayMode, 20, 1, False),
+        (StudentPlayMode, 10, 2, False),
+        # Admin: unconditionally True, regardless of the stored record (ADR-0013).
+        (AdminPlayMode, 30, 2, True),
+        (AdminPlayMode, 10, 1, True),
+    ],
+)
+def test_is_at_frontier(mode_factory, topic_id, level, expected):
+    chapter_topics = _chapter_topics()
+    stored = _stored_frontier()
+    mode = mode_factory()
+
+    assert mode.is_at_frontier(topic_id, level, chapter_topics, stored) is expected
+
+
+@pytest.mark.parametrize(
     ("mode_factory", "persists_profile", "reveals_correct_answer"),
     [
         (StudentPlayMode, True, False),
