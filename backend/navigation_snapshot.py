@@ -132,6 +132,11 @@ class ChapterNavigationContext:
         return _navigation_progress(completed, total)
 
     def has_next_unlocked_topic(self, selected_topic_id: int | None) -> bool:
+        """Whether this Student's Frontier has advanced past ``selected_topic_id``.
+
+        A Frontier question, unlike ``next_topic_id``: it is False in Admin play
+        mode and for a Chapter the Student has no Frontier record in.
+        """
         if self._next_unlocked_frontier_topic_id is None or selected_topic_id is None:
             return False
         return self._next_unlocked_frontier_topic_id > selected_topic_id

@@ -43,6 +43,7 @@ def _snapshot(
 
 
 def _problem(problem_id: str) -> ProblemDict:
+    """Build a minimal radio Problem whose only interesting field is its id."""
     return {
         "problem_id": problem_id,
         "question": "q",
@@ -241,7 +242,7 @@ def test_resolve_next_problem_navigates_to_next_topic(
     assert problem is served_problem
 
 
-def test_resolve_next_problem_admin_navigates_to_next_topic_not_last(
+def test_resolve_next_problem_admin_navigates_to_immediate_next_topic(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """An Admin's Topic completion lands on the immediate next Topic, not the Chapter's last.
@@ -277,6 +278,43 @@ def test_resolve_next_problem_admin_navigates_to_next_topic_not_last(
     assert state.topic_completed is False
     assert state.problem_answered is False
     assert problem is served_problem
+
+
+def test_resolve_next_problem_locked_next_topic_returns_current_problem(
+    fixture_curriculum: Curriculum,
+):
+    """A next Topic still Beyond the Frontier is not landed on; the completed Problem stands.
+
+    Navigation no longer consults the Frontier before picking a target (#332), so
+    this Locked target is rejected by the resolver rather than never proposed.
+    """
+    state = _fresh_state(fixture_curriculum)
+    completed_problem = _problem("locked-next")
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_MULTI
+    state.selected_level = 2
+    state.problem_answered = True
+    state.topic_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=2,
+    )
+    state.current_problem = completed_problem
+
+    problem = submission_cycle.resolve_next_problem(
+        state,
+        fixture_curriculum,
+        CHAPTER_ALPHA,
+        TOPIC_MULTI,
+        play_mode=StudentPlayMode(),
+        nav_snapshot=_snapshot(state, fixture_curriculum, StudentPlayMode()),
+    )
+
+    assert problem is completed_problem
+    assert state.selected_topic_id == TOPIC_MULTI
+    assert state.selected_level == 2
+    assert state.topic_completed is True
+    assert state.problem_answered is True
 
 
 def test_resolve_next_problem_chapter_end_returns_current_problem(

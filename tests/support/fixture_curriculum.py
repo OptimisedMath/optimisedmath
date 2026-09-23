@@ -27,6 +27,22 @@ TOPIC_TRIO_MIDDLE = 902
 TOPIC_TRIO_LAST = 903
 
 
+def _curriculum_from(*bundles: ChapterBundle) -> Curriculum:
+    """Assemble a Curriculum from bundles, deriving every chapter index from them."""
+    store = CurriculumStore(
+        bundles=bundles,
+        chapters=[
+            ChapterSummary(chapter_id=bundle.chapter_id, name=bundle.chapter_name)
+            for bundle in bundles
+        ],
+        bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundles},
+        chapter_name_by_id={
+            bundle.chapter_id: bundle.chapter_name for bundle in bundles
+        },
+    )
+    return Curriculum(_store=store)
+
+
 def build_fixture_curriculum() -> Curriculum:
     """Build a fixture Curriculum covering behaviours later tickets need."""
     topics_alpha: tuple[TopicDict, ...] = (
@@ -113,23 +129,11 @@ def build_fixture_curriculum() -> Curriculum:
         topic_name_by_id={TOPIC_SINGLE: "Single Level Topic"},
     )
 
-    bundles = (bundle_alpha, bundle_beta)
-    store = CurriculumStore(
-        bundles=bundles,
-        chapters=[
-            ChapterSummary(chapter_id=bundle.chapter_id, name=bundle.chapter_name)
-            for bundle in bundles
-        ],
-        bundles_by_chapter_id={bundle.chapter_id: bundle for bundle in bundles},
-        chapter_name_by_id={
-            bundle.chapter_id: bundle.chapter_name for bundle in bundles
-        },
-    )
-    return Curriculum(_store=store)
+    return _curriculum_from(bundle_alpha, bundle_beta)
 
 
 def build_three_topic_curriculum() -> Curriculum:
-    """Build a one-Chapter Curriculum of three Topics, for "the next Topic is not the last"."""
+    """Build a one-Chapter Curriculum of three Topics, so a next Topic can have a successor."""
     topics: tuple[TopicDict, ...] = tuple(
         {
             "topic_id": topic_id,
@@ -158,10 +162,4 @@ def build_three_topic_curriculum() -> Curriculum:
         },
         topic_name_by_id={topic["topic_id"]: topic["name"] for topic in topics},
     )
-    store = CurriculumStore(
-        bundles=(bundle,),
-        chapters=[ChapterSummary(chapter_id=CHAPTER_TRIO, name=bundle.chapter_name)],
-        bundles_by_chapter_id={CHAPTER_TRIO: bundle},
-        chapter_name_by_id={CHAPTER_TRIO: bundle.chapter_name},
-    )
-    return Curriculum(_store=store)
+    return _curriculum_from(bundle)
