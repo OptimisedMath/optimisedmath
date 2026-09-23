@@ -91,6 +91,8 @@ def run_submission_cycle(
         misconception_slug=misconception_slug,
         trap_source=trap_source,
     )
+    if misconception_slug is not None:
+        _record_misconception_hit(state, misconception_slug)
     if is_discounted_retry:
         _apply_discounted_retry_outcome(state, eval_result)
         is_soft_error = eval_result.get("feedback_type") == "info"
@@ -101,6 +103,22 @@ def run_submission_cycle(
         _run_progression_step(state, eval_result, curriculum, play_mode)
     session_state.persist(state, play_mode)
     return eval_result
+
+
+def _record_misconception_hit(state: SessionState, misconception_slug: str) -> None:
+    """Count one hit toward `misconception_slug`'s Deconstruction trigger.
+
+    Called before the discounted-retry branch, so a retry's hit counts toward
+    whichever Misconception it resolves — including one the just-finished
+    Deconstruction never covered — while the retry itself still arms nothing.
+    """
+    chapter_id = state.selected_chapter_id
+    topic_id = state.selected_topic_id
+    assert chapter_id is not None and topic_id is not None
+    key = deconstruction_step.deconstruction_key(
+        misconception_slug, chapter_id, topic_id, state.selected_level
+    )
+    state.misconception_hits[key] = state.misconception_hits.get(key, 0) + 1
 
 
 def _apply_discounted_retry_outcome(
@@ -260,13 +278,12 @@ def _maybe_trigger_deconstruction(
     if key in state.deconstructed:
         return
 
-    chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
-    topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
-    hits = db.count_misconception_hits(
-        state.session_id, misconception_slug, chapter_id, topic_id, level
-    )
+    hits = state.misconception_hits.get(key, 0)
     if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
         return
+
+    chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
+    topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
     try:
         steps = deconstruction.build_steps(
