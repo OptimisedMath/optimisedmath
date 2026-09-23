@@ -1,12 +1,15 @@
 """Tests for the Geometria vertical slice — Topic 130, Pole trójkąta (#214)."""
 
+import itertools
 import math
+import random
 import re
 
 import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
-from backend.core.scene import EdgeLabel, Outline, Scene, Triangle
+from backend.core.scene import Altitude, EdgeLabel, Outline, Scene, Triangle
+from backend.core.scene.render import Box, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -47,6 +50,71 @@ class TestSceneInvariant:
             figure = Triangle.base_height(base, height, apex_frac=-offset / base)
             assert figure.p("C")[0] < 0
 
+    def test_an_unknown_height_is_named_h(self):
+        """#293: the height is always `h`, never one of the edge letters."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        altitude = Altitude(apex="C", base="AB", unknown=True)
+        svg = Scene(figure, [Outline(), altitude]).to_svg()
+        assert altitude.unknown_text == "h"
+        assert ">h<" in svg
+
+    def test_a_known_height_prints_only_its_number(self):
+        """A known height stays exactly as it was before #293 — no symbol clutter."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(
+            figure, [Outline(), Altitude(apex="C", base="AB", unit_label="cm")]
+        ).to_svg()
+        assert ">12 cm<" in svg
+        assert ">h<" not in svg
+
+    def test_unknown_edges_are_named_a_b_c_in_figure_order(self):
+        """#293: each unknown edge claims the next letter, in the order its
+        EdgeLabel is drawn."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        ab = EdgeLabel("AB", "cm", unknown=True)
+        bc = EdgeLabel("BC", "cm", unknown=True)
+        ca = EdgeLabel("CA", "cm", unknown=True)
+        svg = Scene(figure, [Outline(), ab, bc, ca]).to_svg()
+        assert (ab.unknown_text, bc.unknown_text, ca.unknown_text) == ("a", "b", "c")
+        for letter in "abc":
+            assert f">{letter}<" in svg
+
+    def test_an_unknown_symbol_is_drawn_in_italic(self):
+        """#293: the unknown opts out of the figure's upright sans stack."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm", unknown=True)]).to_svg()
+        assert 'font-style="italic"' in svg
+
+    def test_a_known_label_stays_upright(self):
+        """Numbers and Units never pick up the unknown's italic treatment."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm")]).to_svg()
+        assert 'font-style="italic"' not in svg
+
+    def test_no_two_placed_labels_ever_overlap(self, monkeypatch):
+        """#289: sweeps every figure every generator in this Topic can draw, across
+        many seeds, and asserts pairwise disjointness of the placed label boxes —
+        the fault that let `24 dm` print on top of `25 dm` must not come back."""
+        captured: list[list[Box]] = []
+        original_to_svg = Scene.to_svg
+
+        def recording_to_svg(self, *args, **kwargs):
+            svg = original_to_svg(self, *args, **kwargs)
+            captured.append(self.label_boxes())
+            return svg
+
+        monkeypatch.setattr(Scene, "to_svg", recording_to_svg)
+
+        random.seed(0)
+        for generator in GENERATORS:
+            for _ in range(80):
+                generator()
+
+        assert captured
+        for boxes in captured:
+            for a, b in itertools.combinations(boxes, 2):
+                assert not _overlap(a, b), f"{a} overlaps {b}"
+
 
 class TestGenerators:
     @pytest.mark.parametrize("generator", GENERATORS, ids=lambda g: g.__name__)
@@ -68,16 +136,59 @@ class TestGenerators:
             for option in problem["options"]:
                 assert re.fullmatch(r"\d+", option), option
 
-    @pytest.mark.parametrize("generator", GENERATORS[:3], ids=lambda g: g.__name__)
+    @pytest.mark.parametrize("generator", GENERATORS[1:3], ids=lambda g: g.__name__)
     def test_a_forward_rung_labels_a_length_that_is_neither_base_nor_height(
         self, generator
     ):
-        """Without a distractor length, two of the three Traps cannot fire (#237)."""
+        """Without a distractor length, two of the three Traps cannot fire (#237).
+
+        Levels 2 and 3 keep their sides for exactly this reason; Level 1 does not
+        (#294), covered separately below.
+        """
         problem = generator()
         assert problem is not None
         parameters = problem["parameters"]
         extra = set(parameters) - {"base", "height", "unit"}
         assert extra
+
+    def test_level_1_labels_only_base_and_height(self):
+        """#294: the slant sides are gone, so no distractor length remains to name."""
+        for _ in range(20):
+            problem = topic.geo_triangle_area_1()
+            assert problem is not None
+            assert set(problem["parameters"]) == {"base", "height", "unit"}
+
+    def test_level_1_magnitudes_are_small_enough_to_multiply_mentally(self):
+        """#294: dropping the slant sides frees the pool from the Pythagorean-triple
+        constraint that used to force base/height into 13-14-15 territory."""
+        for _ in range(20):
+            problem = topic.geo_triangle_area_1()
+            assert problem is not None
+            parameters = problem["parameters"]
+            assert parameters["base"] <= topic._LEVEL_1_MAX_DIM
+            assert parameters["height"] <= topic._LEVEL_1_MAX_DIM
+
+    def test_level_1_no_longer_emits_the_perimeter_or_side_as_height_traps(self):
+        """#294: neither Trap has a visible side to compute its distractor from."""
+        for _ in range(40):
+            problem = topic.geo_triangle_area_1()
+            assert problem is not None
+            slugs = set(problem["options_map"].values())
+            assert topic.TRAP_PERIMETER not in slugs
+            assert topic.TRAP_SIDE_AS_HEIGHT not in slugs
+
+    @pytest.mark.parametrize("generator", GENERATORS[1:3], ids=lambda g: g.__name__)
+    def test_levels_2_and_3_still_emit_the_perimeter_and_side_as_height_traps(
+        self, generator
+    ):
+        """#294: these Traps move off Level 1 but stay put where a side is visible."""
+        seen: set[str] = set()
+        for _ in range(40):
+            problem = generator()
+            assert problem is not None
+            seen |= set(problem["options_map"].values())
+        assert topic.TRAP_PERIMETER in seen
+        assert topic.TRAP_SIDE_AS_HEIGHT in seen
 
     def test_the_reverse_rung_withholds_one_dimension_and_varies_which(self):
         """Fixing which dimension is unknown makes the rung solvable without the figure."""
@@ -86,9 +197,21 @@ class TestGenerators:
             problem = topic.geo_triangle_area_4()
             if problem is None:
                 continue
-            assert ">x<" in problem["image_html"]
-            withheld.add(problem["parameters"]["height_unknown"])
+            height_unknown = problem["parameters"]["height_unknown"]
+            symbol = "h" if height_unknown else "a"
+            assert f">{symbol}<" in problem["image_html"]
+            withheld.add(height_unknown)
         assert withheld == {True, False}
+
+    def test_the_reverse_rung_names_the_same_symbol_in_prose_and_figure(self):
+        """#293: the figure and the question text must never name different letters."""
+        for _ in range(40):
+            problem = topic.geo_triangle_area_4()
+            if problem is None:
+                continue
+            symbol = "h" if problem["parameters"]["height_unknown"] else "a"
+            assert rf"\text{{. Oblicz }} {symbol} " in problem["question"]
+            assert f">{symbol}<" in problem["image_html"]
 
     def test_the_reverse_rung_answers_in_a_length(self):
         """That is what puts both dimensions in the Topic without an `m²` rung."""
@@ -119,6 +242,17 @@ class TestLevels:
     def test_the_chapter_asks_for_a_text_keyboard(self, curriculum):
         """`default` sets inputMode=numeric, which puts `c` and `m` out of reach."""
         assert curriculum.keyboard_type(CHAPTER_ID) == "text"
+
+    @pytest.mark.parametrize("level", [1, 2, 3])
+    def test_an_area_level_offers_the_exponent_key(self, curriculum, level):
+        """Levels 1-3 expect a squared Unit, so the phone needs a way to type `²` (#292)."""
+        problem = generate_level_problem(curriculum, CHAPTER_ID, TOPIC_ID, level)
+        assert problem["exponent_key"] is True
+
+    def test_the_reverse_rung_withholds_the_exponent_key(self, curriculum):
+        """Level 4 expects a length Unit — no squared Unit is possible there (#292)."""
+        problem = generate_level_problem(curriculum, CHAPTER_ID, TOPIC_ID, 4)
+        assert problem["exponent_key"] is False
 
 
 class TestExpectedUnitsValidation:

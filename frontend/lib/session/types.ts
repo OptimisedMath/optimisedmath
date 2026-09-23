@@ -75,6 +75,8 @@ export interface Problem {
   image_html?: string;
   /** Radio mode only. Appended to every option for display; never submitted. */
   expected_unit?: string;
+  /** Whether this Level's expected Unit can be squared — decides the exponent tap key (#292). */
+  exponent_key?: boolean;
 }
 
 export interface SessionStartRequest {

@@ -13,6 +13,7 @@ import backend.config as config
 import backend.main as main
 import backend.session as session
 import backend.submission as submission
+from backend.answer_grading import grade
 from backend.core import db
 from backend.curriculum import resolve_curriculum
 from backend.deconstruction import build_steps
@@ -107,6 +108,38 @@ def test_wrong_radio_submit_reveals_correct_answer():
     assert revealed["correct_answer"] == "2"
     assert "correct" not in revealed
     assert "options_map" not in revealed
+
+
+def test_wrong_unit_submit_reveals_a_united_answer_that_then_grades_correct():
+    """Issue #290: a Student who omits the Unit sees a revealed answer that
+    carries the Unit, and retyping exactly what was revealed grades Correct —
+    the reveal and the grader must never contradict each other."""
+    problem = {
+        "problem_id": "p-unit-reveal",
+        "question": "q",
+        "correct": "84",
+        "expected_unit": "cm²",
+    }
+    state = make_state(problem, input_mode="typing")
+
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-unit-reveal",
+                user_input="84",
+            )
+        )
+    )
+
+    assert response.is_correct is False
+    revealed = response.state.current_problem
+    assert revealed is not None
+    assert revealed["correct_answer"] == "84 cm²"
+
+    retyped = grade(revealed["correct_answer"], problem, input_mode="typing")
+
+    assert retyped.get("is_correct") is True
 
 
 def test_wrong_text_submit_reveals_correct_answer():

@@ -21,9 +21,10 @@ from backend.core.utils import (
 
 # The ladder's one axis is how far the picture departs from the canonical
 # altitude (#237), so the arithmetic stays on small integers on every rung and
-# only the figure changes. Every rung labels a length that is neither the base
-# nor the height, because without one `confuses_base_with_height` and
-# `computes_the_perimeter_instead_of_the_area` have nothing to fire on.
+# only the figure changes. Levels 2 and 3 each label a length that is neither
+# the base nor the height, because without one `confuses_base_with_height` and
+# `computes_the_perimeter_instead_of_the_area` have nothing to fire on — Level 1
+# has no such length, so neither Trap is reachable there (#294).
 
 TRAP_DOUBLES = "treats_the_triangle_area_as_base_times_height"  # b·h, no halving
 TRAP_PERIMETER = "computes_the_perimeter_instead_of_the_area"  # suma boków
@@ -43,6 +44,11 @@ _MAX_HEIGHT = 24
 # The arithmetic is not this Topic's axis (#237), so the pool is capped by the
 # size of the numbers rather than by the size of the drawing.
 _MAX_AREA = 170
+
+# Level 1's base and height are the only lengths it prints, so they are the only
+# thing to bound — small enough to multiply in the head (#294).
+_LEVEL_1_MIN_DIM = 3
+_LEVEL_1_MAX_DIM = 12
 
 
 def _int_sqrt(n: int) -> int | None:
@@ -64,37 +70,28 @@ def _side_read_as_height(side_a: int, side_b: int) -> int:
     return max(side_a, side_b)
 
 
-def _acute_triangles() -> list[tuple[int, int, int, int]]:
-    """`(base, height, side CA, side BC)` with the altitude foot strictly inside.
+def _small_base_heights() -> list[tuple[int, int]]:
+    """`(base, height)` pairs whose area is a whole number, for Level 1 (#294).
 
-    Enumerated rather than tabulated because the constraints are the interesting
-    part: every printed length must be a whole number, so both feet of the
-    altitude have to be legs of Pythagorean triples on the same height — and the
-    apex angle must stay acute (`h² > d·e`), or the picture stops being the one
-    the formula is taught with.
+    Level 1 draws no slant side, so nothing forces the altitude's feet to be
+    legs of a Pythagorean triple — only the area needs to land on a whole
+    number, which leaves the pool free to stay small.
     """
-    found: list[tuple[int, int, int, int]] = []
-    for height in range(3, _MAX_HEIGHT + 1):
-        feet = [d for d in range(1, 40) if _int_sqrt(d * d + height * height)]
-        for index, left in enumerate(feet):
-            for right in feet[index:]:
-                base = left + right
-                if base > _MAX_BASE or height * height <= left * right:
-                    continue
-                if (base * height) % 2 or base * height // 2 > _MAX_AREA:
-                    continue
-                side_a = _int_sqrt(left * left + height * height)
-                side_b = _int_sqrt(right * right + height * height)
-                assert side_a is not None and side_b is not None
-                found.append((base, height, side_a, side_b))
-    return found
+    return [
+        (base, height)
+        for base in range(_LEVEL_1_MIN_DIM, _LEVEL_1_MAX_DIM + 1)
+        for height in range(_LEVEL_1_MIN_DIM, _LEVEL_1_MAX_DIM + 1)
+        if not (base * height) % 2
+    ]
 
 
 def _obtuse_triangles() -> list[tuple[int, int, int, int, int]]:
     """`(base, height, foot offset, side CA, side BC)` with the foot off the base.
 
-    Same integrality constraint as `_acute_triangles`, but the apex hangs beyond
-    vertex A, so the far foot is `offset + base` rather than `base - offset`.
+    Every printed length must be a whole number, so both feet of the altitude
+    have to be legs of Pythagorean triples on the same height — but here the
+    apex hangs beyond vertex A, so the far foot is `offset + base` rather than
+    `base - offset`.
     """
     found: list[tuple[int, int, int, int, int]] = []
     for height in range(3, _MAX_HEIGHT + 1):
@@ -153,7 +150,7 @@ def _reverse_triangles() -> list[tuple[int, int, int]]:
     return found
 
 
-ACUTE = _acute_triangles()
+SMALL_BASE_HEIGHTS = _small_base_heights()
 OBTUSE = _obtuse_triangles()
 RIGHT = _right_triangles()
 REVERSE = _reverse_triangles()
@@ -190,43 +187,32 @@ _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 
 
 @declares_units(*AREA_UNITS)
-@declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
+@declares_traps(TRAP_DOUBLES)
 def geo_triangle_area_1() -> dict | None:
     """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
     unit = random.choice(declared_units(geo_triangle_area_1))
     length_unit = _LENGTH_FOR_AREA[unit]
-    base, height, side_a, side_b = random.choice(ACUTE)
-    foot = math.sqrt(side_a * side_a - height * height)
+    base, height = random.choice(SMALL_BASE_HEIGHTS)
 
-    figure = Triangle.base_height(base, height, apex_frac=foot / base)
+    # No printed slant side means the apex is free to sit anywhere (#294); the
+    # range keeps the altitude's foot well inside the base, which is the rung.
+    figure = Triangle.base_height(base, height, apex_frac=random.uniform(0.3, 0.7))
     svg = Scene(
         figure,
         [
             Outline(),
             VertexLabels(),
-            EdgeLabel("AB", length_unit),
-            EdgeLabel("BC", length_unit),
-            EdgeLabel("CA", length_unit),
             Altitude(apex="C", base="AB", unit_label=length_unit),
         ],
     ).to_svg()
 
-    side_as_height = _side_read_as_height(side_a, side_b)
-    return _area_problem(
+    return build_problem_dict(
         _FORWARD_QUESTION,
-        svg,
-        base=base,
-        height=height,
-        sides=(side_a, side_b),
-        side_as_height=side_as_height,
-        unit=unit,
-        parameters={
-            "base": base,
-            "height": height,
-            "side_a": side_a,
-            "side_b": side_b,
-            "unit": length_unit,
-        },
+        str(base * height // 2),
+        traps={TRAP_DOUBLES: str(base * height)},
+        parameters={"base": base, "height": height, "unit": length_unit},
+        image_html=svg,
+        expected_unit=unit,
     )
 
 
@@ -323,22 +309,21 @@ def geo_triangle_area_4() -> dict | None:
     figure = Triangle.base_height(
         base, height, apex_frac=math.sqrt(side * side - height * height) / base
     )
+    edge_ab = EdgeLabel("AB", unit, unknown=not height_unknown)
+    altitude = Altitude(apex="C", base="AB", unit_label=unit, unknown=height_unknown)
     svg = Scene(
         figure,
-        [
-            Outline(),
-            VertexLabels(),
-            EdgeLabel("AB", unit, unknown=not height_unknown),
-            EdgeLabel("CA", unit),
-            Altitude(apex="C", base="AB", unit_label=unit, unknown=height_unknown),
-        ],
+        [Outline(), VertexLabels(), edge_ab, EdgeLabel("CA", unit), altitude],
     ).to_svg()
 
     given = base if height_unknown else height
     answer = 2 * area // given
+    # The figure claims its own symbol as it renders; read it back rather than
+    # naming the letter again, so the prose and the figure cannot disagree (#293).
+    symbol = altitude.unknown_text if height_unknown else edge_ab.unknown_text
     q_str = (
         rf"\text{{Pole trójkąta wynosi }} {area}\ \text{{{unit}}}^2"
-        rf"\text{{. Oblicz }} x \text{{.}}"
+        rf"\text{{. Oblicz }} {symbol} \text{{.}}"
     )
 
     return build_problem_dict(

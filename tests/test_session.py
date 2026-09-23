@@ -369,6 +369,24 @@ def test_public_problem_strips_unsafe_svg(fixture_curriculum: Curriculum):
     assert "input_mode" not in public
 
 
+def test_public_problem_passes_through_the_exponent_key_signal(
+    fixture_curriculum: Curriculum,
+):
+    """The client reads the backend's Level-scoped signal, not `keyboard_type` (#292)."""
+    state = _fresh_state(fixture_curriculum)
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "1",
+        "options": ["1"],
+        "exponent_key": True,
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["exponent_key"] is True
+
+
 def test_public_problem_includes_correct_answer_when_answered(
     fixture_curriculum: Curriculum,
 ):
@@ -427,6 +445,111 @@ def test_public_problem_includes_cleaned_correct_answer_for_admin_typing_mode(
     public = session.public_problem(problem, state, resolve_play_mode(state.username))
 
     assert public["correct_answer"] == "3/4"
+
+
+def test_public_problem_reveal_carries_expected_unit_in_typing_mode(
+    fixture_curriculum: Curriculum,
+):
+    """#290: a typing-mode reveal carries the Level's expected_unit, so a
+    Student who retypes it is graded Correct rather than Wrong again."""
+    state = _fresh_state(fixture_curriculum)
+    state.current_input_mode = "typing"
+    state.problem_answered = True
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "24",
+        "expected_unit": "cm²",
+        "options": ["24"],
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["correct_answer"] == "24 cm²"
+
+
+def test_public_problem_reveal_carries_length_unit_on_a_length_level(
+    fixture_curriculum: Curriculum,
+):
+    """#290: the reveal carries a length Unit on a length Level, not only area."""
+    state = _fresh_state(fixture_curriculum)
+    state.current_input_mode = "typing"
+    state.problem_answered = True
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "12",
+        "expected_unit": "cm",
+        "options": ["12"],
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["correct_answer"] == "12 cm"
+
+
+def test_public_problem_reveal_stays_bare_when_no_unit_expected(
+    fixture_curriculum: Curriculum,
+):
+    """#290 negative case: a Level with no expected_unit still reveals a bare
+    answer — this fix must not add a Unit where the grader never wants one."""
+    state = _fresh_state(fixture_curriculum)
+    state.current_input_mode = "typing"
+    state.problem_answered = True
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "42",
+        "options": ["42"],
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["correct_answer"] == "42"
+
+
+def test_public_problem_radio_reveal_stays_bare_for_option_matching(
+    fixture_curriculum: Curriculum,
+):
+    """Radio options are bare numbers (ADR-0005); the Unit is already printed
+    beside every option, so the reveal used to match the highlighted button
+    must stay bare rather than carry a Unit no option string has."""
+    state = _fresh_state(fixture_curriculum)
+    state.current_input_mode = "radio"
+    state.problem_answered = True
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "24",
+        "expected_unit": "cm²",
+        "options": ["23", "24"],
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["correct_answer"] == "24"
+    assert public["expected_unit"] == "cm²"
+
+
+def test_public_problem_includes_united_correct_answer_for_admin_typing_mode(
+    fixture_curriculum: Curriculum,
+):
+    """#290: the Admin pre-answer reveal (play_mode.reveals_correct_answer)
+    also carries the Unit in typing mode, matching the post-submit reveal."""
+    state = _fresh_state(fixture_curriculum)
+    state.username = next(iter(config.ADMIN_USERNAMES))
+    state.current_input_mode = "typing"
+    problem = {
+        "problem_id": "p1",
+        "question": "q",
+        "correct": "24",
+        "expected_unit": "cm²",
+        "options": [],
+    }
+
+    public = session.public_problem(problem, state, resolve_play_mode(state.username))
+
+    assert public["correct_answer"] == "24 cm²"
 
 
 def _submission_snapshot(state: SessionState) -> dict[str, object]:

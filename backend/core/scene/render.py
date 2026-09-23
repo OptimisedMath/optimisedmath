@@ -39,6 +39,21 @@ INK = "currentColor"
 ACCENT = "#f43f5e"
 MUTED = "#94a3b8"
 
+#: Sideways nudges tried at each distance, widening until one clears (#289).
+_NUDGES = (0, 1, -1, 2, -2, 3, -3, 4, -4)
+
+#: Letters claimed by unknown edge lengths, in figure order (#293).
+_EDGE_SYMBOLS = "abcdefghijklmnopqrstuvwxyz"
+
+#: Numbers, Units and vertex names — the figure's own voice.
+_KNOWN_FONT = 'font-family="system-ui, -apple-system, sans-serif"'
+
+#: An unknown symbol opts out of that upright sans stack — italic and serif, so
+#: it reads as a variable the way the question prose's KaTeX does, without
+#: naming a KaTeX webfont the backend has no business knowing about. The two
+#: attributes travel together: serif alone would not read as a variable.
+_UNKNOWN_FONT = 'font-family="Georgia, \'Times New Roman\', serif" font-style="italic"'
+
 
 def _fmt(v: float) -> str:
     """Polish decimal comma; integers stay bare.
@@ -61,6 +76,9 @@ def _pts(points: list[Pt]) -> str:
     return " ".join(f"{x:.3f},{-y:.3f}" for x, y in points)
 
 
+Box = tuple[float, float, float, float]
+
+
 @dataclass
 class Label:
     """A requested label. Its final position is decided by `Ctx.place_labels`."""
@@ -73,6 +91,8 @@ class Label:
     gap: float
     half_w: float
     half_h: float
+    #: withheld values are drawn as variables, in `_UNKNOWN_FONT`
+    unknown: bool = False
 
     def reach(self) -> float:
         """Half-extent of the glyph box along the placement direction, so the
@@ -81,8 +101,14 @@ class Label:
             abs(self.direction[0]) * self.half_w + abs(self.direction[1]) * self.half_h
         )
 
-
-Box = tuple[float, float, float, float]
+    def box_at(self, centre: Pt) -> Box:
+        """The glyph box this label would occupy centred on `centre`."""
+        return (
+            centre[0] - self.half_w,
+            centre[1] - self.half_h,
+            centre[0] + self.half_w,
+            centre[1] + self.half_h,
+        )
 
 
 def _overlap(a: Box, b: Box) -> bool:
@@ -121,6 +147,10 @@ class Ctx:
     obstacles: list[tuple[Pt, Pt]] = field(default_factory=list)
     #: how many arcs have been drawn at each vertex, for radius allocation
     arc_count: dict[str, int] = field(default_factory=dict)
+    #: how many unknown edge lengths have claimed a letter, for figure order
+    edge_symbol_count: int = 0
+    #: rectangles `place_labels` settled on, one per label, in placement order
+    placed_boxes: list[Box] = field(default_factory=list)
 
     # --- sizes ---------------------------------------------------------
     @property
@@ -162,6 +192,14 @@ class Ctx:
         b = unit(b)
         inward = b if self.fig.is_convex_at(v) else mul(b, -1)
         return mul(inward, -1)
+
+    def claim_edge_symbol(self) -> str:
+        """Take the next letter for an unknown edge length — `a`, then `b`, `c`.
+        Figure order, because each `EdgeLabel` claims one as it renders and
+        annotations render in the order the generator listed them."""
+        symbol = _EDGE_SYMBOLS[self.edge_symbol_count]
+        self.edge_symbol_count += 1
+        return symbol
 
     def arc_radius(self, v: str) -> float:
         """Rule 2. Sized against the SHORTER adjacent edge so the arc cannot
@@ -228,6 +266,7 @@ class Ctx:
         color: str = INK,
         scale: float = 1.0,
         gap: float = 1.6,
+        unknown: bool = False,
     ) -> None:
         """Rule 1. Request a label placed outside the figure along `direction`.
 
@@ -245,62 +284,107 @@ class Ctx:
                 color=color,
                 size=size,
                 gap=gap,
-                half_w=0.30 * size * max(1, len(label)),
+                # 0.30 was tuned against a regular-weight glyph; the labels
+                # actually render at font-weight 600, which draws wider, so a
+                # flat 0.30 reserved a box narrower than the glyphs it held
+                # and let an adjacent label's box read as clear when the
+                # glyphs themselves would touch (#289).
+                half_w=0.34 * size * max(1, len(label)),
                 half_h=0.58 * size,
+                unknown=unknown,
             )
         )
 
     # --- Rule 4: label placement is a whole-scene pass ------------------
     def place_labels(self) -> None:
-        """Push each label out along its own direction until it clears both the
-        strokes of the figure and every label already placed.
+        """Emit every requested label at the best position `_best_box` can find.
 
-        Sliding along the placement direction is what keeps the result
-        *meaningful*: a length label stays on the outward side of its own edge,
-        it just moves further out. Nudging sideways would be free but could park
-        a label beside the wrong edge.
+        There is no "place it somewhere, anywhere" fallback: a label that
+        cannot be placed clear of every already-placed label raises, per the
+        contract that this pass either finds a clean spot or fails loudly
+        rather than shipping labels that sit on top of each other.
+
+        Raises:
+            ValueError: when no candidate position clears the placed labels.
         """
         placed: list[Box] = []
         for lab in self.labels:
-            best_box, best_cost = None, None
-            # Two candidate sides. Sliding outward is tried first and preferred,
-            # but a label that starts inside a narrow wedge — the height of a
-            # squat trapezoid, the arc of a 25 degree vertex — can never escape
-            # by sliding one way, so the opposite side is a candidate too.
-            for sign in (1.0, -1.0):
-                d = mul(lab.direction, sign)
-                for step in range(0, 14):
-                    c = add(
-                        lab.anchor,
-                        mul(d, lab.gap * self.u + lab.reach() + step * self.u * 1.7),
-                    )
-                    box = (
-                        c[0] - lab.half_w,
-                        c[1] - lab.half_h,
-                        c[0] + lab.half_w,
-                        c[1] + lab.half_h,
-                    )
-                    cost = sum(1.0 for q in placed if _overlap(box, q))
-                    cost += sum(0.75 for seg in self.obstacles if _hits(box, seg))
-                    # tie-breakers: stay near what the label describes, and
-                    # prefer the outward side when both are clear
-                    cost += step * 0.05 + (0.12 if sign < 0 else 0.0)
-                    if best_cost is None or cost < best_cost:
-                        best_box, best_cost = box, cost
-                    if cost < 0.5:
-                        break
-                if best_cost is not None and best_cost < 0.5:
-                    break
-            assert best_box is not None
-            placed.append(best_box)
-            cx = (best_box[0] + best_box[2]) / 2
-            cy = (best_box[1] + best_box[3]) / 2
+            box, overlap = self._best_box(lab, placed)
+            if overlap:
+                raise ValueError(
+                    f"could not place label {lab.text!r} clear of every label "
+                    "already placed — the whole-scene placement pass found no "
+                    "position for it that does not overlap another label"
+                )
+            placed.append(box)
+            cx = (box[0] + box[2]) / 2
+            cy = (box[1] + box[3]) / 2
+            font = _UNKNOWN_FONT if lab.unknown else _KNOWN_FONT
             self.parts.append(
                 f'<text x="{cx:.3f}" y="{-cy:.3f}" fill="{lab.color}" font-size="{lab.size:.3f}" '
-                f'font-family="system-ui, -apple-system, sans-serif" font-weight="600" '
+                f'{font} font-weight="600" '
                 f'text-anchor="middle" dominant-baseline="central">{lab.text}</text>'
             )
-            self.include((best_box[0], best_box[1]), (best_box[2], best_box[3]))
+            self.include((box[0], box[1]), (box[2], box[3]))
+        self.placed_boxes = placed
+
+    def _best_box(self, lab: Label, placed: list[Box]) -> tuple[Box, int]:
+        """The best-ranked box for `lab`, and how many of `placed` it still
+        overlaps — zero when the search found somewhere clean.
+
+        Pushes the label out along its own direction until it clears both the
+        strokes of the figure and every label already placed. Sliding along
+        that direction is what keeps the result *meaningful*: a length label
+        stays on the outward side of its own edge, it just moves further out.
+        Nudging sideways would be free but could park a label beside the wrong
+        edge — but a *pure* slide can also get stuck: a label boxed in by a
+        near-vertical altitude can share almost the same direction as the side
+        label it collides with, so no distance along that one line ever clears
+        it (#289). A perpendicular nudge, tried at every distance and widened
+        until it clears, gives the search a second axis to route around a fixed
+        box without abandoning the outward side that keeps the label meaningful.
+        """
+        best_box: Box | None = None
+        best_rank: float | None = None
+        best_overlap: int | None = None
+        # Two candidate sides. Sliding outward is tried first and preferred,
+        # but a label that starts inside a narrow wedge — the height of a
+        # squat trapezoid, the arc of a 25 degree vertex — can never escape
+        # by sliding one way, so the opposite side is a candidate too.
+        for sign in (1.0, -1.0):
+            out = mul(lab.direction, sign)
+            sideways = perp(lab.direction)
+            for step in range(0, 14):
+                dist = lab.gap * self.u + lab.reach() + step * self.u * 1.7
+                centre = add(lab.anchor, mul(out, dist))
+                for shift in _NUDGES:
+                    box = lab.box_at(add(centre, mul(sideways, shift * self.u * 1.4)))
+                    # `overlap` is the one thing the contract forbids: two
+                    # label boxes covering the same ground. `hits` — this box
+                    # grazing a figure stroke — is unsightly but not what #289
+                    # is about, so it stays a soft preference. Keeping the two
+                    # apart, instead of folding both into one blended cost,
+                    # matters: a candidate can only be accepted as "clear" by
+                    # the one criterion that governs whether it may ship.
+                    overlap = sum(1 for q in placed if _overlap(box, q))
+                    hits = sum(1 for seg in self.obstacles if _hits(box, seg))
+                    tie = step * 0.05 + (0.12 if sign < 0 else 0.0) + abs(shift) * 0.03
+                    # Scaled so that one label overlap always outranks any
+                    # number of stroke hits, and any stroke hit always outranks
+                    # the tie-breakers — among the candidates tried, a truly
+                    # clear box can never lose to a dirtier one found earlier
+                    # (#289's second fault).
+                    rank = overlap * 1000 + hits * 10 + tie
+                    if best_rank is None or rank < best_rank:
+                        best_box, best_rank, best_overlap = box, rank, overlap
+                    if overlap == 0 and hits == 0:
+                        break
+                if best_overlap == 0:
+                    break
+            if best_overlap == 0:
+                break
+        assert best_box is not None and best_overlap is not None
+        return best_box, best_overlap
 
     def arc_points(
         self,
@@ -398,19 +482,27 @@ class EdgeLabel(Annotation):
     """A length label on an edge.
 
     The text is DERIVED from the constructed edge, so it cannot contradict the
-    picture. `unknown` prints `x` instead of the value — the only supported way
-    to withhold it, and the generator still cannot print a *different* number.
+    picture. `unknown` withholds the value and prints a letter instead — the
+    only supported way to withhold it, and the generator still cannot print a
+    *different* number. The letter is claimed on first render — `a`, then `b`,
+    `c` in figure order — and pinned to `unknown_text`, so a generator reads
+    the symbol the figure drew instead of naming it a second time (#293).
     """
 
     edge: str
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str = "x"
+    unknown_text: str | None = None
     inside: bool = False
 
     def text_for(self, ctx: Ctx) -> str:
-        """The label's text, read off the constructed edge unless withheld."""
+        """The label's text, read off the constructed edge unless withheld.
+
+        Claims and pins `unknown_text` the first time a withheld label renders.
+        """
         if self.unknown:
+            if self.unknown_text is None:
+                self.unknown_text = ctx.claim_edge_symbol()
             return self.unknown_text
         value = _fmt(ctx.fig.edge_length(self.edge))
         return f"{value} {self.unit_label}".strip()
@@ -421,7 +513,7 @@ class EdgeLabel(Annotation):
         n = ctx.outward_normal(self.edge)
         if self.inside:
             n = mul(n, -1)
-        ctx.text(mid, n, self.text_for(ctx))
+        ctx.text(mid, n, self.text_for(ctx), unknown=self.unknown)
 
 
 #: #212 found the placement floor by scanning: below this, `place_labels` cannot
@@ -551,6 +643,11 @@ class Altitude(Annotation):
     Derives the foot. When the foot lands off the segment — the rozwartokątny
     case of Topic 130 — it also draws the dotted base extension, because the
     figure is wrong without it.
+
+    `unknown` withholds the length and prints `h` instead — always that letter,
+    never claimed from the edge letters. It is kept on `unknown_text` so a
+    generator reads the symbol off the annotation, the same way it reads one
+    off an `EdgeLabel`, instead of naming it a second time in its prose (#293).
     """
 
     apex: str
@@ -558,6 +655,7 @@ class Altitude(Annotation):
     label: bool = True
     unit_label: str = ""
     unknown: bool = False
+    unknown_text: str = "h"
 
     def foot(self, ctx: Ctx) -> tuple[Pt, bool]:
         """The altitude's foot, and whether it lands on the base segment."""
@@ -604,11 +702,11 @@ class Altitude(Annotation):
             if dot(n, sub(mid, f.centroid())) < 0:
                 n = mul(n, -1)
             text = (
-                "x"
+                self.unknown_text
                 if self.unknown
                 else f"{_fmt(norm(sub(p, foot)))} {self.unit_label}".strip()
             )
-            ctx.text(mid, n, text, color=ACCENT, scale=0.9)
+            ctx.text(mid, n, text, color=ACCENT, scale=0.9, unknown=self.unknown)
 
 
 @dataclass
@@ -837,6 +935,19 @@ class Scene:
 
     figure: Figure
     annotations: list[Annotation]
+    _label_boxes: list[Box] = field(
+        default_factory=list, init=False, repr=False, compare=False
+    )
+
+    def label_boxes(self) -> list[Box]:
+        """The rectangles the last `to_svg()` call placed its labels at.
+
+        The one seam `to_svg()` needs to make "no two labels overlap"
+        assertable for any figure: a caller reads the boxes back off the
+        `Scene` instead of scraping the SVG string or reaching into `Ctx`,
+        which stays private (#289). Empty until `to_svg()` has run.
+        """
+        return list(self._label_boxes)
 
     def to_svg(self, pad: float = 4.0) -> str:
         """Render the scene: pen unit, then draw, then place labels, then viewBox."""
@@ -860,6 +971,7 @@ class Scene:
         # Pass 2b: resolve every label against every stroke and every other
         # label, now that the whole scene is known.
         ctx.place_labels()
+        self._label_boxes = ctx.placed_boxes
 
         # Pass 3: viewBox from the content bbox — labels included, so nothing clips.
         xs = [p[0] for p in ctx.extent]

@@ -110,23 +110,29 @@ def public_problem(
         "level_name",
         "level_display",
         "keyboard_type",
+        "exponent_key",
     }
     public = {key: problem.get(key) for key in public_keys if key in problem}
     image_html = public.get("image_html")
     if image_html and not _is_safe_svg_fragment(str(image_html)):
         public["image_html"] = None
     public["answer_options"] = list(problem.get("options", []))
-    if state.current_input_mode == "radio":
-        # Radio mode only. The client appends this to all four buttons, so the
-        # Student reads `24 cm²` but the Unit can never be the discriminator
-        # (#213). Printing it beside a text input would hand away the very
-        # distinction `confuses_length_and_area_units` exists to detect.
-        expected_unit = problem.get("expected_unit")
-        if expected_unit:
-            public["expected_unit"] = expected_unit
+    expected_unit = problem.get("expected_unit")
+    # Radio mode only. The client appends this to all four buttons, so the
+    # Student reads `24 cm²` but the Unit can never be the discriminator
+    # (#213). Printing it beside a text input would hand away the very
+    # distinction `confuses_length_and_area_units` exists to detect.
+    if state.current_input_mode == "radio" and expected_unit:
+        public["expected_unit"] = expected_unit
+    # Radio's `correct_answer` stays bare even when a Unit is expected: it is
+    # matched against `answer_options`, which ADR-0005 keeps bare so the Unit
+    # can never be the discriminator, and the highlighted option already shows
+    # the Unit via `expected_unit` above. Only typing mode's reveal — the one
+    # a Student can retype — needs to agree with what the grader accepts.
+    reveal_unit = expected_unit if state.current_input_mode == "typing" else None
     if state.problem_answered:
         if state.deconstruction is None:
-            public["correct_answer"] = problem.get("correct")
+            public["correct_answer"] = _revealed(problem.get("correct"), reveal_unit)
         # else: a triggering Submission withholds it — the walkthrough still
         # has something to arrive at. Withholding is a spoiler rule only; the
         # client learns a Deconstruction is running from
@@ -136,10 +142,20 @@ def public_problem(
         correct = problem.get("correct")
         if correct is not None:
             if state.current_input_mode == "typing":
-                public["correct_answer"] = clean_latex(correct)
-            else:
-                public["correct_answer"] = correct
+                correct = clean_latex(correct)
+            public["correct_answer"] = _revealed(correct, reveal_unit)
     return public
+
+
+def _revealed(correct: Any, unit: str | None) -> Any:
+    """The correct answer as the Student sees it, carrying `unit` when one is due.
+
+    Nothing to reveal stays nothing: a Level with no Unit, or a Problem with no
+    answer, is handed back untouched rather than gaining a stray Unit (#290).
+    """
+    if correct is None or not unit:
+        return correct
+    return f"{correct} {unit}"
 
 
 def build_session_response(

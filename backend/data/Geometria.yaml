@@ -15,12 +15,6 @@ topics:
           treats_the_triangle_area_as_base_times_height:
             misconception: treats_the_triangle_area_as_base_times_height
             explanation: "To pole prostokąta, nie trójkąta. Trójkąt to połowa — podziel jeszcze przez 2."
-          computes_the_perimeter_instead_of_the_area:
-            misconception: computes_the_perimeter_instead_of_the_area
-            explanation: "Dodałeś boki, czyli policzyłeś obwód. Pole liczymy z podstawy i wysokości."
-          confuses_base_with_height:
-            misconception: confuses_base_with_height
-            explanation: "To bok, nie wysokość. Wysokość to odcinek przerywany, prostopadły do podstawy."
       - level: 2
         name: "Trójkąt prostokątny"
         function: "geo_triangle_area_2"
