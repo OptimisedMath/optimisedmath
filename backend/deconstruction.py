@@ -28,6 +28,7 @@ from backend.expression import (
     evaluate,
     parse,
     render,
+    render_value,
 )
 from backend.step_grading import ORDERING_ANSWER_SEPARATOR
 
@@ -638,13 +639,13 @@ def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[S
 #
 # The walkthrough is chapter-agnostic: `expression.Value.notation` (fraction or
 # decimal) is read once from the parsed tree and carried through every value that
-# replaces a resolved operation, so every step's `working_line` and answer render
-# in whichever notation the Problem itself uses — `n/d` in Ułamki Zwykłe
-# (mirroring the generators' own `_frac`, never a bare integer for a whole
-# answer), a trailing-zero-stripped decimal comma in Ułamki Dziesiętne
-# (mirroring `fmt_dec(_q(ans))`). That is also what makes the final step's
-# answer string-exact against the Problem's own: it is authored in the same
-# convention as every step before it, not specially formatted at the end.
+# replaces a resolved operation, so every step's line and answer render through
+# `expression.render_value` (ADR-0017) — a LaTeX `\frac{n}{d}` or a bare integer
+# in Ułamki Zwykłe, a trailing-zero-stripped decimal comma in Ułamki Dziesiętne.
+# The generators' own leaf formatter calls that same function, which is what
+# makes the final step's answer string-exact against the Problem's own: it is
+# authored by the same function as every step before it, not specially
+# formatted at the end.
 
 _LADDER_TIERS = (
     "nawiasy",
@@ -758,12 +759,13 @@ def _replace_node(node: Node, target: Node, replacement: Node) -> Node:
 
 
 def _format_step_answer(value: Fraction, notation: Notation) -> str:
-    """An operation's answer in the Problem's own convention — `n/d` for Ułamki
-    Zwykłe (mirroring `_frac`, never a bare integer), a trailing-zero-stripped
-    decimal comma for Ułamki Dziesiętne (mirroring `fmt_dec(_q(ans))`)."""
-    if notation == "decimal":
-        return fmt_dec(Decimal(value.numerator) / Decimal(value.denominator))
-    return f"{value.numerator}/{value.denominator}"
+    """An operation's answer, in the same convention the Problem's own options
+    are drawn in: `expression.render_value` (ADR-0017) — a LaTeX `\\frac{n}{d}`
+    or a bare integer for Ułamki Zwykłe, a trailing-zero-stripped decimal comma
+    for Ułamki Dziesiętne. The generator's own leaf formatter calls the same
+    function, which is what keeps this Step's final answer string-exact
+    against the Problem's own."""
+    return render_value(value, notation)
 
 
 def _apply_steps(tree: Node, notation: Notation) -> list[Step]:

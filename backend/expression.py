@@ -185,13 +185,13 @@ def render(node: Node) -> str:
 def _render_inner(node: Node) -> str:
     """Render a node's own shape, leaving its brackets to `render`."""
     if isinstance(node, Value):
-        return _render_value(node.value, node.notation)
+        return render_value(node.value, node.notation)
     if isinstance(node, Power):
         return f"{render(node.base)}^{node.exponent}"
     return f"{render(node.left)}{_OP_LATEX[node.op]}{render(node.right)}"
 
 
-def _render_value(value: Fraction, notation: Notation) -> str:
+def render_value(value: Fraction, notation: Notation) -> str:
     """Render one leaf: a decimal comma, a whole number, or a LaTeX `\\frac`."""
     if notation == "decimal":
         return fmt_dec(Decimal(value.numerator) / Decimal(value.denominator))

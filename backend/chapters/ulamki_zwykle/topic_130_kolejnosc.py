@@ -2,22 +2,30 @@
 
 import random
 from fractions import Fraction
-from backend.core.utils import build_problem_dict, declares_traps, latex_to_expression
+from backend.core.utils import build_problem_dict, declares_traps
+from backend.expression import parse, render, render_value
 
 
 def _frac(value: Fraction) -> str:
-    """Format a Fraction as the improper `n/d` string answers and parameters carry."""
+    """Format a Fraction as the improper `n/d` string the ASCII `expression` and
+    the named operand parameters carry."""
     return f"{value.numerator}/{value.denominator}"
 
 
-def _params(q: str, **operands: Fraction) -> dict[str, int | float | str]:
-    """The Problem's `parameters`: every operand as `n/d`, plus `q` as an ASCII
-    `expression`.
+def _option(value: Fraction) -> str:
+    """Format a Fraction as an option: a LaTeX `\\frac{n}{d}`, or a bare integer
+    when it's whole, per ADR-0017 — the same rule `render` draws every leaf in."""
+    return render_value(value, "fraction")
+
+
+def _params(expr: str, **operands: Fraction) -> dict[str, int | float | str]:
+    """The Problem's `parameters`: every operand as `n/d`, plus the ASCII `expr`
+    itself as `expression`.
     """
     parameters: dict[str, int | float | str] = {
         name: _frac(value) for name, value in operands.items()
     }
-    parameters["expression"] = latex_to_expression(q)
+    parameters["expression"] = expr
     return parameters
 
 
@@ -39,7 +47,7 @@ def frac_ord_1() -> dict | None:
         a, b, c = [
             Fraction(random.randint(1, 3), random.choice(dens)) for _ in range(3)
         ]
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}} \\cdot \\frac{{{c.numerator}}}{{{c.denominator}}}"
+        expr = f"{_frac(a)} + {_frac(b)} * {_frac(c)}"
         ans = a + (b * c)
         traps = {
             "adds_before_multiplying": (a + b) * c,
@@ -50,7 +58,7 @@ def frac_ord_1() -> dict | None:
         a, b, c = [
             Fraction(random.randint(1, 3), random.choice(dens)) for _ in range(3)
         ]
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot \\frac{{{b.numerator}}}{{{b.denominator}}} + \\frac{{{c.numerator}}}{{{c.denominator}}}"
+        expr = f"{_frac(a)} * {_frac(b)} + {_frac(c)}"
         ans = (a * b) + c
         traps = {
             "adds_before_multiplying": a * (b + c),
@@ -62,7 +70,7 @@ def frac_ord_1() -> dict | None:
             Fraction(random.randint(1, 3), random.choice([2, 3, 4])) for _ in range(2)
         ]
         a = (b * c) + Fraction(random.randint(1, 2), random.choice([2, 3]))
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} - \\frac{{{b.numerator}}}{{{b.denominator}}} \\cdot \\frac{{{c.numerator}}}{{{c.denominator}}}"
+        expr = f"{_frac(a)} - {_frac(b)} * {_frac(c)}"
         ans = a - (b * c)
         traps = {
             "subtracts_before_multiplying": (a - b) * c,
@@ -76,10 +84,10 @@ def frac_ord_1() -> dict | None:
             return None
 
     problem = build_problem_dict(
-        q,
-        _frac(ans),
-        traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c),
+        render(parse(expr)),
+        _option(ans),
+        traps={slug: _option(value) for slug, value in traps.items()},
+        parameters=_params(expr, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -100,7 +108,7 @@ def frac_ord_2() -> dict | None:
     if template == "brack_mul":
         a, b = [Fraction(1, random.choice([2, 3, 4])) for _ in range(2)]
         c = Fraction(random.randint(1, 3), random.choice([2, 3, 5]))
-        q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}}) \\cdot \\frac{{{c.numerator}}}{{{c.denominator}}}"
+        expr = f"({_frac(a)} + {_frac(b)}) * {_frac(c)}"
         ans = (a + b) * c
         traps = {
             "ignores_the_brackets": a + (b * c),
@@ -111,7 +119,7 @@ def frac_ord_2() -> dict | None:
         a = Fraction(random.randint(1, 3), random.choice([2, 3]))
         b = Fraction(random.randint(3, 5), random.choice([4, 5]))
         c = Fraction(1, random.choice([4, 5]))
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} - \\frac{{{c.numerator}}}{{{c.denominator}}})"
+        expr = f"{_frac(a)} * ({_frac(b)} - {_frac(c)})"
         ans = a * (b - c)
         traps = {
             "ignores_the_brackets": (a * b) - c,
@@ -122,7 +130,7 @@ def frac_ord_2() -> dict | None:
         a = Fraction(random.randint(2, 5), random.choice([2, 3]))
         b = Fraction(random.randint(3, 5), random.choice([4, 5]))
         c = Fraction(1, random.choice([4, 5]))
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} : (\\frac{{{b.numerator}}}{{{b.denominator}}} - \\frac{{{c.numerator}}}{{{c.denominator}}})"
+        expr = f"{_frac(a)} : ({_frac(b)} - {_frac(c)})"
         ans = a / (b - c)
         traps = {
             "ignores_the_brackets": (a / b) - c,
@@ -131,10 +139,10 @@ def frac_ord_2() -> dict | None:
         }
 
     problem = build_problem_dict(
-        q,
-        _frac(ans),
-        traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c),
+        render(parse(expr)),
+        _option(ans),
+        traps={slug: _option(value) for slug, value in traps.items()},
+        parameters=_params(expr, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -160,7 +168,7 @@ def frac_ord_3() -> dict | None:
         d = Fraction(1, random.choice([3, 4, 5]))
         if c <= d:
             return None
-        q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}}) : (\\frac{{{c.numerator}}}{{{c.denominator}}} - \\frac{{{d.numerator}}}{{{d.denominator}}})"
+        expr = f"({_frac(a)} + {_frac(b)}) : ({_frac(c)} - {_frac(d)})"
         ans = (a + b) / (c - d)
         traps = {
             "ignores_the_brackets": a + (b / c) - d,
@@ -172,7 +180,7 @@ def frac_ord_3() -> dict | None:
         b = Fraction(random.randint(2, 3), random.choice([4, 5]))
         c = Fraction(1, random.choice([3, 4, 5]))
         d = Fraction(1, random.choice([2, 3, 4]))
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}} : \\frac{{{c.numerator}}}{{{c.denominator}}} + \\frac{{{d.numerator}}}{{{d.denominator}}}"
+        expr = f"{_frac(a)} + {_frac(b)} : {_frac(c)} + {_frac(d)}"
         ans = a + (b / c) + d
         traps = {
             "invents_brackets_around_both_additions": (a + b) / (c + d),
@@ -181,10 +189,10 @@ def frac_ord_3() -> dict | None:
         }
 
     problem = build_problem_dict(
-        q,
-        _frac(ans),
-        traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c, d=d),
+        render(parse(expr)),
+        _option(ans),
+        traps={slug: _option(value) for slug, value in traps.items()},
+        parameters=_params(expr, a=a, b=b, c=c, d=d),
     )
 
     if problem:
@@ -205,30 +213,30 @@ def frac_ord_4() -> dict | None:
     if template == "pow_add":
         a = Fraction(1, random.choice([2, 3, 4]))
         b, c = [Fraction(random.randint(1, 3), random.choice([2, 3])) for _ in range(2)]
-        q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}})^2 + \\frac{{{b.numerator}}}{{{b.denominator}}} \\cdot \\frac{{{c.numerator}}}{{{c.denominator}}}"
+        expr = f"({_frac(a)})^2 + {_frac(b)} * {_frac(c)}"
         ans = (a**2) + (b * c)
         traps = {
             "adds_before_multiplying": ((a**2) + b) * c,
             "ignores_the_exponent": a + (b * c),
             "multiplies_by_the_exponent": (a * 2) + (b * c),
         }
-        instance_parameters = _params(q, a=a, b=b, c=c)
+        instance_parameters = _params(expr, a=a, b=b, c=c)
     else:
         b = Fraction(1, random.choice([2, 3, 4]))
         a = (b**2) + Fraction(random.randint(1, 2), random.choice([2, 3]))
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} - (\\frac{{{b.numerator}}}{{{b.denominator}}})^2"
+        expr = f"{_frac(a)} - ({_frac(b)})^2"
         ans = a - (b**2)
         traps = {
             "subtracts_before_squaring": (a - b) ** 2,
             "ignores_the_exponent": a - b,
             "multiplies_by_the_exponent": a - (b * 2),
         }
-        instance_parameters = _params(q, a=a, b=b)
+        instance_parameters = _params(expr, a=a, b=b)
 
     problem = build_problem_dict(
-        q,
-        _frac(ans),
-        traps={slug: _frac(value) for slug, value in traps.items()},
+        render(parse(expr)),
+        _option(ans),
+        traps={slug: _option(value) for slug, value in traps.items()},
         parameters=instance_parameters,
     )
     if problem:
@@ -249,7 +257,7 @@ def frac_ord_5() -> dict | None:
     if template == "brack_sq_sub":
         a, b = [Fraction(1, random.choice([2, 3])) for _ in range(2)]
         c = Fraction(1, random.choice([2, 3, 4, 5]))
-        q = f"(\\frac{{{a.numerator}}}{{{a.denominator}}} + \\frac{{{b.numerator}}}{{{b.denominator}}})^2 - \\frac{{{c.numerator}}}{{{c.denominator}}}"
+        expr = f"({_frac(a)} + {_frac(b)})^2 - {_frac(c)}"
         ans = ((a + b) ** 2) - c
         if ans < 0:
             return None
@@ -262,7 +270,7 @@ def frac_ord_5() -> dict | None:
         a = Fraction(1, random.choice([2, 3]))
         b = Fraction(3, random.choice([4, 5]))
         c = Fraction(1, random.choice([4, 5, 6]))
-        q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} - \\frac{{{c.numerator}}}{{{c.denominator}}})^2"
+        expr = f"{_frac(a)} * ({_frac(b)} - {_frac(c)})^2"
         ans = a * ((b - c) ** 2)
         traps = {
             "multiplies_before_squaring": (a * (b - c)) ** 2,
@@ -271,10 +279,10 @@ def frac_ord_5() -> dict | None:
         }
 
     problem = build_problem_dict(
-        q,
-        _frac(ans),
-        traps={slug: _frac(value) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c),
+        render(parse(expr)),
+        _option(ans),
+        traps={slug: _option(value) for slug, value in traps.items()},
+        parameters=_params(expr, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -295,20 +303,20 @@ def frac_ord_6() -> dict | None:
     c = random.choice([Fraction(1, 2), Fraction(1, 3)])
     d = random.choice([Fraction(1, 8), Fraction(1, 9), Fraction(1, 10)])
 
-    q = f"\\frac{{{a.numerator}}}{{{a.denominator}}} \\cdot (\\frac{{{b.numerator}}}{{{b.denominator}}} + \\frac{{{c.numerator}}}{{{c.denominator}}})^2 - \\frac{{{d.numerator}}}{{{d.denominator}}}"
+    expr = f"{_frac(a)} * ({_frac(b)} + {_frac(c)})^2 - {_frac(d)}"
     ans = a * ((b + c) ** 2) - d
     if ans < 0:
         return None
 
     problem = build_problem_dict(
-        q,
-        _frac(ans),
+        render(parse(expr)),
+        _option(ans),
         traps={
-            "multiplies_before_squaring": _frac((a * (b + c)) ** 2 - d),
-            "multiplies_by_the_exponent": _frac(a * ((b + c) * 2) - d),
-            "squares_the_bracket_terms_separately": _frac(a * (b**2 + c**2) - d),
+            "multiplies_before_squaring": _option((a * (b + c)) ** 2 - d),
+            "multiplies_by_the_exponent": _option(a * ((b + c) * 2) - d),
+            "squares_the_bracket_terms_separately": _option(a * (b**2 + c**2) - d),
         },
-        parameters=_params(q, a=a, b=b, c=c, d=d),
+        parameters=_params(expr, a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
