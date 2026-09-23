@@ -7,8 +7,8 @@ import re
 import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
-from backend.core.scene import Altitude, EdgeLabel, Outline, Scene, Triangle
-from backend.core.scene.render import Box, _overlap
+from backend.core.scene import AngleArc, Altitude, EdgeLabel, Outline, Scene, Triangle
+from backend.core.scene.render import Box, _fmt, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -88,6 +88,58 @@ class TestSceneInvariant:
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm")]).to_svg()
         assert 'font-style="italic"' not in svg
+
+    def test_unknown_angles_are_named_alpha_beta_gamma_in_figure_order(self):
+        """#326: each unknown arc claims the next Greek letter, in the order its
+        vertex sits around the outline — not the order the AngleArc was listed."""
+        figure = Triangle.sss(5, 6, 7)
+        arc_c = AngleArc(vertex="C", unknown=True)
+        arc_a = AngleArc(vertex="A", unknown=True)
+        arc_b = AngleArc(vertex="B", unknown=True)
+        svg = Scene(figure, [Outline(), arc_c, arc_a, arc_b]).to_svg()
+        assert (arc_a.unknown_text, arc_b.unknown_text, arc_c.unknown_text) == (
+            "α",
+            "β",
+            "γ",
+        )
+        for letter in "αβγ":
+            assert f">{letter}<" in svg
+
+    def test_a_known_arc_among_unknowns_prints_degrees_and_keeps_no_letter(self):
+        """A known arc among unknown ones still prints its degrees and does not
+        consume a letter — the next unknown still claims `β`, not `γ`."""
+        figure = Triangle.sss(5, 6, 7)
+        arc_a = AngleArc(vertex="A", unknown=True)
+        arc_b = AngleArc(vertex="B", unknown=False)
+        arc_c = AngleArc(vertex="C", unknown=True)
+        svg = Scene(figure, [Outline(), arc_a, arc_b, arc_c]).to_svg()
+        assert (arc_a.unknown_text, arc_c.unknown_text) == ("α", "β")
+        assert arc_b.unknown_text is None
+        assert f"{_fmt(figure.interior_angle('B'))}°" in svg
+        assert ">γ<" not in svg
+
+    def test_an_unknown_angle_symbol_is_drawn_in_italic(self):
+        """#326: the unknown opts out of the figure's upright sans stack."""
+        figure = Triangle.sss(5, 6, 7)
+        svg = Scene(figure, [Outline(), AngleArc(vertex="A", unknown=True)]).to_svg()
+        assert 'font-style="italic"' in svg
+
+    def test_a_known_angle_stays_upright(self):
+        """Degrees never pick up the unknown's italic treatment."""
+        figure = Triangle.sss(5, 6, 7)
+        svg = Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+        assert 'font-style="italic"' not in svg
+
+    def test_angle_arc_offers_no_free_text_override(self):
+        """#326: the symbol is assigned by the scene; a generator cannot type one."""
+        with pytest.raises(TypeError):
+            AngleArc(vertex="A", unknown=True, unknown_text="x")
+
+    def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self):
+        """The labelled-arc minimum angle (#212) is still enforced after #326."""
+        figure = Triangle.sas(b=10, angle_a=10, c=10)
+        with pytest.raises(ValueError, match="below the"):
+            Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
 
     def test_no_two_placed_labels_ever_overlap(self, monkeypatch):
         """#289: sweeps every figure every generator in this Topic can draw, across
