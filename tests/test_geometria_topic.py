@@ -7,8 +7,8 @@ import re
 import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
-from backend.core.scene import Altitude, EdgeLabel, Outline, Scene, Triangle
-from backend.core.scene.render import Box, _overlap
+from backend.core.scene import Altitude, EdgeLabel, Outline, RightAngle, Scene, Triangle
+from backend.core.scene.render import ACCENT, Box, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -88,6 +88,41 @@ class TestSceneInvariant:
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm")]).to_svg()
         assert 'font-style="italic"' not in svg
+
+    def test_a_right_angle_renders_as_an_arc_and_a_dot_not_a_square(self):
+        """#323: łuk z kropką, not the English square — the old marker was a
+        3-point open polyline; the arc is a many-point one, plus a dot."""
+        figure = Triangle.sas(b=3, angle_a=90, c=4)
+        svg = Scene(figure, [Outline(), RightAngle("A")]).to_svg()
+        polylines = re.findall(r'<polyline points="([^"]*)"', svg)
+        assert len(polylines) == 1
+        assert len(polylines[0].split()) > 3
+        assert svg.count("<circle") == 1
+
+    def test_a_right_angle_still_refuses_a_non_right_vertex(self):
+        figure = Triangle.sss(a=3, b=4, c=5)
+        with pytest.raises(ValueError, match="not a right angle"):
+            Scene(figure, [Outline(), RightAngle("B")]).to_svg()
+
+    def test_a_heights_foot_renders_as_an_arc_and_a_dot_not_a_square(self):
+        """#323: the height's foot draws the same łuk z kropką `RightAngle` does."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), Altitude(apex="C", base="AB")]).to_svg()
+        polylines = re.findall(r'<polyline points="([^"]*)"', svg)
+        assert any(len(p.split()) > 3 for p in polylines)
+        assert svg.count("<circle") == 1
+
+    def test_each_right_angle_mark_keeps_its_callers_own_colour(self):
+        """Ink for `RightAngle`, the accent for the height's foot — unchanged."""
+        right_figure = Triangle.sas(b=3, angle_a=90, c=4)
+        right_svg = Scene(right_figure, [Outline(), RightAngle("A")]).to_svg()
+        assert f'fill="{ACCENT}"' not in right_svg
+
+        height_figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        height_svg = Scene(
+            height_figure, [Outline(), Altitude(apex="C", base="AB")]
+        ).to_svg()
+        assert f'fill="{ACCENT}"' in height_svg
 
     def test_no_two_placed_labels_ever_overlap(self, monkeypatch):
         """#289: sweeps every figure every generator in this Topic can draw, across

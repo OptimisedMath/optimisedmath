@@ -414,6 +414,24 @@ class Ctx:
             for k in range(steps + 1)
         ]
 
+    def right_angle_mark(
+        self, corner: Pt, arm1: Pt, arm2: Pt, *, color: str = INK
+    ) -> None:
+        """Łuk z kropką: the arc-plus-dot right-angle mark klasy 4–8 material and
+        the egzamin ósmoklasisty use, opening between the two arms leaving
+        `corner`. `RightAngle` and `Altitude` both call this one routine, so a
+        vertex's mark and a height's foot mark can never drift apart."""
+        u1, u2 = unit(arm1), unit(arm2)
+        bis = unit(add(u1, u2))
+        r = self.u * 4.5
+        self.path(self.arc_points(corner, r, u1, u2, bis), color=color, width=self.thin)
+        centre = add(corner, mul(bis, r * 0.55))
+        self.parts.append(
+            f'<circle cx="{centre[0]:.3f}" cy="{-centre[1]:.3f}" r="{self.u * 0.55:.3f}" '
+            f'fill="{color}"/>'
+        )
+        self.include(centre)
+
 
 # --- Annotations -------------------------------------------------------
 
@@ -565,8 +583,9 @@ class AngleArc(Annotation):
 
 @dataclass
 class RightAngle(Annotation):
-    """The mandatory square marker. Refuses to draw on a vertex that is not a
-    right angle — a right-angle marker on a 72° corner is a wrong diagram."""
+    """The łuk z kropką right-angle marker. Refuses to draw on a vertex that is
+    not a right angle — a right-angle marker on a 72° corner is a wrong
+    diagram."""
 
     vertex: str
 
@@ -577,9 +596,9 @@ class RightAngle(Annotation):
             raise ValueError(f"vertex {self.vertex} is {angle:.1f}°, not a right angle")
         v = f.p(self.vertex)
         prev, nxt = f.neighbours(self.vertex)
-        u1 = mul(unit(sub(f.p(prev), v)), ctx.u * 5)
-        u2 = mul(unit(sub(f.p(nxt), v)), ctx.u * 5)
-        ctx.path([add(v, u1), add(v, add(u1, u2)), add(v, u2)], width=ctx.thin)
+        u1 = unit(sub(f.p(prev), v))
+        u2 = unit(sub(f.p(nxt), v))
+        ctx.right_angle_mark(v, u1, u2)
 
 
 @dataclass
@@ -642,7 +661,9 @@ class Altitude(Annotation):
 
     Derives the foot. When the foot lands off the segment — the rozwartokątny
     case of Topic 130 — it also draws the dotted base extension, because the
-    figure is wrong without it.
+    figure is wrong without it. The foot carries the same łuk z kropką
+    right-angle mark as `RightAngle`, from the shared `Ctx.right_angle_mark`
+    helper, opening toward the apex, in the accent colour.
 
     `unknown` withholds the length and prints `h` instead — always that letter,
     never claimed from the edge letters. It is kept on `unknown_text` so a
@@ -686,16 +707,7 @@ class Altitude(Annotation):
         along = unit(sub(r, q))
         if not on_segment:
             along = mul(along, -1) if dot(sub(q, foot), along) > 0 else along
-        s = ctx.u * 4.5
-        ctx.path(
-            [
-                add(foot, mul(along, s)),
-                add(foot, add(mul(along, s), mul(toward_apex, s))),
-                add(foot, mul(toward_apex, s)),
-            ],
-            color=ACCENT,
-            width=ctx.thin,
-        )
+        ctx.right_angle_mark(foot, along, toward_apex, color=ACCENT)
         if self.label:
             mid = mul(add(p, foot), 0.5)
             n = unit((sub(p, foot)[1], -sub(p, foot)[0]))
