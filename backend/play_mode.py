@@ -12,6 +12,7 @@ from backend.unlock import (
     Frontier,
     chapter_max_frontier,
     get_frontier,
+    is_at_frontier as unlock_is_at_frontier,
 )
 
 # The name a mode is recorded under in telemetry — a named value rather than a
@@ -40,6 +41,14 @@ class PlayMode(Protocol):
         frontier_record: ChapterFrontier | None,
     ) -> Frontier: ...
 
+    def is_at_frontier(
+        self,
+        topic_id: int,
+        level: int,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> bool: ...
+
 
 @dataclass(frozen=True, slots=True)
 class StudentPlayMode:
@@ -57,6 +66,17 @@ class StudentPlayMode:
     ) -> Frontier:
         return get_frontier(frontier_record, chapter_topics)
 
+    def is_at_frontier(
+        self,
+        topic_id: int,
+        level: int,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> bool:
+        return unlock_is_at_frontier(
+            topic_id, level, get_frontier(frontier_record, chapter_topics)
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class AdminPlayMode:
@@ -73,6 +93,15 @@ class AdminPlayMode:
         frontier_record: ChapterFrontier | None,
     ) -> Frontier:
         return chapter_max_frontier(chapter_topics)
+
+    def is_at_frontier(
+        self,
+        topic_id: int,
+        level: int,
+        chapter_topics: list[TopicDict],
+        frontier_record: ChapterFrontier | None,
+    ) -> bool:
+        return True
 
 
 @dataclass(frozen=True, slots=True)

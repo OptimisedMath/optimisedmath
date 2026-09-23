@@ -760,14 +760,14 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
     result = _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
 
     assert result.get("is_correct") is True
-    assert "XP" not in (state.feedback_msg or "")
+    assert "XP" in (state.feedback_msg or "")
     assert _telemetry_count(state.session_id) == telemetry_before + 1
     _assert_session(
         state,
         ExpectedSession(
             streak=expect_streak,
             flawless_eligible=True,
-            xp=50,
+            xp=50 + config.XP_REWARDS[selected_level],
             feedback_type="success",
             feedback_msg="Brawo",
             level_completed=False,
@@ -818,7 +818,7 @@ def test_admin_penalized_mistake_decrements_session_streak_without_profile_write
         state,
         ExpectedSession(
             streak=1,
-            flawless_eligible=True,
+            flawless_eligible=False,
             xp=0,
             feedback_type="warning",
             feedback_msg="Try again",
@@ -871,9 +871,40 @@ def test_admin_ahead_of_unlock_reaches_typing_mode_after_streak_threshold(
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "typing"
 
 
-def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
+def test_admin_mastery_unlocks_next_level_regardless_of_stored_frontier(
     fixture_curriculum: Curriculum,
 ):
+    """#333: Admin's Mastery unlocks the next Level from wherever they are
+    playing, even though their own stored Frontier points at a different Topic —
+    Admin's answer to "At the Frontier?" is unconditional (ADR-0013)."""
+    state, baseline = _admin_state_at(
+        fixture_curriculum,
+        frontier_topic_id=TOPIC_RADIO,
+        frontier_level=1,
+        selected_topic_id=TOPIC_MULTI,
+        selected_level=1,
+        streak=2,
+    )
+
+    result = _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
+
+    assert result.get("is_correct") is True
+    assert state.streak == 0
+    assert state.flawless_eligible is True
+    assert state.xp == config.XP_REWARDS[1] + config.FLAWLESS_LEVEL_BONUS
+    assert state.level_completed is True
+    assert state.topic_completed is False
+    assert state.selected_level == 2
+    assert "Flawless Bonus" in state.feedback_msg
+    _assert_admin_profile_unchanged(state, baseline)
+
+
+def test_admin_mastery_at_last_topic_completes_topic_without_next_topic(
+    fixture_curriculum: Curriculum,
+):
+    """#333: completing a Topic's last Level at Mastery sets Topic completion
+    for an Admin exactly as it would for a Student — none of it reaches the
+    profile."""
     state, baseline = _admin_state_at(
         fixture_curriculum,
         frontier_topic_id=TOPIC_MULTI,
@@ -883,9 +914,16 @@ def test_admin_ahead_by_topic_keeps_streak_through_unlock_threshold(
         streak=2,
     )
 
-    _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
+    result = _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
-    assert state.streak == 3
+    assert result.get("is_correct") is True
+    assert state.streak == 0
+    assert state.flawless_eligible is True
+    assert state.xp == config.XP_REWARDS[1] + config.FLAWLESS_LEVEL_BONUS
+    assert state.level_completed is True
+    assert state.topic_completed is True
+    assert state.selected_level == 1
+    assert "Flawless Bonus" in state.feedback_msg
     _assert_admin_profile_unchanged(state, baseline)
 
 
@@ -932,62 +970,10 @@ def test_radio_only_topic_stays_radio_through_admin_unlock_streak(
         frontier_level=1,
         selected_topic_id=TOPIC_RADIO,
         selected_level=1,
-        streak=2,
+        streak=0,
     )
 
     _submit(state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN)
 
-    assert state.streak == 3
+    assert state.streak == 1
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
-
-
-def test_admin_resets_streak_at_stored_frontier_boundary(
-    fixture_curriculum: Curriculum,
-):
-    state, baseline = _admin_state_at(
-        fixture_curriculum,
-        frontier_topic_id=TOPIC_MULTI,
-        frontier_level=1,
-        selected_topic_id=TOPIC_MULTI,
-        selected_level=1,
-        streak=2,
-    )
-    problem = _correct_problem()
-
-    _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
-
-    _assert_session(
-        state,
-        ExpectedSession(
-            streak=0,
-            flawless_eligible=True,
-            xp=0,
-            feedback_type="success",
-            feedback_msg="Brawo",
-            level_completed=False,
-            topic_completed=False,
-            selected_level=1,
-            frontier_level=1,
-            frontier_topic_id=TOPIC_MULTI,
-            problem_answered=True,
-        ),
-    )
-    _assert_telemetry(
-        state.session_id,
-        problem,
-        ExpectedTelemetry(
-            is_correct=True,
-            user_input="2",
-            chapter_id=CHAPTER_ALPHA,
-            chapter="Chapter Alpha",
-            topic_id=TOPIC_MULTI,
-            topic="Multi Level Topic",
-            level_number=1,
-            input_mode="radio",
-            play_mode="admin",
-            streak_before_answer=2,
-            flawless_eligible=True,
-            frontier_relation="behind_frontier",
-        ),
-    )
-    _assert_admin_profile_unchanged(state, baseline)

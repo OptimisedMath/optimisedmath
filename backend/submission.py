@@ -198,7 +198,7 @@ def _log_submission_telemetry(
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
 
     frontier = play_mode.resolve_frontier(
-        list(curriculum.topics(chapter_id)), state.chapter_frontiers[chapter_id]
+        list(curriculum.topics(chapter_id)), state.chapter_frontiers.get(chapter_id)
     )
 
     db.log_telemetry(
@@ -325,12 +325,15 @@ def _maybe_trigger_deconstruction(
 def _build_submission_context(
     state: SessionState,
     curriculum: Curriculum,
+    play_mode: PlayMode,
     chapter_id: int,
     topic_id: int,
-    *,
-    full_progression: bool,
 ) -> SubmissionContext:
-    prog = state.chapter_frontiers[chapter_id]
+    chapter_topics = list(curriculum.topics(chapter_id))
+    frontier_record = state.chapter_frontiers.get(chapter_id)
+    at_frontier = play_mode.is_at_frontier(
+        topic_id, state.selected_level, chapter_topics, frontier_record
+    )
     topic_meta = curriculum.topic_by_id(chapter_id, topic_id)
     if topic_meta is None:
         raise RuntimeError(f"Topic id {topic_id} not found in chapter {chapter_id}")
@@ -342,16 +345,19 @@ def _build_submission_context(
         )
     )
     return SubmissionContext(
-        chapter_id=chapter_id,
-        topic_id=topic_id,
         selected_level=state.selected_level,
         current_streak=state.streak,
         flawless_eligible=state.flawless_eligible,
-        frontier_level=prog.frontier_level,
-        frontier_topic_id=prog.frontier_topic_id,
+        # Whether or not At the Frontier, the level just played is the only
+        # sensible boundary for `increase_frontier_on_mastery` to advance from —
+        # for a Student it is provably equal to the stored Frontier level
+        # whenever `at_frontier` is True (the only time it is read), and Admin
+        # has no stored Frontier for progression to advance from at all
+        # (ADR-0013).
+        frontier_level=state.selected_level,
         topic_max_level=int(topic_meta["max_level"]),
         next_topic_ids=next_topic_ids,
-        full_progression=full_progression,
+        at_frontier=at_frontier,
     )
 
 
@@ -407,11 +413,7 @@ def _run_progression_step(
     assert chapter_id is not None and topic_id is not None
 
     submission_ctx = _build_submission_context(
-        state,
-        curriculum,
-        chapter_id,
-        topic_id,
-        full_progression=play_mode.persists_profile,
+        state, curriculum, play_mode, chapter_id, topic_id
     )
     submission_outcome = resolve_submission_outcome(eval_result, submission_ctx)
     _write_submission_outcome_to_state(

@@ -1,4 +1,7 @@
-"""Streak, XP, and level/topic progression for one Submission."""
+"""Streak, XP, and level/topic progression for one Submission.
+
+One rule set runs for both play modes; the caller tells it whether the
+Submission was At the Frontier."""
 
 from __future__ import annotations
 
@@ -6,31 +9,20 @@ from dataclasses import dataclass
 
 import backend.config as config
 from backend.answer_grading import EvalResult
-from backend.unlock import Frontier, increase_frontier_on_mastery, is_at_frontier
+from backend.unlock import increase_frontier_on_mastery
 
 
 @dataclass(frozen=True)
 class SubmissionContext:
     """Session slice needed to apply one Submission's progression rules."""
 
-    chapter_id: int
-    topic_id: int
     selected_level: int
     current_streak: int
     flawless_eligible: bool
     frontier_level: int
-    frontier_topic_id: int
     topic_max_level: int
     next_topic_ids: tuple[int, ...]
-    full_progression: bool = True
-
-    @property
-    def frontier(self) -> Frontier:
-        """Return the slice's Frontier as the value type `unlock` rules take."""
-        return Frontier(
-            frontier_topic_id=self.frontier_topic_id,
-            frontier_level=self.frontier_level,
-        )
+    at_frontier: bool
 
 
 @dataclass(frozen=True)
@@ -42,7 +34,6 @@ class SubmissionOutcome:
     xp_earned: int
     feedback_type: str | None = None
     feedback_msg: str | None = None
-    level_unlocked: bool = False
     topic_completed: bool = False
     level_completed: bool = False
     new_selected_level: int | None = None
@@ -57,9 +48,6 @@ def resolve_submission_outcome(
     is_correct = eval_result.get("is_correct", False)
     feedback_type = eval_result.get("feedback_type")
     is_soft_error = feedback_type == "info"
-
-    if not ctx.full_progression:
-        return _advance_streak_only(ctx, is_correct, is_soft_error)
 
     if not is_correct and not is_soft_error:
         new_flawless_eligible = False
@@ -80,43 +68,10 @@ def resolve_submission_outcome(
     )
 
 
-def _advance_streak_only(
-    ctx: SubmissionContext, is_correct: bool, is_soft_error: bool
-) -> SubmissionOutcome:
-    """Admin QA: in-cycle streak only — no XP, Flawless, or Frontier writes."""
-    if is_correct:
-        new_streak = ctx.current_streak
-        if new_streak < config.MAX_STREAK:
-            new_streak += 1
-
-        if new_streak == config.MAX_STREAK and is_at_frontier(
-            ctx.topic_id, ctx.selected_level, ctx.frontier
-        ):
-            new_streak = 0
-
-        return SubmissionOutcome(
-            new_streak=new_streak,
-            new_flawless_eligible=ctx.flawless_eligible,
-            xp_earned=0,
-            feedback_type="success",
-            feedback_msg="Brawo! To poprawna odpowiedź. 🎉",
-        )
-
-    new_streak = ctx.current_streak
-    if ctx.current_streak > 0 and not is_soft_error:
-        new_streak = ctx.current_streak - 1
-
-    return SubmissionOutcome(
-        new_streak=new_streak,
-        new_flawless_eligible=ctx.flawless_eligible,
-        xp_earned=0,
-    )
-
-
 def _advance_streak_and_xp(
     ctx: SubmissionContext, flawless_eligible: bool
 ) -> SubmissionOutcome:
-    """Student path: award XP, and move the Frontier on Mastery At the Frontier."""
+    """Award XP, and move the Frontier on Mastery At the Frontier."""
     earned_xp = config.XP_REWARDS.get(ctx.selected_level, config.DEFAULT_XP_REWARD)
     feedback_msg = f"Brawo! To poprawna odpowiedź. 🎉 (+{earned_xp} XP)"
 
@@ -124,7 +79,6 @@ def _advance_streak_and_xp(
     if new_streak < config.MAX_STREAK:
         new_streak += 1
 
-    level_unlocked = False
     topic_completed = False
     level_completed = False
     new_selected_level: int | None = None
@@ -132,9 +86,7 @@ def _advance_streak_and_xp(
     unlock_topic_id: int | None = None
     xp_earned = earned_xp
 
-    if new_streak == config.MAX_STREAK and is_at_frontier(
-        ctx.topic_id, ctx.selected_level, ctx.frontier
-    ):
+    if new_streak == config.MAX_STREAK and ctx.at_frontier:
         frontier_update = increase_frontier_on_mastery(
             ctx.frontier_level, ctx.topic_max_level, ctx.next_topic_ids
         )
@@ -159,7 +111,6 @@ def _advance_streak_and_xp(
         xp_earned=xp_earned,
         feedback_type="success",
         feedback_msg=feedback_msg,
-        level_unlocked=level_unlocked,
         topic_completed=topic_completed,
         level_completed=level_completed,
         new_selected_level=new_selected_level,
