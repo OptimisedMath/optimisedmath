@@ -231,12 +231,11 @@ def _record_misconception_hit(
 ) -> None:
     """Increment the Session-wide hit count for one Misconception.
 
-    Runs before the discounted-retry branch: a retry's hit counts toward its
-    Misconception's trigger like any other Submission, even though the retry
-    itself can never arm one — `_maybe_trigger_deconstruction` only runs for a
-    normal Submission (ADR-0014). A `None` slug — a correct answer, an
-    unanticipated wrong answer, a Filler, or a Trap referencing no Misconception
-    in the catalogue — leaves the count untouched.
+    Runs before the discounted-retry branch, so a retry's wrong answer still
+    counts toward its Misconception's trigger even though the retry itself can
+    never arm one (ADR-0014). A `None` slug — a correct answer, an unanticipated
+    wrong answer, a Filler, or a Trap referencing no Misconception in the
+    catalogue — leaves every count untouched.
     """
     if misconception_slug is None:
         return
@@ -253,14 +252,14 @@ def _maybe_trigger_deconstruction(
 ) -> None:
     """Arm a Deconstruction on the second hit of a Misconception within a Session.
 
-    Generic repeated failure is deliberately not a trigger — only a Misconception
-    hit `config.DECONSTRUCTION_TRIGGER_COUNT` times, counting the current hit,
-    counts, and only a Misconception with an authored walkthrough can ever fire
-    one. The count and the guard both key on the Misconception slug alone — no
-    Chapter, Topic or Level — so two hits anywhere in the Curriculum trigger the
-    same Deconstruction, and each Misconception fires at most once per Session
-    (ADR-0014). The `deconstructions` header row is written here, before the
-    pause, so a Student who leaves during it is still counted. The triggering
+    Generic repeated failure is deliberately not a trigger — it takes
+    `config.DECONSTRUCTION_TRIGGER_COUNT` hits on one Misconception, the current
+    one included, and only a Misconception with an authored walkthrough can ever
+    fire one. Both the count and the already-deconstructed guard key on the
+    Misconception slug alone — no Chapter, Topic or Level — so hits accumulate
+    anywhere in the Curriculum and each Misconception fires at most once per
+    Session (ADR-0014). The `deconstructions` header row is written here, before
+    the pause, so a Student who leaves during it is still counted. The triggering
     answer itself is graded as a completely normal Submission by the rest of
     `run_submission_cycle` — this only arms the takeover.
     """
@@ -269,6 +268,11 @@ def _maybe_trigger_deconstruction(
         or state.deconstruction is not None
         or not deconstruction.has_walkthrough(misconception_slug)
         or misconception_slug in state.deconstructed
+    ):
+        return
+    if (
+        state.misconception_hits.get(misconception_slug, 0)
+        < config.DECONSTRUCTION_TRIGGER_COUNT
     ):
         return
 
@@ -280,9 +284,6 @@ def _maybe_trigger_deconstruction(
 
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
-    hits = state.misconception_hits.get(misconception_slug, 0)
-    if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
-        return
 
     try:
         steps = deconstruction.build_steps(

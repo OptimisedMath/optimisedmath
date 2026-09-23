@@ -141,8 +141,8 @@ class SessionState(BaseModel):
         default_factory=dict,
         description=(
             "Misconception slug -> hit count for this Session, wherever in the "
-            "Curriculum each hit happened (ADR-0014). The trigger reads this "
-            "instead of a telemetry query."
+            "Curriculum each hit happened — what the Deconstruction trigger "
+            "counts (ADR-0014)"
         ),
     )
     deconstructed: list[str] = Field(

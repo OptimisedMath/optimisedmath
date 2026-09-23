@@ -1400,7 +1400,7 @@ def test_first_hit_of_misconception_does_not_trigger_deconstruction(monkeypatch)
 
 
 def test_second_hit_of_same_misconception_triggers_deconstruction(monkeypatch):
-    """Issue #194: the second hit of the same Misconception at a Level arms `state.deconstruction`
+    """Issue #194: the second hit of the same Misconception arms `state.deconstruction`
     with steps computed from the triggering Problem's `parameters`."""
     _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
@@ -1457,7 +1457,6 @@ def test_two_hits_at_different_topics_triggers_deconstruction(monkeypatch):
     assert state.deconstruction is None
 
     state.selected_topic_id = other_topic_id
-    state.selected_level = 1
     _submit_trap(state, "p-second-hit")
 
     assert state.deconstruction is not None
