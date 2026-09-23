@@ -8,19 +8,71 @@ import backend.config as config
 import backend.navigation_snapshot as navigation_snapshot
 import backend.submission_cycle as submission_cycle
 from backend.curriculum import Curriculum
+from backend.curriculum_loader import (
+    ChapterBundle,
+    ChapterSummary,
+    CurriculumStore,
+    LevelConfig,
+)
 from backend.models import (
     ChapterFrontier,
     DeconstructionState,
     DeconstructionStep,
     SessionState,
 )
-from backend.play_mode import PlayMode, StudentPlayMode
+from backend.play_mode import AdminPlayMode, PlayMode, StudentPlayMode
 import backend.session_state as session_state
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
     TOPIC_MULTI,
     TOPIC_RADIO,
 )
+
+# A Chapter with three Topics — the shared fixture Curriculum's Chapters top
+# out at two, which cannot express "the next Topic is not the last" (#332).
+_CHAPTER_TRIO = 900
+_TOPIC_TRIO_FIRST = 901
+_TOPIC_TRIO_MIDDLE = 902
+_TOPIC_TRIO_LAST = 903
+
+
+def _three_topic_curriculum() -> Curriculum:
+    topics = tuple(
+        {
+            "topic_id": topic_id,
+            "name": f"Trio Topic {topic_id}",
+            "max_level": 1,
+            "radio_only": True,
+        }
+        for topic_id in (_TOPIC_TRIO_FIRST, _TOPIC_TRIO_MIDDLE, _TOPIC_TRIO_LAST)
+    )
+    level_configs = {
+        (topic_id, 1): LevelConfig(
+            level=1,
+            name=f"Trio {topic_id} L1",
+            function=f"fixture_trio_{topic_id}",
+            traps={},
+            published=True,
+        )
+        for topic_id in (_TOPIC_TRIO_FIRST, _TOPIC_TRIO_MIDDLE, _TOPIC_TRIO_LAST)
+    }
+    bundle = ChapterBundle(
+        chapter_id=_CHAPTER_TRIO,
+        chapter_name="Chapter Trio",
+        keyboard_type="default",
+        raw={},
+        topics_meta=topics,
+        topics_by_id={topic["topic_id"]: topic for topic in topics},
+        level_configs=level_configs,
+        topic_name_by_id={topic["topic_id"]: topic["name"] for topic in topics},
+    )
+    store = CurriculumStore(
+        bundles=(bundle,),
+        chapters=[ChapterSummary(chapter_id=_CHAPTER_TRIO, name="Chapter Trio")],
+        bundles_by_chapter_id={_CHAPTER_TRIO: bundle},
+        chapter_name_by_id={_CHAPTER_TRIO: "Chapter Trio"},
+    )
+    return Curriculum(_store=store)
 
 
 def _fresh_state(fixture_curriculum: Curriculum) -> SessionState:
@@ -174,10 +226,16 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
     assert state.current_input_mode == "typing"
 
 
-def test_resolve_next_problem_navigates_to_frontier_topic(
+def test_resolve_next_problem_navigates_to_next_topic(
     fixture_curriculum: Curriculum,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """Student Topic completion lands on the next Topic after the Selected one.
+
+    The stored Frontier is set to that same Topic to mirror what progression has
+    already done by the time ``topic_completed`` is set on a real Submission —
+    Navigation itself reads no Frontier field (#332).
+    """
     state = _fresh_state(fixture_curriculum)
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_MULTI
@@ -219,6 +277,61 @@ def test_resolve_next_problem_navigates_to_frontier_topic(
     )
 
     assert state.selected_topic_id == TOPIC_RADIO
+    assert state.selected_level == 1
+    assert state.topic_completed is False
+    assert state.problem_answered is False
+    assert problem is served_problem
+
+
+def test_resolve_next_problem_admin_navigates_to_next_topic_not_last(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """An Admin's Topic completion lands on the immediate next Topic, not the Chapter's last.
+
+    Admin mode's effective Frontier is the Chapter's last Topic (full unlock),
+    which is what the old Frontier-routed auto-Navigation jumped to. Chapter
+    Trio has a middle Topic between the completed one and the last, so this
+    fails if Navigation ever goes back to reading the Frontier (#332).
+    """
+    curriculum = _three_topic_curriculum()
+    play_mode = AdminPlayMode()
+    state = _fresh_state(curriculum)
+    state.selected_chapter_id = _CHAPTER_TRIO
+    state.selected_topic_id = _TOPIC_TRIO_FIRST
+    state.selected_level = 1
+    state.problem_answered = True
+    state.topic_completed = True
+    state.level_completed = True
+    state.current_problem = {
+        "problem_id": "completed",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+    }
+    served_problem = {
+        "problem_id": "served",
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+    }
+
+    def _fake_serve_next_problem(*_args, **_kwargs):
+        return served_problem
+
+    monkeypatch.setattr(
+        submission_cycle, "serve_next_problem", _fake_serve_next_problem
+    )
+
+    problem = submission_cycle.resolve_next_problem(
+        state,
+        curriculum,
+        _CHAPTER_TRIO,
+        _TOPIC_TRIO_FIRST,
+        play_mode=play_mode,
+        nav_snapshot=_snapshot(state, curriculum, play_mode),
+    )
+
+    assert state.selected_topic_id == _TOPIC_TRIO_MIDDLE
     assert state.selected_level == 1
     assert state.topic_completed is False
     assert state.problem_answered is False
