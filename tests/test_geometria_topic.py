@@ -100,6 +100,8 @@ class TestSceneInvariant:
         assert svg.count("<circle") == 1
 
     def test_a_right_angle_still_refuses_a_non_right_vertex(self):
+        """The new marker shape did not cost the old discipline: a marker on a
+        vertex that is not 90° is still a refusal, not a wrong diagram."""
         figure = Triangle.sss(a=3, b=4, c=5)
         with pytest.raises(ValueError, match="not a right angle"):
             Scene(figure, [Outline(), RightAngle("B")]).to_svg()

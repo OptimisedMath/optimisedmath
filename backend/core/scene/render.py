@@ -257,6 +257,14 @@ class Ctx:
         self.include(*points)
         self.obstacles.extend(zip(points, points[1:]))
 
+    def dot(self, centre: Pt, radius: float, *, color: str = INK) -> None:
+        """Emit a filled disc — a marker, so it is not an obstacle for labels."""
+        self.parts.append(
+            f'<circle cx="{centre[0]:.3f}" cy="{-centre[1]:.3f}" r="{radius:.3f}" '
+            f'fill="{color}"/>'
+        )
+        self.include(centre)
+
     def text(
         self,
         anchor: Pt,
@@ -415,22 +423,21 @@ class Ctx:
         ]
 
     def right_angle_mark(
-        self, corner: Pt, arm1: Pt, arm2: Pt, *, color: str = INK
+        self, corner: Pt, arm1_dir: Pt, arm2_dir: Pt, *, color: str = INK
     ) -> None:
-        """Łuk z kropką: the arc-plus-dot right-angle mark klasy 4–8 material and
-        the egzamin ósmoklasisty use, opening between the two arms leaving
-        `corner`. `RightAngle` and `Altitude` both call this one routine, so a
-        vertex's mark and a height's foot mark can never drift apart."""
-        u1, u2 = unit(arm1), unit(arm2)
-        bis = unit(add(u1, u2))
-        r = self.u * 4.5
-        self.path(self.arc_points(corner, r, u1, u2, bis), color=color, width=self.thin)
-        centre = add(corner, mul(bis, r * 0.55))
-        self.parts.append(
-            f'<circle cx="{centre[0]:.3f}" cy="{-centre[1]:.3f}" r="{self.u * 0.55:.3f}" '
-            f'fill="{color}"/>'
+        """Mark the wedge between two arms leaving `corner` as a right angle, as
+        łuk z kropką — the arc-and-dot marker klasy 4–8 material uses where
+        English material draws a square. Every right angle in the app is marked
+        through here, so no two of them can drift apart."""
+        u1, u2 = unit(arm1_dir), unit(arm2_dir)
+        bisector = unit(add(u1, u2))
+        radius = self.u * 4.5
+        self.path(
+            self.arc_points(corner, radius, u1, u2, bisector),
+            color=color,
+            width=self.thin,
         )
-        self.include(centre)
+        self.dot(add(corner, mul(bisector, radius * 0.55)), self.u * 0.55, color=color)
 
 
 # --- Annotations -------------------------------------------------------
@@ -596,9 +603,7 @@ class RightAngle(Annotation):
             raise ValueError(f"vertex {self.vertex} is {angle:.1f}°, not a right angle")
         v = f.p(self.vertex)
         prev, nxt = f.neighbours(self.vertex)
-        u1 = unit(sub(f.p(prev), v))
-        u2 = unit(sub(f.p(nxt), v))
-        ctx.right_angle_mark(v, u1, u2)
+        ctx.right_angle_mark(v, sub(f.p(prev), v), sub(f.p(nxt), v))
 
 
 @dataclass
@@ -661,9 +666,7 @@ class Altitude(Annotation):
 
     Derives the foot. When the foot lands off the segment — the rozwartokątny
     case of Topic 130 — it also draws the dotted base extension, because the
-    figure is wrong without it. The foot carries the same łuk z kropką
-    right-angle mark as `RightAngle`, from the shared `Ctx.right_angle_mark`
-    helper, opening toward the apex, in the accent colour.
+    figure is wrong without it.
 
     `unknown` withholds the length and prints `h` instead — always that letter,
     never claimed from the edge letters. It is kept on `unknown_text` so a
@@ -702,7 +705,6 @@ class Altitude(Annotation):
                 dash=f"{ctx.u:.2f} {ctx.u * 2:.2f}",
             )
         ctx.line(p, foot, color=ACCENT, dash=f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}")
-        # right-angle marker at the foot, opening toward the apex
         toward_apex = unit(sub(p, foot))
         along = unit(sub(r, q))
         if not on_segment:
@@ -841,9 +843,7 @@ class Centre(Annotation):
 
     def render(self, ctx: Ctx) -> None:
         c = ctx.fig.centre
-        ctx.parts.append(
-            f'<circle cx="{c[0]:.3f}" cy="{-c[1]:.3f}" r="{ctx.u * 1.5:.3f}" fill="{INK}"/>'
-        )
+        ctx.dot(c, ctx.u * 1.5)
         ctx.text(c, (-0.7, -0.7), self.label, scale=0.9, gap=1.0)
 
 
