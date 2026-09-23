@@ -137,20 +137,22 @@ class ChapterNavigationContext:
         return self._next_unlocked_frontier_topic_id > selected_topic_id
 
     def next_topic_id(self, selected_topic_id: int | None) -> int | None:
-        """The next Topic after ``selected_topic_id`` in this Chapter, or None at the last Topic.
+        """The next Topic after ``selected_topic_id``, or None at the Chapter's last Topic.
 
         Reads only ``chapter_topics`` — no Frontier — so it answers the same for
-        every play mode. Reachability of that Topic is a separate question,
+        every play mode. Whether that Topic is Reachable is a separate question,
         answered by ``is_reachable`` or the navigation resolver.
         """
         if selected_topic_id is None:
             return None
-        later_topic_ids = [
-            int(topic_entry["topic_id"])
-            for topic_entry in self.chapter_topics
-            if int(topic_entry["topic_id"]) > selected_topic_id
-        ]
-        return min(later_topic_ids) if later_topic_ids else None
+        return min(
+            (
+                int(topic_entry["topic_id"])
+                for topic_entry in self.chapter_topics
+                if int(topic_entry["topic_id"]) > selected_topic_id
+            ),
+            default=None,
+        )
 
 
 @dataclass(frozen=True, slots=True)
