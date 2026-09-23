@@ -8,7 +8,7 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import Altitude, EdgeLabel, Outline, RightAngle, Scene, Triangle
-from backend.core.scene.render import ACCENT, Box, _overlap
+from backend.core.scene.render import ACCENT, INK, Box, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -118,13 +118,14 @@ class TestSceneInvariant:
         """Ink for `RightAngle`, the accent for the height's foot — unchanged."""
         right_figure = Triangle.sas(b=3, angle_a=90, c=4)
         right_svg = Scene(right_figure, [Outline(), RightAngle("A")]).to_svg()
-        assert f'fill="{ACCENT}"' not in right_svg
+        assert re.search(rf'<circle[^>]*fill="{INK}"', right_svg)
+        assert ACCENT not in right_svg
 
         height_figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         height_svg = Scene(
             height_figure, [Outline(), Altitude(apex="C", base="AB")]
         ).to_svg()
-        assert f'fill="{ACCENT}"' in height_svg
+        assert re.search(rf'<circle[^>]*fill="{ACCENT}"', height_svg)
 
     def test_no_two_placed_labels_ever_overlap(self, monkeypatch):
         """#289: sweeps every figure every generator in this Topic can draw, across

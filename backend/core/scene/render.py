@@ -257,7 +257,7 @@ class Ctx:
         self.include(*points)
         self.obstacles.extend(zip(points, points[1:]))
 
-    def dot(self, centre: Pt, radius: float, *, color: str = INK) -> None:
+    def disc(self, centre: Pt, radius: float, *, color: str = INK) -> None:
         """Emit a filled disc — a marker, so it is not an obstacle for labels."""
         self.parts.append(
             f'<circle cx="{centre[0]:.3f}" cy="{-centre[1]:.3f}" r="{radius:.3f}" '
@@ -425,19 +425,23 @@ class Ctx:
     def right_angle_mark(
         self, corner: Pt, arm1_dir: Pt, arm2_dir: Pt, *, color: str = INK
     ) -> None:
-        """Mark the wedge between two arms leaving `corner` as a right angle, as
-        łuk z kropką — the arc-and-dot marker klasy 4–8 material uses where
-        English material draws a square. Every right angle in the app is marked
-        through here, so no two of them can drift apart."""
+        """Mark the wedge between two arms leaving `corner` as a right angle.
+
+        Drawn as łuk z kropką — the arc-and-dot marker klasy 4–8 material uses
+        where English material draws a square. Every right angle in the app is
+        marked through here, so no two of them can drift apart.
+        """
         u1, u2 = unit(arm1_dir), unit(arm2_dir)
         bisector = unit(add(u1, u2))
         radius = self.u * 4.5
+        dot_centre = add(corner, mul(bisector, radius * 0.55))
+        dot_radius = self.u * 0.55
         self.path(
             self.arc_points(corner, radius, u1, u2, bisector),
             color=color,
             width=self.thin,
         )
-        self.dot(add(corner, mul(bisector, radius * 0.55)), self.u * 0.55, color=color)
+        self.disc(dot_centre, dot_radius, color=color)
 
 
 # --- Annotations -------------------------------------------------------
@@ -590,9 +594,8 @@ class AngleArc(Annotation):
 
 @dataclass
 class RightAngle(Annotation):
-    """The łuk z kropką right-angle marker. Refuses to draw on a vertex that is
-    not a right angle — a right-angle marker on a 72° corner is a wrong
-    diagram."""
+    """The mandatory right-angle marker. Refuses to draw on a vertex that is not
+    a right angle — a right-angle marker on a 72° corner is a wrong diagram."""
 
     vertex: str
 
@@ -843,7 +846,7 @@ class Centre(Annotation):
 
     def render(self, ctx: Ctx) -> None:
         c = ctx.fig.centre
-        ctx.dot(c, ctx.u * 1.5)
+        ctx.disc(c, ctx.u * 1.5)
         ctx.text(c, (-0.7, -0.7), self.label, scale=0.9, gap=1.0)
 
 
