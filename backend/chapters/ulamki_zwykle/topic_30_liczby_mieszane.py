@@ -48,7 +48,7 @@ def frac_imp_1() -> dict | None:
 
 @declares_traps(
     "gives_only_the_whole_part",
-    "swaps_the_remainder_and_the_denominator",
+    "puts_the_quotient_in_the_numerator",
 )
 def frac_imp_2() -> dict | None:
     """Wyłączanie całości (poziom 2)."""
@@ -61,12 +61,17 @@ def frac_imp_2() -> dict | None:
 
     c_str, _ = format_answers(n, d, w)
 
+    # Dividing correctly (quotient w, remainder n) but writing the two results
+    # in the wrong places lands back on the correct answer when w == n — left
+    # empty for that draw rather than let it collide (#361).
+    quotient_in_numerator = None if w == n else format_answers(w, d, n)[0]
+
     result = build_problem_dict(
         q_str,
         c_str,
         traps={
             "gives_only_the_whole_part": format_answers(w, 1)[0],
-            "swaps_the_remainder_and_the_denominator": format_answers(d, n, w)[0],
+            "puts_the_quotient_in_the_numerator": quotient_in_numerator,
         },
         parameters={"w": w, "n": n, "d": d},
     )
