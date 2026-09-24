@@ -45,9 +45,9 @@ def test_frac_imp_2_trap_puts_the_quotient_in_the_numerator():
 
         label = problem["options_map"].get(expected_trap)
         if label == "gives_only_the_whole_part":
-            # d divides w, so the swapped mixed number reduces to the bare whole
-            # number w — ADR-0008's earlier-declared Trap keeps the slot, and
-            # this draw's slot goes to a Filler.
+            # At w == d (which forces n == d - 1) the swap reduces to the bare
+            # whole number w, the value that earlier-declared Trap already holds
+            # — ADR-0008 gives it the slot, and a Filler pads what is left.
             continue
 
         offered += 1

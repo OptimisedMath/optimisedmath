@@ -66,8 +66,10 @@ def curriculum():
 def test_multiplies_the_denominator_too_is_never_a_fraction_from_the_question(
     generator,
 ):
-    """The option's string must never match a fraction printed in the question —
-    otherwise it reads as the question handed back, not a wrong answer."""
+    """The option's string never matches a fraction printed in the question.
+
+    One that did would read as the question handed back, not as a wrong answer.
+    """
     draws = _trap_draws(generator)
     assert draws, f"{generator.__name__} never served {SLUG} in {ROLLS} rolls"
 
@@ -79,8 +81,10 @@ def test_multiplies_the_denominator_too_is_never_a_fraction_from_the_question(
 def test_multiplies_the_denominator_too_renders_the_improper_unsimplified_form(
     generator, operands
 ):
-    """The Trap is the un-simplified fraction built from the Problem's own
-    operands, not the simplified value simplification undoes it to."""
+    """The Trap is the un-simplified fraction built from the Problem's own operands.
+
+    Simplifying it is what collapses it back onto the question's own fraction.
+    """
     draws = _trap_draws(generator)
     assert draws, f"{generator.__name__} never served {SLUG} in {ROLLS} rolls"
 
@@ -93,8 +97,10 @@ def test_multiplies_the_denominator_too_renders_the_improper_unsimplified_form(
 def test_every_served_slug_has_its_own_prose_through_the_real_curriculum(
     curriculum, level
 ):
-    """Loading through the real curriculum attaches prose to every slug a Level
-    serves, and none of it is the generic wrong-answer message."""
+    """Every slug a Level serves gets its own prose through the real curriculum.
+
+    None of it is the generic wrong-answer message the loader falls back to.
+    """
     for _ in range(CURRICULUM_ROLLS):
         problem = generate_level_problem(curriculum, CHAPTER_ID, TOPIC_ID, level)
         for slug in problem["options_map"].values():

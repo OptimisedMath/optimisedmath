@@ -47,10 +47,7 @@ def frac_mult_num_1() -> dict | None:
         return result
 
 
-@declares_traps(
-    "cancels_the_numerator_away",
-    "multiplies_the_denominator_too",
-)
+@declares_traps("cancels_the_numerator_away", "multiplies_the_denominator_too")
 def frac_mult_num_2() -> dict | None:
     """Skracanie na krzyż z liczbą (poziom 2)."""
     k = random.randint(2, 6)
@@ -87,8 +84,8 @@ def frac_mult_num_3() -> dict | None:
 
     q_str = rf"\text{{Oblicz: }} {format_fraction_question(n, d, w)} \cdot {k}"
 
-    total = ((w * d) + n) * k
-    c_str, _ = format_answers(total, d)
+    improper_n = (w * d) + n
+    c_str, _ = format_answers(improper_n * k, d)
 
     result = build_problem_dict(
         q_str,
@@ -96,7 +93,7 @@ def frac_mult_num_3() -> dict | None:
         traps={
             "multiplies_only_the_fraction_part": format_answers(n * k, d, w)[0],
             "multiplies_the_denominator_too": _multiplies_the_denominator_too(
-                (w * d) + n, d, k
+                improper_n, d, k
             ),
         },
         parameters={
