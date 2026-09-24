@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useAppNavigation } from '@/lib/navigation';
-import { PREFERRED_CHAPTER_ID } from './constants';
 import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
 import { getStoredSessionId, getStoredUsername, setStoredSessionId } from './storage';
@@ -25,9 +24,10 @@ function shouldFetchProblem(session: SessionResponse): boolean {
 }
 
 /**
- * Reads stored credentials and starts a session on mount, falling back to the
- * plain (no preferred-chapter) start request when the preferred chapter is
- * unavailable. Internal to lib/session/ — composed by useSession().
+ * Reads stored credentials and starts a session on mount. Sends only the
+ * stored username — a chapter override here would be read as Navigation by
+ * the backend and reset Streak (ADR-0006). Internal to lib/session/ —
+ * composed by useSession().
  */
 export function useSessionBootstrap({
   setSessionState,
@@ -52,10 +52,7 @@ export function useSessionBootstrap({
       }
 
       try {
-        const sessionResponse = await client.startSession({
-          username: storedUsername,
-          selected_chapter_id: PREFERRED_CHAPTER_ID,
-        });
+        const sessionResponse = await client.startSession({ username: storedUsername });
         if (!isMounted) return;
 
         setStoredSessionId(sessionResponse.session_id);
@@ -66,21 +63,6 @@ export function useSessionBootstrap({
         }
       } catch (err) {
         if (!isMounted) return;
-
-        try {
-          const fallbackSession = await client.startSession({ username: storedUsername });
-          if (!isMounted) return;
-
-          setStoredSessionId(fallbackSession.session_id);
-          setSessionState(fallbackSession);
-          setError(null);
-          if (shouldFetchProblem(fallbackSession)) {
-            onSessionStarted(fallbackSession.session_id);
-          }
-          return;
-        } catch {
-          // Fall through to the original error message.
-        }
 
         reportError(setError, err, 'Failed to start session', 'Error starting session:');
       }
