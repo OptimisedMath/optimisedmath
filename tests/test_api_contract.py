@@ -7,6 +7,7 @@ import uuid
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 import backend.config as config
 import backend.main as main
@@ -234,6 +235,14 @@ def test_typing_submit_uses_mobile_sanitizer_and_keeps_typing_mode():
     assert response.is_correct is True
     assert response.state.streak == 1
     assert response.state.current_input_mode == "typing"
+
+
+def test_current_input_mode_rejects_value_outside_the_closed_set():
+    """#343: `current_input_mode` is a closed set of `radio`/`typing` on the
+    persisted Session model, so an out-of-set string fails validation rather
+    than being accepted as free-form text (ADR-0015)."""
+    with pytest.raises(ValidationError):
+        SessionState(current_input_mode="bogus")
 
 
 def test_level_completing_submit_serves_full_streak_meter():
