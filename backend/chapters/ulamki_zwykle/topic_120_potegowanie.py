@@ -8,6 +8,25 @@ from backend.core.utils import (
     declares_traps,
 )
 
+# Cube caps for the Levels that raise to the third power (#263): 7³ = 343 puts the
+# answer's denominator outside this Topic's arithmetic, and a Student cubes a mixed
+# number's improper numerator w*d+n, not d alone, so that base is capped too.
+_MAX_CUBE_DENOMINATOR = 6
+_MAX_CUBE_BASE = 8
+
+
+def _draw_cubable_mixed_number(w: int) -> tuple[int, int]:
+    """Draw `(d, n)` whose mixed number `w n/d` has a cube a Student can still do.
+
+    Redraws until the improper numerator fits `_MAX_CUBE_BASE`, so `w` has to stay
+    small enough that `2 * w + 1` — the smallest base any draw reaches — fits it.
+    """
+    while True:
+        d = random.randint(2, _MAX_CUBE_DENOMINATOR)
+        n = random.randint(1, d - 1)
+        if w * d + n <= _MAX_CUBE_BASE:
+            return d, n
+
 
 @declares_traps("raises_only_the_numerator", "multiplies_by_the_exponent")
 def frac_pow_1() -> dict | None:
@@ -42,8 +61,7 @@ def frac_pow_1() -> dict | None:
 )
 def frac_pow_2() -> dict | None:
     """Sześcian ułamka (poziom 2)."""
-    # Capped at 6: (1/7)^3 = 1/343 stops being arithmetic for this Level (#263)
-    d = random.randint(2, 6)
+    d = random.randint(2, _MAX_CUBE_DENOMINATOR)
     n = random.randint(1, d - 1)
     p = 3
 
@@ -73,12 +91,7 @@ def frac_pow_3() -> dict | None:
     w = random.randint(1, 2)
     p = random.randint(2, 3)
     if p == 3:
-        # The Student cubes w*d+n, not d alone, so bound that instead (#263)
-        while True:
-            d = random.randint(2, 6)
-            n = random.randint(1, d - 1)
-            if w * d + n <= 8:
-                break
+        d, n = _draw_cubable_mixed_number(w)
     else:
         d = random.randint(2, 10)
         n = random.randint(1, d - 1)
