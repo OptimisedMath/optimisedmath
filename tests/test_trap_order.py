@@ -1,18 +1,14 @@
 """No Problem lists a slip before a Trap whose Level entry references a Misconception.
 
-A template's Traps are ordered believed rules first, then slips (ADR-0008): a Trap
-that references a Misconception ranks above one that does not, because Misconceptions
-are what telemetry aggregates and a Deconstruction is built against, and when only
-three of a template's Traps fit a Problem's slots, they are the ones worth the slot.
+ADR-0008 owns the rule and why: a template's Traps are ordered believed rules first,
+then slips, because when only three of them fit a Problem's slots the Misconception
+Traps are the ones worth the slot.
 
-`build_problem_dict` fills a Problem's slots from `options_map`, offering the first
-three declared Traps that survive (not `None`, not negative where ADR-0007 applies,
-not a string already taken) in declaration order — so `options_map`'s insertion
-order *is* the order a Problem actually offers, and this sweep reads it directly
-rather than re-deriving it from a generator's source. Misconception presence for a
-slug comes from the Level's curriculum entry (`LevelConfig.trap_misconceptions`),
-not a hand-kept list, so a Level that gains or loses a Misconception stays honest
-automatically.
+`build_problem_dict` fills those slots in declaration order, so `options_map`'s
+insertion order *is* the order a Problem offers — this sweep reads it there rather
+than re-deriving it from a generator's source. Whether a slug carries a Misconception
+comes from the Level's curriculum entry (`LevelConfig.trap_misconceptions`), not a
+hand-kept list, so a Level that gains or loses one stays honest automatically.
 
 Same sweep shape as `test_trap_slugs.py`: a generator picks its template and its
 numbers at random, so no single call proves the guarantee. Running each generator
@@ -57,12 +53,12 @@ def test_generator_never_serves_a_slip_before_a_misconception_trap(name):
             if slug not in ("correct", FILLER_SLUG)
         ]
 
-        slip_seen = None
+        slip_already_served = None
         for slug in served:
-            if slug in misconception_slugs:
-                assert slip_seen is None, (
-                    f"{name} served slip {slip_seen!r} before Misconception Trap "
-                    f"{slug!r} in {problem['question']!r}"
-                )
-            else:
-                slip_seen = slug
+            if slug not in misconception_slugs:
+                slip_already_served = slug
+                continue
+            assert slip_already_served is None, (
+                f"{name} served slip {slip_already_served!r} before Misconception "
+                f"Trap {slug!r} in {problem['question']!r}"
+            )

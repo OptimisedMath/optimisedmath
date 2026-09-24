@@ -4,13 +4,20 @@ import random
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
-def _no_borrow_diff(v1: float, v2: float) -> float:
-    """Each column subtracts its smaller digit from its larger, no borrowing —
-    the mistake `subtracts_the_smaller_digit_from_the_larger` models."""
-    digits1 = f"{v1:.2f}".replace(".", "")
-    digits2 = f"{v2:.2f}".replace(".", "")
-    diffs = "".join(str(abs(int(x) - int(y))) for x, y in zip(digits1, digits2))
-    return int(diffs) / 100
+def _no_borrow_diff(minuend: float, subtrahend: float) -> float:
+    """Subtract column by column, each time smaller digit from larger, never borrowing.
+
+    The value a Student reaches by `subtracts_the_smaller_digit_from_the_larger`:
+    4,1 - 3,79 reads as |4-3|, |1-7|, |0-9| = 1,69. Both operands must be under 10,
+    so that padding them to two decimal places lines the columns up.
+    """
+    minuend_digits = f"{minuend:.2f}".replace(".", "")
+    subtrahend_digits = f"{subtrahend:.2f}".replace(".", "")
+    column_diffs = "".join(
+        str(abs(int(left) - int(right)))
+        for left, right in zip(minuend_digits, subtrahend_digits)
+    )
+    return int(column_diffs) / 100
 
 
 @declares_traps("adds_instead_of_subtracting")
