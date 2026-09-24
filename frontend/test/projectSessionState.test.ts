@@ -7,7 +7,7 @@ import type { SessionResponse } from '@/lib/session/types';
 import { baseSession, defaultNavigation } from './fakeBackend';
 
 describe('projectSessionState', () => {
-  it('computes hasNavigation and prefers the session-selected chapter/topic over navigation', () => {
+  it('maps every display field, preferring the session-selected chapter/topic over navigation', () => {
     const navigation = defaultNavigation();
     const state = baseSession({
       xp: 120,
@@ -28,10 +28,24 @@ describe('projectSessionState', () => {
       },
     });
 
-    expect(projectSessionState(state)).toMatchObject({
+    expect(projectSessionState(state)).toEqual({
       hasNavigation: true,
+      xp: 120,
+      flawlessEligible: false,
+      streakMeter: 2,
+      maxStreak: 5,
+      currentInputMode: 'radio',
       selectedChapterId: 10,
       selectedTopicId: 1,
+      selectedLevel: 2,
+      levelCompleted: true,
+      topicCompleted: false,
+      hasNextUnlockedTopic: true,
+      chapterCompletion: { completed: 2, total: 5, percentage: 40 },
+      topicCompletion: { completed: 2, total: 3, percentage: 67 },
+      availableChapters: navigation.available_chapters,
+      availableTopics: navigation.available_topics,
+      availableLevels: navigation.available_levels,
     });
   });
 
@@ -77,8 +91,7 @@ describe('projectSessionState', () => {
       flawlessEligible: true,
       streakMeter: 0,
       maxStreak: 3,
-      currentInputMode:
-        'radio',
+      currentInputMode: 'radio',
       selectedChapterId: 0,
       selectedTopicId: 1,
       selectedLevel: 1,

@@ -1,5 +1,6 @@
 import type { SessionResponse } from './types';
 
+/** Map a SessionResponse onto the display fields the arena renders. */
 export function projectSessionState(state: SessionResponse) {
   const navigation = state.navigation;
 
@@ -26,6 +27,7 @@ export function projectSessionState(state: SessionResponse) {
   };
 }
 
+/** Display fields projected from SessionResponse for arena rendering. */
 export type SessionDisplayProjection = ReturnType<typeof projectSessionState>;
 
 /**
@@ -39,8 +41,7 @@ export const NO_SESSION_DISPLAY_PROJECTION: SessionDisplayProjection = {
   flawlessEligible: true,
   streakMeter: 0,
   maxStreak: 3,
-  currentInputMode:
-    'radio',
+  currentInputMode: 'radio',
   selectedChapterId: 0,
   selectedTopicId: 1,
   selectedLevel: 1,
