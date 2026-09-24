@@ -18,8 +18,9 @@ MAX_STREAK = 3
 STREAK_THRESHOLD_FOR_TYPING_MODE = 1
 
 # --- GAME MECHANICS: DECONSTRUCTION ---
-# Hits on the same Misconception at the current Level before a Deconstruction
-# triggers. Generic repeated failure is deliberately not a trigger.
+# Hits on the same Misconception within a Session — counting the current hit —
+# before a Deconstruction triggers, so 2 fires on the second hit. Generic
+# repeated failure is deliberately not a trigger.
 DECONSTRUCTION_TRIGGER_COUNT = 2
 
 # Wrong (non-soft) answers on the same Deconstruction step before the Reveal.

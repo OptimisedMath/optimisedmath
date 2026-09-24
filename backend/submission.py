@@ -13,7 +13,6 @@ from backend.core import db
 from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
-import backend.deconstruction_step as deconstruction_step
 from backend.models import (
     DeconstructionState,
     DeconstructionStep,
@@ -91,6 +90,7 @@ def run_submission_cycle(
         misconception_slug=misconception_slug,
         trap_source=trap_source,
     )
+    _record_misconception_hit(state, misconception_slug)
     if is_discounted_retry:
         _apply_discounted_retry_outcome(state, eval_result)
         is_soft_error = eval_result.get("feedback_type") == "info"
@@ -226,25 +226,53 @@ def _log_submission_telemetry(
     )
 
 
+def _record_misconception_hit(
+    state: SessionState, misconception_slug: str | None
+) -> None:
+    """Increment the Session-wide hit count for one Misconception.
+
+    Runs before the discounted-retry branch, so a retry's wrong answer still
+    counts toward its Misconception's trigger even though the retry itself can
+    never arm one (ADR-0014). A `None` slug — a correct answer, an unanticipated
+    wrong answer, a Filler, or a Trap referencing no Misconception in the
+    catalogue — leaves every count untouched.
+    """
+    if misconception_slug is None:
+        return
+    state.misconception_hits[misconception_slug] = (
+        state.misconception_hits.get(misconception_slug, 0) + 1
+    )
+
+
 def _maybe_trigger_deconstruction(
     state: SessionState,
     problem: ProblemDict,
     curriculum: Curriculum,
     misconception_slug: str | None,
 ) -> None:
-    """Arm a Deconstruction on the second hit of a Misconception at the current Level.
+    """Arm a Deconstruction on the second hit of a Misconception within a Session.
 
-    Generic repeated failure is deliberately not a trigger — only a Misconception
-    hit `config.DECONSTRUCTION_TRIGGER_COUNT` times counts, and only a Misconception
-    with an authored walkthrough can ever fire one. The `deconstructions` header row
-    is written here, before the pause, so a Student who leaves during it is still
-    counted. The triggering answer itself is graded as a completely normal Submission
-    by the rest of `run_submission_cycle` — this only arms the takeover.
+    Generic repeated failure is deliberately not a trigger — it takes
+    `config.DECONSTRUCTION_TRIGGER_COUNT` hits on one Misconception, the current
+    one included, and only a Misconception with an authored walkthrough can ever
+    fire one. Both the count and the already-deconstructed guard key on the
+    Misconception slug alone — no Chapter, Topic or Level — so hits accumulate
+    anywhere in the Curriculum and each Misconception fires at most once per
+    Session (ADR-0014). The `deconstructions` header row is written here, before
+    the pause, so a Student who leaves during it is still counted. The triggering
+    answer itself is graded as a completely normal Submission by the rest of
+    `run_submission_cycle` — this only arms the takeover.
     """
     if (
         misconception_slug is None
         or state.deconstruction is not None
         or not deconstruction.has_walkthrough(misconception_slug)
+        or misconception_slug in state.deconstructed
+    ):
+        return
+    if (
+        state.misconception_hits.get(misconception_slug, 0)
+        < config.DECONSTRUCTION_TRIGGER_COUNT
     ):
         return
 
@@ -254,19 +282,8 @@ def _maybe_trigger_deconstruction(
     username = state.username
     assert chapter_id is not None and topic_id is not None and username is not None
 
-    key = deconstruction_step.deconstruction_key(
-        misconception_slug, chapter_id, topic_id, level
-    )
-    if key in state.deconstructed:
-        return
-
     chapter_name = curriculum.chapter_name(chapter_id) or str(chapter_id)
     topic_name = curriculum.topic_name(chapter_id, topic_id) or str(topic_id)
-    hits = db.count_misconception_hits(
-        state.session_id, misconception_slug, chapter_id, topic_id, level
-    )
-    if hits < config.DECONSTRUCTION_TRIGGER_COUNT:
-        return
 
     try:
         steps = deconstruction.build_steps(
