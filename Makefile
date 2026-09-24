@@ -40,7 +40,7 @@ test: ## Run backend, frontend, and Sandcastle test suites
 	npm test --prefix frontend
 	node --test .sandcastle/lib/
 
-lint: ## Run backend and frontend linters
+lint: ## Run backend and frontend linters and the frontend type check
 	uv run black --check backend tests
 	uv run python scripts/check_docs.py
 	npm run typecheck --prefix frontend
