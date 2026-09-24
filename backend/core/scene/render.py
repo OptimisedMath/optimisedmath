@@ -556,11 +556,10 @@ class EdgeLabel(Annotation):
         ctx.text(mid, n, self.text_for(ctx), unknown=self.unknown)
 
 
-#: #212 found the placement floor by scanning: below this, `place_labels` cannot
-#: find a spot for the angle's own label that clears the vertex — verified by
-#: `find_threshold.py`, which crosses the collision-cost threshold between 12°
-#: and 13°. 15° keeps a margin. There is no matching ceiling: 179.4° (the
-#: narrowest margin tested) placed cleanly.
+#: #212 found this floor by scanning: below it, `place_labels` cannot find a
+#: spot for the angle's own label that clears the vertex. The collision cost
+#: crosses between 12° and 13°; 15° keeps a margin. There is no matching
+#: ceiling: 179.4° (the narrowest margin tested) placed cleanly.
 MIN_LABELLED_ANGLE = 15.0
 
 
