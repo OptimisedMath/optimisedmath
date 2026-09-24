@@ -61,17 +61,15 @@ def frac_imp_2() -> dict | None:
 
     c_str, _ = format_answers(n, d, w)
 
-    # Dividing correctly (quotient w, remainder n) but writing the two results
-    # in the wrong places lands back on the correct answer when w == n — left
-    # empty for that draw rather than let it collide (#361).
-    quotient_in_numerator = None if w == n else format_answers(w, d, n)[0]
-
     result = build_problem_dict(
         q_str,
         c_str,
         traps={
             "gives_only_the_whole_part": format_answers(w, 1)[0],
-            "puts_the_quotient_in_the_numerator": quotient_in_numerator,
+            # Divides correctly, then writes the quotient and the remainder in
+            # each other's places. At w == n that is the correct answer itself,
+            # and ADR-0008 drops the colliding Trap for that draw (#361).
+            "puts_the_quotient_in_the_numerator": format_answers(w, d, n)[0],
         },
         parameters={"w": w, "n": n, "d": d},
     )

@@ -15,6 +15,8 @@ from backend.problem_generation import FUNCTION_REGISTRY
 
 ROLLS = 500
 
+TRAP_SLUG = "puts_the_quotient_in_the_numerator"
+
 
 def _draws() -> list[dict]:
     """Every Problem `frac_imp_2` emits across ROLLS rolls, rejections dropped."""
@@ -23,56 +25,46 @@ def _draws() -> list[dict]:
     return [problem for problem in rolls if problem is not None]
 
 
-def test_trap_swaps_the_quotient_and_the_remainder():
-    """The Trap's option is the mixed number formed from the Problem's own quotient
-    and remainder, written the wrong way round, and it is never the correct answer.
-    """
+def test_frac_imp_2_trap_puts_the_quotient_in_the_numerator():
+    """The Trap is the draw's own quotient and remainder, written the wrong way round."""
     problems = _draws()
     assert problems, f"frac_imp_2 emitted no Problem in {ROLLS} rolls"
 
-    swapped_seen = 0
+    offered = 0
     for problem in problems:
-        w, n, d = (
-            problem["parameters"]["w"],
-            problem["parameters"]["n"],
-            problem["parameters"]["d"],
-        )
-        correct = problem["correct"]
-        expected_trap, _ = format_answers(w, d, n)
-
+        parameters = problem["parameters"]
+        w, n, d = parameters["w"], parameters["n"], parameters["d"]
         if w == n:
-            # Dividing correctly and swapping the two results lands on the
-            # correct answer itself — the slot must go empty, not collide.
-            assert expected_trap == correct
-            assert (
-                "puts_the_quotient_in_the_numerator"
-                not in problem["options_map"].values()
-            )
-            continue
+            continue  # The swap lands on the correct answer — its own test below.
 
-        assert expected_trap != correct, (
-            f"frac_imp_2 offered the correct answer {correct!r} as "
-            "puts_the_quotient_in_the_numerator"
+        expected_trap, _ = format_answers(w, d, n)
+        assert expected_trap != problem["correct"], (
+            f"frac_imp_2 offered the correct answer {problem['correct']!r} as "
+            f"{TRAP_SLUG}"
         )
 
         label = problem["options_map"].get(expected_trap)
         if label == "gives_only_the_whole_part":
-            # w divides evenly into d, so the swapped mixed number reduces to a
-            # bare whole number that happens to also be w — ADR-0008's earlier-
-            # declared Trap keeps the slot, and this draw's slot goes to a Filler.
+            # d divides w, so the swapped mixed number reduces to the bare whole
+            # number w — ADR-0008's earlier-declared Trap keeps the slot, and
+            # this draw's slot goes to a Filler.
             continue
 
-        swapped_seen += 1
-        assert label == "puts_the_quotient_in_the_numerator", (
-            f"frac_imp_2 did not offer {expected_trap!r} as "
-            f"puts_the_quotient_in_the_numerator for {w} and {n}/{d}"
+        offered += 1
+        assert label == TRAP_SLUG, (
+            f"frac_imp_2 did not offer {expected_trap!r} as {TRAP_SLUG} "
+            f"for {w} and {n}/{d}"
         )
 
-    assert swapped_seen, f"frac_imp_2 drew no w != n Problem in {ROLLS} rolls"
+    assert offered, f"frac_imp_2 drew no w != n Problem in {ROLLS} rolls"
 
 
-def test_a_problem_whose_whole_part_equals_its_remainder_is_still_served():
-    """Skipping the colliding Trap must not discard the draw and re-roll it (#361)."""
+def test_frac_imp_2_w_equals_n_collision_falls_back_to_filler():
+    """At w == n the swap is the correct answer, so the Trap loses its slot (#361).
+
+    Losing the slot must leave the draw served with four distinct options, not
+    discard it and re-roll.
+    """
     equal_draws = [
         problem
         for problem in _draws()
@@ -81,4 +73,10 @@ def test_a_problem_whose_whole_part_equals_its_remainder_is_still_served():
     assert equal_draws, f"frac_imp_2 drew no w == n Problem in {ROLLS} rolls"
 
     for problem in equal_draws:
+        parameters = problem["parameters"]
+        w, n, d = parameters["w"], parameters["n"], parameters["d"]
+        expected_trap, _ = format_answers(w, d, n)
+
+        assert expected_trap == problem["correct"]
+        assert TRAP_SLUG not in problem["options_map"].values()
         assert len(problem["options"]) == len(set(problem["options"])) == 4
