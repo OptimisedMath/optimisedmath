@@ -48,7 +48,6 @@ def frac_mult_num_1() -> dict | None:
 
 
 @declares_traps(
-    "stops_before_lowest_terms",
     "cancels_the_numerator_away",
     "multiplies_the_denominator_too",
 )
@@ -69,7 +68,6 @@ def frac_mult_num_2() -> dict | None:
         q_str,
         c_str,
         traps={
-            "stops_before_lowest_terms": rf"\frac{{{n * k}}}{{{d}}}",
             "cancels_the_numerator_away": format_answers(1, factor)[0],
             "multiplies_the_denominator_too": _multiplies_the_denominator_too(n, d, k),
         },

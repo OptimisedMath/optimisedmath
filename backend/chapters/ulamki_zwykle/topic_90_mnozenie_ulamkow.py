@@ -4,7 +4,6 @@ import random
 import math
 from backend.core.utils import (
     format_answers,
-    format_fraction_answer,
     format_fraction_question,
     build_problem_dict,
     declares_traps,
@@ -41,7 +40,7 @@ def frac_mult_1() -> dict | None:
         return result
 
 
-@declares_traps("stops_before_lowest_terms", "cancels_the_numerators_away")
+@declares_traps("cancels_the_numerators_away")
 def frac_mult_2() -> dict | None:
     """Skracanie na krzyż (poziom 2)."""
     n1, d2 = random.randint(2, 8), random.randint(2, 8)
@@ -57,9 +56,6 @@ def frac_mult_2() -> dict | None:
         q_str,
         c_str,
         traps={
-            "stops_before_lowest_terms": format_fraction_answer(
-                n1 * n2, d1 * d2, simplify=False
-            ),
             "cancels_the_numerators_away": format_answers(1, d1 * d2)[0],
         },
         parameters={"n1": n1, "d1": d1, "n2": n2, "d2": d2},
