@@ -46,10 +46,7 @@ def frac_imp_1() -> dict | None:
         return result
 
 
-@declares_traps(
-    "gives_only_the_whole_part",
-    "puts_the_quotient_in_the_numerator",
-)
+@declares_traps("gives_only_the_whole_part", "puts_the_quotient_in_the_numerator")
 def frac_imp_2() -> dict | None:
     """Wyłączanie całości (poziom 2)."""
     w = random.randint(1, 5)
