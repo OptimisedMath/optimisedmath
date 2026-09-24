@@ -3,6 +3,7 @@
 import uuid
 
 import pytest
+from pydantic import ValidationError
 
 import backend.config as config
 import backend.session_state as session_state
@@ -78,6 +79,12 @@ def test_radio_only_topic_serves_radio_mode_regardless_of_streak_for_student(
     state.streak = streak
 
     assert session_state.resolve_input_mode(state, fixture_curriculum) == "radio"
+
+
+def test_session_state_rejects_input_mode_outside_the_closed_set():
+    """#343: an out-of-set `current_input_mode` fails validation (ADR-0015)."""
+    with pytest.raises(ValidationError):
+        SessionState(current_input_mode="bogus")
 
 
 def test_hard_reset_wipes_progress_and_persists(fixture_curriculum: Curriculum):
