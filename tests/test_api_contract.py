@@ -103,6 +103,34 @@ def make_admin_state(problem, *, selected_topic_id, selected_level=1, streak=0):
     )
 
 
+# Every (method, path) pair `frontend/lib/session/httpSessionClient.ts` hardcodes.
+# Keep this list in step with that file — it is the pair's other half.
+FRONTEND_HARDCODED_ROUTES = {
+    ("POST", "/session/start"),
+    ("POST", "/session/navigate"),
+    ("POST", "/session/reset"),
+    ("GET", "/problem/next"),
+    ("POST", "/problem/submit"),
+    ("GET", "/deconstruction/next"),
+    ("POST", "/deconstruction/submit"),
+    ("POST", "/deconstruction/abandon"),
+}
+
+
+def test_route_table_contains_every_frontend_hardcoded_path():
+    """Issue #354: the frontend's session client hardcodes routes, and nothing
+    else pins them against the running app — a rename here would leave both
+    the frontend's mocked-client tests and this suite's coroutine-level tests
+    green while the deployed app breaks."""
+    app_routes = {
+        (method, route.path)
+        for route in main.app.routes
+        for method in getattr(route, "methods", set())
+    }
+
+    assert FRONTEND_HARDCODED_ROUTES <= app_routes
+
+
 def test_wrong_radio_submit_reveals_correct_answer():
     problem = {
         "problem_id": "p-radio-wrong",
