@@ -25,6 +25,10 @@ export const httpSessionClient: SessionClient = {
     return response.data;
   },
 
+  endSession: async (request) => {
+    await api.post('/session/end', request);
+  },
+
   getNextProblem: async (sessionId) => {
     const response = await api.get<ProblemResponse>('/problem/next', {
       params: { session_id: sessionId },

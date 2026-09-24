@@ -5,7 +5,7 @@ import { useAppNavigation } from '@/lib/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { setSessionCredentials, useSessionClient } from '@/lib/session';
+import { getStoredSessionId, setSessionCredentials, useSessionClient } from '@/lib/session';
 
 const FLOATING_SYMBOLS = [
   { symbol: '∑', top: '12%', left: '10%', delay: '0s', size: 'text-5xl' },
@@ -39,6 +39,10 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
+      const staleSessionId = getStoredSessionId();
+      if (staleSessionId) {
+        await client.endSession({ session_id: staleSessionId });
+      }
       const sessionResponse = await client.startSession({ username: username.trim() });
       setSessionCredentials(username.trim(), sessionResponse.session_id);
       enterArena();

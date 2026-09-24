@@ -95,6 +95,10 @@ export interface SessionResetRequest {
   session_id: string;
 }
 
+export interface SessionEndRequest {
+  session_id: string;
+}
+
 export interface ProblemSubmissionRequest {
   session_id: string;
   user_input: string;

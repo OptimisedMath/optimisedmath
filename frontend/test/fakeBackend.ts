@@ -137,6 +137,7 @@ export function createFakeSessionClient(handlers: Partial<SessionClient> = {}): 
     startSession: vi.fn(handlers.startSession ?? unwired('startSession')),
     navigateSession: vi.fn(handlers.navigateSession ?? unwired('navigateSession')),
     resetSession: vi.fn(handlers.resetSession ?? unwired('resetSession')),
+    endSession: vi.fn(handlers.endSession ?? unwired('endSession')),
     getNextProblem: vi.fn(handlers.getNextProblem ?? unwired('getNextProblem')),
     submitAnswer: vi.fn(handlers.submitAnswer ?? unwired('submitAnswer')),
     getDeconstructionStep: vi.fn(
