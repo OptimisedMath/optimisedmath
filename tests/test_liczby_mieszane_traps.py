@@ -44,9 +44,10 @@ def test_trap_swaps_the_quotient_and_the_remainder():
             # Dividing correctly and swapping the two results lands on the
             # correct answer itself — the slot must go empty, not collide.
             assert expected_trap == correct
-            assert "puts_the_quotient_in_the_numerator" not in problem[
-                "options_map"
-            ].values()
+            assert (
+                "puts_the_quotient_in_the_numerator"
+                not in problem["options_map"].values()
+            )
             continue
 
         assert expected_trap != correct, (
