@@ -5,7 +5,7 @@ Triggered pointers into this repo's real standards — the rules live in the lin
 ## Verify
 
 - `make test` — pytest (repo root), Vitest in `frontend`, `node --test .sandcastle/lib/`. There is no root-level `npm test`.
-- `make lint` — `black --check backend tests`, `scripts/check_docs.py`, eslint in `frontend`.
+- `make lint` — `black --check backend tests`, `scripts/check_docs.py`, `tsc --noEmit` and eslint in `frontend`.
 - Both must pass before the review is finished. Fix Python formatting with `uv run black backend tests`, never by hand.
 
 ## Style
