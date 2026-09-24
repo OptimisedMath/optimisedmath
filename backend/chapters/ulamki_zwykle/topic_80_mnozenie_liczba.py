@@ -27,7 +27,7 @@ def frac_mult_num_1() -> dict | None:
         q_str,
         c_str,
         traps={
-            "multiplies_the_denominator_too": format_answers(n * k, d * k)[0],
+            "multiplies_the_denominator_too": format_answers(n * k, d * k)[1],
             "multiplies_only_the_denominator": format_answers(n, d * k)[0],
         },
         parameters={"n": n, "d": d, "k": k},
@@ -36,7 +36,11 @@ def frac_mult_num_1() -> dict | None:
         return result
 
 
-@declares_traps("stops_before_lowest_terms", "cancels_the_numerator_away")
+@declares_traps(
+    "stops_before_lowest_terms",
+    "cancels_the_numerator_away",
+    "multiplies_the_denominator_too",
+)
 def frac_mult_num_2() -> dict | None:
     """Skracanie na krzyż z liczbą (poziom 2)."""
     k = random.randint(2, 6)
@@ -56,6 +60,7 @@ def frac_mult_num_2() -> dict | None:
         traps={
             "stops_before_lowest_terms": rf"\frac{{{n * k}}}{{{d}}}",
             "cancels_the_numerator_away": format_answers(1, factor)[0],
+            "multiplies_the_denominator_too": format_answers(n * k, d * k)[1],
         },
         parameters={"n": n, "d": d, "k": k, "factor": factor},
     )
@@ -81,7 +86,7 @@ def frac_mult_num_3() -> dict | None:
         c_str,
         traps={
             "multiplies_only_the_fraction_part": format_answers(n * k, d, w)[0],
-            "multiplies_the_denominator_too": format_answers(total, d * k)[0],
+            "multiplies_the_denominator_too": format_answers(total, d * k)[1],
         },
         parameters={
             "whole1": w,
