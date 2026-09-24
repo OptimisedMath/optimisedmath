@@ -17,11 +17,6 @@ export {
 } from './storage';
 export { useSession } from './useSession';
 export { isTakeoverPhase } from './useDeconstruction';
-export {
-  emptySessionDisplayProjection,
-  projectSessionState,
-} from './projectSessionState';
-export type { SessionDisplayProjection } from './projectSessionState';
 export type {
   ChapterFrontier,
   DeconstructionActions,

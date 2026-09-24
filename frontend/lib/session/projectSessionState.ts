@@ -1,55 +1,6 @@
-import type {
-  InputMode,
-  NavigationChapterOption,
-  NavigationProgress,
-  NavigationTopicOption,
-  SessionResponse,
-} from './types';
+import type { SessionResponse } from './types';
 
-/** Display fields projected from SessionResponse for arena rendering. */
-export interface SessionDisplayProjection {
-  hasNavigation: boolean;
-  xp: number;
-  flawlessEligible: boolean;
-  streakMeter: number;
-  maxStreak: number;
-  currentInputMode: InputMode;
-  selectedChapterId: number;
-  selectedTopicId: number;
-  selectedLevel: number;
-  levelCompleted: boolean;
-  topicCompleted: boolean;
-  hasNextUnlockedTopic: boolean;
-  chapterCompletion: NavigationProgress | null;
-  topicCompletion: NavigationProgress | null;
-  availableChapters: NavigationChapterOption[];
-  availableTopics: NavigationTopicOption[];
-  availableLevels: number[];
-}
-
-export function emptySessionDisplayProjection(): SessionDisplayProjection {
-  return {
-    hasNavigation: false,
-    xp: 0,
-    flawlessEligible: false,
-    streakMeter: 0,
-    maxStreak: 0,
-    currentInputMode: 'typing',
-    selectedChapterId: 0,
-    selectedTopicId: 1,
-    selectedLevel: 1,
-    levelCompleted: false,
-    topicCompleted: false,
-    hasNextUnlockedTopic: false,
-    chapterCompletion: null,
-    topicCompletion: null,
-    availableChapters: [],
-    availableTopics: [],
-    availableLevels: [],
-  };
-}
-
-export function projectSessionState(state: SessionResponse): SessionDisplayProjection {
+export function projectSessionState(state: SessionResponse) {
   const navigation = state.navigation;
 
   return {
@@ -74,3 +25,31 @@ export function projectSessionState(state: SessionResponse): SessionDisplayProje
     availableLevels: navigation?.available_levels ?? [],
   };
 }
+
+export type SessionDisplayProjection = ReturnType<typeof projectSessionState>;
+
+/**
+ * Mirrors backend/models.py's SessionResponse defaults, for the arena to render
+ * before a Session exists. Nothing renders this today: the arena returns a
+ * spinner or an error card before reaching any of these fields' readers.
+ */
+export const NO_SESSION_DISPLAY_PROJECTION: SessionDisplayProjection = {
+  hasNavigation: false,
+  xp: 0,
+  flawlessEligible: true,
+  streakMeter: 0,
+  maxStreak: 3,
+  currentInputMode:
+    'radio',
+  selectedChapterId: 0,
+  selectedTopicId: 1,
+  selectedLevel: 1,
+  levelCompleted: false,
+  topicCompleted: false,
+  hasNextUnlockedTopic: false,
+  chapterCompletion: null,
+  topicCompletion: null,
+  availableChapters: [],
+  availableTopics: [],
+  availableLevels: [],
+};
