@@ -3,12 +3,8 @@
 import random
 from decimal import ROUND_HALF_UP, Decimal
 
-from backend.core.utils import (
-    build_problem_dict,
-    declares_traps,
-    fmt_dec,
-    latex_to_expression,
-)
+from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
+from backend.expression import parse, render
 
 _QUANT = Decimal("0.0001")
 
@@ -26,8 +22,9 @@ def _q(value: Decimal) -> Decimal:
     return value.quantize(_QUANT, rounding=ROUND_HALF_UP)
 
 
-def _params(q: str, **operands: Decimal) -> dict[str, int | float | str]:
-    """The Problem's `parameters`: every operand, plus `q` as an ASCII `expression`.
+def _params(expr: str, **operands: Decimal) -> dict[str, int | float | str]:
+    """The Problem's `parameters`: every operand, plus the ASCII `expr` itself as
+    `expression`.
 
     Operands are cast to float because `build_problem_dict`'s `parameters` type has no
     `Decimal` member.
@@ -35,7 +32,7 @@ def _params(q: str, **operands: Decimal) -> dict[str, int | float | str]:
     parameters: dict[str, int | float | str] = {
         name: float(value) for name, value in operands.items()
     }
-    parameters["expression"] = latex_to_expression(q)
+    parameters["expression"] = expr
     return parameters
 
 
@@ -58,7 +55,7 @@ def dec_order_1() -> dict | None:
 
         if template == "add_mul":
             a, b, c = [_tenths(2, 6) for _ in range(3)]
-            q = f"{fmt_dec(a)} + {fmt_dec(b)} \\cdot {fmt_dec(c)}"
+            expr = f"{fmt_dec(a)} + {fmt_dec(b)} * {fmt_dec(c)}"
             ans = a + (b * c)
             traps = {
                 "adds_before_multiplying": (a + b) * c,
@@ -67,7 +64,7 @@ def dec_order_1() -> dict | None:
             }
         elif template == "mul_add":
             a, b, c = [_tenths(2, 6) for _ in range(3)]
-            q = f"{fmt_dec(a)} \\cdot {fmt_dec(b)} + {fmt_dec(c)}"
+            expr = f"{fmt_dec(a)} * {fmt_dec(b)} + {fmt_dec(c)}"
             ans = (a * b) + c
             traps = {
                 "adds_before_multiplying": a * (b + c),
@@ -79,7 +76,7 @@ def dec_order_1() -> dict | None:
             ans_div = _tenths(2, 5)
             b = ans_div * c
             a = _tenths(10, 20)
-            q = f"{fmt_dec(a)} - {fmt_dec(b)} : {fmt_dec(c)}"
+            expr = f"{fmt_dec(a)} - {fmt_dec(b)} : {fmt_dec(c)}"
             ans = a - ans_div
             traps = {
                 "subtracts_before_dividing": (a - b) / c,
@@ -92,7 +89,7 @@ def dec_order_1() -> dict | None:
             a = ans_div * c
             upper_bound = max(1, int(ans_div * 10) - 1)
             b = _tenths(1, upper_bound)
-            q = f"{fmt_dec(a)} : {fmt_dec(c)} - {fmt_dec(b)}"
+            expr = f"{fmt_dec(a)} : {fmt_dec(c)} - {fmt_dec(b)}"
             ans = ans_div - b
             traps = {
                 "subtracts_before_dividing": a / (c - b) if c != b else a,
@@ -101,10 +98,10 @@ def dec_order_1() -> dict | None:
             }
 
         problem = build_problem_dict(
-            q,
+            render(parse(expr)),
             fmt_dec(_q(ans)),
             traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-            parameters=_params(q, a=a, b=b, c=c),
+            parameters=_params(expr, a=a, b=b, c=c),
         )
 
         # If the dictionary built successfully (no collisions), return it.
@@ -134,7 +131,7 @@ def dec_order_2() -> dict | None:
 
         if template == "brack_mul":
             a, b, c = [_tenths(2, 6) for _ in range(3)]
-            q = f"({fmt_dec(a)} + {fmt_dec(b)}) \\cdot {fmt_dec(c)}"
+            expr = f"({fmt_dec(a)} + {fmt_dec(b)}) * {fmt_dec(c)}"
             ans = (a + b) * c
             traps = {
                 "ignores_the_brackets": a + (b * c),
@@ -145,7 +142,7 @@ def dec_order_2() -> dict | None:
             a = _tenths(2, 6)
             b = _tenths(5, 9)
             c = _tenths(1, 4)
-            q = f"{fmt_dec(a)} \\cdot ({fmt_dec(b)} - {fmt_dec(c)})"
+            expr = f"{fmt_dec(a)} * ({fmt_dec(b)} - {fmt_dec(c)})"
             ans = a * (b - c)
             traps = {
                 "ignores_the_brackets": (a * b) - c,
@@ -159,7 +156,7 @@ def dec_order_2() -> dict | None:
             upper_bound = max(1, int(ab_sum * 10) - 1)
             a = _tenths(1, upper_bound)
             b = ab_sum - a
-            q = f"({fmt_dec(a)} + {fmt_dec(b)}) : {fmt_dec(c)}"
+            expr = f"({fmt_dec(a)} + {fmt_dec(b)}) : {fmt_dec(c)}"
             ans = ans_div
             traps = {
                 "ignores_the_brackets": a + (b / c),
@@ -172,7 +169,7 @@ def dec_order_2() -> dict | None:
             a = ans_div * ans_brack
             b = _tenths(10, 20)
             c = b - ans_brack
-            q = f"{fmt_dec(a)} : ({fmt_dec(b)} - {fmt_dec(c)})"
+            expr = f"{fmt_dec(a)} : ({fmt_dec(b)} - {fmt_dec(c)})"
             ans = ans_div
             traps = {
                 "ignores_the_brackets": (a / b) - c,
@@ -181,10 +178,10 @@ def dec_order_2() -> dict | None:
             }
 
         problem = build_problem_dict(
-            q,
+            render(parse(expr)),
             fmt_dec(_q(ans)),
             traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-            parameters=_params(q, a=a, b=b, c=c),
+            parameters=_params(expr, a=a, b=b, c=c),
         )
 
         if problem is not None:
@@ -213,48 +210,48 @@ def dec_order_3() -> dict | None:
 
     if template == "pow_add":
         a, b, c = [_tenths(2, 5) for _ in range(3)]
-        q = f"{fmt_dec(a)}^2 + {fmt_dec(b)} \\cdot {fmt_dec(c)}"
+        expr = f"{fmt_dec(a)}^2 + {fmt_dec(b)} * {fmt_dec(c)}"
         ans = (a**2) + (b * c)
         traps = {
             "adds_before_multiplying": ((a**2) + b) * c,
             "multiplies_by_the_exponent": (a * 2) + (b * c),
             "ignores_the_exponent": a + (b * c),
         }
-        parameters = _params(q, a=a, b=b, c=c)
+        parameters = _params(expr, a=a, b=b, c=c)
     elif template == "add_pow":
         a, b = [_tenths(2, 5) for _ in range(2)]
-        q = f"{fmt_dec(a)} + {fmt_dec(b)}^2"
+        expr = f"{fmt_dec(a)} + {fmt_dec(b)}^2"
         ans = a + (b**2)
         traps = {
             "adds_before_squaring": (a + b) ** 2,
             "multiplies_by_the_exponent": a + (b * 2),
             "replaces_addition_with_multiplication": a * (b**2),
         }
-        parameters = _params(q, a=a, b=b)
+        parameters = _params(expr, a=a, b=b)
     elif template == "sub_pow":
         a = _tenths(10, 20)
         b = _tenths(2, 5)
-        q = f"{fmt_dec(a)} - {fmt_dec(b)}^2"
+        expr = f"{fmt_dec(a)} - {fmt_dec(b)}^2"
         ans = a - (b**2)
         traps = {
             "subtracts_before_squaring": (a - b) ** 2,
             "multiplies_by_the_exponent": a - (b * 2),
             "flips_the_final_sign": a + (b**2),
         }
-        parameters = _params(q, a=a, b=b)
+        parameters = _params(expr, a=a, b=b)
     else:  # pow_mul
         a, b = [_tenths(2, 5) for _ in range(2)]
-        q = f"{fmt_dec(a)}^2 \\cdot {fmt_dec(b)}"
+        expr = f"{fmt_dec(a)}^2 * {fmt_dec(b)}"
         ans = (a**2) * b
         traps = {
             "multiplies_before_squaring": (a * b) ** 2,
             "multiplies_by_the_exponent": (a * 2) * b,
             "replaces_multiplication_with_addition": (a**2) + b,
         }
-        parameters = _params(q, a=a, b=b)
+        parameters = _params(expr, a=a, b=b)
 
     problem = build_problem_dict(
-        q,
+        render(parse(expr)),
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
         parameters=parameters,
@@ -280,7 +277,7 @@ def dec_order_4() -> dict | None:
         a, b = [_tenths(2, 6) for _ in range(2)]
         c = _tenths(5, 9)
         d = _tenths(1, 4)
-        q = f"({fmt_dec(a)} + {fmt_dec(b)}) \\cdot ({fmt_dec(c)} - {fmt_dec(d)})"
+        expr = f"({fmt_dec(a)} + {fmt_dec(b)}) * ({fmt_dec(c)} - {fmt_dec(d)})"
         ans = (a + b) * (c - d)
         traps = {
             "ignores_both_brackets": a + b * c - d,
@@ -290,7 +287,7 @@ def dec_order_4() -> dict | None:
     else:
         a, c = [_tenths(2, 5) for _ in range(2)]
         b, d = [_tenths(2, 5) for _ in range(2)]
-        q = f"{fmt_dec(a)} \\cdot {fmt_dec(b)} + {fmt_dec(c)} \\cdot {fmt_dec(d)}"
+        expr = f"{fmt_dec(a)} * {fmt_dec(b)} + {fmt_dec(c)} * {fmt_dec(d)}"
         ans = (a * b) + (c * d)
         traps = {
             "invents_a_bracket_around_the_addition": a * (b + c) * d,
@@ -299,10 +296,10 @@ def dec_order_4() -> dict | None:
         }
 
     problem = build_problem_dict(
-        q,
+        render(parse(expr)),
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c, d=d),
+        parameters=_params(expr, a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem
@@ -321,7 +318,7 @@ def dec_order_5() -> dict | None:
 
     if template == "brack_sq_sub":
         a, b, c = [_tenths(1, 4) for _ in range(3)]
-        q = f"({fmt_dec(a)} + {fmt_dec(b)})^2 - {fmt_dec(c)}"
+        expr = f"({fmt_dec(a)} + {fmt_dec(b)})^2 - {fmt_dec(c)}"
         ans = ((a + b) ** 2) - c
         # A tenths pair squared is routinely smaller than c, and klasy 4-8 do not
         # practise negative answers in this Topic (#242). Discard that roll.
@@ -335,7 +332,7 @@ def dec_order_5() -> dict | None:
     else:
         a = _tenths(10, 20)
         b, c = [_tenths(1, 4) for _ in range(2)]
-        q = f"{fmt_dec(a)} - ({fmt_dec(b)} + {fmt_dec(c)})^2"
+        expr = f"{fmt_dec(a)} - ({fmt_dec(b)} + {fmt_dec(c)})^2"
         ans = a - ((b + c) ** 2)
         traps = {
             "subtracts_before_squaring": (a - (b + c)) ** 2,
@@ -344,10 +341,10 @@ def dec_order_5() -> dict | None:
         }
 
     problem = build_problem_dict(
-        q,
+        render(parse(expr)),
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c),
+        parameters=_params(expr, a=a, b=b, c=c),
     )
     if problem:
         return problem
@@ -367,7 +364,7 @@ def dec_order_6() -> dict | None:
     a = _tenths(5, 9)
     b, c = [_tenths(2, 5) for _ in range(2)]
     d = _tenths(1, 3)
-    q = f"{fmt_dec(a)} \\cdot ({fmt_dec(b)} + {fmt_dec(c)})^2 - {fmt_dec(d)}"
+    expr = f"{fmt_dec(a)} * ({fmt_dec(b)} + {fmt_dec(c)})^2 - {fmt_dec(d)}"
     ans = a * ((b + c) ** 2) - d
     # klasy 4-8 do not practise negative answers in this Topic (#242).
     if ans < 0:
@@ -380,10 +377,10 @@ def dec_order_6() -> dict | None:
     }
 
     problem = build_problem_dict(
-        q,
+        render(parse(expr)),
         fmt_dec(_q(ans)),
         traps={slug: fmt_dec(_q(value)) for slug, value in traps.items()},
-        parameters=_params(q, a=a, b=b, c=c, d=d),
+        parameters=_params(expr, a=a, b=b, c=c, d=d),
     )
     if problem:
         return problem

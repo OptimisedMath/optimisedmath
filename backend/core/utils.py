@@ -428,23 +428,6 @@ def build_problem_dict(
     return problem
 
 
-# --- Expression parameter (Kolejność wykonywania działań) ---
-
-_FRAC_TOKEN_RE = re.compile(r"\\frac\{(-?\d+)\}\{(\d+)\}")
-
-
-def latex_to_expression(latex: str) -> str:
-    """Convert a Kolejność generator's LaTeX question into its ASCII `expression` parameter.
-
-    `\\frac{n}{d}` becomes `n/d` and `\\cdot` becomes `*`; `+ - : ^ ( )` and decimal
-    commas already agree with the ASCII grammar `backend.expression` parses, so no
-    other substitution is needed. Relies on every Kolejność `q` string containing
-    nothing else LaTeX-specific — true today, and `backend.expression.parse` failing
-    on an emitted `expression` is the guard if a future template breaks that.
-    """
-    return _FRAC_TOKEN_RE.sub(r"\1/\2", latex).replace("\\cdot", "*")
-
-
 # --- Number line SVG ---
 
 

@@ -14,7 +14,6 @@ import math
 import random
 from dataclasses import dataclass
 from decimal import Decimal
-from fractions import Fraction
 from typing import Callable, Literal
 
 from backend.core.utils import fmt_dec, format_answers, format_fraction_question
@@ -28,6 +27,7 @@ from backend.expression import (
     evaluate,
     parse,
     render,
+    render_value,
 )
 from backend.step_grading import ORDERING_ANSWER_SEPARATOR
 
@@ -638,13 +638,13 @@ def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[S
 #
 # The walkthrough is chapter-agnostic: `expression.Value.notation` (fraction or
 # decimal) is read once from the parsed tree and carried through every value that
-# replaces a resolved operation, so every step's `working_line` and answer render
-# in whichever notation the Problem itself uses — `n/d` in Ułamki Zwykłe
-# (mirroring the generators' own `_frac`, never a bare integer for a whole
-# answer), a trailing-zero-stripped decimal comma in Ułamki Dziesiętne
-# (mirroring `fmt_dec(_q(ans))`). That is also what makes the final step's
-# answer string-exact against the Problem's own: it is authored in the same
-# convention as every step before it, not specially formatted at the end.
+# replaces a resolved operation, so every step's line and answer render through
+# `expression.render_value` (ADR-0017) — a LaTeX `\frac{n}{d}` or a bare integer
+# in Ułamki Zwykłe, a trailing-zero-stripped decimal comma in Ułamki Dziesiętne.
+# The generators' own leaf formatter calls that same function, which is what
+# makes the final step's answer string-exact against the Problem's own: it is
+# authored by the same function as every step before it, not specially
+# formatted at the end.
 
 _LADDER_TIERS = (
     "nawiasy",
@@ -757,15 +757,6 @@ def _replace_node(node: Node, target: Node, replacement: Node) -> Node:
     return dataclasses.replace(node, left=left, right=right)
 
 
-def _format_step_answer(value: Fraction, notation: Notation) -> str:
-    """An operation's answer in the Problem's own convention — `n/d` for Ułamki
-    Zwykłe (mirroring `_frac`, never a bare integer), a trailing-zero-stripped
-    decimal comma for Ułamki Dziesiętne (mirroring `fmt_dec(_q(ans))`)."""
-    if notation == "decimal":
-        return fmt_dec(Decimal(value.numerator) / Decimal(value.denominator))
-    return f"{value.numerator}/{value.denominator}"
-
-
 def _apply_steps(tree: Node, notation: Notation) -> list[Step]:
     """One Step per operation, resolved in ladder order until `tree` is one value."""
     steps: list[Step] = []
@@ -779,7 +770,7 @@ def _apply_steps(tree: Node, notation: Notation) -> list[Step]:
             Step(
                 question=f"Teraz {target.tier}. Ile wynosi {_math(sub_expression)}?",
                 working_line=working_line,
-                answer=_format_step_answer(value, notation),
+                answer=render_value(value, notation),
             )
         )
         tree = _replace_node(tree, target.node, Value(value, notation))
