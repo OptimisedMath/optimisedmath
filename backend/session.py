@@ -29,6 +29,7 @@ from backend.models import (
     SessionState,
     ProblemResponse,
     ProblemSubmissionRequest,
+    SessionEndRequest,
     SessionNavigateRequest,
     SessionResetRequest,
     SessionStartRequest,
@@ -307,6 +308,12 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
         state, curriculum, play_mode
     )
     return build_session_response(state, play_mode, nav_snapshot)
+
+
+def end_session(request: SessionEndRequest) -> None:
+    """Delete a Session by id — idempotent, ending an unknown id is not an error."""
+    ACTIVE_SESSIONS.pop(request.session_id, None)
+    db.delete_session(request.session_id)
 
 
 def next_problem(session_id: str) -> ProblemResponse:

@@ -324,6 +324,12 @@ class SessionResetRequest(BaseModel):
     session_id: str
 
 
+class SessionEndRequest(BaseModel):
+    """End a Session by id — idempotent, an unknown id is not an error."""
+
+    session_id: str
+
+
 class AutoSolveRequest(BaseModel):
     session_id: str
     problem_id: Optional[str] = None

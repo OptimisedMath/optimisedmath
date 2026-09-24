@@ -1185,6 +1185,41 @@ def test_start_session_survives_recovery_from_db():
     assert recovered.problem_start_time == original_start_time
 
 
+# --- session_end (#381) ---
+
+
+def test_session_end_deletes_the_session_row_and_the_active_cache():
+    response = run(
+        main.session_start(
+            main.SessionStartRequest(username=f"end-user-{uuid.uuid4()}")
+        )
+    )
+    session_id = response.session_id
+    assert session_id in main.ACTIVE_SESSIONS
+    assert db.load_session(session_id) is not None
+
+    run(main.session_end(main.SessionEndRequest(session_id=session_id)))
+
+    assert session_id not in main.ACTIVE_SESSIONS
+    assert db.load_session(session_id) is None
+    with pytest.raises(session.SessionNotFoundError):
+        session.get_session(session_id)
+
+
+def test_session_end_is_idempotent_for_an_unknown_id():
+    run(main.session_end(main.SessionEndRequest(session_id=str(uuid.uuid4()))))
+
+
+def test_session_end_lets_a_later_start_mint_a_different_id():
+    username = f"end-user-{uuid.uuid4()}"
+    first = run(main.session_start(main.SessionStartRequest(username=username)))
+
+    run(main.session_end(main.SessionEndRequest(session_id=first.session_id)))
+    second = run(main.session_start(main.SessionStartRequest(username=username)))
+
+    assert second.session_id != first.session_id
+
+
 def test_start_next_submit_logs_time_spent_telemetry():
     """Submitting right after start and Next problem must log a populated time_spent field."""
     response = run(

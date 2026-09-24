@@ -18,6 +18,7 @@ from backend.models import (
     SessionResponse,
     ProblemResponse,
     ProblemSubmissionRequest,
+    SessionEndRequest,
     SessionNavigateRequest,
     SessionResetRequest,
     SessionStartRequest,
@@ -29,6 +30,7 @@ from backend.session import (
     SessionError,
     abandon_deconstruction,
     auto_solve_problem,
+    end_session,
     get_deconstruction_step,
     navigate_session,
     next_problem,
@@ -131,6 +133,12 @@ async def session_reset(request: SessionResetRequest) -> SessionResponse:
         return reset_session(request)
     except SessionError as exc:
         raise _map_session_error(exc) from exc
+
+
+@app.post("/session/end", tags=["Session"])
+async def session_end(request: SessionEndRequest) -> None:
+    """Delete a Session by id — idempotent, ending an unknown id is not an error."""
+    end_session(request)
 
 
 # --- Problem endpoints ---
