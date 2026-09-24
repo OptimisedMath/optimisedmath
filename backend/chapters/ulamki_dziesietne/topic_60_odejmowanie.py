@@ -4,6 +4,22 @@ import random
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+def _no_borrow_diff(minuend: float, subtrahend: float) -> float:
+    """Subtract column by column, each time smaller digit from larger, never borrowing.
+
+    The value a Student reaches by `subtracts_the_smaller_digit_from_the_larger`:
+    4,1 - 3,79 reads as |4-3|, |1-7|, |0-9| = 1,69. Both operands must be under 10,
+    so that padding them to two decimal places lines the columns up.
+    """
+    minuend_digits = f"{minuend:.2f}".replace(".", "")
+    subtrahend_digits = f"{subtrahend:.2f}".replace(".", "")
+    column_diffs = "".join(
+        str(abs(int(left) - int(right)))
+        for left, right in zip(minuend_digits, subtrahend_digits)
+    )
+    return int(column_diffs) / 100
+
+
 @declares_traps("adds_instead_of_subtracting")
 def dec_sub_1() -> dict | None:
     """Bez pożyczania (poziom 1)."""
@@ -72,6 +88,7 @@ def dec_sub_2() -> dict | None:
     "mishandles_the_hundredths_when_borrowing",
     "borrows_over_zero_incorrectly",
     "off_by_one_tenth_when_borrowing",
+    "subtracts_the_smaller_digit_from_the_larger",
 )
 def dec_sub_3() -> dict | None:
     """Z dopisywaniem zer (np. 1 - 0.25) (poziom 3)."""
@@ -97,6 +114,9 @@ def dec_sub_3() -> dict | None:
             ),
             "borrows_over_zero_incorrectly": fmt_dec(round(v1 - v2 - 0.4, 2)),
             "off_by_one_tenth_when_borrowing": fmt_dec(round(v1 - v2 + 0.1, 2)),
+            "subtracts_the_smaller_digit_from_the_larger": fmt_dec(
+                round(_no_borrow_diff(v1, v2), 2)
+            ),
         },
         parameters={"v1": v1, "v2": v2},
     )
