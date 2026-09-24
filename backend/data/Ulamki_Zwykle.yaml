@@ -96,9 +96,9 @@ topics:
           gives_only_the_whole_part:
             misconception: improper_to_mixed_mishandles_remainder
             explanation: "Gdzie podział się ułamek? Całości wyciągnąłeś dobrze, ale zapomniałeś zapisać reszty."
-          swaps_the_remainder_and_the_denominator:
+          puts_the_quotient_in_the_numerator:
             misconception: improper_to_mixed_mishandles_remainder
-            explanation: "Odwróciłeś ułamek! Mianownik zostaje ten sam, a reszta ląduje w liczniku."
+            explanation: "Zamieniłeś części miejscami! Wynik dzielenia to całości, a reszta ląduje w liczniku — nie odwrotnie."
   - id: 40
     name: "Porównywanie"
     radio_only: true
