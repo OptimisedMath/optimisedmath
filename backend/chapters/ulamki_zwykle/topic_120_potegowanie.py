@@ -12,7 +12,7 @@ from backend.core.utils import (
 @declares_traps("raises_only_the_numerator", "multiplies_by_the_exponent")
 def frac_pow_1() -> dict | None:
     """Kwadrat ułamka (poziom 1)."""
-    d = random.randint(3, 8)
+    d = random.randint(2, 10)
     n = random.randint(1, d - 1)
     p = 2
 
@@ -42,8 +42,8 @@ def frac_pow_1() -> dict | None:
 )
 def frac_pow_2() -> dict | None:
     """Sześcian ułamka (poziom 2)."""
-    # Keeping denominator up to 5 so cubes don't get absurdly large
-    d = random.randint(2, 5)
+    # Capped at 6: (1/7)^3 = 1/343 stops being arithmetic for this Level (#263)
+    d = random.randint(2, 6)
     n = random.randint(1, d - 1)
     p = 3
 
@@ -72,9 +72,16 @@ def frac_pow_3() -> dict | None:
     """Potęgowanie liczby mieszanej (poziom 3)."""
     w = random.randint(1, 2)
     p = random.randint(2, 3)
-    # Cap denominator if p=3 to prevent math from becoming tedious
-    d = random.randint(2, 3) if p == 3 else random.randint(2, 4)
-    n = random.randint(1, d - 1)
+    if p == 3:
+        # The Student cubes w*d+n, not d alone, so bound that instead (#263)
+        while True:
+            d = random.randint(2, 6)
+            n = random.randint(1, d - 1)
+            if w * d + n <= 8:
+                break
+    else:
+        d = random.randint(2, 10)
+        n = random.randint(1, d - 1)
 
     q_str = (
         rf"\text{{Oblicz: }} \left( {format_fraction_question(n, d, w)} \right)^{{{p}}}"
