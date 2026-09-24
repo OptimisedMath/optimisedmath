@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  emptySessionDisplayProjection,
+  NO_SESSION_DISPLAY_PROJECTION,
   projectSessionState,
 } from '@/lib/session/projectSessionState';
 import type { SessionResponse } from '@/lib/session/types';
 import { baseSession, defaultNavigation } from './fakeBackend';
 
 describe('projectSessionState', () => {
-  it('projects display fields from a SessionResponse fixture', () => {
+  it('maps every display field, preferring the session-selected chapter/topic over navigation', () => {
     const navigation = defaultNavigation();
     const state = baseSession({
       xp: 120,
@@ -84,14 +84,14 @@ describe('projectSessionState', () => {
     });
   });
 
-  it('emptySessionDisplayProjection provides zeroed defaults for a null session', () => {
-    expect(emptySessionDisplayProjection()).toEqual({
+  it('NO_SESSION_DISPLAY_PROJECTION mirrors the backend SessionResponse defaults', () => {
+    expect(NO_SESSION_DISPLAY_PROJECTION).toEqual({
       hasNavigation: false,
       xp: 0,
-      flawlessEligible: false,
+      flawlessEligible: true,
       streakMeter: 0,
-      maxStreak: 0,
-      currentInputMode: 'typing',
+      maxStreak: 3,
+      currentInputMode: 'radio',
       selectedChapterId: 0,
       selectedTopicId: 1,
       selectedLevel: 1,
