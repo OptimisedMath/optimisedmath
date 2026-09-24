@@ -23,7 +23,7 @@ from backend.models import (
     DeconstructionStep,
     SessionState,
 )
-from backend.play_mode import StudentPlayMode
+from backend.play_mode import AdminPlayMode, StudentPlayMode
 from backend.step_grading import ORDERING_ANSWER_SEPARATOR
 
 
@@ -47,11 +47,14 @@ def make_state(
     selected_level=1,
     frontier_topic_id=None,
     frontier_level=1,
+    play_mode=StudentPlayMode(),
 ):
     """Build a SessionState with an active problem and register it in ACTIVE_SESSIONS.
 
     A ``frontier_topic_id`` replaces the seeded Chapter Frontier before the profile
-    is persisted, so the stored profile holds that Frontier too.
+    is persisted, so the stored profile holds that Frontier too. ``play_mode``
+    picks the Username the profile is written under, and the mode it is written
+    through — see `make_admin_state`.
     """
     curriculum = resolve_curriculum()
     chapter_ids = list(curriculum.chapter_ids())
@@ -62,7 +65,10 @@ def make_state(
     state = SessionState()
     main.session_state.init_defaults(state, curriculum)
     state.session_id = session_id
-    state.username = f"test-{session_id}"
+    if play_mode.is_admin:
+        state.username = next(iter(config.ADMIN_USERNAMES))
+    else:
+        state.username = f"test-{session_id}"
     state.selected_chapter_id = chapter_id
     state.selected_topic_id = selected_topic_id
     state.selected_level = selected_level
@@ -77,8 +83,25 @@ def make_state(
             frontier_level=frontier_level,
         )
     main.ACTIVE_SESSIONS[session_id] = state
-    main.session_state.persist(state, StudentPlayMode())
+    main.session_state.persist(state, play_mode)
     return state
+
+
+def make_admin_state(problem, *, selected_topic_id, selected_level=1, streak=0):
+    """Build an Admin SessionState with an active problem, via `make_state`.
+
+    Leaves the seeded Chapter Frontier at its default (first Topic, Level 1), so
+    a ``selected_topic_id``/``selected_level`` elsewhere in the Chapter is "away
+    from the Admin's stored Frontier" without any extra setup — Admin mode never
+    reads that record for progression (ADR-0013).
+    """
+    return make_state(
+        problem,
+        streak=streak,
+        selected_topic_id=selected_topic_id,
+        selected_level=selected_level,
+        play_mode=AdminPlayMode(),
+    )
 
 
 def test_wrong_radio_submit_reveals_correct_answer():
@@ -375,6 +398,111 @@ def test_replay_at_frontier_level_but_behind_frontier_topic_does_not_unlock_next
     persisted_frontier = db.load_user(state.username)["chapter_frontiers"][chapter_id]
     assert persisted_frontier.frontier_topic_id == 40
     assert persisted_frontier.frontier_level == 1
+
+
+def test_admin_mirrors_student_progression_end_to_end():
+    """#333: an Admin QAing any Topic and Level sees exactly what a Student At
+    the Frontier sees, wherever they are in the Curriculum — Admin's answer to
+    "At the Frontier?" is unconditional (ADR-0013)."""
+    chapter_id = 10
+    # Topic 30 (max_level 2) sits one Topic ahead of Topic 40 in the real
+    # Curriculum — see the Replay regression tests above for the same pair.
+    curriculum = resolve_curriculum()
+    assert curriculum.topic_by_id(chapter_id, 30)["max_level"] == 2
+    last_topic_id = int(curriculum.topics(chapter_id)[-1]["topic_id"])
+    assert last_topic_id != 40
+
+    correct_problem = {
+        "problem_id": "p-admin-mirror-correct",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {},
+    }
+    trap_problem = {
+        "problem_id": "p-admin-mirror-trap",
+        "question": "q",
+        "correct": "2",
+        "options": ["2", "3"],
+        "options_map": {"2": "correct", "3": "t1"},
+        "messages": {"t1": "Try again"},
+    }
+
+    # Selected Topic/Level (30, 2) is away from the Admin's stored Frontier,
+    # which `make_admin_state` leaves seeded at the Chapter's first Topic.
+    state = make_admin_state(
+        correct_problem, streak=2, selected_topic_id=30, selected_level=1
+    )
+    username = state.username
+
+    # --- Level completion: full stars, XP + Flawless bonus, Selected level up ---
+    response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-admin-mirror-correct",
+                user_input="2",
+            )
+        )
+    )
+
+    assert response.is_correct is True
+    assert response.state.streak_meter == 3
+    assert response.state.level_completed is True
+    expected_xp = config.XP_REWARDS[1] + config.FLAWLESS_LEVEL_BONUS
+    assert response.state.xp == expected_xp
+    assert f"+{config.XP_REWARDS[1]} XP" in response.state.feedback_msg
+    assert "Flawless Bonus" in response.state.feedback_msg
+    assert response.state.selected_level == 2
+
+    # --- A penalized mistake forfeits the Flawless badge ---
+    state.current_problem = trap_problem
+    state.problem_answered = False
+    wrong_response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-admin-mirror-trap",
+                user_input="3",
+            )
+        )
+    )
+    assert wrong_response.is_correct is False
+    assert wrong_response.state.flawless_eligible is False
+
+    # --- Topic completion: last Level of the Topic, no Flawless bonus this time ---
+    state.current_problem = correct_problem
+    state.problem_answered = False
+    state.streak = 2
+    final_response = run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=state.session_id,
+                problem_id="p-admin-mirror-correct",
+                user_input="2",
+            )
+        )
+    )
+
+    assert final_response.is_correct is True
+    assert final_response.state.level_completed is True
+    assert final_response.state.topic_completed is True
+    assert final_response.state.xp == expected_xp + config.XP_REWARDS[2]
+    assert "Flawless Bonus" not in final_response.state.feedback_msg
+
+    # --- Next problem lands on the next Topic in the Chapter — not the last ---
+    next_response = run(main.problem_next(state.session_id))
+    assert next_response.state.selected_topic_id == 40
+    assert next_response.state.selected_topic_id != last_topic_id
+
+    # --- None of it reached the profile ---
+    loaded = db.load_user(username)
+    assert loaded is not None
+    assert loaded["xp"] == 0
+    seeded_frontier = loaded["chapter_frontiers"][chapter_id]
+    assert seeded_frontier.frontier_topic_id == 10
+    assert seeded_frontier.frontier_level == 1
 
 
 def test_input_mode_defers_radio_to_typing_until_next_problem():

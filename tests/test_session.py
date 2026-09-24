@@ -155,7 +155,6 @@ def test_session_response_from_state_copies_shared_fields():
         current_problem=derived_problem,
         can_submit=False,
         can_next_problem=True,
-        streak_meter=3,
         admin_mode=True,
         navigation=navigation,
     )
@@ -181,12 +180,66 @@ def test_session_response_from_state_copies_shared_fields():
     assert response.current_problem == derived_problem
     assert response.can_submit is False
     assert response.can_next_problem is True
-    assert response.streak_meter == 3
+    assert response.streak_meter == 2
     assert response.admin_mode is True
     assert response.navigation == navigation
     assert "username" not in SessionResponse.model_fields
     assert "problem_start_time" not in SessionResponse.model_fields
     assert "recent_problem_fingerprints" not in SessionResponse.model_fields
+
+
+def _streak_meter_response(
+    *, streak: int, max_streak: int, level_completed: bool
+) -> SessionResponse:
+    state = SessionState(
+        streak=streak, max_streak=max_streak, level_completed=level_completed
+    )
+    navigation = NavigationView(
+        available_chapters=[],
+        available_topics=[],
+        available_levels=[],
+        has_next_unlocked_topic=False,
+        radio_only=False,
+    )
+    return SessionResponse.from_state(
+        state,
+        current_problem=None,
+        can_submit=False,
+        can_next_problem=False,
+        admin_mode=False,
+        navigation=navigation,
+    )
+
+
+def test_streak_meter_equals_streak_by_default():
+    response = _streak_meter_response(streak=2, max_streak=3, level_completed=False)
+
+    assert response.streak_meter == 2
+
+
+def test_streak_meter_stays_full_during_level_completion_feedback():
+    response = _streak_meter_response(streak=0, max_streak=3, level_completed=True)
+
+    assert response.streak_meter == 3
+
+
+@pytest.mark.parametrize(
+    ("level_completed", "streak", "expected"),
+    [
+        (True, 1, 1),
+        (True, 0, 3),
+        (False, 0, 0),
+        (False, 2, 2),
+    ],
+)
+def test_streak_meter_exception_requires_level_completion_and_zeroed_streak(
+    level_completed, streak, expected
+):
+    response = _streak_meter_response(
+        streak=streak, max_streak=3, level_completed=level_completed
+    )
+
+    assert response.streak_meter == expected
 
 
 def test_respond_builds_unanswered_problem_payload_without_mutating_state(
@@ -586,7 +639,11 @@ def test_manual_submit_and_auto_solve_match_in_typing_mode(
     assert manual_response.feedback == auto_response.feedback
 
 
-def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curriculum):
+def test_admin_auto_solve_uses_mirrored_submission_rules(
+    fixture_curriculum: Curriculum,
+):
+    """#333: Admin plays the same rules as a Student — XP counts up in the
+    Session on every correct answer — but none of it reaches the profile."""
     state = _fresh_state(fixture_curriculum)
     state.username = next(iter(config.ADMIN_USERNAMES))
     state.xp = 40
@@ -614,7 +671,8 @@ def test_admin_auto_solve_uses_flat_submission_rules(fixture_curriculum: Curricu
 
     assert response.is_correct is True
     assert state.streak == 1
-    assert "XP" not in response.feedback
+    assert "XP" in response.feedback
+    assert state.xp == 40 + config.XP_REWARDS[2]
     loaded = db.load_user(state.username)
     assert loaded is not None
     assert loaded["xp"] == 40

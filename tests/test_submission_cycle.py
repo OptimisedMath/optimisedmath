@@ -7,6 +7,7 @@ import pytest
 import backend.config as config
 import backend.navigation_snapshot as navigation_snapshot
 import backend.submission_cycle as submission_cycle
+from backend.core.utils import ProblemDict
 from backend.curriculum import Curriculum
 from backend.models import (
     ChapterFrontier,
@@ -14,12 +15,16 @@ from backend.models import (
     DeconstructionStep,
     SessionState,
 )
-from backend.play_mode import PlayMode, StudentPlayMode
+from backend.play_mode import AdminPlayMode, PlayMode, StudentPlayMode
 import backend.session_state as session_state
 from tests.support.fixture_curriculum import (
     CHAPTER_ALPHA,
+    CHAPTER_TRIO,
     TOPIC_MULTI,
     TOPIC_RADIO,
+    TOPIC_TRIO_FIRST,
+    TOPIC_TRIO_MIDDLE,
+    build_three_topic_curriculum,
 )
 
 
@@ -35,6 +40,29 @@ def _snapshot(
     state: SessionState, curriculum: Curriculum, play_mode: PlayMode
 ) -> navigation_snapshot.NavigationSnapshot:
     return navigation_snapshot.build_navigation_snapshot(state, curriculum, play_mode)
+
+
+def _problem(problem_id: str) -> ProblemDict:
+    """Build a minimal radio Problem whose only interesting field is its id."""
+    return {
+        "problem_id": problem_id,
+        "question": "q",
+        "correct": "1",
+        "options": ["1", "2"],
+    }
+
+
+def _stub_served_problem(monkeypatch: pytest.MonkeyPatch) -> ProblemDict:
+    """Stand in for generation so these tests assert on Navigation, not on Problem choice."""
+    served_problem = _problem("served")
+
+    def _fake_serve_next_problem(*_args, **_kwargs):
+        return served_problem
+
+    monkeypatch.setattr(
+        submission_cycle, "serve_next_problem", _fake_serve_next_problem
+    )
+    return served_problem
 
 
 def test_reset_submission_cycle_clears_problem_and_feedback(
@@ -174,10 +202,16 @@ def test_begin_problem_resolves_input_mode_from_streak(fixture_curriculum: Curri
     assert state.current_input_mode == "typing"
 
 
-def test_resolve_next_problem_navigates_to_frontier_topic(
+def test_resolve_next_problem_navigates_to_next_topic(
     fixture_curriculum: Curriculum,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """Student Topic completion lands on the next Topic after the Selected one.
+
+    The stored Frontier is set to that same Topic to mirror what progression has
+    already done by the time ``topic_completed`` is set on a real Submission —
+    Navigation itself reads no Frontier field (#332).
+    """
     state = _fresh_state(fixture_curriculum)
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_MULTI
@@ -189,25 +223,8 @@ def test_resolve_next_problem_navigates_to_frontier_topic(
         frontier_topic_id=TOPIC_RADIO,
         frontier_level=1,
     )
-    state.current_problem = {
-        "problem_id": "completed",
-        "question": "q",
-        "correct": "1",
-        "options": ["1", "2"],
-    }
-    served_problem = {
-        "problem_id": "served",
-        "question": "q",
-        "correct": "1",
-        "options": ["1", "2"],
-    }
-
-    def _fake_serve_next_problem(*_args, **_kwargs):
-        return served_problem
-
-    monkeypatch.setattr(
-        submission_cycle, "serve_next_problem", _fake_serve_next_problem
-    )
+    state.current_problem = _problem("completed")
+    served_problem = _stub_served_problem(monkeypatch)
 
     problem = submission_cycle.resolve_next_problem(
         state,
@@ -225,16 +242,86 @@ def test_resolve_next_problem_navigates_to_frontier_topic(
     assert problem is served_problem
 
 
+def test_resolve_next_problem_admin_navigates_to_immediate_next_topic(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """An Admin's Topic completion lands on the immediate next Topic, not the Chapter's last.
+
+    Admin mode's effective Frontier is the Chapter's last Topic (full unlock),
+    which is what the old Frontier-routed auto-Navigation jumped to. Chapter
+    Trio has a middle Topic between the completed one and the last, so this
+    fails if Navigation ever goes back to reading the Frontier (#332).
+    """
+    curriculum = build_three_topic_curriculum()
+    play_mode = AdminPlayMode()
+    state = _fresh_state(curriculum)
+    state.selected_chapter_id = CHAPTER_TRIO
+    state.selected_topic_id = TOPIC_TRIO_FIRST
+    state.selected_level = 1
+    state.problem_answered = True
+    state.topic_completed = True
+    state.level_completed = True
+    state.current_problem = _problem("completed")
+    served_problem = _stub_served_problem(monkeypatch)
+
+    problem = submission_cycle.resolve_next_problem(
+        state,
+        curriculum,
+        CHAPTER_TRIO,
+        TOPIC_TRIO_FIRST,
+        play_mode=play_mode,
+        nav_snapshot=_snapshot(state, curriculum, play_mode),
+    )
+
+    assert state.selected_topic_id == TOPIC_TRIO_MIDDLE
+    assert state.selected_level == 1
+    assert state.topic_completed is False
+    assert state.problem_answered is False
+    assert problem is served_problem
+
+
+def test_resolve_next_problem_locked_next_topic_returns_current_problem(
+    fixture_curriculum: Curriculum,
+):
+    """A next Topic still Beyond the Frontier is not landed on; the completed Problem stands.
+
+    Navigation no longer consults the Frontier before picking a target (#332), so
+    this Locked target is rejected by the resolver rather than never proposed.
+    """
+    state = _fresh_state(fixture_curriculum)
+    completed_problem = _problem("locked-next")
+    state.selected_chapter_id = CHAPTER_ALPHA
+    state.selected_topic_id = TOPIC_MULTI
+    state.selected_level = 2
+    state.problem_answered = True
+    state.topic_completed = True
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI,
+        frontier_level=2,
+    )
+    state.current_problem = completed_problem
+
+    problem = submission_cycle.resolve_next_problem(
+        state,
+        fixture_curriculum,
+        CHAPTER_ALPHA,
+        TOPIC_MULTI,
+        play_mode=StudentPlayMode(),
+        nav_snapshot=_snapshot(state, fixture_curriculum, StudentPlayMode()),
+    )
+
+    assert problem is completed_problem
+    assert state.selected_topic_id == TOPIC_MULTI
+    assert state.selected_level == 2
+    assert state.topic_completed is True
+    assert state.problem_answered is True
+
+
 def test_resolve_next_problem_chapter_end_returns_current_problem(
     fixture_curriculum: Curriculum,
 ):
     state = _fresh_state(fixture_curriculum)
-    completed_problem = {
-        "problem_id": "chapter-end",
-        "question": "q",
-        "correct": "1",
-        "options": ["1", "2"],
-    }
+    completed_problem = _problem("chapter-end")
     state.selected_chapter_id = CHAPTER_ALPHA
     state.selected_topic_id = TOPIC_RADIO
     state.selected_level = 1

@@ -132,9 +132,32 @@ class ChapterNavigationContext:
         return _navigation_progress(completed, total)
 
     def has_next_unlocked_topic(self, selected_topic_id: int | None) -> bool:
+        """Whether this Student's Frontier has advanced past ``selected_topic_id``.
+
+        A Frontier question, unlike ``next_topic_id``: it is False in Admin play
+        mode and for a Chapter the Student has no Frontier record in.
+        """
         if self._next_unlocked_frontier_topic_id is None or selected_topic_id is None:
             return False
         return self._next_unlocked_frontier_topic_id > selected_topic_id
+
+    def next_topic_id(self, selected_topic_id: int | None) -> int | None:
+        """The next Topic after ``selected_topic_id``, or None at the Chapter's last Topic.
+
+        Reads only ``chapter_topics`` — no Frontier — so it answers the same for
+        every play mode. Whether that Topic is Reachable is a separate question,
+        answered by ``is_reachable`` or the navigation resolver.
+        """
+        if selected_topic_id is None:
+            return None
+        return min(
+            (
+                int(topic_entry["topic_id"])
+                for topic_entry in self.chapter_topics
+                if int(topic_entry["topic_id"]) > selected_topic_id
+            ),
+            default=None,
+        )
 
 
 @dataclass(frozen=True, slots=True)

@@ -35,27 +35,28 @@ def _navigate_after_topic_completion(
     play_mode: PlayMode,
     nav_snapshot: navigation_snapshot.NavigationSnapshot,
 ) -> bool:
-    """Navigate to the next Topic after Topic completion when Next problem unlocks one.
+    """Navigate to the Topic after the Selected one when Topic completion leaves one to reach.
 
-    Routes the target through the consolidated navigation resolver
-    (``navigation_resolve.resolve_navigation_target``) — the same validate-and-resolve
-    path toolbar Navigation uses — so Reachable/Locked determination cannot
-    diverge between manual Navigation and post-completion auto-navigation.
+    The target is the Chapter's next Topic, read from the Curriculum rather than
+    from a Frontier, and it is routed through the consolidated navigation
+    resolver (``navigation_resolve.resolve_navigation_target``) — the same
+    validate-and-resolve path toolbar Navigation uses — so a Locked target is
+    never landed on and the two paths cannot diverge on Reachable/Locked.
 
     ``nav_snapshot`` is built once by the caller at the session use-case edge and
     passed down — this function reads it, it never builds its own.
 
-    Returns True when Navigation moved the Session to the Frontier topic at level 1.
+    Returns True when Navigation moved the Session to the next Topic at level 1.
     """
     chapter_id = state.selected_chapter_id
     if chapter_id is None:
         return False
 
     ctx = nav_snapshot.chapter_context(chapter_id)
-    if not ctx.has_next_unlocked_topic(state.selected_topic_id):
+    next_topic_id = ctx.next_topic_id(state.selected_topic_id)
+    if next_topic_id is None:
         return False
 
-    next_topic_id = ctx.resolve_frontier.frontier_topic_id
     request = SessionNavigateRequest(
         session_id=state.session_id,
         selected_chapter_id=chapter_id,
