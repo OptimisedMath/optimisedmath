@@ -43,6 +43,7 @@ test: ## Run backend, frontend, and Sandcastle test suites
 lint: ## Run backend and frontend linters
 	uv run black --check backend tests
 	uv run python scripts/check_docs.py
+	npm run typecheck --prefix frontend
 	npm run lint --prefix frontend
 
 sandcastle: ## Run the Sandcastle orchestration loop over every open group
