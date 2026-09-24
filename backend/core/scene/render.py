@@ -45,6 +45,9 @@ _NUDGES = (0, 1, -1, 2, -2, 3, -3, 4, -4)
 #: Letters claimed by unknown edge lengths, in figure order (#293).
 _EDGE_SYMBOLS = "abcdefghijklmnopqrstuvwxyz"
 
+#: Greek letters claimed by unknown angle arcs, in figure order (#326).
+_ANGLE_SYMBOLS = "αβγδ"
+
 #: Numbers, Units and vertex names — the figure's own voice.
 _KNOWN_FONT = 'font-family="system-ui, -apple-system, sans-serif"'
 
@@ -67,6 +70,11 @@ def _fmt(v: float) -> str:
     if abs(v - round(v)) < 1e-9:
         return str(int(round(v)))
     return f"{v:.2f}".rstrip("0").rstrip(".").replace(".", ",")
+
+
+def _with_unit(value: float, unit_label: str) -> str:
+    """A measured value beside its Unit, with no trailing space when there is none."""
+    return f"{_fmt(value)} {unit_label}".strip()
 
 
 def _pts(points: list[Pt]) -> str:
@@ -257,6 +265,14 @@ class Ctx:
         self.include(*points)
         self.obstacles.extend(zip(points, points[1:]))
 
+    def disc(self, centre: Pt, radius: float, *, color: str = INK) -> None:
+        """Emit a filled disc — a marker, so it is not an obstacle for labels."""
+        self.parts.append(
+            f'<circle cx="{centre[0]:.3f}" cy="{-centre[1]:.3f}" r="{radius:.3f}" '
+            f'fill="{color}"/>'
+        )
+        self.include(centre)
+
     def text(
         self,
         anchor: Pt,
@@ -414,6 +430,27 @@ class Ctx:
             for k in range(steps + 1)
         ]
 
+    def right_angle_mark(
+        self, corner: Pt, arm1_dir: Pt, arm2_dir: Pt, *, color: str = INK
+    ) -> None:
+        """Mark the wedge between two arms leaving `corner` as a right angle.
+
+        Drawn as łuk z kropką — the arc-and-dot marker klasy 4–8 material uses
+        where English material draws a square. Every right angle in the app is
+        marked through here, so no two of them can drift apart.
+        """
+        u1, u2 = unit(arm1_dir), unit(arm2_dir)
+        bisector = unit(add(u1, u2))
+        radius = self.u * 4.5
+        dot_centre = add(corner, mul(bisector, radius * 0.55))
+        dot_radius = self.u * 0.55
+        self.path(
+            self.arc_points(corner, radius, u1, u2, bisector),
+            color=color,
+            width=self.thin,
+        )
+        self.disc(dot_centre, dot_radius, color=color)
+
 
 # --- Annotations -------------------------------------------------------
 
@@ -487,13 +524,17 @@ class EdgeLabel(Annotation):
     *different* number. The letter is claimed on first render — `a`, then `b`,
     `c` in figure order — and pinned to `unknown_text`, so a generator reads
     the symbol the figure drew instead of naming it a second time (#293).
+    `unknown_text` is not a constructor argument — there is no free-text
+    override for the letter the scene assigns.
     """
 
     edge: str
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str | None = None
     inside: bool = False
+    unknown_text: str | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def text_for(self, ctx: Ctx) -> str:
         """The label's text, read off the constructed edge unless withheld.
@@ -504,8 +545,7 @@ class EdgeLabel(Annotation):
             if self.unknown_text is None:
                 self.unknown_text = ctx.claim_edge_symbol()
             return self.unknown_text
-        value = _fmt(ctx.fig.edge_length(self.edge))
-        return f"{value} {self.unit_label}".strip()
+        return _with_unit(ctx.fig.edge_length(self.edge), self.unit_label)
 
     def render(self, ctx: Ctx) -> None:
         a, b = ctx.fig.edge(self.edge)
@@ -534,39 +574,55 @@ class AngleArc(Annotation):
     generator-side range limit rather than a placement algorithm to fix
     further: every Geometria generator using AngleArc must keep the angle at
     or above this floor.
+
+    `unknown` withholds the degrees and prints a Greek letter instead — `α`,
+    then `β`, `γ`, `δ` among the scene's unknown arcs, in figure order (the
+    order their vertices sit around the outline, not the order they were
+    listed). `Scene.to_svg` assigns the letters and pins each to
+    `unknown_text` before any arc renders, so a generator reads the symbol
+    the figure drew instead of naming it a second time (#326). Not a
+    constructor argument — there is no free-text override for it.
     """
 
     vertex: str
     unknown: bool = False
-    unknown_text: str = "x"
     show_label: bool = True
+    unknown_text: str | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def render(self, ctx: Ctx) -> None:
         f = ctx.fig
         v = f.p(self.vertex)
+        deg = f.interior_angle(self.vertex)
         prev, nxt = f.neighbours(self.vertex)
         u1 = unit(sub(f.p(prev), v))
         u2 = unit(sub(f.p(nxt), v))
-        if self.show_label and f.interior_angle(self.vertex) < MIN_LABELLED_ANGLE:
+        if self.show_label and deg < MIN_LABELLED_ANGLE:
             raise ValueError(
-                f"vertex {self.vertex} is {f.interior_angle(self.vertex):.1f}°, "
+                f"vertex {self.vertex} is {deg:.1f}°, "
                 f"below the {MIN_LABELLED_ANGLE}° minimum for a labelled AngleArc"
             )
         r = ctx.arc_radius(self.vertex)
         inward = mul(ctx.outward_bisector(self.vertex), -1)
         ctx.path(ctx.arc_points(v, r, u1, u2, inward), color=ACCENT, width=ctx.thin)
         if self.show_label:
-            deg = f.interior_angle(self.vertex)
             label = self.unknown_text if self.unknown else f"{_fmt(deg)}°"
             ctx.text(
-                add(v, mul(inward, r)), inward, label, color=ACCENT, scale=0.85, gap=1.2
+                add(v, mul(inward, r)),
+                inward,
+                label,
+                color=ACCENT,
+                scale=0.85,
+                gap=1.2,
+                unknown=self.unknown,
             )
 
 
 @dataclass
 class RightAngle(Annotation):
-    """The mandatory square marker. Refuses to draw on a vertex that is not a
-    right angle — a right-angle marker on a 72° corner is a wrong diagram."""
+    """The mandatory right-angle marker. Refuses to draw on a vertex that is not
+    a right angle — a right-angle marker on a 72° corner is a wrong diagram."""
 
     vertex: str
 
@@ -577,9 +633,7 @@ class RightAngle(Annotation):
             raise ValueError(f"vertex {self.vertex} is {angle:.1f}°, not a right angle")
         v = f.p(self.vertex)
         prev, nxt = f.neighbours(self.vertex)
-        u1 = mul(unit(sub(f.p(prev), v)), ctx.u * 5)
-        u2 = mul(unit(sub(f.p(nxt), v)), ctx.u * 5)
-        ctx.path([add(v, u1), add(v, add(u1, u2)), add(v, u2)], width=ctx.thin)
+        ctx.right_angle_mark(v, sub(f.p(prev), v), sub(f.p(nxt), v))
 
 
 @dataclass
@@ -606,48 +660,22 @@ class Ticks(Annotation):
 
 
 @dataclass
-class ParallelMarks(Annotation):
-    """Matching chevrons marking edges as parallel (the trapezoid's two bases)."""
-
-    edges: list[str]
-    count: int = 1
-
-    def render(self, ctx: Ctx) -> None:
-        reference: Pt | None = None
-        for e in self.edges:
-            a, b = ctx.fig.edge(e)
-            mid = mul(add(a, b), 0.5)
-            d = unit(sub(b, a))
-            if reference is None:
-                reference = d
-            elif dot(d, reference) < 0:
-                d = mul(d, -1)  # keep every chevron in the group pointing alike
-            n = perp(d)
-            s = ctx.u * 2.6
-            for i in range(self.count):
-                c = add(mid, mul(d, (i - (self.count - 1) / 2) * s * 1.3))
-                ctx.path(
-                    [
-                        add(add(c, mul(d, -s * 0.8)), mul(n, s)),
-                        c,
-                        add(add(c, mul(d, -s * 0.8)), mul(n, -s)),
-                    ],
-                    width=ctx.thin,
-                )
-
-
-@dataclass
 class Altitude(Annotation):
-    """A height, dashed, from `apex` perpendicular to edge `base`.
+    """A height from `apex` perpendicular to edge `base`.
 
-    Derives the foot. When the foot lands off the segment — the rozwartokątny
-    case of Topic 130 — it also draws the dotted base extension, because the
-    figure is wrong without it.
+    CKE draws a height that is part of the figure as posed solid, and keeps
+    the dash for one whose foot falls outside the triangle — so the stroke is
+    derived from the foot's own on-segment test, solid on the base, dashed off
+    it, with no author flag to pick one. When the foot lands off the segment —
+    the rozwartokątny case of Topic 130 — it also draws the dotted base
+    extension, because the figure is wrong without it.
 
     `unknown` withholds the length and prints `h` instead — always that letter,
     never claimed from the edge letters. It is kept on `unknown_text` so a
     generator reads the symbol off the annotation, the same way it reads one
     off an `EdgeLabel`, instead of naming it a second time in its prose (#293).
+    Like `Radius`'s, it is a read-only property rather than a field, so a figure
+    cannot print a letter the conventions reject.
     """
 
     apex: str
@@ -655,7 +683,11 @@ class Altitude(Annotation):
     label: bool = True
     unit_label: str = ""
     unknown: bool = False
-    unknown_text: str = "h"
+
+    @property
+    def unknown_text(self) -> str:
+        """The symbol an unknown length prints: `h`, for wysokość."""
+        return "h"
 
     def foot(self, ctx: Ctx) -> tuple[Pt, bool]:
         """The altitude's foot, and whether it lands on the base segment."""
@@ -680,22 +712,13 @@ class Altitude(Annotation):
                 width=ctx.thin,
                 dash=f"{ctx.u:.2f} {ctx.u * 2:.2f}",
             )
-        ctx.line(p, foot, color=ACCENT, dash=f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}")
-        # right-angle marker at the foot, opening toward the apex
+        dash = "" if on_segment else f"{ctx.u * 3:.2f} {ctx.u * 2.2:.2f}"
+        ctx.line(p, foot, color=ACCENT, dash=dash)
         toward_apex = unit(sub(p, foot))
         along = unit(sub(r, q))
         if not on_segment:
             along = mul(along, -1) if dot(sub(q, foot), along) > 0 else along
-        s = ctx.u * 4.5
-        ctx.path(
-            [
-                add(foot, mul(along, s)),
-                add(foot, add(mul(along, s), mul(toward_apex, s))),
-                add(foot, mul(toward_apex, s)),
-            ],
-            color=ACCENT,
-            width=ctx.thin,
-        )
+        ctx.right_angle_mark(foot, along, toward_apex, color=ACCENT)
         if self.label:
             mid = mul(add(p, foot), 0.5)
             n = unit((sub(p, foot)[1], -sub(p, foot)[0]))
@@ -704,7 +727,7 @@ class Altitude(Annotation):
             text = (
                 self.unknown_text
                 if self.unknown
-                else f"{_fmt(norm(sub(p, foot)))} {self.unit_label}".strip()
+                else _with_unit(norm(sub(p, foot)), self.unit_label)
             )
             ctx.text(mid, n, text, color=ACCENT, scale=0.9, unknown=self.unknown)
 
@@ -763,7 +786,7 @@ class DimensionLine(Annotation):
         ctx.text(
             mul(add(a2, b2), 0.5),
             unit(n),
-            f"{_fmt(ctx.fig.edge_length(self.edge))} {self.unit_label}".strip(),
+            _with_unit(ctx.fig.edge_length(self.edge), self.unit_label),
             color=MUTED,
             scale=0.85,
         )
@@ -823,26 +846,41 @@ class Grid(Annotation):
 
 @dataclass
 class Centre(Annotation):
-    """The centre dot of a circle, optionally labelled."""
+    """The centre dot of a circle, labelled `S` by default.
 
-    label: str = "O"
+    `S` is Polish material's letter for a centre; `O` is never used, because a
+    Student has been taught that it means *obwód*. The label stays overridable,
+    so a figure with two circles can name each centre apart (#325).
+    """
+
+    label: str = "S"
 
     def render(self, ctx: Ctx) -> None:
         c = ctx.fig.centre
-        ctx.parts.append(
-            f'<circle cx="{c[0]:.3f}" cy="{-c[1]:.3f}" r="{ctx.u * 1.5:.3f}" fill="{INK}"/>'
-        )
+        ctx.disc(c, ctx.u * 1.5)
         ctx.text(c, (-0.7, -0.7), self.label, scale=0.9, gap=1.0)
 
 
 @dataclass
 class Radius(Annotation):
-    """Radius, diameter or chord — all the same primitive at different angles."""
+    """Radius, diameter or chord — all the same primitive at different angles.
+
+    `unknown` withholds the length and prints `unknown_text` instead, so a
+    generator reads the symbol off the annotation, the same way it reads one off
+    an `Altitude`, instead of naming it a second time in its prose. That symbol
+    is derived from `diameter` rather than being a settable field, so a figure
+    cannot print one the conventions reject (#325).
+    """
 
     at: float = 35.0
     unit_label: str = ""
     diameter: bool = False
     unknown: bool = False
+
+    @property
+    def unknown_text(self) -> str:
+        """The symbol an unknown length prints: `d` for a diameter, `r` for a radius."""
+        return "d" if self.diameter else "r"
 
     def render(self, ctx: Ctx) -> None:
         f = ctx.fig
@@ -852,8 +890,17 @@ class Radius(Annotation):
         start = add(f.centre, mul(d, -f.radius)) if self.diameter else f.centre
         ctx.line(start, end, color=ACCENT)
         length = f.radius * (2 if self.diameter else 1)
-        text = "x" if self.unknown else f"{_fmt(length)} {self.unit_label}".strip()
-        ctx.text(mul(add(start, end), 0.5), perp(d), text, color=ACCENT, scale=0.9)
+        text = (
+            self.unknown_text if self.unknown else _with_unit(length, self.unit_label)
+        )
+        ctx.text(
+            mul(add(start, end), 0.5),
+            perp(d),
+            text,
+            color=ACCENT,
+            scale=0.9,
+            unknown=self.unknown,
+        )
 
 
 @dataclass
@@ -949,6 +996,28 @@ class Scene:
         """
         return list(self._label_boxes)
 
+    def _pin_angle_symbols(self) -> None:
+        """Give each unknown angle arc its Greek letter before any of them draws.
+
+        Up front rather than as each arc renders, because the letters run in
+        figure order — the order the vertices sit around the outline — which
+        can differ from the order the generator listed the arcs in (#326).
+
+        Raises:
+            ValueError: when the scene holds more unknown arcs than letters.
+        """
+        arcs = sorted(
+            (a for a in self.annotations if isinstance(a, AngleArc) and a.unknown),
+            key=lambda a: self.figure.outline.index(a.vertex),
+        )
+        if len(arcs) > len(_ANGLE_SYMBOLS):
+            raise ValueError(
+                f"{len(arcs)} unknown angle arcs, but only {len(_ANGLE_SYMBOLS)} "
+                f"letters ({_ANGLE_SYMBOLS}) to name them with"
+            )
+        for arc, symbol in zip(arcs, _ANGLE_SYMBOLS):
+            arc.unknown_text = symbol
+
     def to_svg(self, pad: float = 4.0) -> str:
         """Render the scene: pen unit, then draw, then place labels, then viewBox."""
         f = self.figure
@@ -963,6 +1032,9 @@ class Scene:
             gw, gh = max(xs) - min(xs), max(ys) - min(ys)
         diag = max(math.hypot(gw, gh), 1e-6)
         ctx = Ctx(fig=f, u=diag / 100.0)
+
+        # Pass 1b: unknown angle arcs claim α, β, γ… before any of them draws.
+        self._pin_angle_symbols()
 
         # Pass 2: draw. Every emitter registers what it occupies.
         for a in self.annotations:

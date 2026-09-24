@@ -7,8 +7,20 @@ import re
 import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
-from backend.core.scene import Altitude, EdgeLabel, Outline, Scene, Triangle
-from backend.core.scene.render import Box, _overlap
+from backend.core.scene import (
+    Altitude,
+    AngleArc,
+    Centre,
+    EdgeLabel,
+    Outline,
+    Radius,
+    RightAngle,
+    Scene,
+    Triangle,
+    circle,
+    regular_polygon,
+)
+from backend.core.scene.render import ACCENT, INK, MUTED, Box, _fmt, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -65,6 +77,11 @@ class TestSceneInvariant:
         assert ">12 cm<" in svg
         assert ">h<" not in svg
 
+    def test_altitude_offers_no_free_text_override(self):
+        """#293: `h` is fixed; a generator cannot type a different letter."""
+        with pytest.raises(TypeError):
+            Altitude(apex="C", base="AB", unknown=True, unknown_text="x")
+
     def test_unknown_edges_are_named_a_b_c_in_figure_order(self):
         """#293: each unknown edge claims the next letter, in the order its
         EdgeLabel is drawn."""
@@ -87,6 +104,173 @@ class TestSceneInvariant:
         """Numbers and Units never pick up the unknown's italic treatment."""
         figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
         svg = Scene(figure, [Outline(), EdgeLabel("AB", "cm")]).to_svg()
+        assert 'font-style="italic"' not in svg
+
+    def test_unknown_angles_are_named_alpha_beta_gamma_in_figure_order(self):
+        """#326: each unknown arc claims the next Greek letter, in the order its
+        vertex sits around the outline — not the order the AngleArc was listed."""
+        figure = Triangle.sss(5, 6, 7)
+        arc_c = AngleArc(vertex="C", unknown=True)
+        arc_a = AngleArc(vertex="A", unknown=True)
+        arc_b = AngleArc(vertex="B", unknown=True)
+        svg = Scene(figure, [Outline(), arc_c, arc_a, arc_b]).to_svg()
+        assert (arc_a.unknown_text, arc_b.unknown_text, arc_c.unknown_text) == (
+            "α",
+            "β",
+            "γ",
+        )
+        for letter in "αβγ":
+            assert f">{letter}<" in svg
+
+    def test_a_known_arc_among_unknowns_prints_degrees_and_keeps_no_letter(self):
+        """A known arc among unknown ones still prints its degrees and does not
+        consume a letter — the next unknown still claims `β`, not `γ`."""
+        figure = Triangle.sss(5, 6, 7)
+        arc_a = AngleArc(vertex="A", unknown=True)
+        arc_b = AngleArc(vertex="B", unknown=False)
+        arc_c = AngleArc(vertex="C", unknown=True)
+        svg = Scene(figure, [Outline(), arc_a, arc_b, arc_c]).to_svg()
+        assert (arc_a.unknown_text, arc_c.unknown_text) == ("α", "β")
+        assert arc_b.unknown_text is None
+        assert f"{_fmt(figure.interior_angle('B'))}°" in svg
+        assert ">γ<" not in svg
+
+    def test_an_unknown_angle_symbol_is_drawn_in_italic(self):
+        """#326: the unknown opts out of the figure's upright sans stack."""
+        figure = Triangle.sss(5, 6, 7)
+        svg = Scene(figure, [Outline(), AngleArc(vertex="A", unknown=True)]).to_svg()
+        assert 'font-style="italic"' in svg
+
+    def test_a_known_angle_stays_upright(self):
+        """Degrees never pick up the unknown's italic treatment."""
+        figure = Triangle.sss(5, 6, 7)
+        svg = Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+        assert 'font-style="italic"' not in svg
+
+    def test_angle_arc_offers_no_free_text_override(self):
+        """#326: the symbol is assigned by the scene; a generator cannot type one."""
+        with pytest.raises(TypeError):
+            AngleArc(vertex="A", unknown=True, unknown_text="x")
+
+    def test_more_unknown_arcs_than_greek_letters_is_refused(self):
+        """#326: the letters run out after δ, and a scene that needs a fifth is a
+        refusal rather than an arc left holding no symbol at all."""
+        figure = regular_polygon(5, side=10)
+        arcs = [AngleArc(vertex=v, unknown=True) for v in figure.outline]
+        with pytest.raises(ValueError, match="letters"):
+            Scene(figure, [Outline(), *arcs]).to_svg()
+
+    def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self):
+        """The labelled-arc minimum angle (#212) is still enforced after #326."""
+        figure = Triangle.sas(b=10, angle_a=10, c=10)
+        with pytest.raises(ValueError, match="below the"):
+            Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+
+    def test_a_right_angle_renders_as_an_arc_and_a_dot_not_a_square(self):
+        """#323: łuk z kropką, not the English square — the old marker was a
+        3-point open polyline; the arc is a many-point one, plus a dot."""
+        figure = Triangle.sas(b=3, angle_a=90, c=4)
+        svg = Scene(figure, [Outline(), RightAngle("A")]).to_svg()
+        polylines = re.findall(r'<polyline points="([^"]*)"', svg)
+        assert len(polylines) == 1
+        assert len(polylines[0].split()) > 3
+        assert svg.count("<circle") == 1
+
+    def test_a_right_angle_still_refuses_a_non_right_vertex(self):
+        """The new marker shape did not cost the old discipline: a marker on a
+        vertex that is not 90° is still a refusal, not a wrong diagram."""
+        figure = Triangle.sss(a=3, b=4, c=5)
+        with pytest.raises(ValueError, match="not a right angle"):
+            Scene(figure, [Outline(), RightAngle("B")]).to_svg()
+
+    def test_a_heights_foot_renders_as_an_arc_and_a_dot_not_a_square(self):
+        """#323: the height's foot draws the same łuk z kropką `RightAngle` does."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), Altitude(apex="C", base="AB")]).to_svg()
+        polylines = re.findall(r'<polyline points="([^"]*)"', svg)
+        assert any(len(p.split()) > 3 for p in polylines)
+        assert svg.count("<circle") == 1
+
+    def test_a_height_with_its_foot_on_the_base_is_solid(self):
+        """#324: a height that is part of the figure as posed reads solid, as CKE
+        draws it — no dash on the accent line from apex to foot."""
+        figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        svg = Scene(figure, [Outline(), Altitude(apex="C", base="AB")]).to_svg()
+        accent_lines = re.findall(
+            r'<line[^>]*stroke="' + re.escape(ACCENT) + r'"[^>]*/>', svg
+        )
+        assert accent_lines
+        assert all("stroke-dasharray" not in line for line in accent_lines)
+
+    def test_a_height_with_its_foot_outside_the_base_is_dashed(self):
+        """#324: a height falling outside the triangle stays dashed, marking it a
+        construction line — and the dotted base extension is still drawn."""
+        for base, height, offset, _, _ in topic.OBTUSE:
+            figure = Triangle.base_height(base, height, apex_frac=-offset / base)
+            svg = Scene(figure, [Outline(), Altitude(apex="C", base="AB")]).to_svg()
+            accent_lines = re.findall(
+                r'<line[^>]*stroke="' + re.escape(ACCENT) + r'"[^>]*/>', svg
+            )
+            assert accent_lines
+            assert all("stroke-dasharray" in line for line in accent_lines)
+            muted_lines = re.findall(
+                r'<line[^>]*stroke="' + re.escape(MUTED) + r'"[^>]*/>', svg
+            )
+            assert any("stroke-dasharray" in line for line in muted_lines)
+
+    def test_each_right_angle_mark_keeps_its_callers_own_colour(self):
+        """Ink for `RightAngle`, the accent for the height's foot — unchanged."""
+        right_figure = Triangle.sas(b=3, angle_a=90, c=4)
+        right_svg = Scene(right_figure, [Outline(), RightAngle("A")]).to_svg()
+        assert re.search(rf'<circle[^>]*fill="{INK}"', right_svg)
+        assert ACCENT not in right_svg
+
+        height_figure = Triangle.base_height(base=14, height=12, apex_frac=5 / 14)
+        height_svg = Scene(
+            height_figure, [Outline(), Altitude(apex="C", base="AB")]
+        ).to_svg()
+        assert re.search(rf'<circle[^>]*fill="{ACCENT}"', height_svg)
+
+    def test_a_circles_centre_defaults_to_s(self):
+        """#325: `S` is the centre's letter — never `O`, which means *obwód*."""
+        svg = Scene(circle(radius=5), [Centre()]).to_svg()
+        assert ">S<" in svg
+        assert ">O<" not in svg
+
+    def test_a_circles_centre_prints_an_override_label(self):
+        """#325: the default stays overridable, for a figure with two circles."""
+        svg = Scene(circle(radius=5), [Centre(label="S1")]).to_svg()
+        assert ">S1<" in svg
+        assert ">S<" not in svg
+
+    def test_an_unknown_radius_is_named_r(self):
+        """#325: an unknown radius is always `r`, the letter for promień — never `x`."""
+        radius = Radius(unknown=True)
+        svg = Scene(circle(radius=5), [radius]).to_svg()
+        assert ">r<" in svg
+        assert ">x<" not in svg
+        assert radius.unknown_text == "r"
+
+    def test_an_unknown_diameter_is_named_d(self):
+        """#325: an unknown diameter is always `d`, read off the annotation."""
+        diameter = Radius(diameter=True, unknown=True)
+        svg = Scene(circle(radius=5), [diameter]).to_svg()
+        assert ">d<" in svg
+        assert diameter.unknown_text == "d"
+
+    def test_an_unknown_radius_symbol_is_drawn_in_italic(self):
+        """#325 keeps #293's convention: the unknown opts out of the upright sans."""
+        svg = Scene(circle(radius=5), [Radius(unknown=True)]).to_svg()
+        assert 'font-style="italic"' in svg
+
+    def test_a_known_radius_and_diameter_print_their_number_upright(self):
+        """#325: a known value keeps printing its number and Unit, unchanged."""
+        svg = Scene(
+            circle(radius=5),
+            [Radius(unit_label="cm"), Radius(diameter=True, at=100, unit_label="cm")],
+        ).to_svg()
+        assert ">5 cm<" in svg
+        assert ">10 cm<" in svg
         assert 'font-style="italic"' not in svg
 
     def test_no_two_placed_labels_ever_overlap(self, monkeypatch):
