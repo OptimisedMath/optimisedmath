@@ -108,7 +108,6 @@ topics:
         function: "frac_comp_1"
         traps:
           reverses_the_sign_with_equal_denominators:
-            misconception: compares_wrong_when_denominators_equal
             explanation: "Zły znak! Kiedy mianowniki są takie same, większy jest ten ułamek, który ma większy licznik."
       - level: 2
         name: "Ten sam licznik"
