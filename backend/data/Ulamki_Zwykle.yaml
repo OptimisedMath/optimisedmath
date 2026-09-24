@@ -564,6 +564,9 @@ topics:
           squares_the_bracket_terms_separately:
             misconception: distributes_power_over_bracket_terms
             explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
+          subtracts_before_squaring:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed potęgowaniem! Potęga wygrywa z odejmowaniem."
       - level: 6
         name: "Wszystko Naraz"
         function: "frac_ord_6"

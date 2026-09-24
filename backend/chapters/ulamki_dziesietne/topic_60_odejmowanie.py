@@ -4,6 +4,15 @@ import random
 from backend.core.utils import build_problem_dict, declares_traps, fmt_dec
 
 
+def _no_borrow_diff(v1: float, v2: float) -> float:
+    """Each column subtracts its smaller digit from its larger, no borrowing —
+    the mistake `subtracts_the_smaller_digit_from_the_larger` models."""
+    digits1 = f"{v1:.2f}".replace(".", "")
+    digits2 = f"{v2:.2f}".replace(".", "")
+    diffs = "".join(str(abs(int(x) - int(y))) for x, y in zip(digits1, digits2))
+    return int(diffs) / 100
+
+
 @declares_traps("adds_instead_of_subtracting")
 def dec_sub_1() -> dict | None:
     """Bez pożyczania (poziom 1)."""
@@ -72,6 +81,7 @@ def dec_sub_2() -> dict | None:
     "mishandles_the_hundredths_when_borrowing",
     "borrows_over_zero_incorrectly",
     "off_by_one_tenth_when_borrowing",
+    "subtracts_the_smaller_digit_from_the_larger",
 )
 def dec_sub_3() -> dict | None:
     """Z dopisywaniem zer (np. 1 - 0.25) (poziom 3)."""
@@ -97,6 +107,9 @@ def dec_sub_3() -> dict | None:
             ),
             "borrows_over_zero_incorrectly": fmt_dec(round(v1 - v2 - 0.4, 2)),
             "off_by_one_tenth_when_borrowing": fmt_dec(round(v1 - v2 + 0.1, 2)),
+            "subtracts_the_smaller_digit_from_the_larger": fmt_dec(
+                round(_no_borrow_diff(v1, v2), 2)
+            ),
         },
         parameters={"v1": v1, "v2": v2},
     )

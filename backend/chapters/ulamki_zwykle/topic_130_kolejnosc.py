@@ -124,6 +124,7 @@ def frac_ord_2() -> dict | None:
             "ignores_the_brackets": (a * b) - c,
             "flips_the_sign_inside_the_bracket": a * (b + c),
             "replaces_multiplication_with_addition": a + (b - c),
+            "flattens_to_all_multiplication": a * b * c,
         }
     else:  # div_brack
         a = Fraction(random.randint(2, 5), random.choice([2, 3]))
@@ -171,8 +172,8 @@ def frac_ord_3() -> dict | None:
         ans = (a + b) / (c - d)
         traps = {
             "ignores_the_brackets": a + (b / c) - d,
-            "replaces_division_with_multiplication": (a + b) * (c - d),
             "ignores_the_second_bracket": (a + b) / c - d,
+            "replaces_division_with_multiplication": (a + b) * (c - d),
         }
     else:
         a = Fraction(1, random.choice([2, 3, 4]))
@@ -183,8 +184,8 @@ def frac_ord_3() -> dict | None:
         ans = a + (b / c) + d
         traps = {
             "invents_brackets_around_both_additions": (a + b) / (c + d),
-            "replaces_addition_with_multiplication": a + (b / c) * d,
             "invents_a_bracket_around_the_first_addition": (a + b) / c + d,
+            "replaces_addition_with_multiplication": a + (b / c) * d,
         }
 
     problem = build_problem_dict(
@@ -216,8 +217,8 @@ def frac_ord_4() -> dict | None:
         ans = (a**2) + (b * c)
         traps = {
             "adds_before_multiplying": ((a**2) + b) * c,
-            "ignores_the_exponent": a + (b * c),
             "multiplies_by_the_exponent": (a * 2) + (b * c),
+            "ignores_the_exponent": a + (b * c),
         }
         instance_parameters = _params(expr, a=a, b=b, c=c)
     else:
@@ -227,8 +228,8 @@ def frac_ord_4() -> dict | None:
         ans = a - (b**2)
         traps = {
             "subtracts_before_squaring": (a - b) ** 2,
-            "ignores_the_exponent": a - b,
             "multiplies_by_the_exponent": a - (b * 2),
+            "ignores_the_exponent": a - b,
         }
         instance_parameters = _params(expr, a=a, b=b)
 
@@ -247,6 +248,7 @@ def frac_ord_4() -> dict | None:
     "multiplies_by_the_exponent",
     "flips_the_final_sign",
     "multiplies_before_squaring",
+    "subtracts_before_squaring",
 )
 def frac_ord_5() -> dict | None:
     """Potęgowanie Nawiasu (poziom 5)."""
@@ -264,6 +266,7 @@ def frac_ord_5() -> dict | None:
             "squares_the_bracket_terms_separately": (a**2 + b**2) - c,
             "multiplies_by_the_exponent": ((a + b) * 2) - c,
             "flips_the_final_sign": ((a + b) ** 2) + c,
+            "subtracts_before_squaring": (a + b - c) ** 2,
         }
     else:
         a = Fraction(1, random.choice([2, 3]))
