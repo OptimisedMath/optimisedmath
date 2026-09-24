@@ -310,6 +310,9 @@ topics:
           stops_before_lowest_terms:
             misconception: does_not_reduce_to_lowest_terms
             explanation: "Wynik jest dobry, ale nieskrócony! Przed mnożeniem spróbuj skrócić liczbę całkowitą z mianownikiem."
+          multiplies_the_denominator_too:
+            misconception: multiplies_fraction_by_whole_number_wrongly
+            explanation: "Pomnożyłeś licznik ORAZ mianownik! Tutaj liczbę całkowitą skracamy z mianownikiem, a mnożymy tylko licznik."
       - level: 3
         name: "Mnożenie liczby mieszanej"
         function: "frac_mult_num_3"
