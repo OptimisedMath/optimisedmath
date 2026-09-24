@@ -49,6 +49,13 @@
 # easily could say "look at the symbol again", but a Deconstruction fired on a misread would
 # tell a Student who knows the order of operations perfectly well that they do not.
 #
+# compares_wrong_when_denominators_equal failed this test and was deleted (#311): its own name,
+# "Myli znak przy równych mianownikach", names a slip, not a believed rule. Its one Trap,
+# reverses_the_sign_with_equal_denominators, keeps its Polish prose and maps to no entry. The
+# competing reading — a Student who has learned "im większy mianownik, tym mniejszy ułamek" and
+# over-generalises it to the numerator is arguably following a rule — was raised and rejected,
+# and is recorded here so it is not re-opened blind.
+#
 # --- Whether an entry earns a `deconstruction:` ---
 #
 # Only a handful are authored. Judge a candidate in this order:
@@ -69,14 +76,6 @@
 # was real; it was the 24 slips, not the 25 order errors. It was not nominated for batch one —
 # the shortlist stayed at five until the step-sequence signature existed. Batch two (#218, #247)
 # authors that sequence: `deconstruction.ignores_the_order_of_operations`.
-#
-# compares_wrong_when_denominators_equal was removed under #311: its own name, "Myli znak przy
-# równych mianownikach", names a slip, not a believed rule. A competing reading was raised and
-# rejected — a Student who has learned "im większy mianownik, tym mniejszy ułamek" and
-# over-generalises it to the numerator is arguably following a rule, which would earn a
-# Misconception. Recorded here so that reading is not re-opened blind. The Trap that referenced
-# this Misconception, reverses_the_sign_with_equal_denominators, keeps its Polish prose and now
-# maps to no Misconception.
 
 # --- Zapis i znaczenie ułamka ---
 
