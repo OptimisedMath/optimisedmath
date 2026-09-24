@@ -251,6 +251,8 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
+    state.misconception_hits = {}
+    state.deconstructed = []
     reset_submission_cycle(state, curriculum)
     if should_persist:
         persist(state, play_mode)

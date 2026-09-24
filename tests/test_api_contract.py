@@ -20,6 +20,7 @@ from backend.models import (
     ChapterFrontier,
     DeconstructionState,
     DeconstructionStep,
+    SessionResetRequest,
     SessionState,
 )
 from backend.play_mode import AdminPlayMode, StudentPlayMode
@@ -2575,3 +2576,45 @@ def test_deconstruction_abandon_raises_when_none_running():
                 main.DeconstructionAbandonRequest(session_id=state.session_id)
             )
         )
+
+
+# --- Reset clears Session-scoped Misconception state (#383) ---
+
+
+def test_reset_clears_misconception_hit_count_so_next_hit_does_not_trigger(
+    monkeypatch,
+):
+    """Issue #383: a reset must zero the hit count, so a single hit afterwards
+    grades normally instead of immediately arming a Deconstruction."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+
+    _submit_trap(state, "p-post-reset-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-post-reset-second-hit")
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+
+
+def test_reset_clears_deconstructed_set_so_misconception_deconstructs_again(
+    monkeypatch,
+):
+    """Issue #383: a Misconception already deconstructed this Session must be
+    deconstructable again after a reset — two fresh hits fire its Deconstruction."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-already-deconstructed"), input_mode="radio")
+    state.deconstructed = [_UNLIKE_FRACTIONS_MISCONCEPTION]
+
+    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+
+    _submit_trap(state, "p-post-reset-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-post-reset-second-hit")
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
