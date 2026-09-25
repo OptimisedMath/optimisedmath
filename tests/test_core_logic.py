@@ -6,6 +6,7 @@ import re
 import pytest
 from fractions import Fraction
 
+from backend.core.scene.render import _fmt
 from backend.core.utils import (
     build_problem_dict,
     clean_mobile_input,
@@ -86,6 +87,16 @@ class TestFormatters:
     )
     def test_fmt_dec(self, val, expected):
         assert fmt_dec(val) == expected
+
+    @pytest.mark.parametrize(
+        "val",
+        [0, 1, 2.0, 0.5, 1.5, 0.25, 12.34, 99.99, 100.0, 0.01, 7.1],
+    )
+    def test_fmt_dec_agrees_with_scene_fmt_within_two_decimal_cap(self, val):
+        """Issue #354: the renderer's `_fmt` rounds derived floats and
+        `fmt_dec` formats exact answers, but both must share the Polish
+        decimal-comma convention within the two-decimal cap they agree on."""
+        assert fmt_dec(val) == _fmt(val)
 
 
 class TestFormatFractionAnswer:

@@ -10,5 +10,5 @@ Pure Python FastAPI service — no UI framework imports. Game rules live here �
 - **Curriculum / generators** — [backend-map.md](docs/backend-map.md) when adding chapters or problem generators.
 - **Geometry** — [geometry-conventions.md](docs/geometry-conventions.md) when a generator draws a figure or writes geometry in its prose.
 - **API contract** — request/response shapes are `models.py` (Pydantic) mirrored by `frontend/lib/session/types.ts` and `frontend/lib/types.ts`; JSON field names are stable wire format — see `CONTEXT.md`.
-- **Tests** — DB isolated via pytest fixtures; run from repo root.
+- **Tests** — [test-seams.md](docs/test-seams.md) before writing a test: which property it protects, which seam owns it, and how to run the suite.
 - **Documentation** — [documentation.md](../docs/agents/documentation.md) when writing or skipping a docstring or comment.
