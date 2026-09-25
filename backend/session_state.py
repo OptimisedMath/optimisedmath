@@ -234,6 +234,10 @@ def hard_reset(
 ) -> None:
     """Wipes all progress and resets to initial state.
 
+    Owns clearing the Session-scoped Misconception state (hit counts and the
+    deconstructed set) too, which `reset_submission_cycle` deliberately leaves
+    alone: a reset re-arms every Deconstruction (ADR-0014).
+
     ``should_persist=False`` lets a caller that persists once for a larger unit
     of work (e.g. ``load_profile`` during Session start) skip the write here.
     """
@@ -251,6 +255,8 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
+    state.misconception_hits = {}
+    state.deconstructed = []
     reset_submission_cycle(state, curriculum)
     if should_persist:
         persist(state, play_mode)

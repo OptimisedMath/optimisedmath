@@ -111,6 +111,21 @@ def test_hard_reset_wipes_progress_and_persists(fixture_curriculum: Curriculum):
     assert loaded["xp"] == 0
 
 
+def test_hard_reset_clears_session_scoped_misconception_state(
+    fixture_curriculum: Curriculum,
+):
+    """Issue #383: the deconstructed set and Misconception hit counts are Session-scoped
+    state a hard reset must wipe, same as Streak or Flawless."""
+    state = _fresh_state(fixture_curriculum)
+    state.misconception_hits = {"some_misconception": 1}
+    state.deconstructed = ["some_misconception"]
+
+    session_state.hard_reset(state, fixture_curriculum, StudentPlayMode())
+
+    assert state.misconception_hits == {}
+    assert state.deconstructed == []
+
+
 def test_load_profile_hydrates_existing_user(fixture_curriculum: Curriculum):
     username = "existing-user"
     saved = SessionState(
