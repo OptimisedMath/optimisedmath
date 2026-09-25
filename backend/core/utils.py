@@ -563,6 +563,28 @@ def parse_to_fraction(val_str: str) -> Fraction | None:
         return None
 
 
+# --- Answer form & Answer value ---
+
+
+def answer_form(raw: str) -> str:
+    """Answer form: LaTeX normalized away and nothing else changed.
+
+    Mode-independent by construction — a Radio option and a typed answer that mean the
+    same thing produce the same Answer form. Never fails, so it is always populated,
+    including for comparison operators and for input the parser rejects.
+    """
+    return _standardize_spacing(clean_latex(raw))
+
+
+def answer_value(raw: str) -> Fraction | None:
+    """Answer value: the exact rational an answer denotes, independent of how it was written.
+
+    None for comparison operators and any input the parser rejects — that absence is
+    the predicate for "this answer has no numeric value".
+    """
+    return parse_to_fraction(raw)
+
+
 # --- Decimal & mobile input ---
 
 
