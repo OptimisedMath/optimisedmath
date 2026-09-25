@@ -203,8 +203,8 @@ def _log_submission_telemetry(
     )
 
     correct_raw = str(problem["correct"])
-    answer_value_pair = answer_value(user_input)
-    correct_value_pair = answer_value(correct_raw)
+    answer_num, answer_den = answer_value(user_input) or (None, None)
+    correct_num, correct_den = answer_value(correct_raw) or (None, None)
 
     db.log_telemetry(
         session_id=state.session_id,
@@ -222,11 +222,11 @@ def _log_submission_telemetry(
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
         answer_form=answer_form(user_input),
-        answer_value_num=answer_value_pair[0] if answer_value_pair else None,
-        answer_value_den=answer_value_pair[1] if answer_value_pair else None,
+        answer_value_num=answer_num,
+        answer_value_den=answer_den,
         correct_form=answer_form(correct_raw),
-        correct_value_num=correct_value_pair[0] if correct_value_pair else None,
-        correct_value_den=correct_value_pair[1] if correct_value_pair else None,
+        correct_value_num=correct_num,
+        correct_value_den=correct_den,
         answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
         trap_slug=eval_result.get("trap_slug"),

@@ -577,9 +577,12 @@ def answer_form(raw: str) -> str:
 
 
 def answer_value(raw: str) -> tuple[int, int] | None:
-    """The exact rational an Answer denotes, as (numerator, denominator) — distinct
-    from Answer form, which keeps how it was written. None for anything
-    non-numeric, the precise predicate for "this answer has no numeric value".
+    """The exact rational an Answer denotes, as `(numerator, denominator)`.
+
+    Notation is erased, unlike in Answer form, which keeps how the answer was
+    written. `None` is the precise predicate for "this answer has no numeric
+    value" — a unit suffix or a comparison operator has an Answer form but no
+    Answer value.
     """
     fraction = parse_to_fraction(raw)
     if fraction is None:
