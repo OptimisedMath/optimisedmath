@@ -408,3 +408,76 @@ def test_init_db_drops_telemetry_table_with_a_stale_extra_column():
     with db.get_connection() as conn:
         columns = {row[1] for row in conn.execute("PRAGMA table_info(telemetry_logs)")}
     assert "is_correct" not in columns
+
+
+def test_init_db_drops_deconstruction_steps_table_with_stale_attempts_column():
+    """#258: a pre-#258 `deconstruction_steps` table still carrying `attempts`
+    is dropped and rebuilt, the same exact-match rule telemetry uses."""
+    with db.get_connection() as conn:
+        conn.execute("DROP TABLE deconstruction_steps")
+        conn.execute("""
+            CREATE TABLE deconstruction_steps (
+                deconstruction_id INTEGER NOT NULL,
+                step_index INTEGER NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                revealed BOOLEAN NOT NULL DEFAULT 0,
+                PRIMARY KEY (deconstruction_id, step_index)
+            )
+        """)
+        conn.execute(
+            "INSERT INTO deconstruction_steps (deconstruction_id, step_index) "
+            "VALUES (1, 0)"
+        )
+        conn.commit()
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(deconstruction_steps)")
+        }
+        count = conn.execute("SELECT COUNT(*) FROM deconstruction_steps").fetchone()[0]
+    assert "attempts" not in columns
+    assert count == 0
+
+
+def test_create_deconstruction_attempt_assigns_sequential_attempt_index():
+    """#258: `attempt_index` is derived from the row count already persisted for
+    that step, not tracked separately — so it stays correct across three writes."""
+    db.save_user("alice", _sample_state())
+    deconstruction_id = db.create_deconstruction(
+        session_id="sess-attempts",
+        username="alice",
+        problem_id="p-1",
+        misconception_slug="test_misconception",
+        chapter_name="Chapter",
+        topic_name="Topic",
+        level_number=1,
+    )
+    db.create_deconstruction_steps(deconstruction_id, 1)
+
+    for user_input in ("wrong-1", "wrong-2", "5"):
+        db.create_deconstruction_attempt(
+            deconstruction_id,
+            0,
+            user_input=user_input,
+            answer_form=user_input,
+            answer_value_num=None,
+            answer_value_den=None,
+            outcome="wrong" if user_input != "5" else "correct",
+            time_spent_ms=100,
+        )
+
+    with db.get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT attempt_index, user_input, outcome FROM deconstruction_attempts
+            WHERE deconstruction_id = ? ORDER BY attempt_index
+            """,
+            (deconstruction_id,),
+        ).fetchall()
+    assert rows == [
+        (1, "wrong-1", "wrong"),
+        (2, "wrong-2", "wrong"),
+        (3, "5", "correct"),
+    ]
