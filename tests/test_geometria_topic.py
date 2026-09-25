@@ -29,8 +29,8 @@ from backend.session import _is_safe_svg_fragment
 from tests.support.svg_labels import figure_labels
 
 _VERTEX_LETTERS = {"A", "B", "C"}
-# Every declared Unit pins the same arithmetic, so the pinning sweep below fixes
-# one and reads the figure's labels in that Unit's length Unit.
+# Every declared Unit pins the same arithmetic, so the sweep below fixes one area
+# Unit and expects the figure's labels in the length Unit that matches it.
 _PINNED_AREA_UNIT, _PINNED_LENGTH_UNIT = "cm²", "cm"
 
 CHAPTER_ID = 30

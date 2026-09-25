@@ -15,10 +15,11 @@ inherits both contracts without a new test being written for it.
 
 import random
 import re
+from collections.abc import Callable
 
 import pytest
 
-from backend.core.scene import Scene
+from backend.core.scene import Ctx, Scene
 from backend.problem_generation import FUNCTION_REGISTRY
 from tests.support.svg_labels import figure_labels
 
@@ -30,7 +31,7 @@ ROLLS = 300
 _NUMERIC_LABEL = re.compile(r"^-?\d+(?:,\d+)?")
 
 
-def _is_scene_drawn(generator) -> bool:
+def _is_scene_drawn(generator: Callable[[], dict | None]) -> bool:
     """Whether `generator`'s figure carries the scene renderer's `role="img"`
     marker. Retried a few times because a generator can return `None` on a
     draw its own constraints reject; every Problem a scene-drawn generator
@@ -50,14 +51,12 @@ NUMBER_LINE_GENERATORS = {name for name in FUNCTION_REGISTRY if "number_line" in
 
 # #350 (Topic 130 labels cross the figure's lines) already measured this: the
 # placement pass's early exit stops searching once a label clears every other
-# label, even when a figure stroke still runs through its box (#356's own
-# sweep below reproduces the same shape — Level 2 clean, the other three
-# Levels not). Fixing placement is #350's job, not this ticket's — a change
-# there touches every figure the app can draw — so these three are named
-# here rather than silently skipped, each carrying the issue that owns them.
-# `strict=True` so the marker cannot quietly outlive the fix: once #350 lands,
-# whichever of these turns clean starts failing this suite until its entry is
-# removed.
+# label, even when a figure stroke still runs through its box. Fixing placement
+# is #350's job, not this ticket's — a change there touches every figure the app
+# can draw — so these three are named here rather than silently skipped, each
+# carrying the issue that owns them. `strict=True` so the marker cannot quietly
+# outlive the fix: once #350 lands, whichever of these turns clean starts
+# failing this suite until its entry is removed.
 _KNOWN_LABEL_STROKE_COLLISIONS = {
     "geo_triangle_area_1": "#350: the height's label crosses a slant side",
     "geo_triangle_area_3": "#350: a side's label crosses the dashed height",
@@ -127,13 +126,15 @@ class TestP2Floor:
         assert rolled, f"{name} never returned a Problem in {ROLLS} rolls"
 
 
-def _render_contexts(generator, monkeypatch, rolls):
-    """The `Ctx` each of `rolls` draws of `generator` rendered against.
+def _render_contexts(
+    generator: Callable[[], dict | None], monkeypatch: pytest.MonkeyPatch
+) -> list[Ctx]:
+    """The `Ctx` each of `ROLLS` draws of `generator` rendered against.
 
     Reads what `Scene.to_svg()` already recorded rather than recomputing the
     placement pass — the tautology class #349 rules out.
     """
-    captured = []
+    captured: list[Ctx] = []
     original_to_svg = Scene.to_svg
 
     def recording_to_svg(self, *args, **kwargs):
@@ -143,18 +144,20 @@ def _render_contexts(generator, monkeypatch, rolls):
 
     monkeypatch.setattr(Scene, "to_svg", recording_to_svg)
     random.seed(0)
-    for _ in range(rolls):
+    for _ in range(ROLLS):
         generator()
     return captured
 
 
-def _p3_params():
+def _p3_params() -> list:
     """`SCENE_GENERATORS`, each wrapped in an xfail marker where #350 already
     found the defect this sweep looks for."""
+    params = []
     for name in SCENE_GENERATORS:
         reason = _KNOWN_LABEL_STROKE_COLLISIONS.get(name)
         marks = [pytest.mark.xfail(reason=reason, strict=True)] if reason else []
-        yield pytest.param(name, marks=marks, id=name)
+        params.append(pytest.param(name, marks=marks, id=name))
+    return params
 
 
 class TestP3Legibility:
@@ -162,17 +165,16 @@ class TestP3Legibility:
     collision — read off `Ctx.placed`, the render context's own record of
     what `place_labels` settled on, never recomputed here.
 
-    Deliberately red on arrival for the Levels #350 already found: this sweep
-    is the registry-wide floor every scene-drawn generator inherits, #350 is
-    where the placement fix for these specific figures belongs.
+    Deliberately red on arrival for the Levels #350 already found — see
+    `_KNOWN_LABEL_STROKE_COLLISIONS`.
     """
 
-    @pytest.mark.parametrize("name", list(_p3_params()))
+    @pytest.mark.parametrize("name", _p3_params())
     def test_no_label_is_drawn_with_a_residual_collision(self, name, monkeypatch):
         """No placed label crosses a figure stroke, per the render context's
         own record — three Levels xfail against #350's known defect."""
         generator = FUNCTION_REGISTRY[name]
-        contexts = _render_contexts(generator, monkeypatch, ROLLS)
+        contexts = _render_contexts(generator, monkeypatch)
         assert contexts, f"{name} never rendered a Scene in {ROLLS} rolls"
         for ctx in contexts:
             for placement in ctx.placed:
