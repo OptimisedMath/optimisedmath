@@ -46,10 +46,7 @@ def frac_imp_1() -> dict | None:
         return result
 
 
-@declares_traps(
-    "gives_only_the_whole_part",
-    "swaps_the_remainder_and_the_denominator",
-)
+@declares_traps("gives_only_the_whole_part", "puts_the_quotient_in_the_numerator")
 def frac_imp_2() -> dict | None:
     """Wyłączanie całości (poziom 2)."""
     w = random.randint(1, 5)
@@ -66,7 +63,10 @@ def frac_imp_2() -> dict | None:
         c_str,
         traps={
             "gives_only_the_whole_part": format_answers(w, 1)[0],
-            "swaps_the_remainder_and_the_denominator": format_answers(d, n, w)[0],
+            # Divides correctly, then writes the quotient and the remainder in
+            # each other's places. At w == n that is the correct answer itself,
+            # and ADR-0008 drops the colliding Trap for that draw (#361).
+            "puts_the_quotient_in_the_numerator": format_answers(w, d, n)[0],
         },
         parameters={"w": w, "n": n, "d": d},
     )

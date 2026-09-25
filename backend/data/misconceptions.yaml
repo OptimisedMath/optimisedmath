@@ -49,6 +49,13 @@
 # easily could say "look at the symbol again", but a Deconstruction fired on a misread would
 # tell a Student who knows the order of operations perfectly well that they do not.
 #
+# compares_wrong_when_denominators_equal failed this test and was deleted (#311): its own name,
+# "Myli znak przy równych mianownikach", names a slip, not a believed rule. Its one Trap,
+# reverses_the_sign_with_equal_denominators, keeps its Polish prose and maps to no entry. The
+# competing reading — a Student who has learned "im większy mianownik, tym mniejszy ułamek" and
+# over-generalises it to the numerator is arguably following a rule — was raised and rejected,
+# and is recorded here so it is not re-opened blind.
+#
 # --- Whether an entry earns a `deconstruction:` ---
 #
 # Only a handful are authored. Judge a candidate in this order:
@@ -119,10 +126,6 @@ drops_whole_part:
   explanation: "Liczba mieszana ma dwie części. Całości też biorą udział w działaniu i muszą znaleźć się w wyniku."
 
 # --- Porównywanie ---
-
-compares_wrong_when_denominators_equal:
-  name: "Myli znak przy równych mianownikach"
-  explanation: "Kiedy mianowniki są takie same, większy jest ten ułamek, który ma większy licznik."
 
 assumes_bigger_denominator_means_bigger_fraction:
   name: "Uważa, że większy mianownik oznacza większy ułamek"

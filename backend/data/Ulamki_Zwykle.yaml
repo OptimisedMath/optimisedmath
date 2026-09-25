@@ -96,9 +96,9 @@ topics:
           gives_only_the_whole_part:
             misconception: improper_to_mixed_mishandles_remainder
             explanation: "Gdzie podział się ułamek? Całości wyciągnąłeś dobrze, ale zapomniałeś zapisać reszty."
-          swaps_the_remainder_and_the_denominator:
+          puts_the_quotient_in_the_numerator:
             misconception: improper_to_mixed_mishandles_remainder
-            explanation: "Odwróciłeś ułamek! Mianownik zostaje ten sam, a reszta ląduje w liczniku."
+            explanation: "Zamieniłeś części miejscami! Wynik dzielenia to całości, a reszta ląduje w liczniku — nie odwrotnie."
   - id: 40
     name: "Porównywanie"
     radio_only: true
@@ -108,7 +108,6 @@ topics:
         function: "frac_comp_1"
         traps:
           reverses_the_sign_with_equal_denominators:
-            misconception: compares_wrong_when_denominators_equal
             explanation: "Zły znak! Kiedy mianowniki są takie same, większy jest ten ułamek, który ma większy licznik."
       - level: 2
         name: "Ten sam licznik"
@@ -308,9 +307,9 @@ topics:
           cancels_the_numerator_away:
             misconception: does_not_reduce_to_lowest_terms
             explanation: "Skracając, zgubiłeś licznik. Skracamy liczbę całkowitą z mianownikiem, licznik zostaje."
-          stops_before_lowest_terms:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Wynik jest dobry, ale nieskrócony! Przed mnożeniem spróbuj skrócić liczbę całkowitą z mianownikiem."
+          multiplies_the_denominator_too:
+            misconception: multiplies_fraction_by_whole_number_wrongly
+            explanation: "Pomnożyłeś licznik ORAZ mianownik! Tutaj liczbę całkowitą skracamy z mianownikiem, a mnożymy tylko licznik."
       - level: 3
         name: "Mnożenie liczby mieszanej"
         function: "frac_mult_num_3"
@@ -344,9 +343,6 @@ topics:
           cancels_the_numerators_away:
             misconception: cancels_horizontally
             explanation: "Skróciłeś poziomo! Skracać wolno tylko górę z dołem, nigdy dwóch liczników ze sobą."
-          stops_before_lowest_terms:
-            misconception: does_not_reduce_to_lowest_terms
-            explanation: "Pominąłeś skracanie! Szukaj pary na krzyż do podzielenia przez tę samą liczbę."
       - level: 3
         name: "Mnożenie przez liczbę mieszaną"
         function: "frac_mult_3"
