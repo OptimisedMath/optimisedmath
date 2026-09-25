@@ -344,6 +344,8 @@ def test_init_db_is_idempotent_on_a_matching_telemetry_table():
         flawless_eligible=True,
         frontier_relation="at_frontier",
         answer_outcome="correct",
+        answer_form="1",
+        correct_form="1",
     )
 
     db.init_db()

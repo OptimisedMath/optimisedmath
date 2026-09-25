@@ -199,13 +199,13 @@ class TestAnswerValue:
     @pytest.mark.parametrize(
         "raw, expected",
         [
-            (r"\frac{8}{9}", Fraction(8, 9)),
-            (r"1\frac{1}{2}", Fraction(3, 2)),
-            ("8/9", Fraction(8, 9)),
-            ("1 1/2", Fraction(3, 2)),
-            ("0,5", Fraction(1, 2)),
-            ("0.5", Fraction(1, 2)),
-            ("2/4", Fraction(1, 2)),
+            (r"\frac{8}{9}", (8, 9)),
+            (r"1\frac{1}{2}", (3, 2)),
+            ("8/9", (8, 9)),
+            ("1 1/2", (3, 2)),
+            ("0,5", (1, 2)),
+            ("0.5", (1, 2)),
+            ("2/4", (1, 2)),
             ("<", None),
             (">", None),
             ("=", None),
@@ -213,7 +213,7 @@ class TestAnswerValue:
         ],
     )
     def test_answer_value(self, raw, expected):
-        """Every notation yields an exact rational; operators and junk yield None."""
+        """Every notation yields an exact rational as (numerator, denominator); operators and junk yield None."""
         assert answer_value(raw) == expected
 
     def test_equal_value_different_form(self):
