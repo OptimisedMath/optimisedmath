@@ -223,6 +223,19 @@ def _soft_error_problem() -> dict[str, Any]:
     }
 
 
+def _fraction_radio_problem() -> dict[str, Any]:
+    """A Radio problem whose correct option is written in LaTeX, so tapping it and
+    typing the slash equivalent are two Raw strings for one Answer form (#256)."""
+    return {
+        "problem_id": "p-fraction-radio",
+        "question": "q",
+        "correct": "1/2",
+        "options": ["\\frac{1}{2}", "\\frac{1}{3}"],
+        "options_map": {"\\frac{1}{2}": "correct", "\\frac{1}{3}": "t2"},
+        "messages": {"t2": "Try again"},
+    }
+
+
 def _unit_dimension_trap_problem() -> dict[str, Any]:
     """A Geometria-shaped problem whose wrong-dimension answer the grader itself
     turns into a Trap (ADR-0005) — no `options_map`/`messages` needed, since the
@@ -520,6 +533,32 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
             answer_outcome="unsimplified",
         ),
     )
+
+
+# --- Answer form (#256) ---
+
+
+def test_radio_tap_and_typed_equivalent_produce_same_answer_form(
+    fixture_curriculum: Curriculum,
+):
+    """Acceptance: a Radio tap on the LaTeX option and the typed slash equivalent
+    are two Raw strings for one Answer form, proven through two real Submissions —
+    Raw itself stays exactly what each one sent."""
+    problem = _fraction_radio_problem()
+
+    radio_state = _student_state_at(fixture_curriculum)
+    _submit(
+        radio_state, problem, "\\frac{1}{2}", "radio", fixture_curriculum, _STUDENT
+    )
+    radio_row = _latest_telemetry(radio_state.session_id)
+
+    typed_state = _student_state_at(fixture_curriculum)
+    _submit(typed_state, problem, "1/2", "typing", fixture_curriculum, _STUDENT)
+    typed_row = _latest_telemetry(typed_state.session_id)
+
+    assert radio_row["user_input"] == "\\frac{1}{2}"
+    assert typed_row["user_input"] == "1/2"
+    assert radio_row["answer_form"] == typed_row["answer_form"] == "1/2"
 
 
 # --- Trap source (#257) ---
@@ -832,6 +871,12 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=selected_topic_id,
@@ -884,6 +929,12 @@ def test_admin_penalized_mistake_decrements_session_streak_without_profile_write
         ExpectedTelemetry(
             is_correct=False,
             user_input="3",
+            answer_form="3",
+            correct_form="2",
+            answer_value_num=3,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
