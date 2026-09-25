@@ -10,7 +10,7 @@ from typing import Literal
 import backend.config as config
 from backend.answer_grading import EvalResult, grade
 from backend.core import db
-from backend.core.utils import ProblemDict
+from backend.core.utils import ProblemDict, answer_form, answer_value
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
 from backend.models import (
@@ -37,6 +37,7 @@ TrapSource = Literal["authored", "synthesized"]
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
+        "correct",
         "image_html",
         "messages",
         "options",

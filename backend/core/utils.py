@@ -563,6 +563,30 @@ def parse_to_fraction(val_str: str) -> Fraction | None:
         return None
 
 
+# --- Answer form & Answer value ---
+
+
+def answer_form(raw: str) -> str:
+    """Raw with LaTeX normalized away and nothing else changed.
+
+    Mode-independent by construction, so a Radio option and the same answer typed
+    become one Answer form; never fails, so comparison operators and unparseable
+    input still return a string.
+    """
+    return _standardize_spacing(clean_latex(raw))
+
+
+def answer_value(raw: str) -> tuple[int, int] | None:
+    """The exact rational an Answer denotes, as (numerator, denominator) — distinct
+    from Answer form, which keeps how it was written. None for anything
+    non-numeric, the precise predicate for "this answer has no numeric value".
+    """
+    fraction = parse_to_fraction(raw)
+    if fraction is None:
+        return None
+    return fraction.numerator, fraction.denominator
+
+
 # --- Decimal & mobile input ---
 
 
