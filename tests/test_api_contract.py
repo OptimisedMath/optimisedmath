@@ -2247,9 +2247,16 @@ def test_deconstruction_attempt_row_written_per_step_submit(monkeypatch):
 
     rows = _fetch_deconstruction_attempt_rows(deconstruction_id)
     assert len(rows) == 1
-    step_index, attempt_index, user_input, form, value_num, value_den, outcome, time_ms = rows[
-        0
-    ]
+    (
+        step_index,
+        attempt_index,
+        user_input,
+        form,
+        value_num,
+        value_den,
+        outcome,
+        time_ms,
+    ) = rows[0]
     assert step_index == 0
     assert attempt_index == 1
     assert user_input == "999"
