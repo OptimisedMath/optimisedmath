@@ -8,6 +8,7 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import (
+    MIN_LABELLED_ANGLE,
     Altitude,
     AngleArc,
     Centre,
@@ -20,15 +21,7 @@ from backend.core.scene import (
     circle,
     regular_polygon,
 )
-from backend.core.scene.render import (
-    ACCENT,
-    INK,
-    MIN_LABELLED_ANGLE,
-    MUTED,
-    Box,
-    _fmt,
-    _overlap,
-)
+from backend.core.scene.render import ACCENT, INK, MUTED, Box, _fmt, _overlap
 from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
@@ -172,9 +165,9 @@ class TestSceneInvariant:
     def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self, angle_a):
         """The labelled-arc minimum angle (#212) is still enforced after #326.
 
-        Parametrised across the floor rather than pinned to one value, so a
-        fix that only cleared one distance from the floor would still fail
-        this test on the others (#353).
+        Parametrised rather than pinned to one value, so a fix that cleared
+        only one distance below the floor would still fail here on the
+        others (#353).
         """
         figure = Triangle.sas(b=10, angle_a=angle_a, c=10)
         with pytest.raises(ValueError, match="below the"):
@@ -182,14 +175,12 @@ class TestSceneInvariant:
 
     def test_angle_arc_renders_at_exactly_the_minimum_angle(self):
         """#212's floor is inclusive: at `MIN_LABELLED_ANGLE` itself the arc
-        still renders and prints its degree label, rather than refusing at
-        the boundary too (#353).
+        still renders and prints its degree label (#353).
 
-        `Triangle.angles` is used rather than `Triangle.sas`: reconstructing
-        a 15° angle through `sas`'s own side-angle-side trig rounds the
-        recomputed `interior_angle` a hair below 15, which would refuse a
-        figure the floor is meant to allow. `angle_a=90` sidesteps that
-        rounding direction for this vertex.
+        Built with `Triangle.angles` rather than `Triangle.sas` because
+        `sas`'s side-angle-side trig recomputes a 15° vertex a hair below 15,
+        refusing a figure the floor is meant to allow; `angle_b=90` lands
+        this vertex on the other side of that rounding.
         """
         figure = Triangle.angles(angle_a=MIN_LABELLED_ANGLE, angle_b=90.0)
         assert figure.interior_angle("A") >= MIN_LABELLED_ANGLE
