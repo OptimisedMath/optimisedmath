@@ -15,13 +15,16 @@ For each branch:
 
 Leave the merge commits exactly as `git merge` wrote them. Do NOT tidy the
 history afterwards — no `git reset`, no `git rebase`, no squash, no amending a
-merge commit away, and no single commit summarizing the whole merge. Sandcastle
-decides what has already been merged, what is still stranded, and which issues a
-PR closes by asking git whether each issue branch is an ancestor of this branch
-(`git branch --merged`). Squashing keeps the code but destroys that ancestry, so
-the next run re-plans work that is already here, the PR omits `Closes #...` for
-every issue you squashed, and the run ends with a false "branches carry commits
-that are NOT in this PR" warning.
+merge commit away, and no single commit summarizing the whole merge. Each
+branch you are merging carries a **Done marker**: an empty commit with a
+`Sandcastle-Done: #<issue>` trailer, added by the orchestrator once that
+issue's implementer and reviewer both finished. Sandcastle decides what is
+done, what is still unfinished, and which issues this PR closes by asking
+whether that marker is reachable from this branch — not by looking at the
+diff. Squashing keeps the code but throws the marker away with it, so the next
+run re-plans work that is already here, the PR omits `Closes #...` for every
+issue you squashed, and the run ends with a false "holds saved work with no
+Done marker" warning.
 
 Extra commits of your own — conflict fixes, a test repair — are fine on top of
 the merges.
