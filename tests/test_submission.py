@@ -547,9 +547,7 @@ def test_radio_tap_and_typed_equivalent_produce_same_answer_form(
     problem = _fraction_radio_problem()
 
     radio_state = _student_state_at(fixture_curriculum)
-    _submit(
-        radio_state, problem, "\\frac{1}{2}", "radio", fixture_curriculum, _STUDENT
-    )
+    _submit(radio_state, problem, "\\frac{1}{2}", "radio", fixture_curriculum, _STUDENT)
     radio_row = _latest_telemetry(radio_state.session_id)
 
     typed_state = _student_state_at(fixture_curriculum)
