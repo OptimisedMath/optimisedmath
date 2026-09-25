@@ -325,7 +325,7 @@ class SessionResetRequest(BaseModel):
 
 
 class SessionEndRequest(BaseModel):
-    """End a Session by id — idempotent, an unknown id is not an error."""
+    """Name the Session to end."""
 
     session_id: str
 

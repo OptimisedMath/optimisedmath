@@ -120,6 +120,10 @@ export function withProblem(session: SessionResponse, problem: Problem): Session
   return { ...session, current_problem: problem };
 }
 
+function unwiredSubmission(): never {
+  throw new Error('Unhandled submitAnswer');
+}
+
 function unwired(operation: string) {
   return async () => {
     throw new Error(`Unhandled ${operation}`);
@@ -200,16 +204,21 @@ export function wireDeconstructionTriggerFlow({
   });
 }
 
-/** Wires the three session operations used by a typical arena play-through. */
+/**
+ * Wires the session operations used by a typical arena play-through. Every
+ * fixture defaults, and later handlers win, so a scenario names only the
+ * Problem it grades and the operation it spies on.
+ */
 export function wireArenaFlow({
-  session,
-  problem,
-  onSubmit,
+  session = baseSession(),
+  problem = baseProblem(),
+  onSubmit = unwiredSubmission,
+  ...handlers
 }: {
-  session: SessionResponse;
-  problem: Problem;
-  onSubmit: () => SubmissionResponse;
-}): SessionClient {
+  session?: SessionResponse;
+  problem?: Problem;
+  onSubmit?: () => SubmissionResponse;
+} & Partial<SessionClient> = {}): SessionClient {
   const getNextProblem = async () => {
     const state: SessionResponse = {
       ...session,
@@ -225,5 +234,6 @@ export function wireArenaFlow({
     startSession: async () => session,
     getNextProblem,
     submitAnswer: async () => onSubmit(),
+    ...handlers,
   });
 }

@@ -1189,6 +1189,7 @@ def test_start_session_survives_recovery_from_db():
 
 
 def test_session_end_deletes_the_session_row_and_the_active_cache():
+    """Ending a Session drops it from both the in-memory cache and SQLite."""
     response = run(
         main.session_start(
             main.SessionStartRequest(username=f"end-user-{uuid.uuid4()}")
@@ -1207,10 +1208,12 @@ def test_session_end_deletes_the_session_row_and_the_active_cache():
 
 
 def test_session_end_is_idempotent_for_an_unknown_id():
+    """Ending an id the backend never minted is a no-op, not an error."""
     run(main.session_end(main.SessionEndRequest(session_id=str(uuid.uuid4()))))
 
 
 def test_session_end_lets_a_later_start_mint_a_different_id():
+    """An ended Session is not resumable — the next start mints a fresh id."""
     username = f"end-user-{uuid.uuid4()}"
     first = run(main.session_start(main.SessionStartRequest(username=username)))
 
