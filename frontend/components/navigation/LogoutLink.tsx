@@ -24,8 +24,9 @@ export default function LogoutLink({
       onNavigate={() => {
         const sessionId = getStoredSessionId();
         if (sessionId) {
-          // Unawaited: a lost race leaves an unreachable row, the same
-          // outcome as not deleting at all, so it never delays navigation.
+          // Not awaited, so navigation to the login screen stays immediate:
+          // a lost race leaves an unreachable row, which is exactly the
+          // outcome of not deleting at all.
           client.endSession({ session_id: sessionId }).catch(() => {});
         }
         clearSessionStorage();

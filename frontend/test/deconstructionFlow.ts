@@ -1,10 +1,9 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { expect } from 'vitest';
 import type { SessionClient } from '@/lib/session';
 import type { DeconstructionStepResponse } from '@/lib/session/types';
 import { TRAP_FEEDBACK } from './fakeBackend';
-import { renderArena } from './renderArena';
+import { renderArena, waitForArenaReady } from './renderArena';
 
 /**
  * Drives the rendered arena from a fresh session through a Deconstruction-arming
@@ -13,14 +12,7 @@ import { renderArena } from './renderArena';
  */
 export async function reachPause(client: SessionClient): Promise<void> {
   renderArena(client);
-
-  await waitFor(() => {
-    expect(client.startSession).toHaveBeenCalled();
-    expect(client.getNextProblem).toHaveBeenCalled();
-  });
-  await waitFor(() => {
-    expect(screen.queryByText('Ładowanie zadania...')).not.toBeInTheDocument();
-  });
+  await waitForArenaReady(client);
 
   const user = userEvent.setup();
   const input = await screen.findByPlaceholderText('Wpisz wynik...');

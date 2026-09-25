@@ -120,14 +120,15 @@ export function withProblem(session: SessionResponse, problem: Problem): Session
   return { ...session, current_problem: problem };
 }
 
-function unwiredSubmission(): never {
-  throw new Error('Unhandled submitAnswer');
-}
-
 function unwired(operation: string) {
   return async () => {
     throw new Error(`Unhandled ${operation}`);
   };
+}
+
+/** The `unwired()` default for `wireArenaFlow`'s `onSubmit`, which grades synchronously. */
+function unwiredSubmission(): never {
+  throw new Error('Unhandled submitAnswer');
 }
 
 /**
@@ -219,20 +220,12 @@ export function wireArenaFlow({
   problem?: Problem;
   onSubmit?: () => SubmissionResponse;
 } & Partial<SessionClient> = {}): SessionClient {
-  const getNextProblem = async () => {
-    const state: SessionResponse = {
-      ...session,
-      current_problem: problem,
-      can_submit: true,
-      can_next_problem: false,
-    };
-    const response: ProblemResponse = { problem, state };
-    return response;
-  };
-
   return createFakeSessionClient({
     startSession: async () => session,
-    getNextProblem,
+    getNextProblem: async (): Promise<ProblemResponse> => ({
+      problem,
+      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
+    }),
     submitAnswer: async () => onSubmit(),
     ...handlers,
   });
