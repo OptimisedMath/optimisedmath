@@ -72,7 +72,7 @@ def init_db() -> None:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        _drop_stale_telemetry_table(cursor)
+        _drop_stale_table(cursor, "telemetry_logs", _TELEMETRY_TABLE_COLUMNS)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,6 +112,7 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
+        _drop_stale_table(cursor, "deconstructions", _DECONSTRUCTIONS_COLUMNS)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstructions (
                 deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,6 +125,7 @@ def init_db() -> None:
                 level_number INTEGER NOT NULL,
                 outcome TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                ended_at DATETIME,
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         """)
@@ -133,13 +135,32 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_deconstructions_problem_id ON deconstructions(problem_id)"
         )
+        _drop_stale_table(cursor, "deconstruction_steps", _DECONSTRUCTION_STEPS_COLUMNS)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstruction_steps (
                 deconstruction_id INTEGER NOT NULL,
                 step_index INTEGER NOT NULL,
-                attempts INTEGER NOT NULL DEFAULT 0,
                 revealed BOOLEAN NOT NULL DEFAULT 0,
                 PRIMARY KEY (deconstruction_id, step_index),
+                FOREIGN KEY (deconstruction_id) REFERENCES deconstructions(deconstruction_id)
+            )
+        """)
+        _drop_stale_table(
+            cursor, "deconstruction_attempts", _DECONSTRUCTION_ATTEMPTS_COLUMNS
+        )
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS deconstruction_attempts (
+                deconstruction_id INTEGER NOT NULL,
+                step_index INTEGER NOT NULL,
+                attempt_index INTEGER NOT NULL,
+                user_input TEXT NOT NULL,
+                answer_form TEXT NOT NULL,
+                answer_value_num INTEGER,
+                answer_value_den INTEGER,
+                outcome TEXT NOT NULL,
+                time_spent_ms INTEGER,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (deconstruction_id, step_index, attempt_index),
                 FOREIGN KEY (deconstruction_id) REFERENCES deconstructions(deconstruction_id)
             )
         """)
@@ -184,26 +205,65 @@ _INSERT_TELEMETRY_SQL = (
     f"VALUES ({', '.join('?' * len(_TELEMETRY_COLUMNS))})"
 )
 
+# The full column sets each table's `CREATE TABLE` declares, `_drop_stale_table`'s
+# reference for what a pre-existing table has to match — kept beside the DDL
+# above rather than derived from it, same tradeoff as `_TELEMETRY_TABLE_COLUMNS`.
+_DECONSTRUCTIONS_COLUMNS = frozenset(
+    {
+        "deconstruction_id",
+        "session_id",
+        "username",
+        "problem_id",
+        "misconception_slug",
+        "chapter",
+        "topic",
+        "level_number",
+        "outcome",
+        "created_at",
+        "ended_at",
+    }
+)
+_DECONSTRUCTION_STEPS_COLUMNS = frozenset(
+    {"deconstruction_id", "step_index", "revealed"}
+)
+_DECONSTRUCTION_ATTEMPTS_COLUMNS = frozenset(
+    {
+        "deconstruction_id",
+        "step_index",
+        "attempt_index",
+        "user_input",
+        "answer_form",
+        "answer_value_num",
+        "answer_value_den",
+        "outcome",
+        "time_spent_ms",
+        "timestamp",
+    }
+)
 
-def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs unless its columns are exactly `_TELEMETRY_TABLE_COLUMNS`.
 
-    Pre-existing telemetry rows are dropped, not migrated, when the schema changes
+def _drop_stale_table(
+    cursor: sqlite3.Cursor, table_name: str, expected_columns: frozenset[str]
+) -> None:
+    """Drop `table_name` unless its columns are exactly `expected_columns`.
+
+    Pre-existing rows are dropped, not migrated, when a table's schema changes
     shape — adding, renaming or removing a column is what makes that happen. An
     exact match rather than a subset check, so a column that stops being written
-    (like `is_correct` in #253) also forces the drop instead of being left behind
-    as dead NOT NULL state a future INSERT can't satisfy. Acceptable pre-launch,
-    while telemetry has no production readers; past launch, a schema change needs
-    a real migration instead of a silent drop.
+    (like `is_correct` in #253, or `deconstruction_steps.attempts` in #258) also
+    forces the drop instead of being left behind as dead state a future INSERT
+    can't satisfy. Acceptable pre-launch, while these tables have no production
+    readers; past launch, a schema change needs a real migration instead of a
+    silent drop.
     """
     table_exists = cursor.execute(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
     ).fetchone()
     if not table_exists:
         return
-    columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    if columns != _TELEMETRY_TABLE_COLUMNS:
-        cursor.execute("DROP TABLE telemetry_logs")
+    columns = {row[1] for row in cursor.execute(f"PRAGMA table_info({table_name})")}
+    if columns != expected_columns:
+        cursor.execute(f"DROP TABLE {table_name}")
 
 
 # --- Sessions ---
@@ -431,15 +491,16 @@ def create_deconstruction(
 def create_deconstruction_steps(deconstruction_id: int, step_count: int) -> None:
     """Write one `deconstruction_steps` row per step at trigger detection.
 
-    `attempts` and `revealed` start at zero — a Step-submit updates them as the
-    Student answers, so the row tracks the whole escalation, not just its end state.
+    `revealed` starts at zero — a Step-submit sets it once the Reveal threshold
+    is hit. The attempt count that used to live here is gone (#258): it is now
+    derivable from `deconstruction_attempts`, excluding `soft_error` rows.
     """
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.executemany(
             """
-            INSERT INTO deconstruction_steps (deconstruction_id, step_index, attempts, revealed)
-            VALUES (?, ?, 0, 0)
+            INSERT INTO deconstruction_steps (deconstruction_id, step_index, revealed)
+            VALUES (?, ?, 0)
             """,
             [(deconstruction_id, step_index) for step_index in range(step_count)],
         )
@@ -447,31 +508,87 @@ def create_deconstruction_steps(deconstruction_id: int, step_count: int) -> None
 
 
 def set_deconstruction_outcome(deconstruction_id: int, outcome: str) -> None:
-    """Write the terminal `outcome` on a `deconstructions` header row.
+    """Write the terminal `outcome` and `ended_at` on a `deconstructions` header row.
 
     Called once, whichever way the Deconstruction ends: `completed`,
-    `abandoned_via_control`, or `abandoned_via_navigation`.
+    `abandoned_via_control`, or `abandoned_via_navigation` — the same call
+    stamps `ended_at` on all three (#258), so a long walkthrough can be checked
+    against whether it was the abandoned one.
     """
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE deconstructions SET outcome = ? WHERE deconstruction_id = ?",
+            """
+            UPDATE deconstructions SET outcome = ?, ended_at = CURRENT_TIMESTAMP
+            WHERE deconstruction_id = ?
+            """,
             (outcome, deconstruction_id),
         )
         conn.commit()
 
 
 def update_deconstruction_step(
-    deconstruction_id: int, step_index: int, *, attempts: int, revealed: bool
+    deconstruction_id: int, step_index: int, *, revealed: bool
 ) -> None:
-    """Sync one step's attempt count and Reveal state after a Deconstruction submit."""
+    """Sync one step's Reveal state after a Deconstruction submit."""
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
-            UPDATE deconstruction_steps SET attempts = ?, revealed = ?
+            UPDATE deconstruction_steps SET revealed = ?
             WHERE deconstruction_id = ? AND step_index = ?
             """,
-            (attempts, revealed, deconstruction_id, step_index),
+            (revealed, deconstruction_id, step_index),
+        )
+        conn.commit()
+
+
+def create_deconstruction_attempt(
+    deconstruction_id: int,
+    step_index: int,
+    *,
+    user_input: str,
+    answer_form: str,
+    answer_value_num: int | None,
+    answer_value_den: int | None,
+    outcome: str,
+    time_spent_ms: int | None,
+) -> None:
+    """Write one `deconstruction_attempts` row for a single step submit.
+
+    `attempt_index` is assigned here, one past the step's existing row count,
+    rather than tracked in Session state — the ordinal is a property of what
+    is actually persisted, not a second counter that could drift from it.
+    Every submit gets a row, soft errors included, so the Reveal-threshold
+    count stays recoverable as this table's rows excluding `soft_error`.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        next_index = cursor.execute(
+            """
+            SELECT COALESCE(MAX(attempt_index), 0) + 1 FROM deconstruction_attempts
+            WHERE deconstruction_id = ? AND step_index = ?
+            """,
+            (deconstruction_id, step_index),
+        ).fetchone()[0]
+        cursor.execute(
+            """
+            INSERT INTO deconstruction_attempts (
+                deconstruction_id, step_index, attempt_index, user_input,
+                answer_form, answer_value_num, answer_value_den, outcome,
+                time_spent_ms
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                deconstruction_id,
+                step_index,
+                next_index,
+                user_input,
+                answer_form,
+                answer_value_num,
+                answer_value_den,
+                outcome,
+                time_spent_ms,
+            ),
         )
         conn.commit()
