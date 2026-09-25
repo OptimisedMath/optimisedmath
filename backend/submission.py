@@ -202,6 +202,10 @@ def _log_submission_telemetry(
         list(curriculum.topics(chapter_id)), state.chapter_frontiers.get(chapter_id)
     )
 
+    correct_raw = str(problem["correct"])
+    answer_value_pair = answer_value(user_input)
+    correct_value_pair = answer_value(correct_raw)
+
     db.log_telemetry(
         session_id=state.session_id,
         username=username,
@@ -217,6 +221,12 @@ def _log_submission_telemetry(
         frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
         is_correct=eval_result.get("is_correct", False),
         user_input=user_input,
+        answer_form=answer_form(user_input),
+        answer_value_num=answer_value_pair[0] if answer_value_pair else None,
+        answer_value_den=answer_value_pair[1] if answer_value_pair else None,
+        correct_form=answer_form(correct_raw),
+        correct_value_num=correct_value_pair[0] if correct_value_pair else None,
+        correct_value_den=correct_value_pair[1] if correct_value_pair else None,
         answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
         trap_slug=eval_result.get("trap_slug"),

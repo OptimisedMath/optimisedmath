@@ -31,6 +31,7 @@ _ADMIN = AdminPlayMode()
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
+        "correct",
         "image_html",
         "messages",
         "options",
@@ -69,6 +70,8 @@ class ExpectedTelemetry:
 
     is_correct: bool
     user_input: str
+    answer_form: str
+    correct_form: str
     chapter_id: int
     chapter: str
     topic_id: int
@@ -79,6 +82,10 @@ class ExpectedTelemetry:
     streak_before_answer: int
     flawless_eligible: bool
     frontier_relation: FrontierRelation
+    answer_value_num: int | None = None
+    answer_value_den: int | None = None
+    correct_value_num: int | None = None
+    correct_value_den: int | None = None
     answer_outcome: str | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
@@ -297,7 +304,6 @@ def _assert_telemetry(
     for key in _TELEMETRY_STRIP_KEYS:
         assert key not in stored
     assert stored["question"] == problem["question"]
-    assert stored["correct"] == problem["correct"]
     for column, value in asdict(expected).items():
         # SQLite stores the boolean columns as 0/1, which compare equal to False/True.
         assert row[column] == value, f"telemetry column {column}"
@@ -379,6 +385,12 @@ def test_correct_answer_updates_session_and_logs_telemetry(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -432,6 +444,12 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
         ExpectedTelemetry(
             is_correct=False,
             user_input="3",
+            answer_form="3",
+            correct_form="2",
+            answer_value_num=3,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -483,6 +501,12 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         ExpectedTelemetry(
             is_correct=False,
             user_input="2/4",
+            answer_form="2/4",
+            correct_form="1/2",
+            answer_value_num=1,
+            answer_value_den=2,
+            correct_value_num=1,
+            correct_value_den=2,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -525,7 +549,9 @@ def test_synthesized_unit_trap_logs_trap_source_synthesized(
     fixture_curriculum: Curriculum,
 ):
     """Acceptance: the synthesized route is reachable via a wrong-dimension Unit
-    on a Geometria Level, and the stored row is proven directly."""
+    on a Geometria Level, and the stored row is proven directly. `"84 cm"` also
+    doubles as the non-numeric-answer case (#256): it gets an Answer form but no
+    Answer value, since a unit suffix is not something `parse_to_fraction` reads."""
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
     problem = _unit_dimension_trap_problem()
     telemetry_before = _telemetry_count(state.session_id)
@@ -541,6 +567,10 @@ def test_synthesized_unit_trap_logs_trap_source_synthesized(
         ExpectedTelemetry(
             is_correct=False,
             user_input="84 cm",
+            answer_form="84 cm",
+            correct_form="84",
+            correct_value_num=84,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -595,6 +625,12 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
         ExpectedTelemetry(
             is_correct=False,
             user_input="1/3",
+            answer_form="1/3",
+            correct_form="1/2",
+            answer_value_num=1,
+            answer_value_den=3,
+            correct_value_num=1,
+            correct_value_den=2,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -654,6 +690,12 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -706,6 +748,12 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
         ExpectedTelemetry(
             is_correct=True,
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
