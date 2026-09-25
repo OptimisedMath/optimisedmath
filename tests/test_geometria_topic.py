@@ -8,6 +8,7 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import (
+    MIN_LABELLED_ANGLE,
     Altitude,
     AngleArc,
     Centre,
@@ -166,11 +167,31 @@ class TestSceneInvariant:
         with pytest.raises(ValueError, match="letters"):
             Scene(figure, [Outline(), *arcs]).to_svg()
 
-    def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self):
-        """The labelled-arc minimum angle (#212) is still enforced after #326."""
-        figure = Triangle.sas(b=10, angle_a=10, c=10)
+    @pytest.mark.parametrize("angle_a", [5.0, 10.0, 14.9])
+    def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self, angle_a):
+        """The labelled-arc minimum angle (#212) is still enforced after #326.
+
+        Parametrised rather than pinned to one value, so a fix that cleared
+        only one distance below the floor would still fail here on the
+        others (#353).
+        """
+        figure = Triangle.sas(b=10, angle_a=angle_a, c=10)
         with pytest.raises(ValueError, match="below the"):
             Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+
+    def test_angle_arc_renders_at_exactly_the_minimum_angle(self):
+        """#212's floor is inclusive: at `MIN_LABELLED_ANGLE` itself the arc
+        still renders and prints its degree label (#353).
+
+        Built with `Triangle.angles` rather than `Triangle.sas` because
+        `sas`'s side-angle-side trig recomputes a 15° vertex a hair below 15,
+        refusing a figure the floor is meant to allow; `angle_b=90` lands
+        this vertex on the other side of that rounding.
+        """
+        figure = Triangle.angles(angle_a=MIN_LABELLED_ANGLE, angle_b=90.0)
+        assert figure.interior_angle("A") >= MIN_LABELLED_ANGLE
+        svg = Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+        assert f">{_fmt(MIN_LABELLED_ANGLE)}°<" in svg
 
     def test_a_right_angle_renders_as_an_arc_and_a_dot_not_a_square(self):
         """#323: łuk z kropką, not the English square — the old marker was a
