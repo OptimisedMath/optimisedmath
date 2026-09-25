@@ -168,28 +168,34 @@ class TestParseToFraction:
 
 
 class TestAnswerForm:
+    """Answer form erases LaTeX and keeps the notation the answer was written in."""
+
     @pytest.mark.parametrize(
         "raw, expected",
         [
-            (r"\frac{8}{9}", "8/9"),  # LaTeX fraction
-            (r"1\frac{1}{2}", "1 1/2"),  # LaTeX mixed number
-            ("8/9", "8/9"),  # typed slash fraction
-            ("1 1/2", "1 1/2"),  # typed mixed number
-            ("0,5", "0,5"),  # Polish-comma decimal
-            ("0.5", "0.5"),  # full-stop decimal
-            ("2/4", "2/4"),  # unsimplified fraction
-            ("<", "<"),  # comparison operator
-            ("not-a-number", "not-a-number"),  # unparseable input
+            (r"\frac{8}{9}", "8/9"),
+            (r"1\frac{1}{2}", "1 1/2"),
+            ("8/9", "8/9"),
+            ("1 1/2", "1 1/2"),
+            ("0,5", "0,5"),
+            ("0.5", "0.5"),
+            ("2/4", "2/4"),
+            ("<", "<"),
+            ("not-a-number", "not-a-number"),
         ],
     )
     def test_answer_form(self, raw, expected):
+        """LaTeX collapses to plain notation; every other input survives unchanged."""
         assert answer_form(raw) == expected
 
     def test_radio_and_typed_equivalent_share_form(self):
+        """A Radio option and the same answer typed are one Answer form."""
         assert answer_form(r"\frac{8}{9}") == answer_form("8/9")
 
 
 class TestAnswerValue:
+    """Answer value erases notation, and is absent where the answer denotes no number."""
+
     @pytest.mark.parametrize(
         "raw, expected",
         [
@@ -207,9 +213,11 @@ class TestAnswerValue:
         ],
     )
     def test_answer_value(self, raw, expected):
+        """Every notation yields an exact rational; operators and junk yield None."""
         assert answer_value(raw) == expected
 
     def test_equal_value_different_form(self):
+        """Answers that are numerically equal but written differently share only the value."""
         assert answer_value("0,5") == answer_value("0.5")
         assert answer_form("0,5") != answer_form("0.5")
 
