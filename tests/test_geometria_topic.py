@@ -594,9 +594,7 @@ class TestReverseRungUnknownSymbol:
     @pytest.mark.parametrize(
         "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
     )
-    def test_exactly_one_letter_is_printed_on_the_value_asked_for(
-        self, height_unknown
-    ):
+    def test_exactly_one_letter_is_printed_on_the_value_asked_for(self, height_unknown):
         """A flipped withheld-value choice would print the letter on the given
         value and a number on the withheld one — unsolvable, yet every printed
         number would still be a Problem parameter, so no P2 assertion catches it."""
