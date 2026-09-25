@@ -67,7 +67,6 @@ class ExpectedTelemetry:
     lets `_assert_telemetry` check the row by name instead of by position.
     """
 
-    is_correct: bool
     user_input: str
     chapter_id: int
     chapter: str
@@ -79,7 +78,7 @@ class ExpectedTelemetry:
     streak_before_answer: int
     flawless_eligible: bool
     frontier_relation: FrontierRelation
-    answer_outcome: str | None = None
+    answer_outcome: str
     misconception_slug: str | None = None
     trap_slug: str | None = None
     trap_source: TrapSource | None = None
@@ -213,6 +212,27 @@ def _soft_error_problem() -> dict[str, Any]:
         "problem_id": "p-soft-error",
         "question": "q",
         "correct": "1/2",
+    }
+
+
+def _exact_match_violation_problem() -> dict[str, Any]:
+    """`exact_match_only`, value-equal but not the exact string, no Trap declared —
+    ADR-0016's `exact_match_violation` row, which telemetry records as `wrong`."""
+    return {
+        "problem_id": "p-exact-match-violation",
+        "question": "q",
+        "correct": "1/2",
+        "grading_policy": "exact_match_only",
+    }
+
+
+def _format_mismatch_problem() -> dict[str, Any]:
+    """Correct written as a decimal, so a value-equal common fraction is the
+    grader's `format_mismatch`, which collapses to `soft_error`."""
+    return {
+        "problem_id": "p-format-mismatch",
+        "question": "q",
+        "correct": "0,5",
     }
 
 
@@ -377,7 +397,7 @@ def test_correct_answer_updates_session_and_logs_telemetry(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -430,7 +450,6 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="3",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -481,7 +500,6 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="2/4",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -493,7 +511,97 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
             streak_before_answer=2,
             flawless_eligible=True,
             frontier_relation="at_frontier",
-            answer_outcome="unsimplified",
+            answer_outcome="soft_error",
+        ),
+    )
+
+
+# --- Answer outcome collapse (#253) ---
+#
+# The grader's finer-grained outcomes collapse to telemetry's four buckets on
+# the way in (ADR-0016). `trap` and the plain `wrong` fallthrough are already
+# proven above, through the trap and penalized-mistake tests; these three
+# prove the remaining collapsed leaves reach their bucket through a real
+# Submission, not just through `grade()` directly.
+
+
+def test_exact_match_violation_collapses_to_wrong(fixture_curriculum: Curriculum):
+    """An `exact_match_only` violation is logged as `wrong`, not as a Soft Error."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _exact_match_violation_problem()
+
+    _submit(state, problem, "2/4", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="2/4",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="wrong",
+        ),
+    )
+
+
+def test_syntax_error_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    """An unparseable answer is logged as `soft_error`, like every other Soft Error."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _soft_error_problem()
+
+    _submit(state, problem, "abc", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="abc",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="soft_error",
+        ),
+    )
+
+
+def test_format_mismatch_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    """A value-equal answer in the wrong number format is logged as `soft_error`."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _format_mismatch_problem()
+
+    _submit(state, problem, "1/2", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="1/2",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="soft_error",
         ),
     )
 
@@ -539,7 +647,6 @@ def test_synthesized_unit_trap_logs_trap_source_synthesized(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="84 cm",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -593,7 +700,6 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="1/3",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -652,7 +758,7 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -704,7 +810,7 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -782,7 +888,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -834,7 +940,6 @@ def test_admin_penalized_mistake_decrements_session_streak_without_profile_write
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="3",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",

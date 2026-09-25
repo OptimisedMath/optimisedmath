@@ -2583,14 +2583,14 @@ def test_completed_deconstruction_correct_retry_discoverable_by_joining_on_probl
     with sqlite3.connect(main.db.DB_PATH) as conn:
         row = conn.execute(
             """
-            SELECT tl.is_correct FROM deconstructions d
+            SELECT tl.answer_outcome FROM deconstructions d
             JOIN telemetry_logs tl ON tl.problem_id = d.problem_id
-            WHERE d.deconstruction_id = ? AND tl.is_correct = 1
+            WHERE d.deconstruction_id = ? AND tl.answer_outcome = 'correct'
             """,
             (deconstruction_id,),
         ).fetchone()
     assert row is not None
-    assert row[0] == 1
+    assert row[0] == "correct"
 
 
 def test_deconstruction_abandon_raises_when_none_running():

@@ -89,11 +89,10 @@ def init_db() -> None:
                 streak_before_answer INTEGER NOT NULL,
                 flawless_eligible BOOLEAN NOT NULL,
                 frontier_relation TEXT NOT NULL,
-                answer_outcome TEXT,
+                answer_outcome TEXT NOT NULL,
                 misconception_slug TEXT,
                 trap_slug TEXT,
                 trap_source TEXT,
-                is_correct BOOLEAN NOT NULL,
                 user_input TEXT,
                 time_spent_ms INTEGER,
                 problem_snapshot TEXT,
@@ -168,12 +167,17 @@ _TELEMETRY_COLUMNS = (
     "misconception_slug",
     "trap_slug",
     "trap_source",
-    "is_correct",
     "user_input",
     "time_spent_ms",
     "problem_snapshot",
     "problem_id",
 )
+
+# The full column set `CREATE TABLE` declares: everything `log_telemetry` writes,
+# plus the two SQLite fills in by itself — the autoincrement key and the default
+# timestamp, never part of the INSERT but still part of the shape
+# `_drop_stale_telemetry_table` matches a pre-existing table against.
+_TELEMETRY_TABLE_COLUMNS = frozenset(_TELEMETRY_COLUMNS) | {"log_id", "timestamp"}
 
 _INSERT_TELEMETRY_SQL = (
     f"INSERT INTO telemetry_logs ({', '.join(_TELEMETRY_COLUMNS)}) "
@@ -182,10 +186,15 @@ _INSERT_TELEMETRY_SQL = (
 
 
 def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
-    """Drop telemetry_logs if it predates any column `log_telemetry` now writes.
+    """Drop telemetry_logs unless its columns are exactly `_TELEMETRY_TABLE_COLUMNS`.
 
     Pre-existing telemetry rows are dropped, not migrated, when the schema changes
-    shape — adding a column to `_TELEMETRY_COLUMNS` is what makes that happen.
+    shape — adding, renaming or removing a column is what makes that happen. An
+    exact match rather than a subset check, so a column that stops being written
+    (like `is_correct` in #253) also forces the drop instead of being left behind
+    as dead NOT NULL state a future INSERT can't satisfy. Acceptable pre-launch,
+    while telemetry has no production readers; past launch, a schema change needs
+    a real migration instead of a silent drop.
     """
     table_exists = cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='telemetry_logs'"
@@ -193,7 +202,7 @@ def _drop_stale_telemetry_table(cursor: sqlite3.Cursor) -> None:
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute("PRAGMA table_info(telemetry_logs)")}
-    if not set(_TELEMETRY_COLUMNS).issubset(columns):
+    if columns != _TELEMETRY_TABLE_COLUMNS:
         cursor.execute("DROP TABLE telemetry_logs")
 
 
@@ -332,9 +341,8 @@ def log_telemetry(
     streak_before_answer: int,
     flawless_eligible: bool,
     frontier_relation: str,
-    is_correct: bool,
+    answer_outcome: str,
     user_input: str | None = None,
-    answer_outcome: str | None = None,
     misconception_slug: str | None = None,
     trap_slug: str | None = None,
     trap_source: str | None = None,
@@ -364,7 +372,6 @@ def log_telemetry(
         "misconception_slug": misconception_slug,
         "trap_slug": trap_slug,
         "trap_source": trap_source,
-        "is_correct": is_correct,
         "user_input": str(user_input) if user_input is not None else None,
         "time_spent_ms": time_spent_ms,
         "problem_snapshot": problem_snapshot,

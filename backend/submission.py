@@ -47,6 +47,25 @@ _TELEMETRY_STRIP_KEYS = frozenset(
     }
 )
 
+# The grader's finer-grained outcomes, collapsed to the four buckets telemetry
+# records an Answer Outcome under (ADR-0016, settled by #259). Applied on the
+# way into telemetry — nothing upstream of this reads the collapsed form. Total
+# over what `grade()` can return, so an outcome missing here raises rather than
+# being logged as something it isn't.
+_TELEMETRY_OUTCOME_BUCKETS = {
+    "correct": "correct",
+    "trap": "trap",
+    "wrong": "wrong",
+    "syntax_error": "soft_error",
+    "format_mismatch": "soft_error",
+    "unsimplified": "soft_error",
+}
+
+
+def _telemetry_answer_outcome(eval_result: EvalResult) -> str:
+    """Collapse the grader's outcome to the bucket telemetry records it under."""
+    return _TELEMETRY_OUTCOME_BUCKETS[eval_result["answer_outcome"]]
+
 
 def run_submission_cycle(
     state: SessionState,
@@ -214,9 +233,8 @@ def _log_submission_telemetry(
         streak_before_answer=state.streak,
         flawless_eligible=state.flawless_eligible,
         frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
-        is_correct=eval_result.get("is_correct", False),
+        answer_outcome=_telemetry_answer_outcome(eval_result),
         user_input=user_input,
-        answer_outcome=eval_result.get("answer_outcome"),
         misconception_slug=misconception_slug,
         trap_slug=eval_result.get("trap_slug"),
         trap_source=trap_source,
