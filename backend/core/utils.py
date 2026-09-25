@@ -571,21 +571,27 @@ def parse_to_fraction(val_str: str) -> Fraction | None:
 
 
 def answer_form(raw: str) -> str:
-    """The Answer form of `raw`, for the Submission cycle to record (ADR-0016).
+    """Raw with LaTeX normalized away and nothing else changed.
 
-    Cannot fail, so the recorded form is always populated: comparison operators and
-    input no parser accepts come back as themselves rather than as nothing.
+    Mode-independent by construction, so a Radio option and the same answer typed
+    become one Answer form; never fails, so comparison operators and unparseable
+    input still return a string.
     """
     return _standardize_spacing(clean_latex(raw))
 
 
-def answer_value(raw: str) -> Fraction | None:
-    """The Answer value of `raw`, or None where it denotes no value (ADR-0016).
+def answer_value(raw: str) -> tuple[int, int] | None:
+    """The exact rational an Answer denotes, as `(numerator, denominator)`.
 
-    That None is the recorded predicate for "this answer has no numeric value" —
-    comparison operators, and anything the forgiving parser rejects.
+    Notation is erased, unlike in Answer form, which keeps how the answer was
+    written. `None` is the precise predicate for "this answer has no numeric
+    value" — a unit suffix or a comparison operator has an Answer form but no
+    Answer value.
     """
-    return parse_to_fraction(raw)
+    fraction = parse_to_fraction(raw)
+    if fraction is None:
+        return None
+    return fraction.numerator, fraction.denominator
 
 
 # --- Decimal & mobile input ---

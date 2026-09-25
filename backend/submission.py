@@ -10,7 +10,7 @@ from typing import Literal
 import backend.config as config
 from backend.answer_grading import EvalResult, grade
 from backend.core import db
-from backend.core.utils import ProblemDict
+from backend.core.utils import ProblemDict, answer_form, answer_value
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
 from backend.models import (
@@ -37,6 +37,7 @@ TrapSource = Literal["authored", "synthesized"]
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
+        "correct",
         "image_html",
         "messages",
         "options",
@@ -220,6 +221,10 @@ def _log_submission_telemetry(
         list(curriculum.topics(chapter_id)), state.chapter_frontiers.get(chapter_id)
     )
 
+    correct_raw = str(problem["correct"])
+    answer_num, answer_den = answer_value(user_input) or (None, None)
+    correct_num, correct_den = answer_value(correct_raw) or (None, None)
+
     db.log_telemetry(
         session_id=state.session_id,
         username=username,
@@ -235,6 +240,12 @@ def _log_submission_telemetry(
         frontier_relation=frontier_relation(topic_id, state.selected_level, frontier),
         answer_outcome=_telemetry_answer_outcome(eval_result),
         user_input=user_input,
+        answer_form=answer_form(user_input),
+        answer_value_num=answer_num,
+        answer_value_den=answer_den,
+        correct_form=answer_form(correct_raw),
+        correct_value_num=correct_num,
+        correct_value_den=correct_den,
         misconception_slug=misconception_slug,
         trap_slug=eval_result.get("trap_slug"),
         trap_source=trap_source,

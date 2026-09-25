@@ -160,6 +160,12 @@ def test_log_telemetry_persists_entry():
         flawless_eligible=True,
         frontier_relation="at_frontier",
         user_input="1/2",
+        answer_form="1/2",
+        correct_form="1/2",
+        answer_value_num=1,
+        answer_value_den=2,
+        correct_value_num=1,
+        correct_value_den=2,
         answer_outcome="trap",
         trap_slug="t1",
         time_spent_ms=1500,
@@ -193,6 +199,8 @@ def test_log_telemetry_trap_source_defaults_to_null():
         flawless_eligible=True,
         frontier_relation="at_frontier",
         answer_outcome="correct",
+        answer_form="1/2",
+        correct_form="1/2",
     )
 
     with db.get_connection() as conn:
@@ -220,6 +228,8 @@ def test_log_telemetry_persists_trap_source():
         streak_before_answer=1,
         flawless_eligible=True,
         frontier_relation="at_frontier",
+        answer_form="84",
+        correct_form="84",
         answer_outcome="trap",
         trap_slug="answers_in_the_wrong_dimension",
         trap_source="synthesized",
@@ -271,6 +281,8 @@ def test_log_telemetry_requires_existing_user():
             flawless_eligible=True,
             frontier_relation="at_frontier",
             answer_outcome="correct",
+            answer_form="1",
+            correct_form="1",
         )
 
 
