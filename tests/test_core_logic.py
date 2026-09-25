@@ -7,6 +7,8 @@ from fractions import Fraction
 
 from backend.core.scene.render import _fmt
 from backend.core.utils import (
+    answer_form,
+    answer_value,
     build_problem_dict,
     clean_mobile_input,
     clean_latex,
@@ -163,6 +165,64 @@ class TestParseToFraction:
     )
     def test_parse_to_fraction(self, val_str, expected):
         assert parse_to_fraction(val_str) == expected
+
+
+class TestAnswerForm:
+    """Answer form erases LaTeX and keeps the notation the answer was written in."""
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            (r"\frac{8}{9}", "8/9"),
+            (r"1\frac{1}{2}", "1 1/2"),
+            ("8/9", "8/9"),
+            ("1 1/2", "1 1/2"),
+            ("0,5", "0,5"),
+            ("0.5", "0.5"),
+            ("2/4", "2/4"),
+            ("<", "<"),
+            ("not-a-number", "not-a-number"),
+        ],
+    )
+    def test_answer_form(self, raw, expected):
+        """LaTeX collapses to plain notation; every other input survives unchanged."""
+        assert answer_form(raw) == expected
+
+    def test_radio_and_typed_equivalent_share_form(self):
+        """A Radio option and the same answer typed are one Answer form."""
+        assert answer_form(r"\frac{8}{9}") == answer_form("8/9")
+
+
+class TestAnswerValue:
+    """Answer value erases notation, and is absent where the answer denotes no number."""
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            (r"\frac{8}{9}", Fraction(8, 9)),
+            (r"1\frac{1}{2}", Fraction(3, 2)),
+            ("8/9", Fraction(8, 9)),
+            ("1 1/2", Fraction(3, 2)),
+            ("0,5", Fraction(1, 2)),
+            ("0.5", Fraction(1, 2)),
+            ("2/4", Fraction(1, 2)),
+            ("<", None),
+            (">", None),
+            ("=", None),
+            ("not-a-number", None),
+        ],
+    )
+    def test_answer_value(self, raw, expected):
+        """Every notation yields an exact rational; operators and junk yield None."""
+        assert answer_value(raw) == expected
+
+    def test_equal_value_different_form(self):
+        """Answers that are numerically equal but written differently share only the value."""
+        assert answer_value("0,5") == answer_value("0.5")
+        assert answer_form("0,5") != answer_form("0.5")
+
+        assert answer_value("2/4") == answer_value("4/8")
+        assert answer_form("2/4") != answer_form("4/8")
 
 
 class TestBuildProblemDict:

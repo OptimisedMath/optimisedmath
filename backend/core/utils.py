@@ -136,8 +136,12 @@ def _in_lowest_terms(numerator: int, denominator: int) -> bool:
     return math.gcd(numerator, denominator) == 1
 
 
-def _answer_form(value: str) -> str:
-    """Which Answer form the Filler rule reads `value` as, or "unrecognized"."""
+def _answer_shape(value: str) -> str:
+    """Which shape the Filler rule reads `value` as, or "unrecognized" (ADR-0009).
+
+    Not the Answer form of `answer_form` below: this is the kind of number `value` is
+    written as, the thing a Filler has to preserve, not the notation itself.
+    """
     if _MIXED_RE.fullmatch(value):
         return "mixed"
     if _FRACTION_RE.fullmatch(value):
@@ -187,7 +191,7 @@ def _fraction_variants(num: int, den: int, *, proper: bool) -> list[tuple[int, i
 
 
 def _filler_candidates(source: str) -> list[str]:
-    """Near misses of `source`, written in its own Answer form (ADR-0009).
+    """Near misses of `source`, written in its own shape (ADR-0009).
 
     Each candidate keeps the source's shape: a mixed number stays mixed with a
     whole part >= 1 and a proper fractional part, a proper fraction stays proper
@@ -274,14 +278,14 @@ def _filler_pool(
 
 
 def _correct_answer_stands_alone(correct: str, offered: list[str]) -> bool:
-    """Whether the correct answer is the only offered option written in its form.
+    """Whether the correct answer is the only offered option of its shape.
 
     ADR-0009's notation exception: when it is, the first Filler is drawn from the
     correct answer, so that being the lone fraction — or the lone whole number —
     cannot give it away.
     """
-    form = _answer_form(correct)
-    return sum(_answer_form(value) == form for value in offered) == 1
+    shape = _answer_shape(correct)
+    return sum(_answer_shape(value) == shape for value in offered) == 1
 
 
 def _make_fillers(
@@ -561,6 +565,27 @@ def parse_to_fraction(val_str: str) -> Fraction | None:
         return Fraction(val_str)
     except Exception:
         return None
+
+
+# --- Answer form & Answer value ---
+
+
+def answer_form(raw: str) -> str:
+    """The Answer form of `raw`, for the Submission cycle to record (ADR-0016).
+
+    Cannot fail, so the recorded form is always populated: comparison operators and
+    input no parser accepts come back as themselves rather than as nothing.
+    """
+    return _standardize_spacing(clean_latex(raw))
+
+
+def answer_value(raw: str) -> Fraction | None:
+    """The Answer value of `raw`, or None where it denotes no value (ADR-0016).
+
+    That None is the recorded predicate for "this answer has no numeric value" —
+    comparison operators, and anything the forgiving parser rejects.
+    """
+    return parse_to_fraction(raw)
 
 
 # --- Decimal & mobile input ---
