@@ -44,16 +44,10 @@ NUMBER_LINE_GENERATORS = {name for name in FUNCTION_REGISTRY if "number_line" in
 # that owns widening or retiring the exemption.
 VARIETY_EXEMPTIONS = {
     "frac_pow_2": (
-        10,
-        "the denominator cap (d = 2..5) keeps cube denominators small for "
-        "this Level. Tracked as #263.",
-    ),
-    "frac_pow_3": (
-        18,
-        "the whole-part range keeps the improper numerator inside a "
-        "Student's cube range; widening it to three would make the largest "
-        "cube 11 cubed, which is not a times-table fact at this Level. "
-        "Tracked as #263.",
+        15,
+        "the entire space of proper fractions with d = 2..6 cubed; d = 2..7 "
+        "would clear the floor but (1/7)^3 = 1/343 is not arithmetic for "
+        "this Level (#263).",
     ),
     "dec_pow_1": (
         8,

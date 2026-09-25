@@ -8,11 +8,30 @@ from backend.core.utils import (
     declares_traps,
 )
 
+# Cube caps for the Levels that raise to the third power (#263): 7³ = 343 puts the
+# answer's denominator outside this Topic's arithmetic, and a Student cubes a mixed
+# number's improper numerator w*d+n, not d alone, so that base is capped too.
+_MAX_CUBE_DENOMINATOR = 6
+_MAX_CUBE_BASE = 8
+
+
+def _draw_cubable_mixed_number(w: int) -> tuple[int, int]:
+    """Draw `(d, n)` whose mixed number `w n/d` has a cube a Student can still do.
+
+    Redraws until the improper numerator fits `_MAX_CUBE_BASE`, so `w` has to stay
+    small enough that `2 * w + 1` — the smallest base any draw reaches — fits it.
+    """
+    while True:
+        d = random.randint(2, _MAX_CUBE_DENOMINATOR)
+        n = random.randint(1, d - 1)
+        if w * d + n <= _MAX_CUBE_BASE:
+            return d, n
+
 
 @declares_traps("raises_only_the_numerator", "multiplies_by_the_exponent")
 def frac_pow_1() -> dict | None:
     """Kwadrat ułamka (poziom 1)."""
-    d = random.randint(3, 8)
+    d = random.randint(2, 10)
     n = random.randint(1, d - 1)
     p = 2
 
@@ -42,8 +61,7 @@ def frac_pow_1() -> dict | None:
 )
 def frac_pow_2() -> dict | None:
     """Sześcian ułamka (poziom 2)."""
-    # Keeping denominator up to 5 so cubes don't get absurdly large
-    d = random.randint(2, 5)
+    d = random.randint(2, _MAX_CUBE_DENOMINATOR)
     n = random.randint(1, d - 1)
     p = 3
 
@@ -72,9 +90,11 @@ def frac_pow_3() -> dict | None:
     """Potęgowanie liczby mieszanej (poziom 3)."""
     w = random.randint(1, 2)
     p = random.randint(2, 3)
-    # Cap denominator if p=3 to prevent math from becoming tedious
-    d = random.randint(2, 3) if p == 3 else random.randint(2, 4)
-    n = random.randint(1, d - 1)
+    if p == 3:
+        d, n = _draw_cubable_mixed_number(w)
+    else:
+        d = random.randint(2, 10)
+        n = random.randint(1, d - 1)
 
     q_str = (
         rf"\text{{Oblicz: }} \left( {format_fraction_question(n, d, w)} \right)^{{{p}}}"
