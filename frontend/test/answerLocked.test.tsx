@@ -1,7 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { SessionClient } from '@/lib/session';
 import { baseProblem, baseSession, wireArenaFlow } from './fakeBackend';
 import { renderArena, waitForArenaReady } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
