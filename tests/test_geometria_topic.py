@@ -546,6 +546,74 @@ class TestForwardRungPoolPinning:
         )
 
 
+class TestReverseRungPoolPinning:
+    """P2 (test-seams.md): the reverse rung's figure, answer and both Traps all
+    read the same value drawn from `REVERSE`, whichever of base and height the
+    Problem withholds — swept over every value and both branches, 100 cases, by
+    passing the draw into the split `_level_4_problem` body rather than
+    replacing the pool (#355)."""
+
+    @pytest.mark.parametrize(
+        "base, height, side",
+        topic.REVERSE,
+        ids=[f"{b}-{h}-{s}" for b, h, s in topic.REVERSE],
+    )
+    @pytest.mark.parametrize(
+        "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
+    )
+    def test_pins_every_value_against_both_branches(
+        self, height_unknown, base, height, side
+    ):
+        problem = topic._level_4_problem(
+            _PINNED_LENGTH_UNIT, base, height, side, height_unknown
+        )
+        given = base if height_unknown else height
+        printed_numbers = sorted(
+            label
+            for label in figure_labels(problem["image_html"])
+            if label not in _VERTEX_LETTERS and label[0].isdigit()
+        )
+        assert printed_numbers == sorted(
+            f"{value} {_PINNED_LENGTH_UNIT}" for value in (given, side)
+        )
+
+        area = base * height // 2
+        assert problem["correct"] == str(2 * area // given)
+        offered = {slug: value for value, slug in problem["options_map"].items()}
+        if topic.TRAP_DOUBLES in offered:
+            assert offered[topic.TRAP_DOUBLES] == str(area // given)
+        if topic.TRAP_SIDE_AS_HEIGHT in offered:
+            assert offered[topic.TRAP_SIDE_AS_HEIGHT] == str(base * height // side)
+
+
+class TestReverseRungUnknownSymbol:
+    """P1 (test-seams.md): the reverse rung is the only place in production where
+    a label's text is not read off the figure — the withheld value's letter.
+    Pinned via the split helper over both branches, never sampled (#355)."""
+
+    @pytest.mark.parametrize(
+        "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
+    )
+    def test_exactly_one_letter_is_printed_on_the_value_asked_for(
+        self, height_unknown
+    ):
+        """A flipped withheld-value choice would print the letter on the given
+        value and a number on the withheld one — unsolvable, yet every printed
+        number would still be a Problem parameter, so no P2 assertion catches it."""
+        base, height, side = topic.REVERSE[0]
+        problem = topic._level_4_problem(
+            _PINNED_LENGTH_UNIT, base, height, side, height_unknown
+        )
+        expected_symbol = "h" if height_unknown else "a"
+        letters = [
+            label
+            for label in figure_labels(problem["image_html"])
+            if label not in _VERTEX_LETTERS and not label[0].isdigit()
+        ]
+        assert letters == [expected_symbol]
+        assert rf"\text{{. Oblicz }} {expected_symbol} " in problem["question"]
+
+
 class TestLevels:
     @pytest.mark.parametrize("level", [1, 2, 3, 4])
     def test_every_level_serves_a_problem_with_a_declared_unit(self, curriculum, level):
