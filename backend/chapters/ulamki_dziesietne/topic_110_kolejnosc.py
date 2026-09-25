@@ -48,8 +48,6 @@ def _params(expr: str, **operands: Decimal) -> dict[str, int | float | str]:
 )
 def dec_order_1() -> dict | None:
     """Kolejność Podstawowa (poziom 1)."""
-    # Poziom 1: Podstawy (4 wariacje)
-    # Loop up to 20 times to find a math combination that doesn't cause a trap collision
     for _ in range(20):
         template = random.choice(["add_mul", "mul_add", "sub_div", "div_sub"])
 
@@ -104,12 +102,10 @@ def dec_order_1() -> dict | None:
             parameters=_params(expr, a=a, b=b, c=c),
         )
 
-        # If the dictionary built successfully (no collisions), return it.
-        # Otherwise, the loop restarts and rolls new numbers.
+        # None means two options collided; roll new numbers.
         if problem is not None:
             return problem
 
-    # Fallback in case of absolute mathematical gridlock
     raise RuntimeError(
         "dec_order_1 failed to generate a valid problem without collisions after 20 attempts."
     )
@@ -125,7 +121,6 @@ def dec_order_1() -> dict | None:
 )
 def dec_order_2() -> dict | None:
     """Pojedyncze Nawiasy (poziom 2)."""
-    # Poziom 2: Pojedyncze Nawiasy (4 wariacje)
     for _ in range(20):
         template = random.choice(["brack_mul", "mul_brack", "brack_div", "div_brack"])
 
@@ -205,7 +200,6 @@ def dec_order_2() -> dict | None:
 )
 def dec_order_3() -> dict | None:
     """Potęgi i Podstawy (poziom 3)."""
-    # Poziom 3: Potęgowanie + Podstawy (4 wariacje)
     template = random.choice(["pow_add", "add_pow", "sub_pow", "pow_mul"])
 
     if template == "pow_add":
@@ -271,7 +265,6 @@ def dec_order_3() -> dict | None:
 )
 def dec_order_4() -> dict | None:
     """Złożone Działania (poziom 4)."""
-    # Poziom 4: Złożone Działania i Nawiasy
     template = random.choice(["brack_mul_brack", "mul_add_mul"])
 
     if template == "brack_mul_brack":
@@ -315,7 +308,6 @@ def dec_order_4() -> dict | None:
 )
 def dec_order_5() -> dict | None:
     """Potęgowanie Nawiasu (poziom 5)."""
-    # Poziom 5: Potęgowanie w Nawiasach
     template = random.choice(["brack_sq_sub", "sub_brack_sq"])
 
     if template == "brack_sq_sub":

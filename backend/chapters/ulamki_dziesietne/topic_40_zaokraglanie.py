@@ -62,7 +62,6 @@ def dec_round_2() -> dict | None:
 def dec_round_3() -> dict | None:
     """Zdradliwa dziewiątka (poziom 3)."""
     whole = random.randint(1, 8)
-    # Force a number like 2.96, 2.97, 2.98
     hundredths = random.choice([95, 96, 97, 98, 99])
     v = whole + hundredths / 100
     q_str = rf"\text{{Zaokrąglij do części dziesiątych: }} {fmt_dec(v)}"

@@ -85,7 +85,7 @@ export const ORDERING_STEP_ITEMS = [
   'dodawanie i odejmowanie',
 ];
 
-/** A stand-in ordering step (#198) — no batch-two walkthrough is authored here. */
+/** A stand-in ordering step (#198), not the real priority ladder. */
 export function baseOrderingDeconstructionStep(
   overrides: Partial<DeconstructionStepResponse> = {}
 ): DeconstructionStepResponse {

@@ -142,7 +142,7 @@ def declares_deconstruction(
 
 
 def has_walkthrough(misconception_slug: str) -> bool:
-    """Whether a walkthrough is registered for a Misconception — batch one is five of 55."""
+    """Whether a walkthrough is registered for a Misconception."""
     return misconception_slug in _DECLARATIONS
 
 
@@ -190,7 +190,7 @@ def _math(latex: str) -> str:
     return f"${latex}$"
 
 
-# --- Batch one, walkthrough 1: operates_on_unlike_fractions_directly ---
+# --- Walkthrough: operates_on_unlike_fractions_directly ---
 #
 # Multi-step shape (#187): fires from the Ułamki_Zwykłe addition and subtraction Traps
 # whose Problem's two denominators differ. It once also carried the Ułamki_Dziesiętne
@@ -329,7 +329,7 @@ def operates_on_unlike_fractions_directly(parameters: StepParameters) -> list[St
     return steps
 
 
-# --- Batch one, walkthrough 2: does_not_align_decimals_before_column_arithmetic ---
+# --- Walkthrough: does_not_align_decimals_before_column_arithmetic ---
 #
 # Column-layout shape (#187): the working line carries a vertical column arrangement
 # (a LaTeX `array`) rather than a single inline expression — this is the walkthrough
@@ -425,7 +425,7 @@ def does_not_align_decimals_before_column_arithmetic(
     ]
 
 
-# --- Batch one, walkthrough 3: operates_on_mixed_number_without_converting ---
+# --- Walkthrough: operates_on_mixed_number_without_converting ---
 #
 # Precondition-conversion shape (#187): the first step is a conversion the Student
 # must do before the actual operation is reachable at all, rather than going
@@ -518,7 +518,7 @@ def operates_on_mixed_number_without_converting(
     ]
 
 
-# --- Batch one, walkthrough 5: expands_to_target_denominator_without_finding_factor ---
+# --- Walkthrough: expands_to_target_denominator_without_finding_factor ---
 #
 # Hidden-operand shape (#187): the multiplier the Student needs — how many times the
 # denominator grew — is never written as its own number in the Problem's question
@@ -562,7 +562,7 @@ def expands_to_target_denominator_without_finding_factor(
     ]
 
 
-# --- Batch one, walkthrough 4: compares_decimals_by_wrong_digit_order ---
+# --- Walkthrough: compares_decimals_by_wrong_digit_order ---
 #
 # No-working-line shape (#187): there is no expression to transform when comparing
 # two decimals, so every step here authors `working_line: null` — the walkthrough
@@ -620,7 +620,7 @@ def compares_decimals_by_wrong_digit_order(parameters: StepParameters) -> list[S
     ]
 
 
-# --- Batch two, walkthrough 6: ignores_the_order_of_operations ---
+# --- Walkthrough: ignores_the_order_of_operations ---
 #
 # Priority-ladder shape (#186, #218): the only walkthrough whose first step asks
 # nothing about the Problem at all. Six ladder items, always in full and shuffled,

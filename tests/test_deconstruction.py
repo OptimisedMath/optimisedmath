@@ -153,8 +153,7 @@ class TestOperatesOnUnlikeFractionsDirectly:
         assert combine_step.answer == str(expected_combined_numerator)
         assert simplify_step.answer == expected_final_answer
 
-        # The multi-step, cross-Chapter shape carries a working line throughout —
-        # unlike the no-working-line comparison Misconception in a later batch.
+        # The multi-step, cross-Chapter shape carries a working line throughout.
         assert all(step.working_line is not None for step in steps)
         assert all(step.question for step in steps)
 

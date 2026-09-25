@@ -2054,9 +2054,8 @@ def test_step_revealed_survives_sqlite_reload(monkeypatch):
 
 # --- Ordering-input step type (#198) ---
 #
-# The wire contract and control only — `ignores_the_order_of_operations` (#186)
-# is batch two and not authored here, so these use stand-in items rather than
-# the real priority-ladder labels.
+# The wire contract and control only, so these use stand-in items rather than
+# the real priority-ladder labels of `ignores_the_order_of_operations` (#186).
 
 _ORDERING_ITEMS = ["a", "b", "c", "d"]
 _ORDERING_ANSWER = ORDERING_ANSWER_SEPARATOR.join(_ORDERING_ITEMS)

@@ -38,7 +38,7 @@ The star-meter value served on the Session payload. Equals Streak everywhere exc
 _Avoid_: display streak, meter streak, completed streak pending next problem
 
 **Mastery threshold**:
-The Streak count required for Level completion (currently 3).
+The Streak count required for Level completion.
 _Avoid_: Power of 3, stars for unlock
 
 **Mastery**:

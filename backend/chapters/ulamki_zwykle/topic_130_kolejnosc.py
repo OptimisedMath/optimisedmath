@@ -38,7 +38,6 @@ def _params(expr: str, **operands: Fraction) -> dict[str, int | float | str]:
 )
 def frac_ord_1() -> dict | None:
     """Kolejność Podstawowa (poziom 1)."""
-    # Poziom 1: Podstawy bez nawiasów
     template = random.choice(["add_mul", "mul_add", "sub_mul"])
     dens = [2, 3, 4, 5]
 
@@ -101,7 +100,6 @@ def frac_ord_1() -> dict | None:
 )
 def frac_ord_2() -> dict | None:
     """Siła Nawiasów (poziom 2)."""
-    # Poziom 2: Nawiasy
     template = random.choice(["brack_mul", "mul_brack", "div_brack"])
 
     if template == "brack_mul":
@@ -158,7 +156,6 @@ def frac_ord_2() -> dict | None:
 )
 def frac_ord_3() -> dict | None:
     """Dwa Zestawy (poziom 3)."""
-    # Poziom 3: Dwa zestawy działań
     template = random.choice(["brack_div_brack", "add_div_add"])
 
     if template == "brack_div_brack":
@@ -207,7 +204,6 @@ def frac_ord_3() -> dict | None:
 )
 def frac_ord_4() -> dict | None:
     """Potęgi i Ułamki (poziom 4)."""
-    # Poziom 4: Potęgi
     template = random.choice(["pow_add", "sub_pow"])
 
     if template == "pow_add":
@@ -252,7 +248,6 @@ def frac_ord_4() -> dict | None:
 )
 def frac_ord_5() -> dict | None:
     """Potęgowanie Nawiasu (poziom 5)."""
-    # Poziom 5: Potęga Nawiasu
     template = random.choice(["brack_sq_sub", "mul_brack_sq"])
 
     if template == "brack_sq_sub":

@@ -289,8 +289,8 @@ def navigate_session(request: SessionNavigateRequest) -> SessionResponse:
         curriculum=curriculum,
     )
 
-    # What's Selected just moved — an explicit, named rebuild against the
-    # mutated state, not an incidental one buried inside build_session_response().
+    # What's Selected just moved, so the snapshot is rebuilt against the
+    # mutated state.
     post_navigation_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
     )

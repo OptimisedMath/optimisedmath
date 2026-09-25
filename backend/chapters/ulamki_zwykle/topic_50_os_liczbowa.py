@@ -20,7 +20,6 @@ def frac_number_line_1() -> dict | None:
     n = random.randint(1, d - 1)
     q_str = rf"\text{{Jaki ułamek zaznaczono na osi?}}"
 
-    # Standard 0 to 1
     svg_graphic = generate_universal_number_line(d, {0: "0", d: "1"}, n)
 
     c_str, _ = format_answers(n, d)
@@ -53,7 +52,6 @@ def frac_number_line_2() -> dict | None:
     W = random.randint(1, 5)
     q_str = rf"\text{{Jaka liczba zaznaczona jest na osi?}}"
 
-    # Mixed number between W and W+1
     svg_graphic = generate_universal_number_line(d, {0: str(W), d: str(W + 1)}, n)
 
     c_str, _ = format_answers(n, d, W)
@@ -178,7 +176,6 @@ def frac_number_line_4() -> dict | None:
 
     labeled = {idx1: str(W), idx2: str(W + 1)}
 
-    # Target MUST be strictly to the right of idx2
     valid_targets = [i for i in range(idx2 + 1, total_ticks + 1) if (i - idx1) % d != 0]
     if not valid_targets:
         return None

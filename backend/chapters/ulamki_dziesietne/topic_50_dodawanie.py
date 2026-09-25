@@ -98,7 +98,7 @@ def dec_add_3() -> dict | None:
     v1 = random.randint(11, 49) / 10
     v2 = random.randint(11, 99) / 100
     if v2 * 100 % 10 == 0:
-        return None  # Safely skip numbers ending in 0
+        return None
 
     q_str = rf"\text{{Oblicz: }} {fmt_dec(v1)} + {fmt_dec(v2)}"
     c_str = fmt_dec(round(v1 + v2, 2))
