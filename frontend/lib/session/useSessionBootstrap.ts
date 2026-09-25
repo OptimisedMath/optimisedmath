@@ -24,10 +24,7 @@ function shouldFetchProblem(session: SessionResponse): boolean {
 }
 
 /**
- * Reads stored credentials and starts a session on mount, sending the stored
- * username and nothing else: the profile owns Selected chapter/topic/level
- * (ADR-0006), and a chapter id here would read as Navigation on the backend,
- * moving the Student off that Chapter and resetting Streak. Internal to
+ * Reads stored credentials and starts a session on mount. Internal to
  * lib/session/ — composed by useSession().
  */
 export function useSessionBootstrap({
@@ -53,6 +50,10 @@ export function useSessionBootstrap({
       }
 
       try {
+        // The stored Username and nothing else (#377): the profile owns Selected
+        // chapter/topic/level (ADR-0006), so a chapter id here would read as
+        // Navigation on the backend, moving the Student off the Chapter they were
+        // playing and resetting Streak.
         const sessionResponse = await client.startSession({ username: storedUsername });
         if (!isMounted) return;
 

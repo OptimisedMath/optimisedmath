@@ -227,6 +227,6 @@ export function wireArenaFlow({
   return createFakeSessionClient({
     startSession: async () => session,
     getNextProblem,
-    submitAnswer: onSubmit && (async () => onSubmit()),
+    submitAnswer: onSubmit ? async () => onSubmit() : undefined,
   });
 }
