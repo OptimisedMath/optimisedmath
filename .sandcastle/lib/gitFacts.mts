@@ -14,6 +14,8 @@
 
 import { execFileSync } from "node:child_process";
 
+import { parseDoneTrailers, type DoneMarker } from "./groups.mts";
+
 /** Run a git command in `cwd` and return its trimmed stdout. */
 function git(cwd: string, args: string[]): string {
   return execFileSync("git", args, { cwd, encoding: "utf-8" }).trim();
@@ -97,14 +99,6 @@ export function saveWorktree(
 // Done: markers the orchestrator writes once an issue is finished
 // ---------------------------------------------------------------------------
 
-const DONE_TRAILER = "Sandcastle-Done";
-const BATCH_TRAILER = "Sandcastle-Batch";
-
-interface DoneMarker {
-  readonly issue: number;
-  readonly batch: string;
-}
-
 /**
  * Add the Done marker to the branch checked out at `worktreeCwd`: an empty
  * commit whose message carries a `Sandcastle-Done: #<issue>` trailer and a
@@ -120,8 +114,8 @@ export function markDone(
   const message = [
     `Sandcastle: #${issueNumber} done`,
     "",
-    `${DONE_TRAILER}: #${issueNumber}`,
-    `${BATCH_TRAILER}: ${integrationBranch}`,
+    `Sandcastle-Done: #${issueNumber}`,
+    `Sandcastle-Batch: ${integrationBranch}`,
   ].join("\n");
   git(worktreeCwd, ["commit", "--allow-empty", "--no-verify", "-m", message]);
 }
@@ -132,15 +126,10 @@ function doneMarkersOn(cwd: string, ref: string): DoneMarker[] {
   const raw = gitQuiet(cwd, ["log", ref, "--format=%B\x02"]);
   if (!raw) return [];
 
-  const markers: DoneMarker[] = [];
-  for (const body of raw.split("\x02")) {
-    const doneMatch = body.match(/^Sandcastle-Done:\s*#(\d+)\s*$/m);
-    const batchMatch = body.match(/^Sandcastle-Batch:\s*(\S+)\s*$/m);
-    if (doneMatch && batchMatch) {
-      markers.push({ issue: Number(doneMatch[1]), batch: batchMatch[1] });
-    }
-  }
-  return markers;
+  return raw
+    .split("\x02")
+    .map(parseDoneTrailers)
+    .filter((marker): marker is DoneMarker => marker !== undefined);
 }
 
 /**

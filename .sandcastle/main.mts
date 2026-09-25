@@ -152,6 +152,12 @@ const hooks = {
 // If the minutes ever matter, the fix is a cache the container owns — a volume
 // or an image layer — not a copy of a tree built for another platform.
 
+// The host repo, bound once — every gitFacts call reads and writes this repo's
+// local branches (issue and integration branches are never worktree-specific:
+// git refs are shared across a repo's worktrees), so there is nothing to gain
+// by re-reading REPO_CWD at each call site.
+const REPO_CWD = process.cwd();
+
 const BASE_BRANCH = "main";
 
 // Every git comparison against the base uses the remote's copy, fetched per
@@ -305,10 +311,16 @@ function fetchMergedPrHeadBranches(glob: string): string[] {
     `gh pr list --state merged --limit 200 --json headRefName --jq '[.[].headRefName]'`,
   );
   if (json === undefined) return [];
+
+  const parsed: unknown = JSON.parse(json);
+  if (!Array.isArray(parsed) || !parsed.every((entry) => typeof entry === "string")) {
+    throw new Error(`Unexpected 'gh pr list' output, expected a string array: ${json}`);
+  }
+
   const pattern = new RegExp(
     `^${glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`,
   );
-  return (JSON.parse(json) as string[]).filter((branch) => pattern.test(branch));
+  return parsed.filter((branch) => pattern.test(branch));
 }
 
 /**
@@ -326,7 +338,7 @@ function resolveIntegrationBranch(group: Group): string {
   const glob = batchBranchGlob(group.id);
   const mergedPrHeads = fetchMergedPrHeadBranches(glob);
   const outstanding = branchesMatching(glob).find(
-    (branch) => !isBatchBranchShipped(process.cwd(), branch, BASE_REF, mergedPrHeads),
+    (branch) => !isBatchBranchShipped(REPO_CWD, branch, BASE_REF, mergedPrHeads),
   );
 
   // Neither branch is checked out on the host. Agents work on it in their own
@@ -356,7 +368,7 @@ function resolveMergedIssues(
 ): { id: string; title: string; branch: string }[] {
   const titles = new Map(group.issues.map((i) => [i.number, i.title]));
 
-  return doneIssues(process.cwd(), integrationBranch)
+  return doneIssues(REPO_CWD, integrationBranch)
     .filter((number) => titles.has(number))
     .map((number) => ({
       id: String(number),
@@ -402,9 +414,13 @@ function saveDirtyWorktreesAtGroupStart(group: Group): void {
 /**
  * Recreate an issue branch left pointing at content already on BASE_REF —
  * e.g. commits later squash-merged (#253, #258, #355, #356). Safe because a
- * stale branch holds nothing BASE_REF lacks. A dirty worktree is left alone:
- * `saveDirtyWorktreesAtGroupStart` already gave it content of its own by the
- * time this runs, so it is no longer stale.
+ * stale branch holds nothing BASE_REF lacks.
+ *
+ * A dirty worktree is saved first rather than recreated out from under it:
+ * the save gives the branch content of its own, so it is no longer stale —
+ * it is kept, and called out by name here rather than left to the generic
+ * "no Done marker yet" warning `warnAboutUnfinishedBranches` would otherwise
+ * give it.
  */
 function recreateStaleBranches(
   planned: { id: string; branch: string }[],
@@ -412,8 +428,17 @@ function recreateStaleBranches(
 ): void {
   for (const { id, branch } of planned) {
     if (branchesMatching(branch).length === 0) continue;
-    if (worktreeIsDirty(branch)) continue;
-    if (!isStale(process.cwd(), branch, BASE_REF)) continue;
+    if (!isStale(REPO_CWD, branch, BASE_REF)) continue;
+
+    if (worktreeIsDirty(branch)) {
+      const worktree = worktreePathOf(branch);
+      if (saveWorktree(worktree, Number(id), "found-dirty-at-start")) {
+        console.warn(
+          `#${id}: ${branch} was stale AND mid-edit — saved its loose changes instead of recreating it. Kept, not deleted; it will look unfinished until this issue's implementer or reviewer finishes.`,
+        );
+      }
+      continue;
+    }
 
     sh(`git branch -f ${branch} ${integrationBranch}`);
     console.log(
@@ -435,7 +460,7 @@ function warnAboutUnfinishedBranches(
   integrationBranch: string,
 ): void {
   const unfinished = unfinishedBranches(
-    process.cwd(),
+    REPO_CWD,
     integrationBranch,
     groupIssueBranchDescriptors(group),
   );
@@ -517,7 +542,7 @@ async function pickUpPriorWork(
   integrationBranch: string,
 ): Promise<void> {
   const ready = new Set(
-    readyToMerge(process.cwd(), integrationBranch, groupIssueBranchDescriptors(group)),
+    readyToMerge(REPO_CWD, integrationBranch, groupIssueBranchDescriptors(group)),
   );
   const pickedUp = group.issues
     .map((issue) => ({ issue, branch: issueBranchName(issue.number) }))
@@ -891,7 +916,7 @@ async function runGroup(group: Group): Promise<boolean> {
     // branch — written inside workIssue once the implementer signalled and
     // the reviewer finished — not merely having produced a commit.
     const ready = new Set(
-      readyToMerge(process.cwd(), integrationBranch, groupIssueBranchDescriptors(group)),
+      readyToMerge(REPO_CWD, integrationBranch, groupIssueBranchDescriptors(group)),
     );
     const completed = planned.filter((issue) => ready.has(issue.branch));
 
@@ -937,7 +962,7 @@ async function runGroup(group: Group): Promise<boolean> {
 
   warnAboutUnfinishedBranches(group, integrationBranch);
   const stillUnfinished = unfinishedBranches(
-    process.cwd(),
+    REPO_CWD,
     integrationBranch,
     groupIssueBranchDescriptors(group),
   ).length;
@@ -1017,7 +1042,7 @@ function preflightSandbox(): void {
     process.exit(1);
   }
 
-  const image = defaultImageName(process.cwd());
+  const image = defaultImageName(REPO_CWD);
   if (shQuiet(`docker image inspect ${image}`) === undefined) {
     console.error(
       `\nSandbox image ${image} is missing — every sandbox would fail to start. Build it with 'npx sandcastle docker build-image', then re-run Sandcastle.`,

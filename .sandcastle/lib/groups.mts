@@ -241,6 +241,27 @@ export function isGroupComplete(state: {
   return planExhausted && state.blockedIssues === 0 && state.strandedBranches === 0;
 }
 
+/** A Done marker's trailers, parsed from one commit's message. */
+export interface DoneMarker {
+  readonly issue: number;
+  readonly batch: string;
+}
+
+const DONE_TRAILER = /^Sandcastle-Done:\s*#(\d+)\s*$/m;
+const BATCH_TRAILER = /^Sandcastle-Batch:\s*(\S+)\s*$/m;
+
+/**
+ * Read a Done marker's trailers out of one commit message, or undefined if
+ * this commit carries neither. Markers are found by trailer, never by
+ * content, so an empty commit's missing diff never matters here.
+ */
+export function parseDoneTrailers(commitMessage: string): DoneMarker | undefined {
+  const doneMatch = commitMessage.match(DONE_TRAILER);
+  const batchMatch = commitMessage.match(BATCH_TRAILER);
+  if (!doneMatch || !batchMatch) return undefined;
+  return { issue: Number(doneMatch[1]), batch: batchMatch[1] };
+}
+
 /**
  * A `Blocked by: #<n>, #<n>` line at the top of an issue body — the documented
  * fallback (docs/agents/issue-tracker.md:42) for a blocker that predates

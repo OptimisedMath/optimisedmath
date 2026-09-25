@@ -19,6 +19,7 @@ import {
   liveBlockers,
   parentIssueOf,
   parseBlockedByLine,
+  parseDoneTrailers,
   partitionIntoGroups,
   type Issue,
 } from "./groups.mts";
@@ -131,6 +132,33 @@ test("a batch branch is not mistaken for an issue branch", () => {
 test("a usage-limit message is classified as fatal to the whole run", () => {
   assert.equal(classifyFailure("Claude AI usage limit reached|1700000000"), "quota");
   assert.ok(isRunFatal("quota"));
+});
+
+// --- Done marker trailers ----------------------------------------------------
+
+test("a commit message with both trailers parses as a Done marker", () => {
+  const message = [
+    "Sandcastle: #410 done",
+    "",
+    "Sandcastle-Done: #410",
+    "Sandcastle-Batch: sandcastle/batch-218-1700000000000",
+  ].join("\n");
+  assert.deepEqual(parseDoneTrailers(message), {
+    issue: 410,
+    batch: "sandcastle/batch-218-1700000000000",
+  });
+});
+
+test("a commit message with only one of the two trailers is not a Done marker", () => {
+  assert.equal(parseDoneTrailers("Sandcastle-Done: #410"), undefined);
+  assert.equal(
+    parseDoneTrailers("Sandcastle-Batch: sandcastle/batch-218-1700000000000"),
+    undefined,
+  );
+});
+
+test("an ordinary commit message is not a Done marker", () => {
+  assert.equal(parseDoneTrailers("RALPH: implement feature"), undefined);
 });
 
 test("the session-limit message is classified as quota exhaustion, fatal to the whole run", () => {
