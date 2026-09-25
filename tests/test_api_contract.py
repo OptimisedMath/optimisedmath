@@ -2581,7 +2581,7 @@ def test_deconstruction_abandon_raises_when_none_running():
 # --- Reset clears Session-scoped Misconception state (#383) ---
 
 
-def test_reset_clears_misconception_hit_count_so_next_hit_does_not_trigger(
+def test_reset_clears_misconception_hit_count_so_one_hit_does_not_deconstruct(
     monkeypatch,
 ):
     """Issue #383: a reset must zero the hit count, so a single hit afterwards

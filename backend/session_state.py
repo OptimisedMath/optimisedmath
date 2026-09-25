@@ -234,6 +234,10 @@ def hard_reset(
 ) -> None:
     """Wipes all progress and resets to initial state.
 
+    Owns clearing the Session-scoped Misconception state (hit counts and the
+    deconstructed set) too, which `reset_submission_cycle` deliberately leaves
+    alone: a reset re-arms every Deconstruction (ADR-0014).
+
     ``should_persist=False`` lets a caller that persists once for a larger unit
     of work (e.g. ``load_profile`` during Session start) skip the write here.
     """
