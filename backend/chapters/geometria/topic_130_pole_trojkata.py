@@ -185,10 +185,11 @@ def _area_problem(
 
 _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 
-# Every forward rung splits in two: the generator draws the Unit, the Pool entry
-# and (on Level 1) the apex, and a `_level_N_problem` body turns that draw into
-# the figure and the Problem. The split is the seam a test pins one Pool entry
-# through, by passing it in rather than by replacing the pool (#352).
+# Every rung splits in two: the generator draws what varies per Problem — the
+# Unit, the Pool entry, and where a rung has one, its extra choice (Level 1's
+# apex, Level 4's withheld dimension) — and a `_level_N_problem` body turns that
+# draw into the figure and the Problem. The split is the seam a test pins one
+# Pool entry through, by passing it in rather than by replacing the pool (#352).
 
 
 def _level_1_problem(
@@ -318,17 +319,11 @@ def geo_triangle_area_3() -> dict | None:
     return _level_3_problem(unit, base, height, offset, side_a, side_b)
 
 
-@declares_units(*LENGTH_UNITS)
-@declares_traps(TRAP_DOUBLES, TRAP_SIDE_AS_HEIGHT)
-def geo_triangle_area_4() -> dict | None:
-    """Szukana podstawa lub wysokość, gdy dane jest pole (poziom 4)."""
-    unit = random.choice(declared_units(geo_triangle_area_4))
-    base, height, side = random.choice(REVERSE)
+def _level_4_problem(
+    unit: str, base: int, height: int, side: int, height_unknown: bool
+) -> dict | None:
+    """Assemble Level 4's Problem — area given, one length withheld as its letter."""
     area = base * height // 2
-    # Which dimension is withheld is drawn per Problem: fixing it would make the
-    # rung solvable by dividing whatever number is on the page, without looking.
-    height_unknown = random.random() < 0.5
-
     figure = Triangle.base_height(
         base, height, apex_frac=math.sqrt(side * side - height * height) / base
     )
@@ -369,3 +364,16 @@ def geo_triangle_area_4() -> dict | None:
         image_html=svg,
         expected_unit=unit,
     )
+
+
+@declares_units(*LENGTH_UNITS)
+@declares_traps(TRAP_DOUBLES, TRAP_SIDE_AS_HEIGHT)
+def geo_triangle_area_4() -> dict | None:
+    """Szukana podstawa lub wysokość, gdy dane jest pole (poziom 4)."""
+    unit = random.choice(declared_units(geo_triangle_area_4))
+    base, height, side = random.choice(REVERSE)
+    # Fixing which of base and height is withheld would make the rung solvable
+    # by dividing whatever number is on the page, without looking — so it is
+    # drawn per Problem, same as the pool and the Unit.
+    height_unknown = random.random() < 0.5
+    return _level_4_problem(unit, base, height, side, height_unknown)

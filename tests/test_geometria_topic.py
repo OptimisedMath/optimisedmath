@@ -180,8 +180,7 @@ class TestSceneInvariant:
             Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
 
     def test_angle_arc_renders_at_exactly_the_minimum_angle(self):
-        """#212's floor is inclusive: at `MIN_LABELLED_ANGLE` itself the arc
-        still renders and prints its degree label (#353).
+        """#212's floor is inclusive — the arc renders at `MIN_LABELLED_ANGLE` (#353).
 
         Built with `Triangle.angles` rather than `Triangle.sas` because
         `sas`'s side-angle-side trig recomputes a 15° vertex a hair below 15,
@@ -451,6 +450,24 @@ class TestGenerators:
         assert problem["expected_unit"] in topic.LENGTH_UNITS
 
 
+def _printed_labels(problem: dict) -> list[str]:
+    """Every label the figure prints bar the vertex names, in document order."""
+    return [
+        label
+        for label in figure_labels(problem["image_html"])
+        if label not in _VERTEX_LETTERS
+    ]
+
+
+def _offered_traps(problem: dict) -> dict[str, str]:
+    """The Traps a Problem actually offers, by slug — `options_map` is keyed by value.
+
+    A Trap whose value collided with another option lost its slot (ADR-0008), so a
+    caller checks the value of the slugs here and says nothing about the rest.
+    """
+    return {slug: value for value, slug in problem["options_map"].items()}
+
+
 def _assert_pool_entry_is_pinned(
     problem: dict,
     *,
@@ -461,16 +478,13 @@ def _assert_pool_entry_is_pinned(
 ) -> None:
     """Assert one forward rung's figure, answer and Traps all read the same Pool entry.
 
-    The figure prints `base`, `height` and `sides` and no other length. A Trap that
-    collided with another option lost its slot (ADR-0008), so only the Traps the
-    Problem actually offers are checked — `options_map` is keyed by option value.
+    The figure prints `base`, `height` and `sides` and nothing else.
     """
-    printed = figure_labels(problem["image_html"])
-    assert sorted(label for label in printed if label not in _VERTEX_LETTERS) == sorted(
+    assert sorted(_printed_labels(problem)) == sorted(
         f"{length} {_PINNED_LENGTH_UNIT}" for length in (base, height, *sides)
     )
     assert problem["correct"] == str(base * height // 2)
-    offered = {slug: value for value, slug in problem["options_map"].items()}
+    offered = _offered_traps(problem)
     for slug, expected in traps.items():
         if slug in offered:
             assert offered[slug] == expected
@@ -544,6 +558,70 @@ class TestForwardRungPoolPinning:
                 ),
             },
         )
+
+
+class TestReverseRungPoolPinning:
+    """P2 (test-seams.md): the reverse rung's figure, answer and both Traps all
+    read the same value drawn from `REVERSE`, whichever of base and height the
+    Problem withholds — swept over every value and both branches, by passing the
+    draw into the split `_level_4_problem` body rather than replacing the
+    pool (#355)."""
+
+    @pytest.mark.parametrize(
+        "base, height, side",
+        topic.REVERSE,
+        ids=[f"{b}-{h}-{s}" for b, h, s in topic.REVERSE],
+    )
+    @pytest.mark.parametrize(
+        "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
+    )
+    def test_pins_every_value_against_both_branches(
+        self, height_unknown, base, height, side
+    ):
+        """The one printed dimension, the side, the answer and both Traps all follow
+        the drawn entry — whichever dimension the Problem withholds."""
+        problem = topic._level_4_problem(
+            _PINNED_LENGTH_UNIT, base, height, side, height_unknown
+        )
+        given = base if height_unknown else height
+        printed_numbers = sorted(
+            label for label in _printed_labels(problem) if label[0].isdigit()
+        )
+        assert printed_numbers == sorted(
+            f"{value} {_PINNED_LENGTH_UNIT}" for value in (given, side)
+        )
+
+        area = base * height // 2
+        assert problem["correct"] == str(2 * area // given)
+        offered = _offered_traps(problem)
+        if topic.TRAP_DOUBLES in offered:
+            assert offered[topic.TRAP_DOUBLES] == str(area // given)
+        if topic.TRAP_SIDE_AS_HEIGHT in offered:
+            assert offered[topic.TRAP_SIDE_AS_HEIGHT] == str(base * height // side)
+
+
+class TestReverseRungUnknownSymbol:
+    """P1 (test-seams.md): the reverse rung is the only place in production where
+    a label's text is not read off the figure — the withheld value's letter.
+    Pinned via the split helper over both branches, never sampled (#355)."""
+
+    @pytest.mark.parametrize(
+        "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
+    )
+    def test_exactly_one_letter_is_printed_on_the_value_asked_for(self, height_unknown):
+        """A flipped withheld-value choice would print the letter on the given
+        value and a number on the withheld one — unsolvable, yet every printed
+        number would still be a Problem parameter, so no P2 assertion catches it."""
+        base, height, side = topic.REVERSE[0]
+        problem = topic._level_4_problem(
+            _PINNED_LENGTH_UNIT, base, height, side, height_unknown
+        )
+        expected_symbol = "h" if height_unknown else "a"
+        letters = [
+            label for label in _printed_labels(problem) if not label[0].isdigit()
+        ]
+        assert letters == [expected_symbol]
+        assert rf"\text{{. Oblicz }} {expected_symbol} " in problem["question"]
 
 
 class TestLevels:
