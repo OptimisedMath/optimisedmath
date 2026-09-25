@@ -267,6 +267,7 @@ def dec_order_3() -> dict | None:
     "invents_a_bracket_around_the_addition",
     "invents_a_bracket_around_the_left_side",
     "flattens_to_all_addition",
+    "replaces_multiplication_with_addition",
 )
 def dec_order_4() -> dict | None:
     """Złożone Działania (poziom 4)."""
@@ -283,6 +284,7 @@ def dec_order_4() -> dict | None:
             "ignores_both_brackets": a + b * c - d,
             "ignores_the_second_bracket": (a + b) * c - d,
             "ignores_the_first_bracket": a + b * (c - d),
+            "replaces_multiplication_with_addition": (a + b) + (c - d),
         }
     else:
         a, c = [_tenths(2, 5) for _ in range(2)]
@@ -328,6 +330,7 @@ def dec_order_5() -> dict | None:
             "squares_the_bracket_terms_separately": (a**2) + (b**2) - c,
             "multiplies_by_the_exponent": (a + b) * 2 - c,
             "flips_the_final_sign": ((a + b) ** 2) + c,
+            "subtracts_before_squaring": (a + b - c) ** 2,
         }
     else:
         a = _tenths(10, 20)
@@ -338,6 +341,7 @@ def dec_order_5() -> dict | None:
             "subtracts_before_squaring": (a - (b + c)) ** 2,
             "multiplies_by_the_exponent": a - ((b + c) * 2),
             "squares_the_bracket_terms_separately": a - (b**2 + c**2),
+            "flips_the_final_sign": a + (b + c) ** 2,
         }
 
     problem = build_problem_dict(
@@ -354,6 +358,7 @@ def dec_order_5() -> dict | None:
     "multiplies_before_squaring",
     "multiplies_by_the_exponent",
     "squares_the_bracket_terms_separately",
+    "subtracts_before_multiplying",
 )
 def dec_order_6() -> dict | None:
     """Wszystko Naraz (poziom 6)."""
@@ -374,6 +379,7 @@ def dec_order_6() -> dict | None:
         "multiplies_before_squaring": (a * (b + c)) ** 2 - d,
         "multiplies_by_the_exponent": a * ((b + c) * 2) - d,
         "squares_the_bracket_terms_separately": a * (b**2 + c**2) - d,
+        "subtracts_before_multiplying": a * ((b + c) ** 2 - d),
     }
 
     problem = build_problem_dict(

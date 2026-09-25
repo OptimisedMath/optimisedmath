@@ -308,6 +308,9 @@ topics:
           off_by_one_tenth_when_borrowing:
             misconception: forgets_to_borrow
             explanation: "Pomyliłeś się o jedną dziesiątą przy pożyczaniu."
+          subtracts_the_smaller_digit_from_the_larger:
+            misconception: forgets_to_borrow
+            explanation: "Od większej cyfry odjąłeś mniejszą, zamiast pożyczyć z cyfry obok."
   - id: 70
     name: "Przesuwanie przecinka"
     levels:
@@ -566,6 +569,8 @@ topics:
           invents_a_bracket_around_the_left_side:
             misconception: ignores_the_order_of_operations
             explanation: "Wstawiłeś nawias, którego nie ma, wokół lewej części działania."
+          replaces_multiplication_with_addition:
+            explanation: "Zamieniłeś mnożenie na dodawanie."
       - level: 5
         name: "Potęgowanie Nawiasu"
         function: "dec_order_5"
@@ -595,6 +600,9 @@ topics:
           squares_the_bracket_terms_separately:
             misconception: distributes_power_over_bracket_terms
             explanation: "Podniosłeś do kwadratu obie liczby z nawiasu osobno! Najpierw policz nawias, potem potęguj."
+          subtracts_before_multiplying:
+            misconception: ignores_the_order_of_operations
+            explanation: "Odjąłeś przed mnożeniem! Mnożenie ma pierwszeństwo przed odejmowaniem."
   - id: 120
     name: "Jednostki"
     levels:
