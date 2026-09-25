@@ -61,7 +61,9 @@ class TestUnitGrading:
 
     def test_correct_conversion_is_correct(self):
         """`0,0084 m²` is Correct for `84 cm²`: converting is more work, not less."""
-        assert grade("0,0084 m²", _area_problem(), input_mode="typing")["is_correct"]
+        result = grade("0,0084 m²", _area_problem(), input_mode="typing")
+        assert result["is_correct"]
+        assert result["answer_outcome"] == "correct"
 
     def test_conversion_resolves_correct_exactly_not_approximately(self):
         """Factors are integers, so the comparison is exact — 8400 mm² is 84 cm²."""

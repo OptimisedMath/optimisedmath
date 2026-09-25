@@ -155,8 +155,20 @@ def grade(
     """Grade a submission against a generated problem.
 
     Handles Radio mode (options_map), Typing mode (parse + grading_policy),
-    trap/wrong feedback, and format-mismatch soft errors.
+    trap/wrong feedback, and format-mismatch soft errors. Every correct path
+    below leaves `answer_outcome` unset — `correct` is filled in once here,
+    the single point every correct verdict passes through, rather than at
+    each of the paths that reach one.
     """
+    graded = _grade(user_input, problem, input_mode=input_mode)
+    if graded.get("is_correct") and "answer_outcome" not in graded:
+        graded["answer_outcome"] = "correct"
+    return graded
+
+
+def _grade(
+    user_input: str, problem: ProblemDict, *, input_mode: InputMode = "radio"
+) -> EvalResult:
     options_map = problem.get("options_map", {})
 
     # --- 1. RADIO MODE ---

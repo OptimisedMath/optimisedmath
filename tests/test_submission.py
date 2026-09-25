@@ -67,7 +67,6 @@ class ExpectedTelemetry:
     lets `_assert_telemetry` check the row by name instead of by position.
     """
 
-    is_correct: bool
     user_input: str
     chapter_id: int
     chapter: str
@@ -79,7 +78,7 @@ class ExpectedTelemetry:
     streak_before_answer: int
     flawless_eligible: bool
     frontier_relation: FrontierRelation
-    answer_outcome: str | None = None
+    answer_outcome: str
     misconception_slug: str | None = None
     trap_slug: str | None = None
     trap_source: TrapSource | None = None
@@ -377,7 +376,7 @@ def test_correct_answer_updates_session_and_logs_telemetry(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -430,7 +429,6 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="3",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -481,7 +479,6 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="2/4",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -493,7 +490,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
             streak_before_answer=2,
             flawless_eligible=True,
             frontier_relation="at_frontier",
-            answer_outcome="unsimplified",
+            answer_outcome="soft_error",
         ),
     )
 
@@ -539,7 +536,6 @@ def test_synthesized_unit_trap_logs_trap_source_synthesized(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="84 cm",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -593,7 +589,6 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="1/3",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -652,7 +647,7 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -704,7 +699,7 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -782,7 +777,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
@@ -834,7 +829,6 @@ def test_admin_penalized_mistake_decrements_session_streak_without_profile_write
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="3",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
