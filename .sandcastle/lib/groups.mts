@@ -157,6 +157,11 @@ const QUOTA_PATTERNS = [
   /usage limit will reset/i,
   /credit balance is too low/i,
   /insufficient credits/i,
+  // The session-limit stop a resolved run's stdout carries when the
+  // developer's Claude usage runs out mid-turn, e.g. "You've hit your
+  // session limit · resets 2:40pm (UTC)". Missing this let a run keep
+  // planning after every implementer had already died (#407).
+  /session limit/i,
 ];
 
 // A machine that cannot reach the API will not be able to reach it on the next

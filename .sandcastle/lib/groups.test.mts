@@ -133,6 +133,14 @@ test("a usage-limit message is classified as fatal to the whole run", () => {
   assert.ok(isRunFatal("quota"));
 });
 
+test("the session-limit message is classified as quota exhaustion, fatal to the whole run", () => {
+  assert.equal(
+    classifyFailure("You've hit your session limit · resets 2:40pm (UTC)"),
+    "quota",
+  );
+  assert.ok(isRunFatal("quota"));
+});
+
 test("an expired login is classified as fatal to the whole run", () => {
   assert.equal(classifyFailure("OAuth token has expired. Please run /login"), "auth");
   assert.ok(isRunFatal("auth"));
