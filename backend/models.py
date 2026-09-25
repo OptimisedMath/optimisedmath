@@ -95,6 +95,10 @@ class DeconstructionState(BaseModel):
     step_index: int = 0
     step_attempts: int = 0
     step_revealed: bool = False
+    step_start_time: Optional[float] = Field(
+        default=None,
+        description="When the current step was last served, for that step's attempt rows' time_spent_ms",
+    )
     deconstruction_id: Optional[int] = Field(
         default=None,
         description="Row id of the `deconstructions` header, for updating deconstruction_steps",

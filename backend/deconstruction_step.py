@@ -8,9 +8,12 @@ is injected rather than resolved here, per `docs/import-rules.md` rule 5.
 
 from __future__ import annotations
 
+import time
+
 import backend.config as config
 import backend.session_state as session_state
 from backend.core import db
+from backend.core.utils import answer_form, answer_value
 from backend.curriculum import Curriculum
 from backend.models import (
     DeconstructionState,
@@ -20,7 +23,22 @@ from backend.models import (
     SessionState,
 )
 from backend.play_mode import PlayMode
-from backend.step_grading import grade_ordering_step, grade_step
+from backend.step_grading import StepEvalResult, grade_ordering_step, grade_step
+
+
+def _attempt_outcome(eval_result: StepEvalResult) -> str:
+    """The Answer Outcome one graded step is recorded under (ADR-0016, #259).
+
+    Collapses the step grader's is_correct/soft_error pair into the same
+    four-value vocabulary the Submission table uses. Trap is unreachable here —
+    a step has no `options_map` — but the column keeps the full domain per
+    #244's rule that no query learns two dialects.
+    """
+    if eval_result.get("is_correct"):
+        return "correct"
+    if eval_result.get("soft_error"):
+        return "soft_error"
+    return "wrong"
 
 
 class DeconstructionNotRunningError(Exception):
@@ -102,10 +120,18 @@ def _finish(
 
 
 def next_step_response(
-    state: SessionState, curriculum: Curriculum
+    state: SessionState, curriculum: Curriculum, play_mode: PlayMode
 ) -> DeconstructionStepResponse:
-    """Build the wire payload for the Student's Deconstruction step right now."""
+    """Build the wire payload for the Student's Deconstruction step right now.
+
+    Stamps `step_start_time`, mirroring `problem_start_time` — every serving of
+    a step (the first one, or a re-serving after a wrong answer) starts the
+    clock the next attempt row's `time_spent_ms` reads on submit.
+    """
     deconstruction, step = _require_deconstruction_step(state)
+    deconstruction.step_start_time = time.time()
+    session_state.persist(state, play_mode)
+
     misconception_name = (
         curriculum.misconception_name(deconstruction.misconception_slug)
         or deconstruction.misconception_slug
@@ -140,6 +166,10 @@ def submit_step(
     deconstruction, step = _require_deconstruction_step(state)
     answered_step_index = deconstruction.step_index
 
+    time_spent_ms = None
+    if deconstruction.step_start_time is not None:
+        time_spent_ms = int((time.time() - deconstruction.step_start_time) * 1000)
+
     if step.input_type == "ordering":
         eval_result = grade_ordering_step(user_input, step.answer, step.accepted_orders)
     else:
@@ -155,8 +185,16 @@ def submit_step(
         db.update_deconstruction_step(
             deconstruction.deconstruction_id,
             answered_step_index,
-            attempts=deconstruction.step_attempts,
             revealed=deconstruction.step_revealed,
+        )
+        db.create_deconstruction_attempt(
+            deconstruction.deconstruction_id,
+            answered_step_index,
+            user_input=user_input,
+            answer_form=answer_form(user_input),
+            answer_value=answer_value(user_input),
+            outcome=_attempt_outcome(eval_result),
+            time_spent_ms=time_spent_ms,
         )
 
     handback_question: str | None = None
