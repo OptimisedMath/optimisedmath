@@ -185,10 +185,11 @@ def _area_problem(
 
 _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 
-# Every forward rung splits in two: the generator draws the Unit, the Pool entry
-# and (on Level 1) the apex, and a `_level_N_problem` body turns that draw into
-# the figure and the Problem. The split is the seam a test pins one Pool entry
-# through, by passing it in rather than by replacing the pool (#352).
+# Every rung splits in two: the generator draws what varies per Problem — the
+# Unit, the Pool entry, and where a rung has one, its extra choice (Level 1's
+# apex, Level 4's withheld dimension) — and a `_level_N_problem` body turns that
+# draw into the figure and the Problem. The split is the seam a test pins one
+# Pool entry through, by passing it in rather than by replacing the pool (#352).
 
 
 def _level_1_problem(
@@ -321,12 +322,7 @@ def geo_triangle_area_3() -> dict | None:
 def _level_4_problem(
     unit: str, base: int, height: int, side: int, height_unknown: bool
 ) -> dict | None:
-    """Assemble Level 4's Problem — area given, one length withheld as its letter.
-
-    Unlike the forward rungs' split, this one also takes which of base and
-    height is withheld: the rung varies that as well as the Unit and the draw
-    from the pool (#355).
-    """
+    """Assemble Level 4's Problem — area given, one length withheld as its letter."""
     area = base * height // 2
     figure = Triangle.base_height(
         base, height, apex_frac=math.sqrt(side * side - height * height) / base
