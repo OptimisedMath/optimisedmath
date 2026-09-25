@@ -28,7 +28,9 @@ from backend.session import _is_safe_svg_fragment
 from tests.support.svg_labels import figure_labels
 
 _VERTEX_LETTERS = {"A", "B", "C"}
-_POOL_UNIT, _POOL_LENGTH_UNIT = "cm²", "cm"
+# Every declared Unit pins the same arithmetic, so the pinning sweep below fixes
+# one and reads the figure's labels in that Unit's length Unit.
+_PINNED_AREA_UNIT, _PINNED_LENGTH_UNIT = "cm²", "cm"
 
 CHAPTER_ID = 30
 TOPIC_ID = 130
@@ -428,11 +430,37 @@ class TestGenerators:
         assert problem["expected_unit"] in topic.LENGTH_UNITS
 
 
+def _assert_pool_entry_is_pinned(
+    problem: dict,
+    *,
+    base: int,
+    height: int,
+    sides: tuple[int, ...] = (),
+    traps: dict[str, str],
+) -> None:
+    """Assert one forward rung's figure, answer and Traps all read the same Pool entry.
+
+    The figure prints `base`, `height` and `sides` and no other length. A Trap that
+    collided with another option lost its slot (ADR-0008), so only the Traps the
+    Problem actually offers are checked — `options_map` is keyed by option value.
+    """
+    printed = figure_labels(problem["image_html"])
+    assert sorted(label for label in printed if label not in _VERTEX_LETTERS) == sorted(
+        f"{length} {_PINNED_LENGTH_UNIT}" for length in (base, height, *sides)
+    )
+    assert problem["correct"] == str(base * height // 2)
+    offered = {slug: value for value, slug in problem["options_map"].items()}
+    for slug, expected in traps.items():
+        if slug in offered:
+            assert offered[slug] == expected
+
+
 class TestForwardRungPoolPinning:
     """P2 (test-seams.md): a figure's labels cannot disagree with the Problem's
-    answer and Traps (#349). Pinned exhaustively over each Level's own pool,
-    by passing the drawn entry into the split private helper — never by
-    replacing a module constant — so a failure names the entry that broke."""
+    answer and Traps (#349, swept here by #352). Pinned exhaustively over each
+    Level's own pool, by passing the drawn entry into the split `_level_N_problem`
+    body — never by replacing a module constant — so a failure names the entry
+    that broke."""
 
     @pytest.mark.parametrize(
         "base, height",
@@ -440,18 +468,14 @@ class TestForwardRungPoolPinning:
         ids=[f"{b}x{h}" for b, h in topic.SMALL_BASE_HEIGHTS],
     )
     def test_level_1_pins_every_pool_entry(self, base, height):
-        problem = topic._geo_triangle_area_1(
-            _POOL_UNIT, _POOL_LENGTH_UNIT, base, height, apex_frac=0.5
+        """Level 1 prints the base and the height alone (#294), and doubles for its Trap."""
+        problem = topic._level_1_problem(_PINNED_AREA_UNIT, base, height, apex_frac=0.5)
+        _assert_pool_entry_is_pinned(
+            problem,
+            base=base,
+            height=height,
+            traps={topic.TRAP_DOUBLES: str(base * height)},
         )
-        printed = figure_labels(problem["image_html"])
-        assert sorted(t for t in printed if t not in _VERTEX_LETTERS) == sorted(
-            f"{n} {_POOL_LENGTH_UNIT}" for n in (base, height)
-        )
-        assert problem["correct"] == str(base * height // 2)
-        expected_traps = {topic.TRAP_DOUBLES: str(base * height)}
-        for slug, value in problem["options_map"].items():
-            if slug in expected_traps:
-                assert value == expected_traps[slug]
 
     @pytest.mark.parametrize(
         "base, height, hypotenuse",
@@ -459,23 +483,22 @@ class TestForwardRungPoolPinning:
         ids=[f"{b}-{h}-{hyp}" for b, h, hyp in topic.RIGHT],
     )
     def test_level_2_pins_every_pool_entry(self, base, height, hypotenuse):
-        problem = topic._geo_triangle_area_2(
-            _POOL_UNIT, _POOL_LENGTH_UNIT, base, height, hypotenuse
+        """Level 2's height is side CA, so it counts twice — as a dimension and as a
+        side the perimeter and side-as-height Traps read."""
+        problem = topic._level_2_problem(_PINNED_AREA_UNIT, base, height, hypotenuse)
+        _assert_pool_entry_is_pinned(
+            problem,
+            base=base,
+            height=height,
+            sides=(hypotenuse,),
+            traps={
+                topic.TRAP_DOUBLES: str(base * height),
+                topic.TRAP_PERIMETER: str(base + height + hypotenuse),
+                topic.TRAP_SIDE_AS_HEIGHT: str(
+                    base * topic._side_read_as_height(height, hypotenuse) // 2
+                ),
+            },
         )
-        printed = figure_labels(problem["image_html"])
-        assert sorted(t for t in printed if t not in _VERTEX_LETTERS) == sorted(
-            f"{n} {_POOL_LENGTH_UNIT}" for n in (base, height, hypotenuse)
-        )
-        assert problem["correct"] == str(base * height // 2)
-        side_as_height = topic._side_read_as_height(height, hypotenuse)
-        expected_traps = {
-            topic.TRAP_DOUBLES: str(base * height),
-            topic.TRAP_PERIMETER: str(base + height + hypotenuse),
-            topic.TRAP_SIDE_AS_HEIGHT: str(base * side_as_height // 2),
-        }
-        for slug, value in problem["options_map"].items():
-            if slug in expected_traps:
-                assert value == expected_traps[slug]
 
     @pytest.mark.parametrize(
         "base, height, offset, side_a, side_b",
@@ -483,23 +506,23 @@ class TestForwardRungPoolPinning:
         ids=[f"{b}-{h}-{o}-{a}-{c}" for b, h, o, a, c in topic.OBTUSE],
     )
     def test_level_3_pins_every_pool_entry(self, base, height, offset, side_a, side_b):
-        problem = topic._geo_triangle_area_3(
-            _POOL_UNIT, _POOL_LENGTH_UNIT, base, height, offset, side_a, side_b
+        """Level 3 prints both slant sides as well, and the foot's offset prints nothing."""
+        problem = topic._level_3_problem(
+            _PINNED_AREA_UNIT, base, height, offset, side_a, side_b
         )
-        printed = figure_labels(problem["image_html"])
-        assert sorted(t for t in printed if t not in _VERTEX_LETTERS) == sorted(
-            f"{n} {_POOL_LENGTH_UNIT}" for n in (base, height, side_a, side_b)
+        _assert_pool_entry_is_pinned(
+            problem,
+            base=base,
+            height=height,
+            sides=(side_a, side_b),
+            traps={
+                topic.TRAP_DOUBLES: str(base * height),
+                topic.TRAP_PERIMETER: str(base + side_a + side_b),
+                topic.TRAP_SIDE_AS_HEIGHT: str(
+                    base * topic._side_read_as_height(side_a, side_b) // 2
+                ),
+            },
         )
-        assert problem["correct"] == str(base * height // 2)
-        side_as_height = topic._side_read_as_height(side_a, side_b)
-        expected_traps = {
-            topic.TRAP_DOUBLES: str(base * height),
-            topic.TRAP_PERIMETER: str(base + side_a + side_b),
-            topic.TRAP_SIDE_AS_HEIGHT: str(base * side_as_height // 2),
-        }
-        for slug, value in problem["options_map"].items():
-            if slug in expected_traps:
-                assert value == expected_traps[slug]
 
 
 class TestLevels:

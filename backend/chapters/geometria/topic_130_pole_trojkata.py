@@ -185,12 +185,17 @@ def _area_problem(
 
 _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 
+# Every forward rung splits in two: the generator draws the Unit, the Pool entry
+# and (on Level 1) the apex, and a `_level_N_problem` body turns that draw into
+# the figure and the Problem. The split is the seam a test pins one Pool entry
+# through, by passing it in rather than by replacing the pool (#352).
 
-def _geo_triangle_area_1(
-    unit: str, length_unit: str, base: int, height: int, apex_frac: float
+
+def _level_1_problem(
+    unit: str, base: int, height: int, apex_frac: float
 ) -> dict | None:
-    """Level 1's deterministic body — figure, SVG and Problem — from a drawn
-    Unit, a drawn Pool combination and a drawn apex position."""
+    """Assemble Level 1's Problem — altitude inside, base and height the only labels."""
+    length_unit = _LENGTH_FOR_AREA[unit]
     figure = Triangle.base_height(base, height, apex_frac=apex_frac)
     svg = Scene(
         figure,
@@ -217,19 +222,16 @@ def _geo_triangle_area_1(
 def geo_triangle_area_1() -> dict | None:
     """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
     unit = random.choice(declared_units(geo_triangle_area_1))
-    length_unit = _LENGTH_FOR_AREA[unit]
     base, height = random.choice(SMALL_BASE_HEIGHTS)
     # No printed slant side means the apex is free to sit anywhere (#294); the
     # range keeps the altitude's foot well inside the base, which is the rung.
     apex_frac = random.uniform(0.3, 0.7)
-    return _geo_triangle_area_1(unit, length_unit, base, height, apex_frac)
+    return _level_1_problem(unit, base, height, apex_frac)
 
 
-def _geo_triangle_area_2(
-    unit: str, length_unit: str, base: int, height: int, hypotenuse: int
-) -> dict | None:
-    """Level 2's deterministic body — figure, SVG and Problem — from a drawn
-    Unit and a drawn Pool combination."""
+def _level_2_problem(unit: str, base: int, height: int, hypotenuse: int) -> dict | None:
+    """Assemble Level 2's Problem — right triangle, the height standing on a side."""
+    length_unit = _LENGTH_FOR_AREA[unit]
     # apex_frac 0 stands the height on vertex A, so the height IS side CA.
     figure = Triangle.base_height(base, height, apex_frac=0.0)
     svg = Scene(
@@ -266,22 +268,15 @@ def _geo_triangle_area_2(
 def geo_triangle_area_2() -> dict | None:
     """Trójkąt prostokątny — wysokość jest bokiem (poziom 2)."""
     unit = random.choice(declared_units(geo_triangle_area_2))
-    length_unit = _LENGTH_FOR_AREA[unit]
     base, height, hypotenuse = random.choice(RIGHT)
-    return _geo_triangle_area_2(unit, length_unit, base, height, hypotenuse)
+    return _level_2_problem(unit, base, height, hypotenuse)
 
 
-def _geo_triangle_area_3(
-    unit: str,
-    length_unit: str,
-    base: int,
-    height: int,
-    offset: int,
-    side_a: int,
-    side_b: int,
+def _level_3_problem(
+    unit: str, base: int, height: int, offset: int, side_a: int, side_b: int
 ) -> dict | None:
-    """Level 3's deterministic body — figure, SVG and Problem — from a drawn
-    Unit and a drawn Pool combination."""
+    """Assemble Level 3's Problem — obtuse triangle, the altitude's foot off the base."""
+    length_unit = _LENGTH_FOR_AREA[unit]
     figure = Triangle.base_height(base, height, apex_frac=-offset / base)
     svg = Scene(
         figure,
@@ -319,9 +314,8 @@ def _geo_triangle_area_3(
 def geo_triangle_area_3() -> dict | None:
     """Wysokość wypada poza trójkątem rozwartokątnym (poziom 3)."""
     unit = random.choice(declared_units(geo_triangle_area_3))
-    length_unit = _LENGTH_FOR_AREA[unit]
     base, height, offset, side_a, side_b = random.choice(OBTUSE)
-    return _geo_triangle_area_3(unit, length_unit, base, height, offset, side_a, side_b)
+    return _level_3_problem(unit, base, height, offset, side_a, side_b)
 
 
 @declares_units(*LENGTH_UNITS)
