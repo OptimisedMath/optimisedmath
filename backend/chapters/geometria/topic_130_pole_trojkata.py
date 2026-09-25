@@ -186,17 +186,12 @@ def _area_problem(
 _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 
 
-@declares_units(*AREA_UNITS)
-@declares_traps(TRAP_DOUBLES)
-def geo_triangle_area_1() -> dict | None:
-    """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
-    unit = random.choice(declared_units(geo_triangle_area_1))
-    length_unit = _LENGTH_FOR_AREA[unit]
-    base, height = random.choice(SMALL_BASE_HEIGHTS)
-
-    # No printed slant side means the apex is free to sit anywhere (#294); the
-    # range keeps the altitude's foot well inside the base, which is the rung.
-    figure = Triangle.base_height(base, height, apex_frac=random.uniform(0.3, 0.7))
+def _geo_triangle_area_1(
+    unit: str, length_unit: str, base: int, height: int, apex_frac: float
+) -> dict | None:
+    """Level 1's deterministic body — figure, SVG and Problem — from a drawn
+    Unit, a drawn Pool combination and a drawn apex position."""
+    figure = Triangle.base_height(base, height, apex_frac=apex_frac)
     svg = Scene(
         figure,
         [
@@ -218,13 +213,23 @@ def geo_triangle_area_1() -> dict | None:
 
 
 @declares_units(*AREA_UNITS)
-@declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
-def geo_triangle_area_2() -> dict | None:
-    """Trójkąt prostokątny — wysokość jest bokiem (poziom 2)."""
-    unit = random.choice(declared_units(geo_triangle_area_2))
+@declares_traps(TRAP_DOUBLES)
+def geo_triangle_area_1() -> dict | None:
+    """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
+    unit = random.choice(declared_units(geo_triangle_area_1))
     length_unit = _LENGTH_FOR_AREA[unit]
-    base, height, hypotenuse = random.choice(RIGHT)
+    base, height = random.choice(SMALL_BASE_HEIGHTS)
+    # No printed slant side means the apex is free to sit anywhere (#294); the
+    # range keeps the altitude's foot well inside the base, which is the rung.
+    apex_frac = random.uniform(0.3, 0.7)
+    return _geo_triangle_area_1(unit, length_unit, base, height, apex_frac)
 
+
+def _geo_triangle_area_2(
+    unit: str, length_unit: str, base: int, height: int, hypotenuse: int
+) -> dict | None:
+    """Level 2's deterministic body — figure, SVG and Problem — from a drawn
+    Unit and a drawn Pool combination."""
     # apex_frac 0 stands the height on vertex A, so the height IS side CA.
     figure = Triangle.base_height(base, height, apex_frac=0.0)
     svg = Scene(
@@ -258,12 +263,25 @@ def geo_triangle_area_2() -> dict | None:
 
 @declares_units(*AREA_UNITS)
 @declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
-def geo_triangle_area_3() -> dict | None:
-    """Wysokość wypada poza trójkątem rozwartokątnym (poziom 3)."""
-    unit = random.choice(declared_units(geo_triangle_area_3))
+def geo_triangle_area_2() -> dict | None:
+    """Trójkąt prostokątny — wysokość jest bokiem (poziom 2)."""
+    unit = random.choice(declared_units(geo_triangle_area_2))
     length_unit = _LENGTH_FOR_AREA[unit]
-    base, height, offset, side_a, side_b = random.choice(OBTUSE)
+    base, height, hypotenuse = random.choice(RIGHT)
+    return _geo_triangle_area_2(unit, length_unit, base, height, hypotenuse)
 
+
+def _geo_triangle_area_3(
+    unit: str,
+    length_unit: str,
+    base: int,
+    height: int,
+    offset: int,
+    side_a: int,
+    side_b: int,
+) -> dict | None:
+    """Level 3's deterministic body — figure, SVG and Problem — from a drawn
+    Unit and a drawn Pool combination."""
     figure = Triangle.base_height(base, height, apex_frac=-offset / base)
     svg = Scene(
         figure,
@@ -294,6 +312,16 @@ def geo_triangle_area_3() -> dict | None:
             "unit": length_unit,
         },
     )
+
+
+@declares_units(*AREA_UNITS)
+@declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
+def geo_triangle_area_3() -> dict | None:
+    """Wysokość wypada poza trójkątem rozwartokątnym (poziom 3)."""
+    unit = random.choice(declared_units(geo_triangle_area_3))
+    length_unit = _LENGTH_FOR_AREA[unit]
+    base, height, offset, side_a, side_b = random.choice(OBTUSE)
+    return _geo_triangle_area_3(unit, length_unit, base, height, offset, side_a, side_b)
 
 
 @declares_units(*LENGTH_UNITS)
