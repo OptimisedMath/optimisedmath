@@ -4,7 +4,6 @@ import json
 import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
-from fractions import Fraction
 from typing import Any, TypedDict
 
 from backend.config import DB_PATH
@@ -568,7 +567,7 @@ def create_deconstruction_attempt(
     *,
     user_input: str,
     answer_form: str,
-    answer_value: Fraction | None,
+    answer_value: tuple[int, int] | None,
     outcome: str,
     time_spent_ms: int | None,
 ) -> None:
@@ -582,8 +581,7 @@ def create_deconstruction_attempt(
     The Answer value arrives as the rational it is; splitting it across two
     integer columns is this layer's storage detail, not the caller's.
     """
-    value_num = answer_value.numerator if answer_value is not None else None
-    value_den = answer_value.denominator if answer_value is not None else None
+    value_num, value_den = answer_value if answer_value is not None else (None, None)
     with get_connection() as conn:
         cursor = conn.cursor()
         next_index = cursor.execute(
