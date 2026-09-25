@@ -25,6 +25,10 @@ from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
 from backend.session import _is_safe_svg_fragment
+from tests.support.svg_labels import figure_labels
+
+_VERTEX_LETTERS = {"A", "B", "C"}
+_POOL_UNIT, _POOL_LENGTH_UNIT = "cm²", "cm"
 
 CHAPTER_ID = 30
 TOPIC_ID = 130
@@ -363,22 +367,6 @@ class TestGenerators:
         extra = set(parameters) - {"base", "height", "unit"}
         assert extra
 
-    def test_level_1_labels_only_base_and_height(self):
-        """#294: the slant sides are gone, so the figure prints exactly the two
-        lengths the formula needs — both of them, or the Problem is unsolvable."""
-        for _ in range(20):
-            problem = topic.geo_triangle_area_1()
-            assert problem is not None
-            parameters = problem["parameters"]
-            unit = parameters["unit"]
-            printed = set(
-                re.findall(r"<text[^>]*>([^<]*)</text>", problem["image_html"])
-            )
-            assert printed - {"A", "B", "C"} == {
-                f"{parameters['base']} {unit}",
-                f"{parameters['height']} {unit}",
-            }
-
     def test_level_1_magnitudes_are_small_enough_to_multiply_mentally(self):
         """#294: dropping the slant sides frees the pool from the Pythagorean-triple
         constraint that used to force base/height into 13-14-15 territory."""
@@ -438,6 +426,80 @@ class TestGenerators:
         """That is what puts both dimensions in the Topic without an `m²` rung."""
         problem = topic.geo_triangle_area_4()
         assert problem["expected_unit"] in topic.LENGTH_UNITS
+
+
+class TestForwardRungPoolPinning:
+    """P2 (test-seams.md): a figure's labels cannot disagree with the Problem's
+    answer and Traps (#349). Pinned exhaustively over each Level's own pool,
+    by passing the drawn entry into the split private helper — never by
+    replacing a module constant — so a failure names the entry that broke."""
+
+    @pytest.mark.parametrize(
+        "base, height",
+        topic.SMALL_BASE_HEIGHTS,
+        ids=[f"{b}x{h}" for b, h in topic.SMALL_BASE_HEIGHTS],
+    )
+    def test_level_1_pins_every_pool_entry(self, base, height):
+        problem = topic._geo_triangle_area_1(
+            _POOL_UNIT, _POOL_LENGTH_UNIT, base, height, apex_frac=0.5
+        )
+        printed = figure_labels(problem["image_html"])
+        assert sorted(t for t in printed if t not in _VERTEX_LETTERS) == sorted(
+            f"{n} {_POOL_LENGTH_UNIT}" for n in (base, height)
+        )
+        assert problem["correct"] == str(base * height // 2)
+        expected_traps = {topic.TRAP_DOUBLES: str(base * height)}
+        for slug, value in problem["options_map"].items():
+            if slug in expected_traps:
+                assert value == expected_traps[slug]
+
+    @pytest.mark.parametrize(
+        "base, height, hypotenuse",
+        topic.RIGHT,
+        ids=[f"{b}-{h}-{hyp}" for b, h, hyp in topic.RIGHT],
+    )
+    def test_level_2_pins_every_pool_entry(self, base, height, hypotenuse):
+        problem = topic._geo_triangle_area_2(
+            _POOL_UNIT, _POOL_LENGTH_UNIT, base, height, hypotenuse
+        )
+        printed = figure_labels(problem["image_html"])
+        assert sorted(t for t in printed if t not in _VERTEX_LETTERS) == sorted(
+            f"{n} {_POOL_LENGTH_UNIT}" for n in (base, height, hypotenuse)
+        )
+        assert problem["correct"] == str(base * height // 2)
+        side_as_height = topic._side_read_as_height(height, hypotenuse)
+        expected_traps = {
+            topic.TRAP_DOUBLES: str(base * height),
+            topic.TRAP_PERIMETER: str(base + height + hypotenuse),
+            topic.TRAP_SIDE_AS_HEIGHT: str(base * side_as_height // 2),
+        }
+        for slug, value in problem["options_map"].items():
+            if slug in expected_traps:
+                assert value == expected_traps[slug]
+
+    @pytest.mark.parametrize(
+        "base, height, offset, side_a, side_b",
+        topic.OBTUSE,
+        ids=[f"{b}-{h}-{o}-{a}-{c}" for b, h, o, a, c in topic.OBTUSE],
+    )
+    def test_level_3_pins_every_pool_entry(self, base, height, offset, side_a, side_b):
+        problem = topic._geo_triangle_area_3(
+            _POOL_UNIT, _POOL_LENGTH_UNIT, base, height, offset, side_a, side_b
+        )
+        printed = figure_labels(problem["image_html"])
+        assert sorted(t for t in printed if t not in _VERTEX_LETTERS) == sorted(
+            f"{n} {_POOL_LENGTH_UNIT}" for n in (base, height, side_a, side_b)
+        )
+        assert problem["correct"] == str(base * height // 2)
+        side_as_height = topic._side_read_as_height(side_a, side_b)
+        expected_traps = {
+            topic.TRAP_DOUBLES: str(base * height),
+            topic.TRAP_PERIMETER: str(base + side_a + side_b),
+            topic.TRAP_SIDE_AS_HEIGHT: str(base * side_as_height // 2),
+        }
+        for slug, value in problem["options_map"].items():
+            if slug in expected_traps:
+                assert value == expected_traps[slug]
 
 
 class TestLevels:
