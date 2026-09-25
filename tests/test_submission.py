@@ -215,6 +215,35 @@ def _soft_error_problem() -> dict[str, Any]:
     }
 
 
+def _exact_match_violation_problem() -> dict[str, Any]:
+    """`exact_match_only`, value-equal but not the exact string, no Trap declared —
+    the grader's old `exact_match_violation` leaf, which collapses to `wrong`."""
+    return {
+        "problem_id": "p-exact-match-violation",
+        "question": "q",
+        "correct": "1/2",
+        "grading_policy": "exact_match_only",
+    }
+
+
+def _syntax_error_problem() -> dict[str, Any]:
+    return {
+        "problem_id": "p-syntax-error",
+        "question": "q",
+        "correct": "1/2",
+    }
+
+
+def _format_mismatch_problem() -> dict[str, Any]:
+    """Correct written as a decimal; a value-equal common fraction is the grader's
+    old `format_mismatch` leaf, which collapses to `soft_error`."""
+    return {
+        "problem_id": "p-format-mismatch",
+        "question": "q",
+        "correct": "0,5",
+    }
+
+
 def _unit_dimension_trap_problem() -> dict[str, Any]:
     """A Geometria-shaped problem whose wrong-dimension answer the grader itself
     turns into a Trap (ADR-0005) — no `options_map`/`messages` needed, since the
@@ -480,6 +509,93 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         problem,
         ExpectedTelemetry(
             user_input="2/4",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="soft_error",
+        ),
+    )
+
+
+# --- Answer outcome collapse (#253) ---
+#
+# The grader's finer-grained outcomes collapse to telemetry's four buckets on
+# the way in (ADR-0016). `trap` and the plain `wrong` fallthrough are already
+# proven above, through the trap and penalized-mistake tests; these three
+# prove the remaining collapsed leaves reach their bucket through a real
+# Submission, not just through `grade()` directly.
+
+
+def test_exact_match_violation_collapses_to_wrong(fixture_curriculum: Curriculum):
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _exact_match_violation_problem()
+
+    _submit(state, problem, "2/4", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="2/4",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="wrong",
+        ),
+    )
+
+
+def test_syntax_error_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _syntax_error_problem()
+
+    _submit(state, problem, "abc", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="abc",
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="soft_error",
+        ),
+    )
+
+
+def test_format_mismatch_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _format_mismatch_problem()
+
+    _submit(state, problem, "1/2", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="1/2",
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,

@@ -297,8 +297,20 @@ def test_telemetry_answer_outcome_column_is_not_null():
                     answer_outcome
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
                 """,
-                ("sess-null-outcome", "alice", "student", 10, "Ułamki", 20,
-                 "Dodawanie", 2, "typing", 0, True, "at_frontier"),
+                (
+                    "sess-null-outcome",
+                    "alice",
+                    "student",
+                    10,
+                    "Ułamki",
+                    20,
+                    "Dodawanie",
+                    2,
+                    "typing",
+                    0,
+                    True,
+                    "at_frontier",
+                ),
             )
 
 
