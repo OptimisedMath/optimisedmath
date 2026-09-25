@@ -27,11 +27,12 @@ from backend.step_grading import StepEvalResult, grade_ordering_step, grade_step
 
 
 def _attempt_outcome(eval_result: StepEvalResult) -> str:
-    """Collapse the step grader's is_correct/soft_error pair to the four-value
-    Answer Outcome vocabulary the Submission table uses (ADR-0016, #259).
+    """The Answer Outcome one graded step is recorded under (ADR-0016, #259).
 
-    Trap is unreachable here — a step has no `options_map` — but the column
-    keeps the full domain per #244's rule that no query learns two dialects.
+    Collapses the step grader's is_correct/soft_error pair into the same
+    four-value vocabulary the Submission table uses. Trap is unreachable here —
+    a step has no `options_map` — but the column keeps the full domain per
+    #244's rule that no query learns two dialects.
     """
     if eval_result.get("is_correct"):
         return "correct"
@@ -128,12 +129,13 @@ def next_step_response(
     clock the next attempt row's `time_spent_ms` reads on submit.
     """
     deconstruction, step = _require_deconstruction_step(state)
+    deconstruction.step_start_time = time.time()
+    session_state.persist(state, play_mode)
+
     misconception_name = (
         curriculum.misconception_name(deconstruction.misconception_slug)
         or deconstruction.misconception_slug
     )
-    deconstruction.step_start_time = time.time()
-    session_state.persist(state, play_mode)
     return DeconstructionStepResponse(
         question=step.question,
         working_line=step.working_line,
@@ -185,14 +187,12 @@ def submit_step(
             answered_step_index,
             revealed=deconstruction.step_revealed,
         )
-        value = answer_value(user_input)
         db.create_deconstruction_attempt(
             deconstruction.deconstruction_id,
             answered_step_index,
             user_input=user_input,
             answer_form=answer_form(user_input),
-            answer_value_num=value.numerator if value is not None else None,
-            answer_value_den=value.denominator if value is not None else None,
+            answer_value=answer_value(user_input),
             outcome=_attempt_outcome(eval_result),
             time_spent_ms=time_spent_ms,
         )

@@ -442,8 +442,8 @@ def test_init_db_drops_deconstruction_steps_table_with_stale_attempts_column():
 
 
 def test_create_deconstruction_attempt_assigns_sequential_attempt_index():
-    """#258: `attempt_index` is derived from the row count already persisted for
-    that step, not tracked separately — so it stays correct across three writes."""
+    """#258: `attempt_index` is assigned from what is already persisted for that
+    step, not tracked separately — so it stays correct across three writes."""
     db.save_user("alice", _sample_state())
     deconstruction_id = db.create_deconstruction(
         session_id="sess-attempts",
@@ -456,15 +456,18 @@ def test_create_deconstruction_attempt_assigns_sequential_attempt_index():
     )
     db.create_deconstruction_steps(deconstruction_id, 1)
 
-    for user_input in ("wrong-1", "wrong-2", "5"):
+    for user_input, outcome in (
+        ("wrong-1", "wrong"),
+        ("wrong-2", "wrong"),
+        ("5", "correct"),
+    ):
         db.create_deconstruction_attempt(
             deconstruction_id,
             0,
             user_input=user_input,
             answer_form=user_input,
-            answer_value_num=None,
-            answer_value_den=None,
-            outcome="wrong" if user_input != "5" else "correct",
+            answer_value=None,
+            outcome=outcome,
             time_spent_ms=100,
         )
 

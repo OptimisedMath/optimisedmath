@@ -1875,17 +1875,23 @@ def _fetch_deconstruction_step_rows(deconstruction_id):
 
 
 def _fetch_deconstruction_attempt_rows(deconstruction_id):
+    """Every attempt row for one Deconstruction, keyed by column name — the row is
+    too wide for positional reads to stay legible."""
     with sqlite3.connect(main.db.DB_PATH) as conn:
-        return conn.execute(
-            """
-            SELECT step_index, attempt_index, user_input, answer_form,
-                   answer_value_num, answer_value_den, outcome, time_spent_ms
-            FROM deconstruction_attempts
-            WHERE deconstruction_id = ?
-            ORDER BY step_index, attempt_index
-            """,
-            (deconstruction_id,),
-        ).fetchall()
+        conn.row_factory = sqlite3.Row
+        return [
+            dict(row)
+            for row in conn.execute(
+                """
+                SELECT step_index, attempt_index, user_input, answer_form,
+                       answer_value_num, answer_value_den, outcome, time_spent_ms
+                FROM deconstruction_attempts
+                WHERE deconstruction_id = ?
+                ORDER BY step_index, attempt_index
+                """,
+                (deconstruction_id,),
+            )
+        ]
 
 
 def test_deconstruction_next_returns_full_step_payload_with_null_working_line():
@@ -2247,29 +2253,23 @@ def test_deconstruction_attempt_row_written_per_step_submit(monkeypatch):
 
     rows = _fetch_deconstruction_attempt_rows(deconstruction_id)
     assert len(rows) == 1
-    (
-        step_index,
-        attempt_index,
-        user_input,
-        form,
-        value_num,
-        value_den,
-        outcome,
-        time_ms,
-    ) = rows[0]
-    assert step_index == 0
-    assert attempt_index == 1
-    assert user_input == "999"
-    assert form == "999"
-    assert (value_num, value_den) == (999, 1)
-    assert outcome == "wrong"
-    assert time_ms is not None and time_ms >= 0
+    row = rows[0]
+    assert row["step_index"] == 0
+    assert row["attempt_index"] == 1
+    assert row["user_input"] == "999"
+    assert row["answer_form"] == "999"
+    assert (row["answer_value_num"], row["answer_value_den"]) == (999, 1)
+    assert row["outcome"] == "wrong"
+    assert row["time_spent_ms"] is not None and row["time_spent_ms"] >= 0
 
     run(main.deconstruction_next(state.session_id))
     _submit_step(state, "999")
 
     rows = _fetch_deconstruction_attempt_rows(deconstruction_id)
-    assert [row[:2] for row in rows] == [(0, 1), (0, 2)]
+    assert [(row["step_index"], row["attempt_index"]) for row in rows] == [
+        (0, 1),
+        (0, 2),
+    ]
 
 
 def test_deconstruction_attempt_outcome_uses_the_four_value_vocabulary(monkeypatch):
@@ -2287,9 +2287,7 @@ def test_deconstruction_attempt_outcome_uses_the_four_value_vocabulary(monkeypat
     _submit_step(state, "999")
 
     rows = _fetch_deconstruction_attempt_rows(deconstruction_id)
-    outcomes = [row[6] for row in rows]
-    assert outcomes == ["soft_error", "wrong"]
-    assert set(outcomes) <= {"correct", "trap", "wrong", "soft_error"}
+    assert [row["outcome"] for row in rows] == ["soft_error", "wrong"]
 
 
 def test_soft_error_attempt_writes_a_row_but_does_not_count_toward_reveal(
@@ -2314,11 +2312,11 @@ def test_soft_error_attempt_writes_a_row_but_does_not_count_toward_reveal(
 
     rows = _fetch_deconstruction_attempt_rows(deconstruction_id)
     assert len(rows) == 1
-    assert rows[0][6] == "soft_error"
+    assert rows[0]["outcome"] == "soft_error"
 
 
 def test_step_accepts_equivalent_unsimplified_answer_as_correct():
-    """Issue #258: `2/4` against a target of `1/2` writes `correct` inside a
+    """Issue #258: `2/4` against a target of `1/2` grades as Correct inside a
     Deconstruction step — the deliberate asymmetry with a Problem's `soft_error`."""
     state = make_state(_trap_problem("p-unsimplified"), input_mode="radio")
     _arm_deconstruction(

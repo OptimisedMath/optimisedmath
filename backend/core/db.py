@@ -4,6 +4,7 @@ import json
 import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
+from fractions import Fraction
 from typing import Any, TypedDict
 
 from backend.config import DB_PATH
@@ -72,7 +73,7 @@ def init_db() -> None:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        _drop_stale_table(cursor, "telemetry_logs", _TELEMETRY_TABLE_COLUMNS)
+        _drop_stale_table(cursor, "telemetry_logs")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +113,7 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
-        _drop_stale_table(cursor, "deconstructions", _DECONSTRUCTIONS_COLUMNS)
+        _drop_stale_table(cursor, "deconstructions")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstructions (
                 deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,7 +136,7 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_deconstructions_problem_id ON deconstructions(problem_id)"
         )
-        _drop_stale_table(cursor, "deconstruction_steps", _DECONSTRUCTION_STEPS_COLUMNS)
+        _drop_stale_table(cursor, "deconstruction_steps")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstruction_steps (
                 deconstruction_id INTEGER NOT NULL,
@@ -145,9 +146,7 @@ def init_db() -> None:
                 FOREIGN KEY (deconstruction_id) REFERENCES deconstructions(deconstruction_id)
             )
         """)
-        _drop_stale_table(
-            cursor, "deconstruction_attempts", _DECONSTRUCTION_ATTEMPTS_COLUMNS
-        )
+        _drop_stale_table(cursor, "deconstruction_attempts")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstruction_attempts (
                 deconstruction_id INTEGER NOT NULL,
@@ -168,9 +167,9 @@ def init_db() -> None:
 
 
 # Every telemetry_logs column `log_telemetry` writes, in INSERT order. The INSERT
-# statement below is built from this list, and `_drop_stale_telemetry_table` reads
-# it as the shape a pre-existing table has to match — so a new telemetry column is
-# added here and to the `CREATE TABLE` above, and nowhere else.
+# statement below is built from this list, and `_TABLE_COLUMNS` folds it into the
+# shape a pre-existing table has to match — so a new telemetry column is added here
+# and to the `CREATE TABLE` above, and nowhere else.
 _TELEMETRY_COLUMNS = (
     "session_id",
     "username",
@@ -194,58 +193,54 @@ _TELEMETRY_COLUMNS = (
     "problem_id",
 )
 
-# The full column set `CREATE TABLE` declares: everything `log_telemetry` writes,
-# plus the two SQLite fills in by itself — the autoincrement key and the default
-# timestamp, never part of the INSERT but still part of the shape
-# `_drop_stale_telemetry_table` matches a pre-existing table against.
-_TELEMETRY_TABLE_COLUMNS = frozenset(_TELEMETRY_COLUMNS) | {"log_id", "timestamp"}
-
 _INSERT_TELEMETRY_SQL = (
     f"INSERT INTO telemetry_logs ({', '.join(_TELEMETRY_COLUMNS)}) "
     f"VALUES ({', '.join('?' * len(_TELEMETRY_COLUMNS))})"
 )
 
-# The full column sets each table's `CREATE TABLE` declares, `_drop_stale_table`'s
-# reference for what a pre-existing table has to match — kept beside the DDL
-# above rather than derived from it, same tradeoff as `_TELEMETRY_TABLE_COLUMNS`.
-_DECONSTRUCTIONS_COLUMNS = frozenset(
-    {
-        "deconstruction_id",
-        "session_id",
-        "username",
-        "problem_id",
-        "misconception_slug",
-        "chapter",
-        "topic",
-        "level_number",
-        "outcome",
-        "created_at",
-        "ended_at",
-    }
-)
-_DECONSTRUCTION_STEPS_COLUMNS = frozenset(
-    {"deconstruction_id", "step_index", "revealed"}
-)
-_DECONSTRUCTION_ATTEMPTS_COLUMNS = frozenset(
-    {
-        "deconstruction_id",
-        "step_index",
-        "attempt_index",
-        "user_input",
-        "answer_form",
-        "answer_value_num",
-        "answer_value_den",
-        "outcome",
-        "time_spent_ms",
-        "timestamp",
-    }
-)
+# The full column set each `CREATE TABLE` above declares — `_drop_stale_table`'s
+# reference for what a pre-existing table has to match. Spelled out rather than
+# derived from the DDL, so it also names the columns SQLite fills in by itself: an
+# autoincrement key and a default timestamp are never part of an INSERT, but they
+# are part of the shape a table is matched against. A table changing shape means
+# editing its `CREATE TABLE` and its column set here, and nowhere else.
+_TABLE_COLUMNS = {
+    "telemetry_logs": frozenset(_TELEMETRY_COLUMNS) | {"log_id", "timestamp"},
+    "deconstructions": frozenset(
+        {
+            "deconstruction_id",
+            "session_id",
+            "username",
+            "problem_id",
+            "misconception_slug",
+            "chapter",
+            "topic",
+            "level_number",
+            "outcome",
+            "created_at",
+            "ended_at",
+        }
+    ),
+    "deconstruction_steps": frozenset({"deconstruction_id", "step_index", "revealed"}),
+    "deconstruction_attempts": frozenset(
+        {
+            "deconstruction_id",
+            "step_index",
+            "attempt_index",
+            "user_input",
+            "answer_form",
+            "answer_value_num",
+            "answer_value_den",
+            "outcome",
+            "time_spent_ms",
+            "timestamp",
+        }
+    ),
+}
 
 
-def _drop_stale_table(
-    cursor: sqlite3.Cursor, table_name: str, expected_columns: frozenset[str]
-) -> None:
-    """Drop `table_name` unless its columns are exactly `expected_columns`.
+def _drop_stale_table(cursor: sqlite3.Cursor, table_name: str) -> None:
+    """Drop `table_name` unless its columns are exactly what `_TABLE_COLUMNS` declares.
 
     Pre-existing rows are dropped, not migrated, when a table's schema changes
     shape — adding, renaming or removing a column is what makes that happen. An
@@ -262,7 +257,7 @@ def _drop_stale_table(
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute(f"PRAGMA table_info({table_name})")}
-    if columns != expected_columns:
+    if columns != _TABLE_COLUMNS[table_name]:
         cursor.execute(f"DROP TABLE {table_name}")
 
 
@@ -549,19 +544,22 @@ def create_deconstruction_attempt(
     *,
     user_input: str,
     answer_form: str,
-    answer_value_num: int | None,
-    answer_value_den: int | None,
+    answer_value: Fraction | None,
     outcome: str,
     time_spent_ms: int | None,
 ) -> None:
     """Write one `deconstruction_attempts` row for a single step submit.
 
-    `attempt_index` is assigned here, one past the step's existing row count,
+    `attempt_index` is assigned here, one past the step's highest one so far,
     rather than tracked in Session state — the ordinal is a property of what
     is actually persisted, not a second counter that could drift from it.
     Every submit gets a row, soft errors included, so the Reveal-threshold
     count stays recoverable as this table's rows excluding `soft_error`.
+    The Answer value arrives as the rational it is; splitting it across two
+    integer columns is this layer's storage detail, not the caller's.
     """
+    value_num = answer_value.numerator if answer_value is not None else None
+    value_den = answer_value.denominator if answer_value is not None else None
     with get_connection() as conn:
         cursor = conn.cursor()
         next_index = cursor.execute(
@@ -585,8 +583,8 @@ def create_deconstruction_attempt(
                 next_index,
                 user_input,
                 answer_form,
-                answer_value_num,
-                answer_value_den,
+                value_num,
+                value_den,
                 outcome,
                 time_spent_ms,
             ),
