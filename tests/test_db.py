@@ -284,6 +284,7 @@ def test_telemetry_schema_has_no_is_correct_column():
 
 
 def test_telemetry_answer_outcome_column_is_not_null():
+    """#253: the outcome is total, so the column rejects a row that omits it."""
     db.save_user("alice", _sample_state())
 
     with pytest.raises(sqlite3.IntegrityError):
@@ -315,8 +316,7 @@ def test_telemetry_answer_outcome_column_is_not_null():
 
 
 def test_init_db_is_idempotent_on_a_matching_telemetry_table():
-    """Calling `init_db` again on a table already shaped like `_TELEMETRY_COLUMNS`
-    is a no-op — existing rows survive."""
+    """A table already the declared shape survives `init_db`, rows included."""
     db.save_user("alice", _sample_state())
     db.log_telemetry(
         session_id="sess-keep",
@@ -345,6 +345,7 @@ def test_init_db_is_idempotent_on_a_matching_telemetry_table():
 
 
 def test_init_db_drops_telemetry_table_missing_a_required_column():
+    """A table too narrow to INSERT into is dropped and rebuilt, rows and all."""
     with db.get_connection() as conn:
         conn.execute("DROP TABLE telemetry_logs")
         conn.execute("""
@@ -369,9 +370,8 @@ def test_init_db_drops_telemetry_table_missing_a_required_column():
 
 
 def test_init_db_drops_telemetry_table_with_a_stale_extra_column():
-    """A pre-#253 shape — extra `is_correct`, nullable `answer_outcome` — no
-    longer matches even though it holds every column `log_telemetry` writes today,
-    since its shape now differs from `_TELEMETRY_COLUMNS`."""
+    """#253: a pre-#253 table is dropped for its leftover `is_correct` alone, even
+    though it still holds every column `log_telemetry` writes today."""
     with db.get_connection() as conn:
         conn.execute("DROP TABLE telemetry_logs")
         conn.execute("""

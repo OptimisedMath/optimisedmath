@@ -49,7 +49,9 @@ _TELEMETRY_STRIP_KEYS = frozenset(
 
 # The grader's finer-grained outcomes, collapsed to the four buckets telemetry
 # records an Answer Outcome under (ADR-0016, settled by #259). Applied on the
-# way into telemetry — nothing upstream of this reads the collapsed form.
+# way into telemetry — nothing upstream of this reads the collapsed form. Total
+# over what `grade()` can return, so an outcome missing here raises rather than
+# being logged as something it isn't.
 _TELEMETRY_OUTCOME_BUCKETS = {
     "correct": "correct",
     "trap": "trap",
@@ -62,9 +64,7 @@ _TELEMETRY_OUTCOME_BUCKETS = {
 
 def _telemetry_answer_outcome(eval_result: EvalResult) -> str:
     """Collapse the grader's outcome to the bucket telemetry records it under."""
-    raw_outcome = eval_result.get("answer_outcome")
-    assert raw_outcome is not None, "grade() always sets answer_outcome"
-    return _TELEMETRY_OUTCOME_BUCKETS[raw_outcome]
+    return _TELEMETRY_OUTCOME_BUCKETS[eval_result["answer_outcome"]]
 
 
 def run_submission_cycle(

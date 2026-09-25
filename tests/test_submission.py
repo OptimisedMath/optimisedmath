@@ -217,7 +217,7 @@ def _soft_error_problem() -> dict[str, Any]:
 
 def _exact_match_violation_problem() -> dict[str, Any]:
     """`exact_match_only`, value-equal but not the exact string, no Trap declared —
-    the grader's old `exact_match_violation` leaf, which collapses to `wrong`."""
+    ADR-0016's `exact_match_violation` row, which telemetry records as `wrong`."""
     return {
         "problem_id": "p-exact-match-violation",
         "question": "q",
@@ -226,17 +226,9 @@ def _exact_match_violation_problem() -> dict[str, Any]:
     }
 
 
-def _syntax_error_problem() -> dict[str, Any]:
-    return {
-        "problem_id": "p-syntax-error",
-        "question": "q",
-        "correct": "1/2",
-    }
-
-
 def _format_mismatch_problem() -> dict[str, Any]:
-    """Correct written as a decimal; a value-equal common fraction is the grader's
-    old `format_mismatch` leaf, which collapses to `soft_error`."""
+    """Correct written as a decimal, so a value-equal common fraction is the
+    grader's `format_mismatch`, which collapses to `soft_error`."""
     return {
         "problem_id": "p-format-mismatch",
         "question": "q",
@@ -534,6 +526,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
 
 
 def test_exact_match_violation_collapses_to_wrong(fixture_curriculum: Curriculum):
+    """An `exact_match_only` violation is logged as `wrong`, not as a Soft Error."""
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
     problem = _exact_match_violation_problem()
 
@@ -560,8 +553,9 @@ def test_exact_match_violation_collapses_to_wrong(fixture_curriculum: Curriculum
 
 
 def test_syntax_error_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    """An unparseable answer is logged as `soft_error`, like every other Soft Error."""
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
-    problem = _syntax_error_problem()
+    problem = _soft_error_problem()
 
     _submit(state, problem, "abc", "typing", fixture_curriculum, _STUDENT)
 
@@ -586,6 +580,7 @@ def test_syntax_error_collapses_to_soft_error(fixture_curriculum: Curriculum):
 
 
 def test_format_mismatch_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    """A value-equal answer in the wrong number format is logged as `soft_error`."""
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
     problem = _format_mismatch_problem()
 
