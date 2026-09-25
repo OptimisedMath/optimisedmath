@@ -199,7 +199,11 @@ export function wireDeconstructionTriggerFlow({
   });
 }
 
-/** Wires the three session operations used by a typical arena play-through. */
+/**
+ * Wires the three session operations used by a typical arena play-through.
+ * `onSubmit` is optional — a scenario that never submits leaves `submitAnswer`
+ * unwired, so reaching it fails loudly rather than returning a fixture.
+ */
 export function wireArenaFlow({
   session,
   problem,
@@ -207,7 +211,7 @@ export function wireArenaFlow({
 }: {
   session: SessionResponse;
   problem: Problem;
-  onSubmit: () => SubmissionResponse;
+  onSubmit?: () => SubmissionResponse;
 }): SessionClient {
   const getNextProblem = async () => {
     const state: SessionResponse = {
@@ -223,6 +227,6 @@ export function wireArenaFlow({
   return createFakeSessionClient({
     startSession: async () => session,
     getNextProblem,
-    submitAnswer: async () => onSubmit(),
+    submitAnswer: onSubmit ? async () => onSubmit() : undefined,
   });
 }

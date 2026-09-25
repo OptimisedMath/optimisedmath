@@ -1,7 +1,6 @@
 export {
   DECONSTRUCTION_ORDERING_SEPARATOR,
   MISSING_TOPIC_NAME,
-  PREFERRED_CHAPTER_ID,
   SESSION_STORAGE_KEYS,
 } from './constants';
 export { httpSessionClient } from './httpSessionClient';
