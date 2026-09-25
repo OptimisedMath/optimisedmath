@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { MISSING_TOPIC_NAME } from './constants';
 import {
-  emptySessionDisplayProjection,
+  NO_SESSION_DISPLAY_PROJECTION,
   projectSessionState,
 } from './projectSessionState';
 import { useSessionBootstrap } from './useSessionBootstrap';
@@ -91,9 +91,7 @@ export function useSession() {
 
     const answerLocked = feedbackPhase === 'answer_locked';
 
-    const display = session
-      ? projectSessionState(session)
-      : emptySessionDisplayProjection();
+    const display = session ? projectSessionState(session) : NO_SESSION_DISPLAY_PROJECTION;
 
     return {
       needsLogin,
