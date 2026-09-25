@@ -126,6 +126,11 @@ function unwired(operation: string) {
   };
 }
 
+/** The `unwired()` default for `wireArenaFlow`'s `onSubmit`, which grades synchronously. */
+function unwiredSubmission(): never {
+  throw new Error('Unhandled submitAnswer');
+}
+
 /**
  * The in-memory SessionClient adapter — the one fake for frontend tests.
  * Tests supply handlers for the operations a scenario exercises; every
@@ -137,6 +142,7 @@ export function createFakeSessionClient(handlers: Partial<SessionClient> = {}): 
     startSession: vi.fn(handlers.startSession ?? unwired('startSession')),
     navigateSession: vi.fn(handlers.navigateSession ?? unwired('navigateSession')),
     resetSession: vi.fn(handlers.resetSession ?? unwired('resetSession')),
+    endSession: vi.fn(handlers.endSession ?? unwired('endSession')),
     getNextProblem: vi.fn(handlers.getNextProblem ?? unwired('getNextProblem')),
     submitAnswer: vi.fn(handlers.submitAnswer ?? unwired('submitAnswer')),
     getDeconstructionStep: vi.fn(
@@ -200,33 +206,27 @@ export function wireDeconstructionTriggerFlow({
 }
 
 /**
- * Wires the three session operations used by a typical arena play-through.
- * `onSubmit` is optional — a scenario that never submits leaves `submitAnswer`
- * unwired, so reaching it fails loudly rather than returning a fixture.
+ * Wires the session operations used by a typical arena play-through. Every
+ * fixture defaults, and later handlers win, so a scenario names only the
+ * Problem it grades and the operation it spies on.
  */
 export function wireArenaFlow({
-  session,
-  problem,
-  onSubmit,
+  session = baseSession(),
+  problem = baseProblem(),
+  onSubmit = unwiredSubmission,
+  ...handlers
 }: {
-  session: SessionResponse;
-  problem: Problem;
+  session?: SessionResponse;
+  problem?: Problem;
   onSubmit?: () => SubmissionResponse;
-}): SessionClient {
-  const getNextProblem = async () => {
-    const state: SessionResponse = {
-      ...session,
-      current_problem: problem,
-      can_submit: true,
-      can_next_problem: false,
-    };
-    const response: ProblemResponse = { problem, state };
-    return response;
-  };
-
+} & Partial<SessionClient> = {}): SessionClient {
   return createFakeSessionClient({
     startSession: async () => session,
-    getNextProblem,
-    submitAnswer: onSubmit ? async () => onSubmit() : undefined,
+    getNextProblem: async (): Promise<ProblemResponse> => ({
+      problem,
+      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
+    }),
+    submitAnswer: async () => onSubmit(),
+    ...handlers,
   });
 }

@@ -324,6 +324,12 @@ class SessionResetRequest(BaseModel):
     session_id: str
 
 
+class SessionEndRequest(BaseModel):
+    """Name the Session to end."""
+
+    session_id: str
+
+
 class AutoSolveRequest(BaseModel):
     session_id: str
     problem_id: Optional[str] = None

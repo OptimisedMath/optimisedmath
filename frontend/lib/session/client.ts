@@ -4,6 +4,7 @@ import type {
   DeconstructionSubmissionRequest,
   DeconstructionSubmissionResponse,
   ProblemResponse,
+  SessionEndRequest,
   SessionNavigateRequest,
   SessionResetRequest,
   SessionStartRequest,
@@ -21,6 +22,7 @@ export interface SessionClient {
   startSession(request: SessionStartRequest): Promise<SessionResponse>;
   navigateSession(request: SessionNavigateRequest): Promise<SessionResponse>;
   resetSession(request: SessionResetRequest): Promise<SessionResponse>;
+  endSession(request: SessionEndRequest): Promise<void>;
   getNextProblem(sessionId: string): Promise<ProblemResponse>;
   submitAnswer(request: ProblemSubmissionRequest): Promise<SubmissionResponse>;
   getDeconstructionStep(sessionId: string): Promise<DeconstructionStepResponse>;

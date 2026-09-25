@@ -13,7 +13,7 @@ import {
   wireDeconstructionTriggerFlow,
 } from './fakeBackend';
 import { reachStep } from './deconstructionFlow';
-import { renderArena } from './renderArena';
+import { renderArena, waitForArenaReady } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
 
 async function submitTypedAnswer(answer: string) {
@@ -23,16 +23,6 @@ async function submitTypedAnswer(answer: string) {
   await user.type(input, answer);
   expect(input).toHaveValue(answer);
   await user.click(screen.getByRole('button', { name: /Sprawdź odpowiedź/ }));
-}
-
-async function waitForArenaReady(client: SessionClient) {
-  await waitFor(() => {
-    expect(client.startSession).toHaveBeenCalled();
-    expect(client.getNextProblem).toHaveBeenCalled();
-  });
-  await waitFor(() => {
-    expect(screen.queryByText('Ładowanie zadania...')).not.toBeInTheDocument();
-  });
 }
 
 describe('ADR-0002 leak locks', () => {

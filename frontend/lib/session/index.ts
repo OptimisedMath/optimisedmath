@@ -33,6 +33,7 @@ export type {
   Problem,
   ProblemResponse,
   ProblemSubmissionRequest,
+  SessionEndRequest,
   SessionNavigateRequest,
   SessionResetRequest,
   SessionActions,

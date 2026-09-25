@@ -1,9 +1,8 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { SessionClient } from '@/lib/session';
 import { baseProblem, baseSession, wireArenaFlow } from './fakeBackend';
-import { renderArena } from './renderArena';
+import { renderArena, waitForArenaReady } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
 
 async function submitTypedAnswer(answer: string) {
@@ -12,16 +11,6 @@ async function submitTypedAnswer(answer: string) {
   await user.clear(input);
   await user.type(input, answer);
   await user.click(screen.getByRole('button', { name: /Sprawdź odpowiedź/ }));
-}
-
-async function waitForArenaReady(client: SessionClient) {
-  await waitFor(() => {
-    expect(client.startSession).toHaveBeenCalled();
-    expect(client.getNextProblem).toHaveBeenCalled();
-  });
-  await waitFor(() => {
-    expect(screen.queryByText('Ładowanie zadania...')).not.toBeInTheDocument();
-  });
 }
 
 describe('answerLocked derived from feedbackPhase', () => {
