@@ -24,10 +24,11 @@ function shouldFetchProblem(session: SessionResponse): boolean {
 }
 
 /**
- * Reads stored credentials and starts a session on mount. Sends only the
- * stored username — a chapter override here would be read as Navigation by
- * the backend and reset Streak (ADR-0006). Internal to lib/session/ —
- * composed by useSession().
+ * Reads stored credentials and starts a session on mount, sending the stored
+ * username and nothing else: the profile owns Selected chapter/topic/level
+ * (ADR-0006), and a chapter id here would read as Navigation on the backend,
+ * moving the Student off that Chapter and resetting Streak. Internal to
+ * lib/session/ — composed by useSession().
  */
 export function useSessionBootstrap({
   setSessionState,

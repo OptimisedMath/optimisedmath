@@ -1,35 +1,26 @@
 import { waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
-import type { SessionClient } from '@/lib/session';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { baseProblem, baseSession, wireArenaFlow } from './fakeBackend';
 import { renderArena } from './renderArena';
-import { resetStoredSession, seedStoredSession } from './testSession';
-
-async function waitForArenaReady(client: SessionClient) {
-  await waitFor(() => {
-    expect(client.startSession).toHaveBeenCalled();
-    expect(client.getNextProblem).toHaveBeenCalled();
-  });
-}
+import { resetStoredSession, seedStoredSession, STORED_USERNAME } from './testSession';
 
 describe('session bootstrap', () => {
-  it('starts a session with only the stored username, no chapter id', async () => {
+  beforeEach(() => {
     resetStoredSession();
     seedStoredSession();
+  });
 
-    const session = baseSession();
-    const problem = baseProblem();
-    const client = wireArenaFlow({
-      session,
-      problem,
-      onSubmit: () => {
-        throw new Error('not exercised');
-      },
-    });
+  /**
+   * #377: the backend reads a chapter id on a start request as Navigation, which
+   * moves the Student off the Chapter their profile holds and resets Streak.
+   */
+  it('starts a session with only the stored username, no chapter id', async () => {
+    const client = wireArenaFlow({ session: baseSession(), problem: baseProblem() });
 
     renderArena(client);
-    await waitForArenaReady(client);
 
-    expect(client.startSession).toHaveBeenCalledWith({ username: 'testuser' });
+    await waitFor(() => {
+      expect(client.startSession).toHaveBeenCalledWith({ username: STORED_USERNAME });
+    });
   });
 });
