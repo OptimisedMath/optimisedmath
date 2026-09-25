@@ -157,6 +157,11 @@ const QUOTA_PATTERNS = [
   /usage limit will reset/i,
   /credit balance is too low/i,
   /insufficient credits/i,
+  // The session-limit stop a resolved run's stdout carries when the
+  // developer's Claude usage runs out mid-turn, e.g. "You've hit your
+  // session limit · resets 2:40pm (UTC)". Missing this let a run keep
+  // planning after every implementer had already died (#407).
+  /session limit/i,
 ];
 
 // A machine that cannot reach the API will not be able to reach it on the next
@@ -234,6 +239,27 @@ export function isGroupComplete(state: {
 }): boolean {
   const planExhausted = state.plannedIssues === 0 || state.settledWithNothingToDo;
   return planExhausted && state.blockedIssues === 0 && state.strandedBranches === 0;
+}
+
+/** A Done marker's trailers, parsed from one commit's message. */
+export interface DoneMarker {
+  readonly issue: number;
+  readonly batch: string;
+}
+
+const DONE_TRAILER = /^Sandcastle-Done:\s*#(\d+)\s*$/m;
+const BATCH_TRAILER = /^Sandcastle-Batch:\s*(\S+)\s*$/m;
+
+/**
+ * Read a Done marker's trailers out of one commit message, or undefined if
+ * this commit carries neither. Markers are found by trailer, never by
+ * content, so an empty commit's missing diff never matters here.
+ */
+export function parseDoneTrailers(commitMessage: string): DoneMarker | undefined {
+  const doneMatch = commitMessage.match(DONE_TRAILER);
+  const batchMatch = commitMessage.match(BATCH_TRAILER);
+  if (!doneMatch || !batchMatch) return undefined;
+  return { issue: Number(doneMatch[1]), batch: batchMatch[1] };
 }
 
 /**

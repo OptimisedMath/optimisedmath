@@ -15,7 +15,7 @@ be cut off at any moment — most often because the developer's Claude usage ran
 out mid-task — and it leaves everything it had done on this branch. Before you
 plan anything, find out what is already there:
 
-1. `git log {{BRANCH}} --not main --format="%H%n%B---"` — every commit already made for this issue. Read the `Blockers or notes for next iteration` line of the most recent one; your past self wrote it for you.
+1. `git log {{BRANCH}} --not main --format="%H%n%B---"` — every commit already made for this issue. Read the `Blockers or notes for next iteration` line of the most recent one; your past self wrote it for you. Some commits may be subject-lined `Sandcastle-WIP: #{{TASK_ID}} — ...` instead of `RALPH:` — those are the orchestrator's own saves of whatever you had mid-edit when a turn was cut off, not someone else's work. Continue them exactly as you would your own last commit; do not revert or redo them.
 2. `git status` — uncommitted changes left mid-edit. If there are any, read them with `git diff` before touching those files. They are your own work in progress, not someone else's mistake.
 3. `gh issue view {{TASK_ID}} --comments` — a previous iteration may have left a note on the issue saying what it finished and what it did not.
 

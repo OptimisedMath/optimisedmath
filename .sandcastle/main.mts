@@ -50,7 +50,18 @@
 import * as sandcastle from "@ai-hero/sandcastle";
 import { defaultImageName, docker } from "@ai-hero/sandcastle/sandboxes/docker";
 import { execFileSync, execSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
+import {
+  doneIssues,
+  isBatchBranchShipped,
+  isStale,
+  markDone,
+  readyToMerge,
+  saveWorktree,
+  unfinishedBranches,
+  type IssueBranch,
+} from "./lib/gitFacts.mts";
 import { reportOutcome } from "./notify.mts";
 import {
   batchBranchGlob,
@@ -140,6 +151,12 @@ const hooks = {
 // and died with ENOTEMPTY on a bad one. A cold install is slower and correct.
 // If the minutes ever matter, the fix is a cache the container owns — a volume
 // or an image layer — not a copy of a tree built for another platform.
+
+// The host repo, bound once — every gitFacts call reads and writes this repo's
+// local branches (issue and integration branches are never worktree-specific:
+// git refs are shared across a repo's worktrees), so there is nothing to gain
+// by re-reading REPO_CWD at each call site.
+const REPO_CWD = process.cwd();
 
 const BASE_BRANCH = "main";
 
@@ -270,24 +287,40 @@ function branchesMatching(glob: string): string[] {
   );
 }
 
-/** List branches matching a glob whose commits are already contained in a ref. */
-function branchesMergedInto(ref: string, glob: string): string[] {
-  return lines(
-    sh(`git branch --merged ${ref} --list "${glob}" --format="%(refname:short)"`),
-  );
-}
-
 /** Count commits on `branch` that `ref` does not already contain. */
 function commitsAhead(ref: string, branch: string): number {
   return Number(sh(`git rev-list --count ${ref}..${branch}`));
 }
 
-/** The issue branches that could belong to this group, whether or not they exist. */
-function groupIssueBranches(group: Group): string[] {
-  const existing = new Set(branchesMatching("sandcastle/issue-*"));
-  return group.issues
-    .map((issue) => issueBranchName(issue.number))
-    .filter((branch) => existing.has(branch));
+/** The group's issues, described as {issueNumber, branch} pairs for gitFacts. */
+function groupIssueBranchDescriptors(group: Group): IssueBranch[] {
+  return group.issues.map((issue) => ({
+    issueNumber: issue.number,
+    branch: issueBranchName(issue.number),
+  }));
+}
+
+/**
+ * Merged PR head branches matching `glob`, for deciding whether a batch
+ * branch shipped by squash merge rather than by ancestry. `gh` has no glob
+ * search over head branch names, so every merged PR is fetched once and
+ * filtered here.
+ */
+function fetchMergedPrHeadBranches(glob: string): string[] {
+  const json = shQuiet(
+    `gh pr list --state merged --limit 200 --json headRefName --jq '[.[].headRefName]'`,
+  );
+  if (json === undefined) return [];
+
+  const parsed: unknown = JSON.parse(json);
+  if (!Array.isArray(parsed) || !parsed.every((entry) => typeof entry === "string")) {
+    throw new Error(`Unexpected 'gh pr list' output, expected a string array: ${json}`);
+  }
+
+  const pattern = new RegExp(
+    `^${glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`,
+  );
+  return parsed.filter((branch) => pattern.test(branch));
 }
 
 /**
@@ -295,16 +328,17 @@ function groupIssueBranches(group: Group): string[] {
  *
  * A run is resumable: a `sandcastle/batch-<id>-*` branch left by an earlier run
  * is continued so its work — and its PR — carry forward. A fresh branch is cut
- * from BASE_BRANCH only when this group has none outstanding. Branches already
- * merged into BASE_BRANCH have shipped and must not be resumed.
+ * from BASE_BRANCH only when this group has none outstanding. A branch counts
+ * as shipped — and is never resumed — once BASE_REF has it as an ancestor, or
+ * once a PR with that head branch has merged. The second case is what a squash
+ * merge needs: it never makes the branch an ancestor of BASE_REF.
  */
 function resolveIntegrationBranch(group: Group): string {
   execSync(`git fetch origin ${BASE_BRANCH}`, { stdio: "inherit" });
-  const shipped = new Set(
-    branchesMergedInto(BASE_REF, batchBranchGlob(group.id)),
-  );
-  const outstanding = branchesMatching(batchBranchGlob(group.id)).find(
-    (branch) => !shipped.has(branch),
+  const glob = batchBranchGlob(group.id);
+  const mergedPrHeads = fetchMergedPrHeadBranches(glob);
+  const outstanding = branchesMatching(glob).find(
+    (branch) => !isBatchBranchShipped(REPO_CWD, branch, BASE_REF, mergedPrHeads),
   );
 
   // Neither branch is checked out on the host. Agents work on it in their own
@@ -324,39 +358,24 @@ function resolveIntegrationBranch(group: Group): string {
 /**
  * Which of the group's issues does the integration branch already cover?
  *
- * Derived from git rather than run-local state, so it stays correct however
- * many interrupted runs contributed to the branch. Branches already in
- * BASE_BRANCH shipped in an earlier batch and must not be re-announced.
+ * Driven by Done markers reachable from the integration branch, not by
+ * ancestry or commit counts: an issue is merged once the orchestrator marked
+ * it done, whether or not its branch produced a diff.
  */
 function resolveMergedIssues(
   group: Group,
   integrationBranch: string,
 ): { id: string; title: string; branch: string }[] {
-  const shipped = new Set(
-    branchesMergedInto(BASE_REF, "sandcastle/issue-*"),
-  );
   const titles = new Map(group.issues.map((i) => [i.number, i.title]));
 
-  return branchesMergedInto(integrationBranch, "sandcastle/issue-*")
-    .filter((branch) => !shipped.has(branch))
-    .map((branch) => ({ branch, number: issueNumberOfBranch(branch) }))
-    .filter(
-      (entry): entry is { branch: string; number: number } =>
-        entry.number !== undefined && titles.has(entry.number),
-    )
-    .map((entry) => ({
-      id: String(entry.number),
-      title: titles.get(entry.number) ?? `Issue #${entry.number}`,
-      branch: entry.branch,
+  return doneIssues(REPO_CWD, integrationBranch)
+    .filter((number) => titles.has(number))
+    .map((number) => ({
+      id: String(number),
+      title: titles.get(number) ?? `Issue #${number}`,
+      branch: issueBranchName(number),
     }))
     .sort((a, b) => Number(a.id) - Number(b.id));
-}
-
-/** The group's issue branches carrying commits the integration branch lacks. */
-function strandedBranches(group: Group, integrationBranch: string): string[] {
-  return groupIssueBranches(group).filter(
-    (branch) => commitsAhead(integrationBranch, branch) > 0,
-  );
 }
 
 /** Host path of the worktree Sandcastle keeps for a branch. */
@@ -372,46 +391,93 @@ function worktreeIsDirty(branch: string): boolean {
 }
 
 /**
- * Report the group's work that exists but did not make it into the batch.
- *
- * Phase 0 refuses to merge a branch that is mid-edit, and the planner only ever
- * sees open issues, so a branch can drop out of a batch silently. This does not
- * try to rescue it — merging a half-edit unattended is exactly what Phase 0 is
- * right to refuse — it just makes the omission loud at PR time.
+ * Commit whatever a killed process left mid-edit in the group's issue
+ * worktrees, before Phase 0 even looks at them. Nothing else runs between a
+ * Ctrl-C and the next invocation of Sandcastle, so this is the only point
+ * that ever sees that dirt.
  */
-function warnAboutUnmergedBranches(
+function saveDirtyWorktreesAtGroupStart(group: Group): void {
+  for (const issue of group.issues) {
+    const branch = issueBranchName(issue.number);
+    const worktree = worktreePathOf(branch);
+    if (!existsSync(worktree)) continue;
+    if (!worktreeIsDirty(branch)) continue;
+
+    if (saveWorktree(worktree, issue.number, "found-dirty-at-start")) {
+      console.log(
+        `Saved #${issue.number}: ${branch} was left dirty by an interrupted run.`,
+      );
+    }
+  }
+}
+
+/**
+ * Recreate an issue branch left pointing at content already on BASE_REF —
+ * e.g. commits later squash-merged (#253, #258, #355, #356). Safe because a
+ * stale branch holds nothing BASE_REF lacks.
+ *
+ * A dirty worktree is saved first rather than recreated out from under it:
+ * the save gives the branch content of its own, so it is no longer stale —
+ * it is kept, and called out by name here rather than left to the generic
+ * "no Done marker yet" warning `warnAboutUnfinishedBranches` would otherwise
+ * give it.
+ */
+function recreateStaleBranches(
+  planned: { id: string; branch: string }[],
+  integrationBranch: string,
+): void {
+  for (const { id, branch } of planned) {
+    if (branchesMatching(branch).length === 0) continue;
+    if (!isStale(REPO_CWD, branch, BASE_REF)) continue;
+
+    if (worktreeIsDirty(branch)) {
+      const worktree = worktreePathOf(branch);
+      if (saveWorktree(worktree, Number(id), "found-dirty-at-start")) {
+        console.warn(
+          `#${id}: ${branch} was stale AND mid-edit — saved its loose changes instead of recreating it. Kept, not deleted; it will look unfinished until this issue's implementer or reviewer finishes.`,
+        );
+      }
+      continue;
+    }
+
+    sh(`git branch -f ${branch} ${integrationBranch}`);
+    console.log(
+      `#${id}: ${branch} was stale (its commits already reached ${BASE_BRANCH}, likely via a squash merge) — recreated from ${integrationBranch}.`,
+    );
+  }
+}
+
+/**
+ * Report the group's work that is saved but not yet marked done.
+ *
+ * A branch lands here either because an implementer is still mid-issue, or
+ * because it was interrupted before signalling completion — the save points
+ * in gitFacts mean neither case loses work, so there is nothing to do by
+ * hand. This just makes the omission loud at PR time.
+ */
+function warnAboutUnfinishedBranches(
   group: Group,
   integrationBranch: string,
 ): void {
-  const stranded = strandedBranches(group, integrationBranch);
-  if (stranded.length === 0) return;
+  const unfinished = unfinishedBranches(
+    REPO_CWD,
+    integrationBranch,
+    groupIssueBranchDescriptors(group),
+  );
+  if (unfinished.length === 0) return;
 
   console.warn(
-    `\n⚠️  ${describeGroup(group.id)}: ${stranded.length} branch(es) carry commits that are NOT in this PR:\n`,
+    `\n⚠️  ${describeGroup(group.id)}: ${unfinished.length} branch(es) hold saved work with no Done marker yet:\n`,
   );
 
-  for (const branch of stranded) {
+  for (const branch of unfinished) {
     const ahead = commitsAhead(integrationBranch, branch);
     const dirty = worktreeIsDirty(branch);
-    const worktree = worktreePathOf(branch);
-
     console.warn(
-      `  ${branch} — ${ahead} unmerged commit(s), ${dirty ? "worktree has uncommitted changes" : "not picked up by any iteration"}`,
+      `  ${branch} — ${ahead} commit(s), ${dirty ? "currently mid-edit" : "idle, waiting for its implementer or reviewer to finish"}`,
     );
-
-    if (dirty) {
-      console.warn(`    An agent was interrupted mid-job. Inspect it:`);
-      console.warn(`      git -C ${worktree} status`);
-      console.warn(`    Then keep the loose changes:`);
-      console.warn(`      git -C ${worktree} add -A && git -C ${worktree} commit -m "..."`);
-      console.warn(`    ...or discard just the loose changes, keeping the commits:`);
-      console.warn(`      git -C ${worktree} restore --staged --worktree .`);
-      console.warn(`    ...or leave it and re-run, to let an implementer finish it.`);
-    } else {
-      console.warn(`    Nothing to do by hand — re-run Sandcastle and it will be picked up.`);
-    }
-    console.warn("");
   }
+  console.warn(`\n  Nothing to do by hand — re-run Sandcastle and it will be continued.\n`);
 }
 
 // ---------------------------------------------------------------------------
@@ -465,22 +531,22 @@ function onIntegrationBranch(branch: string) {
 // Phase 0: pick up finished work from a prior run
 // ---------------------------------------------------------------------------
 
-/** Merge this group's branches that a prior run finished but never merged. */
+/**
+ * Merge this group's branches that a prior run finished but never merged —
+ * "finished" meaning carrying a Done marker for this integration branch, not
+ * merely carrying commits. A branch with agent commits but no marker is left
+ * alone: it is unfinished, not ready, however far it got.
+ */
 async function pickUpPriorWork(
   group: Group,
   integrationBranch: string,
 ): Promise<void> {
+  const ready = new Set(
+    readyToMerge(REPO_CWD, integrationBranch, groupIssueBranchDescriptors(group)),
+  );
   const pickedUp = group.issues
     .map((issue) => ({ issue, branch: issueBranchName(issue.number) }))
-    .filter(({ branch }) => branchesMatching(branch).length > 0)
-    .filter(({ branch }) => commitsAhead(integrationBranch, branch) > 0)
-    .filter(({ branch }) => {
-      if (!worktreeIsDirty(branch)) return true;
-      console.log(
-        `Skipping pickup of ${branch}: worktree has uncommitted changes, letting the normal loop finish it.`,
-      );
-      return false;
-    });
+    .filter(({ branch }) => ready.has(branch));
 
   if (pickedUp.length === 0) return;
 
@@ -630,7 +696,13 @@ async function runImplementer(
 
     commits.push(...result.commits);
     const completed = result.completionSignal !== undefined;
-    history.push({ commits: result.commits.length, completed });
+
+    // Save whatever this iteration left behind before deciding whether the
+    // run is dead. An iteration that edited files but never committed still
+    // produces a save commit here, which counts as progress below — only an
+    // iteration that changed nothing at all does not.
+    const saved = saveWorktree(sandbox.worktreePath, Number(issue.id), "iteration-ended");
+    history.push({ commits: result.commits.length + (saved ? 1 : 0), completed });
 
     if (completed) return { commits, completed: true };
 
@@ -644,7 +716,18 @@ async function runImplementer(
   return { commits, completed: false };
 }
 
-/** Implement one issue, then review it if the implementer committed. */
+/**
+ * Implement one issue, then review it if the implementer signalled
+ * completion — even with zero commits, since that is the agent reporting the
+ * work was already done, and the reviewer still confirms it. Done, from here
+ * on, means the reviewer finished without a fatal failure: that is the only
+ * thing that earns the Done marker, whatever the commit count was.
+ *
+ * Sandbox creation reuses an existing issue branch as-is and ignores
+ * `baseBranch` for it — the SDK's own behaviour. That is fine now that a
+ * stale branch (one holding nothing BASE_REF lacks) is recreated from the
+ * integration branch before this runs; see recreateStaleBranches.
+ */
 async function workIssue(
   issue: { id: string; title: string; branch: string },
   integrationBranch: string,
@@ -661,7 +744,7 @@ async function workIssue(
 
   try {
     const implement = await runImplementer(sandbox, issue);
-    if (implement.commits.length === 0) return implement;
+    if (!implement.completed) return implement;
 
     const review = await sandbox.run({
       name: `reviewer#${issue.id}`,
@@ -672,11 +755,19 @@ async function workIssue(
     });
     throwIfRunFatal(review.stdout);
 
+    saveWorktree(sandbox.worktreePath, Number(issue.id), "iteration-ended");
+    markDone(sandbox.worktreePath, Number(issue.id), integrationBranch);
+
     return {
       commits: [...implement.commits, ...review.commits],
-      completed: implement.completed,
+      completed: true,
     };
   } finally {
+    // Safety net for a fatal failure anywhere above: whatever is sitting
+    // uncommitted in the worktree at this point is saved before the sandbox
+    // — and the worktree with it — closes. A no-op when there is nothing
+    // dirty, which is the common case on a clean success.
+    saveWorktree(sandbox.worktreePath, Number(issue.id), "run-died");
     await sandbox.close();
   }
 }
@@ -762,6 +853,11 @@ async function runGroup(group: Group): Promise<boolean> {
 
   const integrationBranch = resolveIntegrationBranch(group);
 
+  // Covers the process-killed-with-Ctrl-C path: nothing else runs between an
+  // interrupted invocation and this one, so this is the only point that ever
+  // sees a worktree left dirty by it.
+  saveDirtyWorktreesAtGroupStart(group);
+
   await pickUpPriorWork(group, integrationBranch);
 
   let planned: { id: string; title: string; branch: string }[] = [];
@@ -798,6 +894,8 @@ async function runGroup(group: Group): Promise<boolean> {
       console.log(`  ${issue.id}: ${issue.title} → ${issue.branch}`);
     }
 
+    recreateStaleBranches(planned, integrationBranch);
+
     const settled = await Promise.allSettled(
       planned.map((issue) => workIssue(issue, integrationBranch)),
     );
@@ -814,17 +912,16 @@ async function runGroup(group: Group): Promise<boolean> {
       }
     }
 
-    const completed = settled
-      .map((outcome, i) => ({ outcome, issue: planned[i]! }))
-      .filter(
-        (entry) =>
-          entry.outcome.status === "fulfilled" &&
-          entry.outcome.value.commits.length > 0,
-      )
-      .map((entry) => entry.issue);
+    // "Completed" here means carrying a Done marker for this integration
+    // branch — written inside workIssue once the implementer signalled and
+    // the reviewer finished — not merely having produced a commit.
+    const ready = new Set(
+      readyToMerge(REPO_CWD, integrationBranch, groupIssueBranchDescriptors(group)),
+    );
+    const completed = planned.filter((issue) => ready.has(issue.branch));
 
     if (completed.length === 0) {
-      console.log("No commits produced. Nothing to merge.");
+      console.log("No issues marked done this cycle. Nothing to merge.");
 
       // Every issue reporting completion with nothing to show for it means the
       // work was already done. Replanning would ask the same question and get
@@ -863,14 +960,19 @@ async function runGroup(group: Group): Promise<boolean> {
     console.log("\nBranches merged into integration branch.");
   }
 
-  warnAboutUnmergedBranches(group, integrationBranch);
-  stranded += strandedBranches(group, integrationBranch).length;
+  warnAboutUnfinishedBranches(group, integrationBranch);
+  const stillUnfinished = unfinishedBranches(
+    REPO_CWD,
+    integrationBranch,
+    groupIssueBranchDescriptors(group),
+  ).length;
+  stranded += stillUnfinished;
 
   const complete = isGroupComplete({
     plannedIssues: planned.length,
     blockedIssues: blocked.length,
     settledWithNothingToDo,
-    strandedBranches: strandedBranches(group, integrationBranch).length,
+    strandedBranches: stillUnfinished,
   });
 
   return publish(group, integrationBranch, complete, blocked);
@@ -940,7 +1042,7 @@ function preflightSandbox(): void {
     process.exit(1);
   }
 
-  const image = defaultImageName(process.cwd());
+  const image = defaultImageName(REPO_CWD);
   if (shQuiet(`docker image inspect ${image}`) === undefined) {
     console.error(
       `\nSandbox image ${image} is missing — every sandbox would fail to start. Build it with 'npx sandcastle docker build-image', then re-run Sandcastle.`,
