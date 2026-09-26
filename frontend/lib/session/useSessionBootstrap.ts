@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useAppNavigation } from '@/lib/navigation';
-import { PREFERRED_CHAPTER_ID } from './constants';
 import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
 import { getStoredSessionId, getStoredUsername, setStoredSessionId } from './storage';
@@ -16,18 +15,19 @@ interface UseSessionBootstrapOptions {
 }
 
 /**
- * A resumed session can come back mid-Deconstruction, and `/problem/next` is
- * shut while one runs — asking anyway only buys a 403 and an error banner over
- * the takeover that is about to arm off `deconstruction_running`.
+ * A resumed Session already carries its active Problem, and asking for a next
+ * one would discard exactly what the Resume recovered (#378). The
+ * `deconstruction_running` half is redundant — a running Deconstruction always
+ * has an active Problem — but mirrors the backend's rule that `/problem/next`
+ * is shut while one runs, rather than leaving that to coincidence (ADR-0002).
  */
 function shouldFetchProblem(session: SessionResponse): boolean {
-  return !session.deconstruction_running;
+  return !session.deconstruction_running && !session.current_problem;
 }
 
 /**
- * Reads stored credentials and starts a session on mount, falling back to the
- * plain (no preferred-chapter) start request when the preferred chapter is
- * unavailable. Internal to lib/session/ — composed by useSession().
+ * Reads stored credentials and starts a Session on mount. Internal to
+ * lib/session/ — composed by useSession().
  */
 export function useSessionBootstrap({
   setSessionState,
@@ -52,9 +52,14 @@ export function useSessionBootstrap({
       }
 
       try {
+        // The stored Username and session id, nothing else (#377): the profile
+        // owns Selected chapter/topic/level (ADR-0006), so a chapter id here
+        // would read as Navigation on the backend, moving the Student off the
+        // Chapter they were playing and resetting Streak. The session id is
+        // what lets the backend resume rather than start over (#378).
         const sessionResponse = await client.startSession({
           username: storedUsername,
-          selected_chapter_id: PREFERRED_CHAPTER_ID,
+          session_id: storedSessionId,
         });
         if (!isMounted) return;
 
@@ -66,21 +71,6 @@ export function useSessionBootstrap({
         }
       } catch (err) {
         if (!isMounted) return;
-
-        try {
-          const fallbackSession = await client.startSession({ username: storedUsername });
-          if (!isMounted) return;
-
-          setStoredSessionId(fallbackSession.session_id);
-          setSessionState(fallbackSession);
-          setError(null);
-          if (shouldFetchProblem(fallbackSession)) {
-            onSessionStarted(fallbackSession.session_id);
-          }
-          return;
-        } catch {
-          // Fall through to the original error message.
-        }
 
         reportError(setError, err, 'Failed to start session', 'Error starting session:');
       }

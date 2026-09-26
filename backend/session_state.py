@@ -225,6 +225,23 @@ def load_profile(
         )
 
 
+def reread_profile_progress(state: SessionState) -> None:
+    """Re-read the profile-owned progress — XP and the Chapter Frontiers — onto ``state``.
+
+    A Session row carries its own copy of both, so a Resume reads the profile
+    that owns them (ADR-0006) rather than trusting the Session's copy: a tab
+    refreshed hours after another device played must not write its stale figure
+    back over the newer one. Selected is deliberately left alone — ADR-0006
+    seeds it from the profile at Session *start* only — and so are the Session's
+    own copies when there is no profile row to read.
+    """
+    user_data = db.load_user(state.username) if state.username else None
+    if user_data is None:
+        return
+    state.xp = user_data["xp"]
+    state.chapter_frontiers = user_data["chapter_frontiers"]
+
+
 def hard_reset(
     state: SessionState,
     curriculum: Curriculum,
@@ -233,6 +250,10 @@ def hard_reset(
     should_persist: bool = True,
 ) -> None:
     """Wipes all progress and resets to initial state.
+
+    Owns clearing the Session-scoped Misconception state (hit counts and the
+    deconstructed set) too, which `reset_submission_cycle` deliberately leaves
+    alone: a reset re-arms every Deconstruction (ADR-0014).
 
     ``should_persist=False`` lets a caller that persists once for a larger unit
     of work (e.g. ``load_profile`` during Session start) skip the write here.
@@ -251,6 +272,8 @@ def hard_reset(
         curriculum, chapter_ids[0] if chapter_ids else None
     )
     state.selected_level = 1
+    state.misconception_hits = {}
+    state.deconstructed = []
     reset_submission_cycle(state, curriculum)
     if should_persist:
         persist(state, play_mode)

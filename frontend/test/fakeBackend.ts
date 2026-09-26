@@ -120,6 +120,17 @@ export function withProblem(session: SessionResponse, problem: Problem): Session
   return { ...session, current_problem: problem };
 }
 
+/**
+ * The next-Problem response the backend serves: the Problem active on the
+ * Session, answerable, with the Next-problem gate shut behind it.
+ */
+function servedProblem(session: SessionResponse, problem: Problem): ProblemResponse {
+  return {
+    problem,
+    state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
+  };
+}
+
 function unwired(operation: string) {
   return async () => {
     throw new Error(`Unhandled ${operation}`);
@@ -137,6 +148,7 @@ export function createFakeSessionClient(handlers: Partial<SessionClient> = {}): 
     startSession: vi.fn(handlers.startSession ?? unwired('startSession')),
     navigateSession: vi.fn(handlers.navigateSession ?? unwired('navigateSession')),
     resetSession: vi.fn(handlers.resetSession ?? unwired('resetSession')),
+    endSession: vi.fn(handlers.endSession ?? unwired('endSession')),
     getNextProblem: vi.fn(handlers.getNextProblem ?? unwired('getNextProblem')),
     submitAnswer: vi.fn(handlers.submitAnswer ?? unwired('submitAnswer')),
     getDeconstructionStep: vi.fn(
@@ -185,10 +197,7 @@ export function wireDeconstructionTriggerFlow({
 
   return createFakeSessionClient({
     startSession: async () => session,
-    getNextProblem: async () => ({
-      problem,
-      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
-    }),
+    getNextProblem: async () => servedProblem(session, problem),
     submitAnswer: async () => ({
       is_correct: false,
       feedback: TRAP_FEEDBACK,
@@ -199,30 +208,27 @@ export function wireDeconstructionTriggerFlow({
   });
 }
 
-/** Wires the three session operations used by a typical arena play-through. */
+/**
+ * Wires the session operations used by a typical arena play-through. Every
+ * fixture defaults, and later handlers win, so a scenario names only the
+ * Problem it grades and the operation it spies on.
+ */
 export function wireArenaFlow({
-  session,
-  problem,
+  session = baseSession(),
+  problem = baseProblem(),
   onSubmit,
+  ...handlers
 }: {
-  session: SessionResponse;
-  problem: Problem;
-  onSubmit: () => SubmissionResponse;
-}): SessionClient {
-  const getNextProblem = async () => {
-    const state: SessionResponse = {
-      ...session,
-      current_problem: problem,
-      can_submit: true,
-      can_next_problem: false,
-    };
-    const response: ProblemResponse = { problem, state };
-    return response;
-  };
-
+  session?: SessionResponse;
+  problem?: Problem;
+  onSubmit?: () => SubmissionResponse;
+} & Partial<SessionClient> = {}): SessionClient {
   return createFakeSessionClient({
     startSession: async () => session,
-    getNextProblem,
-    submitAnswer: async () => onSubmit(),
+    getNextProblem: async () => servedProblem(session, problem),
+    // `onSubmit` grades synchronously, so it cannot be an `unwired()` default of
+    // its own; a scenario that grades nothing falls back to the shared one.
+    submitAnswer: onSubmit ? async () => onSubmit() : unwired('submitAnswer'),
+    ...handlers,
   });
 }

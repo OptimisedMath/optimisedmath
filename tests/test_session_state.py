@@ -111,6 +111,21 @@ def test_hard_reset_wipes_progress_and_persists(fixture_curriculum: Curriculum):
     assert loaded["xp"] == 0
 
 
+def test_hard_reset_clears_session_scoped_misconception_state(
+    fixture_curriculum: Curriculum,
+):
+    """Issue #383: the deconstructed set and Misconception hit counts are Session-scoped
+    state a hard reset must wipe, same as Streak or Flawless."""
+    state = _fresh_state(fixture_curriculum)
+    state.misconception_hits = {"some_misconception": 1}
+    state.deconstructed = ["some_misconception"]
+
+    session_state.hard_reset(state, fixture_curriculum, StudentPlayMode())
+
+    assert state.misconception_hits == {}
+    assert state.deconstructed == []
+
+
 def test_load_profile_hydrates_existing_user(fixture_curriculum: Curriculum):
     username = "existing-user"
     saved = SessionState(
@@ -151,6 +166,48 @@ def test_load_profile_hard_resets_new_user(fixture_curriculum: Curriculum):
     assert state.streak == 0
     assert state.selected_chapter_id == CHAPTER_ALPHA
     assert state.selected_topic_id == TOPIC_MULTI
+
+
+def test_reread_profile_progress_takes_xp_and_frontiers_from_the_profile(
+    fixture_curriculum: Curriculum,
+):
+    """A Resume re-reads the profile-owned progress over the Session's own copies,
+    leaving Selected and the Session-only fields where the Session had them."""
+    state = _fresh_state(fixture_curriculum)
+    state.xp = 5
+    state.streak = 2
+    state.selected_chapter_id = CHAPTER_ALPHA
+    profile = state.model_copy(deep=True)
+    profile.xp = 50
+    profile.chapter_frontiers[CHAPTER_BETA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_SINGLE, frontier_level=3
+    )
+    profile.selected_chapter_id = CHAPTER_BETA
+    db.save_user(_username(state), profile)
+
+    session_state.reread_profile_progress(state)
+
+    assert state.xp == 50
+    assert state.chapter_frontiers[CHAPTER_BETA].frontier_level == 3
+    assert state.selected_chapter_id == CHAPTER_ALPHA
+    assert state.streak == 2
+
+
+def test_reread_profile_progress_keeps_session_copies_without_a_profile_row(
+    fixture_curriculum: Curriculum,
+):
+    """With no profile row to read, the Session's own XP and Frontiers stand rather
+    than being wiped."""
+    state = _fresh_state(fixture_curriculum)
+    state.xp = 5
+    state.chapter_frontiers[CHAPTER_ALPHA] = ChapterFrontier(
+        frontier_topic_id=TOPIC_MULTI, frontier_level=4
+    )
+
+    session_state.reread_profile_progress(state)
+
+    assert state.xp == 5
+    assert state.chapter_frontiers[CHAPTER_ALPHA].frontier_level == 4
 
 
 def _polluted_submission_cycle_state(

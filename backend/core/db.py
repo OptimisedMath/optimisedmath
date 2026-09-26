@@ -314,6 +314,30 @@ def delete_session(session_id: str) -> None:
         conn.commit()
 
 
+def load_resumable_session(
+    session_id: str, max_age_seconds: float
+) -> SessionState | None:
+    """Loads a session only if it exists and was updated within `max_age_seconds` ago.
+
+    Not found and found-but-Stale return the same `None` — the age comparison runs
+    inside this one query so the two cases never need telling apart by a caller.
+    `max_age_seconds` is the caller's game-config value; this layer holds none.
+    """
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT state_json FROM sessions
+            WHERE session_id = ? AND updated_at >= datetime('now', ?)
+            """,
+            (session_id, f"{-max_age_seconds} seconds"),
+        )
+        row = cursor.fetchone()
+        if row:
+            return SessionState.model_validate_json(row[0])
+        return None
+
+
 # --- Users ---
 
 

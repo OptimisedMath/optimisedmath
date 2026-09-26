@@ -1213,6 +1213,351 @@ def test_start_session_survives_recovery_from_db():
     assert recovered.problem_start_time == original_start_time
 
 
+# --- session resume (#378) ---
+
+
+def _start_session(username, *, session_id=None):
+    """Call the start route, optionally offering a stored id to resume."""
+    return run(
+        main.session_start(
+            main.SessionStartRequest(username=username, session_id=session_id)
+        )
+    )
+
+
+def test_start_session_with_stored_id_returns_the_same_session_id():
+    """Starting with a stored session id resumes it rather than minting a new one."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert resumed.session_id == first.session_id
+
+
+def test_start_session_with_unknown_session_id_starts_fresh():
+    """An unknown session id is declined silently — a fresh Session, no error."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    resumed = _start_session(username, session_id=str(uuid.uuid4()))
+
+    assert resumed.session_id != first.session_id
+
+
+def test_start_session_declines_a_mismatched_username():
+    """A stored id whose Session belongs to a different Username is declined
+    the same way as an unknown id, rather than reviving somebody else's Session."""
+    owner = f"resume-owner-{uuid.uuid4()}"
+    other = f"resume-other-{uuid.uuid4()}"
+    owned = _start_session(owner)
+
+    resumed = _start_session(other, session_id=owned.session_id)
+
+    assert resumed.session_id != owned.session_id
+
+
+def test_resume_carries_streak_and_forfeited_flawless():
+    """A resumed Session keeps its Streak, and Flawless as forfeited."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    state.streak = 2
+    state.flawless_eligible = False
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert resumed.streak == 2
+    assert resumed.flawless_eligible is False
+
+
+def test_resume_carries_active_problem_answer_lock_and_feedback():
+    """A resumed Session returns the same Problem, still locked, with Feedback intact."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    state.current_problem = _trap_problem("p-resume")
+    state.problem_answered = True
+    state.feedback_type = "warning"
+    state.feedback_msg = "Try again"
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert resumed.current_problem is not None
+    assert resumed.current_problem["problem_id"] == "p-resume"
+    assert resumed.problem_answered is True
+    assert resumed.can_submit is False
+    assert resumed.feedback_type == "warning"
+    assert resumed.feedback_msg == "Try again"
+
+
+def test_resume_carries_hit_counts_so_a_later_hit_still_triggers(monkeypatch):
+    """A first hit, a resume, then a second hit at a different Topic fires the
+    Deconstruction — #306's Session-scoped hit count survives #378's resume."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    chapter_id = state.selected_chapter_id
+    other_topic_id = _topic_with_a_published_level(
+        chapter_id, 1, other_than=state.selected_topic_id
+    )
+    if other_topic_id is None:
+        pytest.skip("Need a second Topic publishing Level 1")
+
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+    assert resumed_state.misconception_hits.get(_UNLIKE_FRACTIONS_MISCONCEPTION) == 1
+
+    resumed_state.selected_topic_id = other_topic_id
+    _submit_trap(resumed_state, "p-second-hit")
+
+    assert resumed_state.deconstruction is not None
+    assert (
+        resumed_state.deconstruction.misconception_slug
+        == _UNLIKE_FRACTIONS_MISCONCEPTION
+    )
+
+
+def test_resume_does_not_redeconstruct_an_already_deconstructed_family(monkeypatch):
+    """A Trap family deconstructed before the resume is not deconstructed again after it."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    state.deconstructed = [_UNLIKE_FRACTIONS_MISCONCEPTION]
+    state.misconception_hits = {_UNLIKE_FRACTIONS_MISCONCEPTION: 5}
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+    assert resumed_state.deconstructed == [_UNLIKE_FRACTIONS_MISCONCEPTION]
+
+    _submit_trap(resumed_state, "p-after-resume")
+
+    assert resumed_state.deconstruction is None
+
+
+def test_resume_leaves_the_problem_start_clock_unstamped():
+    """The Problem start clock survives a Resume unchanged — it is not re-stamped."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    state.problem_start_time = 12345.0
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    _start_session(username, session_id=first.session_id)
+
+    assert main.ACTIVE_SESSIONS[first.session_id].problem_start_time == 12345.0
+
+
+# --- session resume heals against the Curriculum and re-reads the profile (#379) ---
+
+
+def test_resume_seeds_a_frontier_for_a_chapter_added_since_the_session_was_saved():
+    """#214, reopened by a long-lived Session: a Chapter added between two page
+    loads left a resumed Session with no Frontier record for it, and the first
+    Submission there raised on the Chapter id. A Resume seeds one, and the
+    Submission succeeds instead."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    curriculum = resolve_curriculum()
+    new_chapter_id = list(curriculum.chapter_ids())[-1]
+    assert new_chapter_id != state.selected_chapter_id
+    # Dropping the record stands in for a Chapter added after the Session was
+    # saved: either way the stored Session holds no Frontier for that Chapter.
+    del state.chapter_frontiers[new_chapter_id]
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+    assert new_chapter_id in resumed_state.chapter_frontiers
+
+    new_topic_id = int(curriculum.topics(new_chapter_id)[0]["topic_id"])
+    resumed_state.selected_chapter_id = new_chapter_id
+    resumed_state.selected_topic_id = new_topic_id
+    resumed_state.selected_level = 1
+    resumed_state.current_problem = _trap_problem("p-new-chapter")
+    resumed_state.problem_answered = False
+    resumed_state.problem_start_time = 0
+
+    # Completing without raising is the assertion — this Submission raised on the
+    # missing Frontier record before the Resume seeded one.
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=resumed_state.session_id,
+                problem_id="p-new-chapter",
+                user_input="2",
+            )
+        )
+    )
+
+
+def test_resume_clamps_a_selected_level_above_the_topics_current_max():
+    """A Topic renumbered smaller between two page loads left a resumed Session
+    stranded on a Level that no longer exists; a Resume clamps it back down."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    curriculum = resolve_curriculum()
+    max_level = int(
+        curriculum.topic_by_id(state.selected_chapter_id, state.selected_topic_id)[
+            "max_level"
+        ]
+    )
+    state.selected_level = max_level + 10
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert main.ACTIVE_SESSIONS[resumed.session_id].selected_level == max_level
+
+
+def test_resume_rereads_xp_and_chapter_frontiers_from_the_profile():
+    """A laptop tab refreshed hours after a phone played does not write a stale
+    XP/Frontier figure back over the newer profile (ADR-0006)."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    state.xp = 5
+    db.save_session(state.session_id, state.username, state)
+
+    # A second device's play advanced the profile past this stale Session row.
+    profile_state = state.model_copy(deep=True)
+    profile_state.xp = 50
+    profile_state.chapter_frontiers[state.selected_chapter_id] = ChapterFrontier(
+        frontier_topic_id=state.selected_topic_id,
+        frontier_level=3,
+    )
+    db.save_user(username, profile_state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+
+    assert resumed_state.xp == 50
+    assert (
+        resumed_state.chapter_frontiers[state.selected_chapter_id].frontier_level == 3
+    )
+
+
+def test_resume_leaves_selected_chapter_topic_level_as_the_session_holds_it():
+    """Selected is seeded from the profile only at Session start (ADR-0006); a
+    Resume must not move a tab to wherever another device last navigated."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    session_chapter_id = state.selected_chapter_id
+    curriculum = resolve_curriculum()
+    other_chapter_id = next(
+        cid for cid in curriculum.chapter_ids() if cid != session_chapter_id
+    )
+    db.save_session(state.session_id, state.username, state)
+
+    profile_state = state.model_copy(deep=True)
+    profile_state.selected_chapter_id = other_chapter_id
+    profile_state.selected_topic_id = int(
+        curriculum.topics(other_chapter_id)[0]["topic_id"]
+    )
+    profile_state.selected_level = 1
+    db.save_user(username, profile_state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+
+    assert resumed_state.selected_chapter_id == session_chapter_id
+
+
+# --- Stale Session (#380) ---
+
+
+def test_resume_declines_a_stale_session(monkeypatch):
+    """A Session outside the staleness window is not resumed — a fresh Session
+    with a different id is returned instead."""
+    monkeypatch.setattr(config, "SESSION_STALE_AFTER_SECONDS", -1)
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert resumed.session_id != first.session_id
+
+
+def test_resume_deletes_a_declined_stale_sessions_row(monkeypatch):
+    """A Stale Session's row is gone after the decline — the browser's stored
+    id is about to be overwritten, so nothing could ever reach it again."""
+    monkeypatch.setattr(config, "SESSION_STALE_AFTER_SECONDS", -1)
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    _start_session(username, session_id=first.session_id)
+
+    assert db.load_session(first.session_id) is None
+
+
+def test_resume_does_not_delete_a_mismatched_usernames_row():
+    """A row declined for a Username mismatch is left alone — unlike a Stale
+    decline, it still belongs to its rightful owner and stays reachable."""
+    owner = f"resume-owner-{uuid.uuid4()}"
+    other = f"resume-other-{uuid.uuid4()}"
+    owned = _start_session(owner)
+
+    _start_session(other, session_id=owned.session_id)
+
+    assert db.load_session(owned.session_id) is not None
+
+
+# --- session_end (#381) ---
+
+
+def test_session_end_deletes_the_session_row_and_the_active_cache():
+    """Ending a Session drops it from both the in-memory cache and SQLite."""
+    session_id = _start_session(f"end-user-{uuid.uuid4()}").session_id
+    assert session_id in main.ACTIVE_SESSIONS
+    assert db.load_session(session_id) is not None
+
+    run(main.session_end(main.SessionEndRequest(session_id=session_id)))
+
+    assert session_id not in main.ACTIVE_SESSIONS
+    assert db.load_session(session_id) is None
+    with pytest.raises(session.SessionNotFoundError):
+        session.get_session(session_id)
+
+
+def test_session_end_is_idempotent_for_an_unknown_id():
+    """Ending an id the backend never minted is a no-op, not an error."""
+    run(main.session_end(main.SessionEndRequest(session_id=str(uuid.uuid4()))))
+
+
+def test_session_end_lets_a_later_start_mint_a_different_id():
+    """An ended Session is not resumable — the next start mints a fresh id."""
+    username = f"end-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    run(main.session_end(main.SessionEndRequest(session_id=first.session_id)))
+    second = _start_session(username)
+
+    assert second.session_id != first.session_id
+
+
 def test_start_next_submit_logs_time_spent_telemetry():
     """Submitting right after start and Next problem must log a populated time_spent field."""
     response = run(
@@ -2788,3 +3133,45 @@ def test_deconstruction_abandon_raises_when_none_running():
                 main.DeconstructionAbandonRequest(session_id=state.session_id)
             )
         )
+
+
+# --- Reset clears Session-scoped Misconception state (#383) ---
+
+
+def test_reset_clears_misconception_hit_count_so_one_hit_does_not_deconstruct(
+    monkeypatch,
+):
+    """Issue #383: a reset must zero the hit count, so a single hit afterwards
+    grades normally instead of immediately arming a Deconstruction."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
+    _submit_trap(state, "p-first-hit")
+    assert state.deconstruction is None
+
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
+
+    _submit_trap(state, "p-post-reset-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-post-reset-second-hit")
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION
+
+
+def test_reset_clears_deconstructed_set_so_misconception_deconstructs_again(
+    monkeypatch,
+):
+    """Issue #383: a Misconception already deconstructed this Session must be
+    deconstructable again after a reset — two fresh hits fire its Deconstruction."""
+    _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
+    state = make_state(_trap_problem("p-already-deconstructed"), input_mode="radio")
+    state.deconstructed = [_UNLIKE_FRACTIONS_MISCONCEPTION]
+
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
+
+    _submit_trap(state, "p-post-reset-first-hit")
+    assert state.deconstruction is None
+
+    _submit_trap(state, "p-post-reset-second-hit")
+    assert state.deconstruction is not None
+    assert state.deconstruction.misconception_slug == _UNLIKE_FRACTIONS_MISCONCEPTION

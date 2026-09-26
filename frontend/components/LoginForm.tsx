@@ -5,7 +5,7 @@ import { useAppNavigation } from '@/lib/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { setSessionCredentials, useSessionClient } from '@/lib/session';
+import { getStoredSessionId, setSessionCredentials, useSessionClient } from '@/lib/session';
 
 const FLOATING_SYMBOLS = [
   { symbol: '∑', top: '12%', left: '10%', delay: '0s', size: 'text-5xl' },
@@ -39,6 +39,12 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
+      // Logging in ends whatever Session was stored before minting its
+      // replacement, so the row it leaves behind is not unreachable (ADR-0019).
+      const previousSessionId = getStoredSessionId();
+      if (previousSessionId) {
+        await client.endSession({ session_id: previousSessionId });
+      }
       const sessionResponse = await client.startSession({ username: username.trim() });
       setSessionCredentials(username.trim(), sessionResponse.session_id);
       enterArena();

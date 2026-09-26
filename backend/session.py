@@ -29,6 +29,7 @@ from backend.models import (
     SessionState,
     ProblemResponse,
     ProblemSubmissionRequest,
+    SessionEndRequest,
     SessionNavigateRequest,
     SessionResetRequest,
     SessionStartRequest,
@@ -257,9 +258,58 @@ def _build_started_state(
     return state, curriculum, play_mode
 
 
+def _resume_session(request: SessionStartRequest) -> SessionState | None:
+    """Look up the Session ``request.session_id`` names, declining an unknown id,
+    a Stale one, or a stored Username that doesn't match the request's.
+
+    All three declines fall back to a fresh start via the same branch (#378) —
+    unrecognised, Stale and someone else's are indistinguishable to the Student,
+    so none is worth telling apart here. A failed lookup also deletes the row (a
+    no-op for an id that was never there): the browser's stored id is about to be
+    overwritten, so nothing could ever reach a Stale row again. A mismatched-Username
+    row is left alone — it still belongs to its rightful owner.
+    """
+    if not request.session_id:
+        return None
+    stored = db.load_resumable_session(
+        request.session_id, config.SESSION_STALE_AFTER_SECONDS
+    )
+    if stored is None:
+        db.delete_session(request.session_id)
+        return None
+    if stored.username != request.username:
+        return None
+    return stored
+
+
+def _build_resumed_state(
+    stored: SessionState,
+) -> tuple[SessionState, Curriculum, PlayMode]:
+    """Revive a stored Session whole: no re-persist, and the Problem start clock
+    left exactly as it was served — but healed against the current Curriculum
+    and re-read against the profile (ADR-0019).
+
+    Frontier seeding and the Selected-level clamp run exactly as a fresh start
+    runs them, so a Chapter added or a Topic renumbered under a long-lived
+    Session cannot raise on its next Submission (#214, reopened by ADR-0019).
+    The Submission-cycle reset never runs here — it would wipe Streak, Flawless
+    and the active Problem and undo #378.
+    """
+    curriculum = resolve_curriculum()
+    session_state.reread_profile_progress(stored)
+    session_state.seed_chapter_frontiers(stored, curriculum)
+    navigation_resolve.clamp_selected_level(stored, curriculum)
+    return stored, curriculum, resolve_play_mode(stored.username)
+
+
 def start_session(request: SessionStartRequest) -> SessionResponse:
-    """Create a session, load user progress, and return SessionResponse with navigation."""
-    state, curriculum, play_mode = _build_started_state(request)
+    """Resume the Session ``request.session_id`` names, or start a fresh one, and
+    return SessionResponse with navigation."""
+    resumed = _resume_session(request)
+    if resumed is not None:
+        state, curriculum, play_mode = _build_resumed_state(resumed)
+    else:
+        state, curriculum, play_mode = _build_started_state(request)
     ACTIVE_SESSIONS[state.session_id] = state
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
@@ -307,6 +357,12 @@ def reset_session(request: SessionResetRequest) -> SessionResponse:
         state, curriculum, play_mode
     )
     return build_session_response(state, play_mode, nav_snapshot)
+
+
+def end_session(request: SessionEndRequest) -> None:
+    """Delete a Session by id — idempotent, ending an unknown id is not an error."""
+    ACTIVE_SESSIONS.pop(request.session_id, None)
+    db.delete_session(request.session_id)
 
 
 def next_problem(session_id: str) -> ProblemResponse:
