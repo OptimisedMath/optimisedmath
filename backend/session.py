@@ -259,18 +259,25 @@ def _build_started_state(
 
 
 def _resume_session(request: SessionStartRequest) -> SessionState | None:
-    """Look up the Session ``request.session_id`` names, declining an unknown id
-    or a stored Username that doesn't match the request's.
+    """Look up the Session ``request.session_id`` names, declining an unknown id,
+    a Stale one, or a stored Username that doesn't match the request's.
 
-    Both declines fall back to a fresh start via the same branch (#378) — an
-    unrecognised id and someone else's Session are indistinguishable to the
-    Student, so neither is worth telling apart here. ADR-0019's third decline,
-    a Session gone Stale after 12 hours untouched, is #380 and not yet checked.
+    All three declines fall back to a fresh start via the same branch (#378) —
+    unrecognised, Stale and someone else's are indistinguishable to the Student,
+    so none is worth telling apart here. The Stale case additionally deletes the
+    row: the browser's stored id is about to be overwritten, so nothing could
+    ever reach it again. A mismatched-Username row is left alone — it still
+    belongs to its rightful owner.
     """
     if not request.session_id:
         return None
-    stored = db.load_session(request.session_id)
-    if stored is None or stored.username != request.username:
+    stored = db.load_resumable_session(
+        request.session_id, config.SESSION_STALE_AFTER_SECONDS
+    )
+    if stored is None:
+        db.delete_session(request.session_id)
+        return None
+    if stored.username != request.username:
         return None
     return stored
 

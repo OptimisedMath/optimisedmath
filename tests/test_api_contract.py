@@ -1363,6 +1363,47 @@ def test_resume_leaves_the_problem_start_clock_unstamped():
     assert main.ACTIVE_SESSIONS[first.session_id].problem_start_time == 12345.0
 
 
+# --- Stale Session (#380) ---
+
+
+def test_resume_declines_a_stale_session(monkeypatch):
+    """A Session outside the staleness window is not resumed — a fresh Session
+    with a different id is returned instead."""
+    monkeypatch.setattr(config, "SESSION_STALE_AFTER_SECONDS", -1)
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert resumed.session_id != first.session_id
+
+
+def test_resume_deletes_a_declined_stale_sessions_row(monkeypatch):
+    """A Stale Session's row is gone after the decline — the browser's stored
+    id is about to be overwritten, so nothing could ever reach it again."""
+    monkeypatch.setattr(config, "SESSION_STALE_AFTER_SECONDS", -1)
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    _start_session(username, session_id=first.session_id)
+
+    assert db.load_session(first.session_id) is None
+
+
+def test_resume_does_not_delete_a_mismatched_usernames_row():
+    """A row declined for a Username mismatch is left alone — unlike a Stale
+    decline, it still belongs to its rightful owner and stays reachable."""
+    owner = f"resume-owner-{uuid.uuid4()}"
+    other = f"resume-other-{uuid.uuid4()}"
+    owned = _start_session(owner)
+
+    _start_session(other, session_id=owned.session_id)
+
+    assert db.load_session(owned.session_id) is not None
+
+
 # --- session_end (#381) ---
 
 
