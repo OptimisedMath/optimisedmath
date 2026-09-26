@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from typing import Any, TypedDict
 
 from backend.config import DB_PATH
-from backend.models import ChapterFrontier, SessionState
+from backend.models import AnswerOutcome, ChapterFrontier, SessionState
 
 # --- Types ---
 
@@ -261,14 +261,19 @@ def _drop_stale_table(cursor: sqlite3.Cursor, table_name: str) -> None:
     can't satisfy. Acceptable pre-launch, while these tables have no production
     readers; past launch, a schema change needs a real migration instead of a
     silent drop.
+
+    Raises `KeyError` for a table `_TABLE_COLUMNS` does not declare — looked up
+    before the name reaches SQL, since `PRAGMA` and `DROP TABLE` cannot take it
+    as a bound parameter.
     """
+    expected_columns = _TABLE_COLUMNS[table_name]
     table_exists = cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
     ).fetchone()
     if not table_exists:
         return
     columns = {row[1] for row in cursor.execute(f"PRAGMA table_info({table_name})")}
-    if columns != _TABLE_COLUMNS[table_name]:
+    if columns != expected_columns:
         cursor.execute(f"DROP TABLE {table_name}")
 
 
@@ -407,7 +412,7 @@ def log_telemetry(
     streak_before_answer: int,
     flawless_eligible: bool,
     frontier_relation: str,
-    answer_outcome: str,
+    answer_outcome: AnswerOutcome,
     answer_form: str,
     correct_form: str,
     user_input: str | None = None,
@@ -568,7 +573,7 @@ def create_deconstruction_attempt(
     user_input: str,
     answer_form: str,
     answer_value: tuple[int, int] | None,
-    outcome: str,
+    outcome: AnswerOutcome,
     time_spent_ms: int | None,
 ) -> None:
     """Write one `deconstruction_attempts` row for a single step submit.

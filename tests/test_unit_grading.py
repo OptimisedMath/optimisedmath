@@ -57,10 +57,8 @@ class TestSplitAndNormalize:
 class TestUnitGrading:
     @pytest.mark.parametrize("typed", ["84 cm²", "84 cm2", "84 CM^2", "84cm2"])
     def test_expected_unit_in_any_typable_form_is_correct(self, typed):
-        assert (
-            grade(typed, _area_problem(), input_mode="typing")["answer_outcome"]
-            == "correct"
-        )
+        result = grade(typed, _area_problem(), input_mode="typing")
+        assert result["answer_outcome"] == "correct"
 
     def test_correct_conversion_is_correct(self):
         """`0,0084 m²` is Correct for `84 cm²`: converting is more work, not less."""
@@ -69,10 +67,8 @@ class TestUnitGrading:
 
     def test_conversion_resolves_correct_exactly_not_approximately(self):
         """Factors are integers, so the comparison is exact — 8400 mm² is 84 cm²."""
-        assert (
-            grade("8400 mm²", _area_problem(), input_mode="typing")["answer_outcome"]
-            == "correct"
-        )
+        result = grade("8400 mm²", _area_problem(), input_mode="typing")
+        assert result["answer_outcome"] == "correct"
 
     def test_a_missing_unit_is_wrong_not_a_soft_error(self):
         """Here the Unit is part of the answer, so omitting it is penalized."""
@@ -123,13 +119,12 @@ class TestUnitGrading:
 
     def test_radio_mode_never_sees_a_unit(self):
         """Options are bare numbers, so the Unit can never be the discriminator."""
-        assert (
-            grade("84", _area_problem(), input_mode="radio")["answer_outcome"]
-            == "correct"
-        )
+        result = grade("84", _area_problem(), input_mode="radio")
+        assert result["answer_outcome"] == "correct"
 
     def test_a_problem_without_an_expected_unit_grades_unchanged(self):
         """A generator that declares no Unit is untouched by any of this."""
         problem = _area_problem()
         del problem["expected_unit"]
-        assert grade("84", problem, input_mode="typing")["answer_outcome"] == "correct"
+        result = grade("84", problem, input_mode="typing")
+        assert result["answer_outcome"] == "correct"

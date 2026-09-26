@@ -72,6 +72,14 @@ InputMode = Literal["radio", "typing"]
 DeconstructionStepInputType = Literal["typed", "ordering"]
 
 
+# CONTEXT.md's Answer Outcome — the four exclusive buckets telemetry records a
+# Submission under (ADR-0016). Not the key of the same name on `EvalResult`, which
+# carries the finer vocabulary the grader computes on its way to a verdict;
+# `submission.py` and `deconstruction_step.py` each collapse their own grader's
+# values into these four, so no query has to learn two dialects.
+AnswerOutcome = Literal["correct", "trap", "wrong", "soft_error"]
+
+
 class DeconstructionStep(BaseModel):
     """One computed walkthrough question, mirroring `deconstruction.Step`.
 

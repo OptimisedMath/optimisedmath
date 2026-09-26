@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import backend.config as config
-from backend.answer_grading import EvalResult
+from backend.answer_grading import EvalResult, is_correct
 from backend.unlock import increase_frontier_on_mastery
 
 
@@ -49,16 +49,16 @@ def resolve_submission_outcome(
     eval_result: EvalResult, ctx: SubmissionContext
 ) -> SubmissionOutcome:
     """Apply progression rules given a grading result and session context."""
-    is_correct = eval_result.get("answer_outcome") == "correct"
+    correct = is_correct(eval_result)
     feedback_type = eval_result.get("feedback_type")
     is_soft_error = feedback_type == "info"
 
-    if not is_correct and not is_soft_error:
+    if not correct and not is_soft_error:
         new_flawless_eligible = False
     else:
         new_flawless_eligible = ctx.flawless_eligible
 
-    if is_correct:
+    if correct:
         return _advance_streak_and_xp(ctx, new_flawless_eligible)
 
     new_streak = ctx.current_streak

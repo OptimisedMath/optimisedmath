@@ -8,12 +8,13 @@ import time
 from typing import Literal
 
 import backend.config as config
-from backend.answer_grading import EvalResult, grade
+from backend.answer_grading import EvalResult, grade, is_correct
 from backend.core import db
 from backend.core.utils import ProblemDict, answer_form, answer_value
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
 from backend.models import (
+    AnswerOutcome,
     DeconstructionState,
     DeconstructionStep,
     InputMode,
@@ -53,7 +54,7 @@ _TELEMETRY_STRIP_KEYS = frozenset(
 # way into telemetry — nothing upstream of this reads the collapsed form. Total
 # over what `grade()` can return, so an outcome missing here raises rather than
 # being logged as something it isn't.
-_TELEMETRY_OUTCOME_BUCKETS = {
+_TELEMETRY_OUTCOME_BUCKETS: dict[str, AnswerOutcome] = {
     "correct": "correct",
     "trap": "trap",
     "wrong": "wrong",
@@ -63,7 +64,7 @@ _TELEMETRY_OUTCOME_BUCKETS = {
 }
 
 
-def _telemetry_answer_outcome(eval_result: EvalResult) -> str:
+def _telemetry_answer_outcome(eval_result: EvalResult) -> AnswerOutcome:
     """Collapse the grader's outcome to the bucket telemetry records it under."""
     return _TELEMETRY_OUTCOME_BUCKETS[eval_result["answer_outcome"]]
 
@@ -133,7 +134,7 @@ def _apply_discounted_retry_outcome(
     """
     feedback_type = eval_result.get("feedback_type")
     feedback_msg = eval_result.get("feedback_msg", "")
-    if eval_result.get("answer_outcome") == "correct":
+    if is_correct(eval_result):
         base_xp = config.XP_REWARDS.get(state.selected_level, config.DEFAULT_XP_REWARD)
         discounted_xp = round(base_xp * config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER)
         state.xp += discounted_xp

@@ -21,6 +21,8 @@ class EvalResult(TypedDict, total=False):
     lock_answer: bool
     feedback_type: str
     feedback_msg: str
+    #: The grader's own finer vocabulary, always set (ADR-0016). `models.AnswerOutcome`
+    #: is the four-bucket collapse of it that telemetry stores.
     answer_outcome: str
     trap_slug: str
     #: Set only by a grader-synthesized Trap, which has no Level `traps:` entry
@@ -31,6 +33,16 @@ class EvalResult(TypedDict, total=False):
 def _correct() -> EvalResult:
     """The Correct verdict — the one place every path that reaches one names it."""
     return {"lock_answer": True, "answer_outcome": "correct"}
+
+
+def is_correct(eval_result: EvalResult) -> bool:
+    """Whether a graded submission was Correct.
+
+    The one reader of `answer_outcome` that callers outside grading need, so
+    Streak, XP and the wire response never spell the comparison out themselves
+    (#253 deleted the `is_correct` key they used to read).
+    """
+    return eval_result.get("answer_outcome") == "correct"
 
 
 def _match_trap_feedback(
@@ -166,28 +178,24 @@ def grade(
 
     # --- 1. RADIO MODE ---
     if input_mode == "radio" and "options" in problem and len(problem["options"]) > 0:
-        is_correct = options_map.get(user_input) == "correct"
-        if is_correct:
+        option_type = options_map.get(user_input)
+        if option_type == "correct":
             return _correct()
 
-        msg_key = options_map.get(user_input)
         msg_text = problem.get("messages", {}).get(
-            msg_key or FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
+            option_type or FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
         )
-        if msg_key is None:
-            outcome = "wrong"
-        elif msg_key == FILLER_SLUG:
-            outcome = "wrong"
-        else:
-            outcome = "trap"
+        # An option absent from `options_map` is as unanticipated as a Filler, so
+        # both grade as Wrong; any other option type names a Trap.
+        is_trap = option_type is not None and option_type != FILLER_SLUG
         eval_outcome: EvalResult = {
             "lock_answer": True,
             "feedback_type": "warning",
             "feedback_msg": msg_text,
-            "answer_outcome": outcome,
+            "answer_outcome": "trap" if is_trap else "wrong",
         }
-        if outcome == "trap":
-            eval_outcome["trap_slug"] = msg_key
+        if is_trap:
+            eval_outcome["trap_slug"] = option_type
         return eval_outcome
 
     # --- 2. TYPING MODE ---
