@@ -279,13 +279,30 @@ def _build_resumed_state(
     stored: SessionState,
 ) -> tuple[SessionState, Curriculum, PlayMode]:
     """Revive a stored Session whole: no re-persist, and the Problem start clock
-    left exactly as it was served.
+    left exactly as it was served — but healed against the current Curriculum
+    and re-read against the profile (ADR-0019).
 
-    ADR-0019 also has a Resume heal against the current Curriculum and re-read
-    the profile; that half is #379 and has not landed, so until it does a Resume
-    trusts the stored snapshot.
+    XP and the Chapter Frontiers are re-read from the profile that owns them
+    (ADR-0006), overwriting whatever this Session row held, so a tab refreshed
+    hours after another device played does not write a stale figure back over
+    the newer one. A profile-less username (never persisted, e.g. Admin) leaves
+    the Session's own copies alone rather than wiping them — there is nothing to
+    re-read. Selected chapter/topic/level is deliberately not re-read: ADR-0006
+    seeds it from the profile only at Session *start*. Frontier seeding and the
+    Selected-level clamp then run exactly as a fresh start runs them, so a
+    Chapter added or a Topic renumbered under a long-lived Session cannot raise
+    on its next Submission (#214, reopened by ADR-0019). The Submission-cycle
+    reset never runs here — it would wipe Streak, Flawless and the active
+    Problem and undo #378.
     """
-    return stored, resolve_curriculum(), resolve_play_mode(stored.username)
+    curriculum = resolve_curriculum()
+    user_data = db.load_user(stored.username)
+    if user_data is not None:
+        stored.xp = user_data["xp"]
+        stored.chapter_frontiers = user_data["chapter_frontiers"]
+    session_state.seed_chapter_frontiers(stored, curriculum)
+    navigation_resolve.clamp_selected_level(stored, curriculum)
+    return stored, curriculum, resolve_play_mode(stored.username)
 
 
 def start_session(request: SessionStartRequest) -> SessionResponse:
