@@ -20,7 +20,6 @@ from backend.models import (
     ChapterFrontier,
     DeconstructionState,
     DeconstructionStep,
-    SessionResetRequest,
     SessionState,
 )
 from backend.play_mode import AdminPlayMode, StudentPlayMode
@@ -1214,6 +1213,9 @@ def test_start_session_survives_recovery_from_db():
     assert recovered.problem_start_time == original_start_time
 
 
+# --- session resume (#378) ---
+
+
 def _start_session(username, *, session_id=None):
     """Call the start route, optionally offering a stored id to resume."""
     return run(
@@ -1221,9 +1223,6 @@ def _start_session(username, *, session_id=None):
             main.SessionStartRequest(username=username, session_id=session_id)
         )
     )
-
-
-# --- session resume (#378) ---
 
 
 def test_start_session_with_stored_id_returns_the_same_session_id():
@@ -2800,7 +2799,7 @@ def test_reset_clears_misconception_hit_count_so_one_hit_does_not_deconstruct(
     _submit_trap(state, "p-first-hit")
     assert state.deconstruction is None
 
-    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
 
     _submit_trap(state, "p-post-reset-first-hit")
     assert state.deconstruction is None
@@ -2819,7 +2818,7 @@ def test_reset_clears_deconstructed_set_so_misconception_deconstructs_again(
     state = make_state(_trap_problem("p-already-deconstructed"), input_mode="radio")
     state.deconstructed = [_UNLIKE_FRACTIONS_MISCONCEPTION]
 
-    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
 
     _submit_trap(state, "p-post-reset-first-hit")
     assert state.deconstruction is None

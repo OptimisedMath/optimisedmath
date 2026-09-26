@@ -63,16 +63,16 @@ export function useDeconstruction({
   const sessionId = sessionState?.session_id;
   const armingProblem = phase === 'idle' ? takeoverArmingProblem(sessionState) : null;
 
-  // Tracks the last `deconstruction_running` this hook has observed, `undefined`
-  // until the first Session ever arrives. That gap in the ref — not any flag off
-  // the wire, since none exists (#382) — is what tells a Resume's already-running
-  // Deconstruction apart from one a Submission arms moments after the Session
-  // loaded: only the latter is a reaction to a mistake that just happened.
-  const knownRunningRef = useRef<boolean | undefined>(undefined);
+  // `false` until the very first Session of this page load reaches the hook.
+  // That gap — not any flag off the wire, since none exists (#382) — is what
+  // tells a Resume's already-running Deconstruction apart from one a Submission
+  // arms moments after the Session loaded: only the latter is a reaction to a
+  // mistake that just happened, so only it earns the pause.
+  const hasSeenSessionRef = useRef(false);
 
   useEffect(() => {
     if (!armingProblem) return;
-    const isResume = knownRunningRef.current === undefined;
+    const isResume = !hasSeenSessionRef.current;
     // Arms the takeover once, in response to a Submission response newly
     // arriving from the backend, not a plain prop-to-state mirror.
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -81,8 +81,11 @@ export function useDeconstruction({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [armingProblem]);
 
+  // Declared after the arming effect on purpose: effects flush in declaration
+  // order, so the first Session still reads as a Resume above before being
+  // marked as seen here.
   useEffect(() => {
-    if (sessionState) knownRunningRef.current = sessionState.deconstruction_running;
+    if (sessionState) hasSeenSessionRef.current = true;
   }, [sessionState]);
 
   // Leaving 'pause' — by tap, by Abandonment, or by unmount — runs this
