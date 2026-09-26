@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useSessionClient } from './SessionClientContext';
 import { reportError } from './errors';
@@ -63,15 +63,30 @@ export function useDeconstruction({
   const sessionId = sessionState?.session_id;
   const armingProblem = phase === 'idle' ? takeoverArmingProblem(sessionState) : null;
 
+  // `false` until the very first Session of this page load reaches the hook.
+  // That gap — not any flag off the wire, since none exists (#382) — is what
+  // tells a Resume's already-running Deconstruction apart from one a Submission
+  // arms moments after the Session loaded: only the latter is a reaction to a
+  // mistake that just happened, so only it earns the pause.
+  const hasSeenSessionRef = useRef(false);
+
   useEffect(() => {
     if (!armingProblem) return;
+    const isResume = !hasSeenSessionRef.current;
     // Arms the takeover once, in response to a Submission response newly
     // arriving from the backend, not a plain prop-to-state mirror.
     /* eslint-disable react-hooks/set-state-in-effect */
     setTriggerProblem(armingProblem);
-    setPhase('pause');
+    setPhase(isResume ? 'intro' : 'pause');
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [armingProblem]);
+
+  // Declared after the arming effect on purpose: effects flush in declaration
+  // order, so the first Session still reads as a Resume above before being
+  // marked as seen here.
+  useEffect(() => {
+    if (sessionState) hasSeenSessionRef.current = true;
+  }, [sessionState]);
 
   // Leaving 'pause' — by tap, by Abandonment, or by unmount — runs this
   // cleanup, so the timer needs no cancelling anywhere else.
