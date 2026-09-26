@@ -88,6 +88,31 @@ Box = tuple[float, float, float, float]
 
 
 @dataclass
+class PlacedLabel:
+    """Where `place_labels` settled a label, and the strokes it still crosses there.
+
+    `collisions` only ever counts strokes: a label that still overlaps an
+    already-placed label never reaches here, because `place_labels` raises for
+    that case instead of drawing it (#356).
+    """
+
+    box: Box
+    collisions: int
+
+
+@dataclass(frozen=True)
+class _Candidate:
+    """One trial position for a label, with the costs `_best_candidate` ranks it by."""
+
+    box: Box
+    #: already-placed label boxes this one covers — what the contract forbids
+    overlap: int
+    #: figure strokes running through this box — a soft preference only
+    hits: int
+    rank: float
+
+
+@dataclass
 class Label:
     """A requested label. Its final position is decided by `Ctx.place_labels`."""
 
@@ -157,8 +182,9 @@ class Ctx:
     arc_count: dict[str, int] = field(default_factory=dict)
     #: how many unknown edge lengths have claimed a letter, for figure order
     edge_symbol_count: int = 0
-    #: rectangles `place_labels` settled on, one per label, in placement order
-    placed_boxes: list[Box] = field(default_factory=list)
+    #: where `place_labels` settled each label, and its residual stroke
+    #: collisions, one per label, in placement order (#356)
+    placed: list[PlacedLabel] = field(default_factory=list)
 
     # --- sizes ---------------------------------------------------------
     @property
@@ -313,7 +339,7 @@ class Ctx:
 
     # --- Rule 4: label placement is a whole-scene pass ------------------
     def place_labels(self) -> None:
-        """Emit every requested label at the best position `_best_box` can find.
+        """Emit every requested label at the best position `_best_candidate` can find.
 
         There is no "place it somewhere, anywhere" fallback: a label that
         cannot be placed clear of every already-placed label raises, per the
@@ -323,16 +349,17 @@ class Ctx:
         Raises:
             ValueError: when no candidate position clears the placed labels.
         """
-        placed: list[Box] = []
+        placed: list[PlacedLabel] = []
         for lab in self.labels:
-            box, overlap = self._best_box(lab, placed)
-            if overlap:
+            best = self._best_candidate(lab, placed)
+            if best.overlap:
                 raise ValueError(
                     f"could not place label {lab.text!r} clear of every label "
                     "already placed — the whole-scene placement pass found no "
                     "position for it that does not overlap another label"
                 )
-            placed.append(box)
+            box = best.box
+            placed.append(PlacedLabel(box=box, collisions=best.hits))
             cx = (box[0] + box[2]) / 2
             cy = (box[1] + box[3]) / 2
             font = _UNKNOWN_FONT if lab.unknown else _KNOWN_FONT
@@ -342,11 +369,11 @@ class Ctx:
                 f'text-anchor="middle" dominant-baseline="central">{lab.text}</text>'
             )
             self.include((box[0], box[1]), (box[2], box[3]))
-        self.placed_boxes = placed
+        self.placed = placed
 
-    def _best_box(self, lab: Label, placed: list[Box]) -> tuple[Box, int]:
-        """The best-ranked box for `lab`, and how many of `placed` it still
-        overlaps — zero when the search found somewhere clean.
+    def _best_candidate(self, lab: Label, placed: list[PlacedLabel]) -> _Candidate:
+        """The best-ranked position for `lab` — its box, and the costs it still
+        carries there, both zero when the search found somewhere clean.
 
         Pushes the label out along its own direction until it clears both the
         strokes of the figure and every label already placed. Sliding along
@@ -360,9 +387,7 @@ class Ctx:
         until it clears, gives the search a second axis to route around a fixed
         box without abandoning the outward side that keeps the label meaningful.
         """
-        best_box: Box | None = None
-        best_rank: float | None = None
-        best_overlap: int | None = None
+        best: _Candidate | None = None
         # Two candidate sides. Sliding outward is tried first and preferred,
         # but a label that starts inside a narrow wedge — the height of a
         # squat trapezoid, the arc of a 25 degree vertex — can never escape
@@ -382,7 +407,7 @@ class Ctx:
                     # apart, instead of folding both into one blended cost,
                     # matters: a candidate can only be accepted as "clear" by
                     # the one criterion that governs whether it may ship.
-                    overlap = sum(1 for q in placed if _overlap(box, q))
+                    overlap = sum(1 for other in placed if _overlap(box, other.box))
                     hits = sum(1 for seg in self.obstacles if _hits(box, seg))
                     tie = step * 0.05 + (0.12 if sign < 0 else 0.0) + abs(shift) * 0.03
                     # Scaled so that one label overlap always outranks any
@@ -391,16 +416,18 @@ class Ctx:
                     # clear box can never lose to a dirtier one found earlier
                     # (#289's second fault).
                     rank = overlap * 1000 + hits * 10 + tie
-                    if best_rank is None or rank < best_rank:
-                        best_box, best_rank, best_overlap = box, rank, overlap
+                    if best is None or rank < best.rank:
+                        best = _Candidate(
+                            box=box, overlap=overlap, hits=hits, rank=rank
+                        )
                     if overlap == 0 and hits == 0:
                         break
-                if best_overlap == 0:
+                if best.overlap == 0:
                     break
-            if best_overlap == 0:
+            if best.overlap == 0:
                 break
-        assert best_box is not None and best_overlap is not None
-        return best_box, best_overlap
+        assert best is not None
+        return best
 
     def arc_points(
         self,
@@ -981,19 +1008,29 @@ class Scene:
 
     figure: Figure
     annotations: list[Annotation]
-    _label_boxes: list[Box] = field(
-        default_factory=list, init=False, repr=False, compare=False
-    )
+    _ctx: Ctx | None = field(default=None, init=False, repr=False, compare=False)
 
     def label_boxes(self) -> list[Box]:
         """The rectangles the last `to_svg()` call placed its labels at.
 
         The one seam `to_svg()` needs to make "no two labels overlap"
         assertable for any figure: a caller reads the boxes back off the
-        `Scene` instead of scraping the SVG string or reaching into `Ctx`,
-        which stays private (#289). Empty until `to_svg()` has run.
+        `Scene` instead of scraping the SVG string (#289). Reads through
+        `render_context()`, so it raises if `to_svg()` has not run yet.
         """
-        return list(self._label_boxes)
+        return [placement.box for placement in self.render_context().placed]
+
+    def render_context(self) -> Ctx:
+        """The `Ctx` the last `to_svg()` call built and placed labels against.
+
+        `Ctx` is exported so a caller can read what the renderer recorded —
+        each label's box and its residual stroke collisions — instead of
+        reimplementing the placement pass to find out (#356). Raises if
+        `to_svg()` has not run yet.
+        """
+        if self._ctx is None:
+            raise ValueError("render_context() called before to_svg()")
+        return self._ctx
 
     def _pin_angle_symbols(self) -> None:
         """Give each unknown angle arc its Greek letter before any of them draws.
@@ -1042,7 +1079,7 @@ class Scene:
         # Pass 2b: resolve every label against every stroke and every other
         # label, now that the whole scene is known.
         ctx.place_labels()
-        self._label_boxes = ctx.placed_boxes
+        self._ctx = ctx
 
         # Pass 3: viewBox from the content bbox — labels included, so nothing clips.
         xs = [p[0] for p in ctx.extent]

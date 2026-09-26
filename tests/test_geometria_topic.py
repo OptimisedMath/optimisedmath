@@ -8,6 +8,7 @@ import pytest
 
 import backend.chapters.geometria.topic_130_pole_trojkata as topic
 from backend.core.scene import (
+    MIN_LABELLED_ANGLE,
     Altitude,
     AngleArc,
     Centre,
@@ -25,6 +26,12 @@ from backend.curriculum import curriculum_from_yaml
 from backend.curriculum_loader import CurriculumLoadError, _validate_expected_units
 from backend.problem_generation import generate_level_problem
 from backend.session import _is_safe_svg_fragment
+from tests.support.svg_labels import figure_labels
+
+_VERTEX_LETTERS = {"A", "B", "C"}
+# Every declared Unit pins the same arithmetic, so the sweep below fixes one area
+# Unit and expects the figure's labels in the length Unit that matches it.
+_PINNED_AREA_UNIT, _PINNED_LENGTH_UNIT = "cm²", "cm"
 
 CHAPTER_ID = 30
 TOPIC_ID = 130
@@ -160,11 +167,30 @@ class TestSceneInvariant:
         with pytest.raises(ValueError, match="letters"):
             Scene(figure, [Outline(), *arcs]).to_svg()
 
-    def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self):
-        """The labelled-arc minimum angle (#212) is still enforced after #326."""
-        figure = Triangle.sas(b=10, angle_a=10, c=10)
+    @pytest.mark.parametrize("angle_a", [5.0, 10.0, 14.9])
+    def test_angle_arc_still_refuses_a_vertex_below_the_minimum(self, angle_a):
+        """The labelled-arc minimum angle (#212) is still enforced after #326.
+
+        Parametrised rather than pinned to one value, so a fix that cleared
+        only one distance below the floor would still fail here on the
+        others (#353).
+        """
+        figure = Triangle.sas(b=10, angle_a=angle_a, c=10)
         with pytest.raises(ValueError, match="below the"):
             Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+
+    def test_angle_arc_renders_at_exactly_the_minimum_angle(self):
+        """#212's floor is inclusive — the arc renders at `MIN_LABELLED_ANGLE` (#353).
+
+        Built with `Triangle.angles` rather than `Triangle.sas` because
+        `sas`'s side-angle-side trig recomputes a 15° vertex a hair below 15,
+        refusing a figure the floor is meant to allow; `angle_b=90` lands
+        this vertex on the other side of that rounding.
+        """
+        figure = Triangle.angles(angle_a=MIN_LABELLED_ANGLE, angle_b=90.0)
+        assert figure.interior_angle("A") >= MIN_LABELLED_ANGLE
+        svg = Scene(figure, [Outline(), AngleArc(vertex="A")]).to_svg()
+        assert f">{_fmt(MIN_LABELLED_ANGLE)}°<" in svg
 
     def test_a_right_angle_renders_as_an_arc_and_a_dot_not_a_square(self):
         """#323: łuk z kropką, not the English square — the old marker was a
@@ -363,22 +389,6 @@ class TestGenerators:
         extra = set(parameters) - {"base", "height", "unit"}
         assert extra
 
-    def test_level_1_labels_only_base_and_height(self):
-        """#294: the slant sides are gone, so the figure prints exactly the two
-        lengths the formula needs — both of them, or the Problem is unsolvable."""
-        for _ in range(20):
-            problem = topic.geo_triangle_area_1()
-            assert problem is not None
-            parameters = problem["parameters"]
-            unit = parameters["unit"]
-            printed = set(
-                re.findall(r"<text[^>]*>([^<]*)</text>", problem["image_html"])
-            )
-            assert printed - {"A", "B", "C"} == {
-                f"{parameters['base']} {unit}",
-                f"{parameters['height']} {unit}",
-            }
-
     def test_level_1_magnitudes_are_small_enough_to_multiply_mentally(self):
         """#294: dropping the slant sides frees the pool from the Pythagorean-triple
         constraint that used to force base/height into 13-14-15 territory."""
@@ -438,6 +448,180 @@ class TestGenerators:
         """That is what puts both dimensions in the Topic without an `m²` rung."""
         problem = topic.geo_triangle_area_4()
         assert problem["expected_unit"] in topic.LENGTH_UNITS
+
+
+def _printed_labels(problem: dict) -> list[str]:
+    """Every label the figure prints bar the vertex names, in document order."""
+    return [
+        label
+        for label in figure_labels(problem["image_html"])
+        if label not in _VERTEX_LETTERS
+    ]
+
+
+def _offered_traps(problem: dict) -> dict[str, str]:
+    """The Traps a Problem actually offers, by slug — `options_map` is keyed by value.
+
+    A Trap whose value collided with another option lost its slot (ADR-0008), so a
+    caller checks the value of the slugs here and says nothing about the rest.
+    """
+    return {slug: value for value, slug in problem["options_map"].items()}
+
+
+def _assert_pool_entry_is_pinned(
+    problem: dict,
+    *,
+    base: int,
+    height: int,
+    sides: tuple[int, ...] = (),
+    traps: dict[str, str],
+) -> None:
+    """Assert one forward rung's figure, answer and Traps all read the same Pool entry.
+
+    The figure prints `base`, `height` and `sides` and nothing else.
+    """
+    assert sorted(_printed_labels(problem)) == sorted(
+        f"{length} {_PINNED_LENGTH_UNIT}" for length in (base, height, *sides)
+    )
+    assert problem["correct"] == str(base * height // 2)
+    offered = _offered_traps(problem)
+    for slug, expected in traps.items():
+        if slug in offered:
+            assert offered[slug] == expected
+
+
+class TestForwardRungPoolPinning:
+    """P2 (test-seams.md): a figure's labels cannot disagree with the Problem's
+    answer and Traps (#349, swept here by #352). Pinned exhaustively over each
+    Level's own pool, by passing the drawn entry into the split `_level_N_problem`
+    body — never by replacing a module constant — so a failure names the entry
+    that broke."""
+
+    @pytest.mark.parametrize(
+        "base, height",
+        topic.SMALL_BASE_HEIGHTS,
+        ids=[f"{b}x{h}" for b, h in topic.SMALL_BASE_HEIGHTS],
+    )
+    def test_level_1_pins_every_pool_entry(self, base, height):
+        """Level 1 prints the base and the height alone (#294), and doubles for its Trap."""
+        problem = topic._level_1_problem(_PINNED_AREA_UNIT, base, height, apex_frac=0.5)
+        _assert_pool_entry_is_pinned(
+            problem,
+            base=base,
+            height=height,
+            traps={topic.TRAP_DOUBLES: str(base * height)},
+        )
+
+    @pytest.mark.parametrize(
+        "base, height, hypotenuse",
+        topic.RIGHT,
+        ids=[f"{b}-{h}-{hyp}" for b, h, hyp in topic.RIGHT],
+    )
+    def test_level_2_pins_every_pool_entry(self, base, height, hypotenuse):
+        """Level 2's height is side CA, so it counts twice — as a dimension and as a
+        side the perimeter and side-as-height Traps read."""
+        problem = topic._level_2_problem(_PINNED_AREA_UNIT, base, height, hypotenuse)
+        _assert_pool_entry_is_pinned(
+            problem,
+            base=base,
+            height=height,
+            sides=(hypotenuse,),
+            traps={
+                topic.TRAP_DOUBLES: str(base * height),
+                topic.TRAP_PERIMETER: str(base + height + hypotenuse),
+                topic.TRAP_SIDE_AS_HEIGHT: str(
+                    base * topic._side_read_as_height(height, hypotenuse) // 2
+                ),
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "base, height, offset, side_a, side_b",
+        topic.OBTUSE,
+        ids=[f"{b}-{h}-{o}-{a}-{c}" for b, h, o, a, c in topic.OBTUSE],
+    )
+    def test_level_3_pins_every_pool_entry(self, base, height, offset, side_a, side_b):
+        """Level 3 prints both slant sides as well, and the foot's offset prints nothing."""
+        problem = topic._level_3_problem(
+            _PINNED_AREA_UNIT, base, height, offset, side_a, side_b
+        )
+        _assert_pool_entry_is_pinned(
+            problem,
+            base=base,
+            height=height,
+            sides=(side_a, side_b),
+            traps={
+                topic.TRAP_DOUBLES: str(base * height),
+                topic.TRAP_PERIMETER: str(base + side_a + side_b),
+                topic.TRAP_SIDE_AS_HEIGHT: str(
+                    base * topic._side_read_as_height(side_a, side_b) // 2
+                ),
+            },
+        )
+
+
+class TestReverseRungPoolPinning:
+    """P2 (test-seams.md): the reverse rung's figure, answer and both Traps all
+    read the same value drawn from `REVERSE`, whichever of base and height the
+    Problem withholds — swept over every value and both branches, by passing the
+    draw into the split `_level_4_problem` body rather than replacing the
+    pool (#355)."""
+
+    @pytest.mark.parametrize(
+        "base, height, side",
+        topic.REVERSE,
+        ids=[f"{b}-{h}-{s}" for b, h, s in topic.REVERSE],
+    )
+    @pytest.mark.parametrize(
+        "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
+    )
+    def test_pins_every_value_against_both_branches(
+        self, height_unknown, base, height, side
+    ):
+        """The one printed dimension, the side, the answer and both Traps all follow
+        the drawn entry — whichever dimension the Problem withholds."""
+        problem = topic._level_4_problem(
+            _PINNED_LENGTH_UNIT, base, height, side, height_unknown
+        )
+        given = base if height_unknown else height
+        printed_numbers = sorted(
+            label for label in _printed_labels(problem) if label[0].isdigit()
+        )
+        assert printed_numbers == sorted(
+            f"{value} {_PINNED_LENGTH_UNIT}" for value in (given, side)
+        )
+
+        area = base * height // 2
+        assert problem["correct"] == str(2 * area // given)
+        offered = _offered_traps(problem)
+        if topic.TRAP_DOUBLES in offered:
+            assert offered[topic.TRAP_DOUBLES] == str(area // given)
+        if topic.TRAP_SIDE_AS_HEIGHT in offered:
+            assert offered[topic.TRAP_SIDE_AS_HEIGHT] == str(base * height // side)
+
+
+class TestReverseRungUnknownSymbol:
+    """P1 (test-seams.md): the reverse rung is the only place in production where
+    a label's text is not read off the figure — the withheld value's letter.
+    Pinned via the split helper over both branches, never sampled (#355)."""
+
+    @pytest.mark.parametrize(
+        "height_unknown", [True, False], ids=["height-withheld", "base-withheld"]
+    )
+    def test_exactly_one_letter_is_printed_on_the_value_asked_for(self, height_unknown):
+        """A flipped withheld-value choice would print the letter on the given
+        value and a number on the withheld one — unsolvable, yet every printed
+        number would still be a Problem parameter, so no P2 assertion catches it."""
+        base, height, side = topic.REVERSE[0]
+        problem = topic._level_4_problem(
+            _PINNED_LENGTH_UNIT, base, height, side, height_unknown
+        )
+        expected_symbol = "h" if height_unknown else "a"
+        letters = [
+            label for label in _printed_labels(problem) if not label[0].isdigit()
+        ]
+        assert letters == [expected_symbol]
+        assert rf"\text{{. Oblicz }} {expected_symbol} " in problem["question"]
 
 
 class TestLevels:

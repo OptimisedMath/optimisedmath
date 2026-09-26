@@ -185,18 +185,19 @@ def _area_problem(
 
 _FORWARD_QUESTION = r"\text{Oblicz pole trójkąta.}"
 
+# Every rung splits in two: the generator draws what varies per Problem — the
+# Unit, the Pool entry, and where a rung has one, its extra choice (Level 1's
+# apex, Level 4's withheld dimension) — and a `_level_N_problem` body turns that
+# draw into the figure and the Problem. The split is the seam a test pins one
+# Pool entry through, by passing it in rather than by replacing the pool (#352).
 
-@declares_units(*AREA_UNITS)
-@declares_traps(TRAP_DOUBLES)
-def geo_triangle_area_1() -> dict | None:
-    """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
-    unit = random.choice(declared_units(geo_triangle_area_1))
+
+def _level_1_problem(
+    unit: str, base: int, height: int, apex_frac: float
+) -> dict | None:
+    """Assemble Level 1's Problem — altitude inside, base and height the only labels."""
     length_unit = _LENGTH_FOR_AREA[unit]
-    base, height = random.choice(SMALL_BASE_HEIGHTS)
-
-    # No printed slant side means the apex is free to sit anywhere (#294); the
-    # range keeps the altitude's foot well inside the base, which is the rung.
-    figure = Triangle.base_height(base, height, apex_frac=random.uniform(0.3, 0.7))
+    figure = Triangle.base_height(base, height, apex_frac=apex_frac)
     svg = Scene(
         figure,
         [
@@ -218,13 +219,20 @@ def geo_triangle_area_1() -> dict | None:
 
 
 @declares_units(*AREA_UNITS)
-@declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
-def geo_triangle_area_2() -> dict | None:
-    """Trójkąt prostokątny — wysokość jest bokiem (poziom 2)."""
-    unit = random.choice(declared_units(geo_triangle_area_2))
-    length_unit = _LENGTH_FOR_AREA[unit]
-    base, height, hypotenuse = random.choice(RIGHT)
+@declares_traps(TRAP_DOUBLES)
+def geo_triangle_area_1() -> dict | None:
+    """Wysokość narysowana wewnątrz trójkąta (poziom 1)."""
+    unit = random.choice(declared_units(geo_triangle_area_1))
+    base, height = random.choice(SMALL_BASE_HEIGHTS)
+    # No printed slant side means the apex is free to sit anywhere (#294); the
+    # range keeps the altitude's foot well inside the base, which is the rung.
+    apex_frac = random.uniform(0.3, 0.7)
+    return _level_1_problem(unit, base, height, apex_frac)
 
+
+def _level_2_problem(unit: str, base: int, height: int, hypotenuse: int) -> dict | None:
+    """Assemble Level 2's Problem — right triangle, the height standing on a side."""
+    length_unit = _LENGTH_FOR_AREA[unit]
     # apex_frac 0 stands the height on vertex A, so the height IS side CA.
     figure = Triangle.base_height(base, height, apex_frac=0.0)
     svg = Scene(
@@ -258,12 +266,18 @@ def geo_triangle_area_2() -> dict | None:
 
 @declares_units(*AREA_UNITS)
 @declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
-def geo_triangle_area_3() -> dict | None:
-    """Wysokość wypada poza trójkątem rozwartokątnym (poziom 3)."""
-    unit = random.choice(declared_units(geo_triangle_area_3))
-    length_unit = _LENGTH_FOR_AREA[unit]
-    base, height, offset, side_a, side_b = random.choice(OBTUSE)
+def geo_triangle_area_2() -> dict | None:
+    """Trójkąt prostokątny — wysokość jest bokiem (poziom 2)."""
+    unit = random.choice(declared_units(geo_triangle_area_2))
+    base, height, hypotenuse = random.choice(RIGHT)
+    return _level_2_problem(unit, base, height, hypotenuse)
 
+
+def _level_3_problem(
+    unit: str, base: int, height: int, offset: int, side_a: int, side_b: int
+) -> dict | None:
+    """Assemble Level 3's Problem — obtuse triangle, the altitude's foot off the base."""
+    length_unit = _LENGTH_FOR_AREA[unit]
     figure = Triangle.base_height(base, height, apex_frac=-offset / base)
     svg = Scene(
         figure,
@@ -296,17 +310,20 @@ def geo_triangle_area_3() -> dict | None:
     )
 
 
-@declares_units(*LENGTH_UNITS)
-@declares_traps(TRAP_DOUBLES, TRAP_SIDE_AS_HEIGHT)
-def geo_triangle_area_4() -> dict | None:
-    """Szukana podstawa lub wysokość, gdy dane jest pole (poziom 4)."""
-    unit = random.choice(declared_units(geo_triangle_area_4))
-    base, height, side = random.choice(REVERSE)
-    area = base * height // 2
-    # Which dimension is withheld is drawn per Problem: fixing it would make the
-    # rung solvable by dividing whatever number is on the page, without looking.
-    height_unknown = random.random() < 0.5
+@declares_units(*AREA_UNITS)
+@declares_traps(TRAP_DOUBLES, TRAP_PERIMETER, TRAP_SIDE_AS_HEIGHT)
+def geo_triangle_area_3() -> dict | None:
+    """Wysokość wypada poza trójkątem rozwartokątnym (poziom 3)."""
+    unit = random.choice(declared_units(geo_triangle_area_3))
+    base, height, offset, side_a, side_b = random.choice(OBTUSE)
+    return _level_3_problem(unit, base, height, offset, side_a, side_b)
 
+
+def _level_4_problem(
+    unit: str, base: int, height: int, side: int, height_unknown: bool
+) -> dict | None:
+    """Assemble Level 4's Problem — area given, one length withheld as its letter."""
+    area = base * height // 2
     figure = Triangle.base_height(
         base, height, apex_frac=math.sqrt(side * side - height * height) / base
     )
@@ -347,3 +364,16 @@ def geo_triangle_area_4() -> dict | None:
         image_html=svg,
         expected_unit=unit,
     )
+
+
+@declares_units(*LENGTH_UNITS)
+@declares_traps(TRAP_DOUBLES, TRAP_SIDE_AS_HEIGHT)
+def geo_triangle_area_4() -> dict | None:
+    """Szukana podstawa lub wysokość, gdy dane jest pole (poziom 4)."""
+    unit = random.choice(declared_units(geo_triangle_area_4))
+    base, height, side = random.choice(REVERSE)
+    # Fixing which of base and height is withheld would make the rung solvable
+    # by dividing whatever number is on the page, without looking — so it is
+    # drawn per Problem, same as the pool and the Unit.
+    height_unknown = random.random() < 0.5
+    return _level_4_problem(unit, base, height, side, height_unknown)
