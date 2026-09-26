@@ -327,6 +327,8 @@ class SessionNavigateRequest(BaseModel):
 
 
 class SessionResetRequest(BaseModel):
+    """Name the Session whose progress to reset."""
+
     session_id: str
 
 

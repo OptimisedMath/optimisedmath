@@ -20,7 +20,6 @@ from backend.models import (
     ChapterFrontier,
     DeconstructionState,
     DeconstructionStep,
-    SessionResetRequest,
     SessionState,
 )
 from backend.play_mode import AdminPlayMode, StudentPlayMode
@@ -1485,6 +1484,47 @@ def test_resume_leaves_selected_chapter_topic_level_as_the_session_holds_it():
     assert resumed_state.selected_chapter_id == session_chapter_id
 
 
+# --- Stale Session (#380) ---
+
+
+def test_resume_declines_a_stale_session(monkeypatch):
+    """A Session outside the staleness window is not resumed — a fresh Session
+    with a different id is returned instead."""
+    monkeypatch.setattr(config, "SESSION_STALE_AFTER_SECONDS", -1)
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert resumed.session_id != first.session_id
+
+
+def test_resume_deletes_a_declined_stale_sessions_row(monkeypatch):
+    """A Stale Session's row is gone after the decline — the browser's stored
+    id is about to be overwritten, so nothing could ever reach it again."""
+    monkeypatch.setattr(config, "SESSION_STALE_AFTER_SECONDS", -1)
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+
+    main.ACTIVE_SESSIONS.clear()
+    _start_session(username, session_id=first.session_id)
+
+    assert db.load_session(first.session_id) is None
+
+
+def test_resume_does_not_delete_a_mismatched_usernames_row():
+    """A row declined for a Username mismatch is left alone — unlike a Stale
+    decline, it still belongs to its rightful owner and stays reachable."""
+    owner = f"resume-owner-{uuid.uuid4()}"
+    other = f"resume-other-{uuid.uuid4()}"
+    owned = _start_session(owner)
+
+    _start_session(other, session_id=owned.session_id)
+
+    assert db.load_session(owned.session_id) is not None
+
+
 # --- session_end (#381) ---
 
 
@@ -2922,7 +2962,7 @@ def test_reset_clears_misconception_hit_count_so_one_hit_does_not_deconstruct(
     _submit_trap(state, "p-first-hit")
     assert state.deconstruction is None
 
-    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
 
     _submit_trap(state, "p-post-reset-first-hit")
     assert state.deconstruction is None
@@ -2941,7 +2981,7 @@ def test_reset_clears_deconstructed_set_so_misconception_deconstructs_again(
     state = make_state(_trap_problem("p-already-deconstructed"), input_mode="radio")
     state.deconstructed = [_UNLIKE_FRACTIONS_MISCONCEPTION]
 
-    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
 
     _submit_trap(state, "p-post-reset-first-hit")
     assert state.deconstruction is None
