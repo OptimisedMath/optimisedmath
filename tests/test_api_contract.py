@@ -1363,6 +1363,128 @@ def test_resume_leaves_the_problem_start_clock_unstamped():
     assert main.ACTIVE_SESSIONS[first.session_id].problem_start_time == 12345.0
 
 
+# --- session resume heals against the Curriculum and re-reads the profile (#379) ---
+
+
+def test_resume_seeds_a_frontier_for_a_chapter_added_since_the_session_was_saved():
+    """#214, reopened by a long-lived Session: a Chapter added between two page
+    loads left a resumed Session with no Frontier record for it, and the first
+    Submission there raised on the Chapter id. A Resume seeds one, and the
+    Submission succeeds instead."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    curriculum = resolve_curriculum()
+    new_chapter_id = list(curriculum.chapter_ids())[-1]
+    assert new_chapter_id != state.selected_chapter_id
+    # Dropping the record stands in for a Chapter added after the Session was
+    # saved: either way the stored Session holds no Frontier for that Chapter.
+    del state.chapter_frontiers[new_chapter_id]
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+    assert new_chapter_id in resumed_state.chapter_frontiers
+
+    new_topic_id = int(curriculum.topics(new_chapter_id)[0]["topic_id"])
+    resumed_state.selected_chapter_id = new_chapter_id
+    resumed_state.selected_topic_id = new_topic_id
+    resumed_state.selected_level = 1
+    resumed_state.current_problem = _trap_problem("p-new-chapter")
+    resumed_state.problem_answered = False
+    resumed_state.problem_start_time = 0
+
+    # Completing without raising is the assertion — this Submission raised on the
+    # missing Frontier record before the Resume seeded one.
+    run(
+        main.problem_submit(
+            main.ProblemSubmissionRequest(
+                session_id=resumed_state.session_id,
+                problem_id="p-new-chapter",
+                user_input="2",
+            )
+        )
+    )
+
+
+def test_resume_clamps_a_selected_level_above_the_topics_current_max():
+    """A Topic renumbered smaller between two page loads left a resumed Session
+    stranded on a Level that no longer exists; a Resume clamps it back down."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    curriculum = resolve_curriculum()
+    max_level = int(
+        curriculum.topic_by_id(state.selected_chapter_id, state.selected_topic_id)[
+            "max_level"
+        ]
+    )
+    state.selected_level = max_level + 10
+    db.save_session(state.session_id, state.username, state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+
+    assert main.ACTIVE_SESSIONS[resumed.session_id].selected_level == max_level
+
+
+def test_resume_rereads_xp_and_chapter_frontiers_from_the_profile():
+    """A laptop tab refreshed hours after a phone played does not write a stale
+    XP/Frontier figure back over the newer profile (ADR-0006)."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    state.xp = 5
+    db.save_session(state.session_id, state.username, state)
+
+    # A second device's play advanced the profile past this stale Session row.
+    profile_state = state.model_copy(deep=True)
+    profile_state.xp = 50
+    profile_state.chapter_frontiers[state.selected_chapter_id] = ChapterFrontier(
+        frontier_topic_id=state.selected_topic_id,
+        frontier_level=3,
+    )
+    db.save_user(username, profile_state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+
+    assert resumed_state.xp == 50
+    assert (
+        resumed_state.chapter_frontiers[state.selected_chapter_id].frontier_level == 3
+    )
+
+
+def test_resume_leaves_selected_chapter_topic_level_as_the_session_holds_it():
+    """Selected is seeded from the profile only at Session start (ADR-0006); a
+    Resume must not move a tab to wherever another device last navigated."""
+    username = f"resume-user-{uuid.uuid4()}"
+    first = _start_session(username)
+    state = main.ACTIVE_SESSIONS[first.session_id]
+    session_chapter_id = state.selected_chapter_id
+    curriculum = resolve_curriculum()
+    other_chapter_id = next(
+        cid for cid in curriculum.chapter_ids() if cid != session_chapter_id
+    )
+    db.save_session(state.session_id, state.username, state)
+
+    profile_state = state.model_copy(deep=True)
+    profile_state.selected_chapter_id = other_chapter_id
+    profile_state.selected_topic_id = int(
+        curriculum.topics(other_chapter_id)[0]["topic_id"]
+    )
+    profile_state.selected_level = 1
+    db.save_user(username, profile_state)
+
+    main.ACTIVE_SESSIONS.clear()
+    resumed = _start_session(username, session_id=first.session_id)
+    resumed_state = main.ACTIVE_SESSIONS[resumed.session_id]
+
+    assert resumed_state.selected_chapter_id == session_chapter_id
+
+
 # --- session_end (#381) ---
 
 

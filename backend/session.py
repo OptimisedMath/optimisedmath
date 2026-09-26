@@ -262,8 +262,8 @@ def _resume_session(request: SessionStartRequest) -> SessionState | None:
     """Look up the Session ``request.session_id`` names, declining an unknown id
     or a stored Username that doesn't match the request's.
 
-    Both declines fall back to a fresh start via the same branch (#378) — an
-    unrecognised id and someone else's Session are indistinguishable to the
+    Both declines return ``None`` so the caller falls back to a fresh start —
+    an unrecognised id and someone else's Session are indistinguishable to the
     Student, so neither is worth telling apart here. ADR-0019's third decline,
     a Session gone Stale after 12 hours untouched, is #380 and not yet checked.
     """
@@ -279,23 +279,30 @@ def _build_resumed_state(
     stored: SessionState,
 ) -> tuple[SessionState, Curriculum, PlayMode]:
     """Revive a stored Session whole: no re-persist, and the Problem start clock
-    left exactly as it was served.
+    left exactly as it was served — but healed against the current Curriculum
+    and re-read against the profile (ADR-0019).
 
-    ADR-0019 also has a Resume heal against the current Curriculum and re-read
-    the profile; that half is #379 and has not landed, so until it does a Resume
-    trusts the stored snapshot.
+    Frontier seeding and the Selected-level clamp run exactly as a fresh start
+    runs them, so a Chapter added or a Topic renumbered under a long-lived
+    Session cannot raise on its next Submission (#214, reopened by ADR-0019).
+    The Submission-cycle reset never runs here — it would wipe Streak, Flawless
+    and the active Problem and undo #378.
     """
-    return stored, resolve_curriculum(), resolve_play_mode(stored.username)
+    curriculum = resolve_curriculum()
+    session_state.reread_profile_progress(stored)
+    session_state.seed_chapter_frontiers(stored, curriculum)
+    navigation_resolve.clamp_selected_level(stored, curriculum)
+    return stored, curriculum, resolve_play_mode(stored.username)
 
 
 def start_session(request: SessionStartRequest) -> SessionResponse:
     """Resume the Session ``request.session_id`` names, or start a fresh one, and
     return SessionResponse with navigation."""
     resumed = _resume_session(request)
-    if resumed is None:
-        state, curriculum, play_mode = _build_started_state(request)
-    else:
+    if resumed is not None:
         state, curriculum, play_mode = _build_resumed_state(resumed)
+    else:
+        state, curriculum, play_mode = _build_started_state(request)
     ACTIVE_SESSIONS[state.session_id] = state
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode
