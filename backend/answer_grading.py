@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fractions import Fraction
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 import backend.config as config
 from backend.core.units import convert, normalize_unit, split_answer
@@ -16,13 +16,26 @@ from backend.core.utils import (
 )
 from backend.models import InputMode
 
+# The grader's own finer vocabulary on its way to a verdict (ADR-0016).
+# `models.AnswerOutcome` is the four-bucket collapse of it that telemetry stores.
+GradedOutcome = Literal[
+    "correct",
+    "trap",
+    "wrong",
+    "syntax_error",
+    "format_mismatch",
+    "unsimplified",
+]
+
+_SYNTAX_ERROR_MESSAGE = "Niepoprawny zapis matematyczny."
+
 
 class EvalResult(TypedDict, total=False):
-    is_correct: bool
     lock_answer: bool
     feedback_type: str
     feedback_msg: str
-    answer_outcome: str
+    #: Always set — every path through `grade` names its outcome (ADR-0016).
+    answer_outcome: GradedOutcome
     trap_slug: str
     #: Set only by a grader-synthesized Trap, which has no Level `traps:` entry
     #: for `_resolve_misconception_slug` to look its Misconception up from.
@@ -31,7 +44,57 @@ class EvalResult(TypedDict, total=False):
 
 def _correct() -> EvalResult:
     """The Correct verdict — the one place every path that reaches one names it."""
-    return {"is_correct": True, "lock_answer": True, "answer_outcome": "correct"}
+    return {"lock_answer": True, "answer_outcome": "correct"}
+
+
+def _trap(slug: str, message: str) -> EvalResult:
+    """The Trap verdict — an anticipated wrong answer, carrying its own prose."""
+    return {
+        "lock_answer": True,
+        "feedback_type": "warning",
+        "feedback_msg": message,
+        "answer_outcome": "trap",
+        "trap_slug": slug,
+    }
+
+
+def _wrong(message: str) -> EvalResult:
+    """The Wrong verdict — incorrect, with no anticipated rule behind it."""
+    return {
+        "lock_answer": True,
+        "feedback_type": "warning",
+        "feedback_msg": message,
+        "answer_outcome": "wrong",
+    }
+
+
+def _soft_error(outcome: GradedOutcome, message: str) -> EvalResult:
+    """A Soft Error verdict, in the finer flavour `outcome` names.
+
+    The only verdict that leaves `lock_answer` False, which is what buys the
+    Student a free retry — ADR-0016 relies on the two never disagreeing.
+    """
+    return {
+        "lock_answer": False,
+        "feedback_type": "info",
+        "feedback_msg": message,
+        "answer_outcome": outcome,
+    }
+
+
+def is_correct(eval_result: EvalResult) -> bool:
+    """Whether a graded submission was Correct.
+
+    The one reader of `answer_outcome` that callers outside grading need, so
+    Streak, XP and the wire response never spell the comparison out themselves
+    (#253 deleted the `is_correct` key they used to read).
+    """
+    return eval_result.get("answer_outcome") == "correct"
+
+
+def _message_for(problem: ProblemDict, slug: str) -> str:
+    """The prose a Problem authors for `slug`, or the generic Wrong message."""
+    return problem.get("messages", {}).get(slug, config.DEFAULT_WRONG_MESSAGE)
 
 
 def _match_trap_feedback(
@@ -47,27 +110,8 @@ def _match_trap_feedback(
             opt_val = parse_to_fraction(opt_str)
             matched = opt_val is not None and student_val == opt_val
         if matched:
-            msg_text = problem.get("messages", {}).get(
-                opt_type, config.DEFAULT_WRONG_MESSAGE
-            )
-            return {
-                "lock_answer": True,
-                "feedback_type": "warning",
-                "feedback_msg": msg_text,
-                "answer_outcome": "trap",
-                "trap_slug": opt_type,
-            }
+            return _trap(opt_type, _message_for(problem, opt_type))
     return None
-
-
-def _unit_wrong(message: str) -> EvalResult:
-    """A Unit fault with no rule behind it — missing or not a Unit at all."""
-    return {
-        "lock_answer": True,
-        "feedback_type": "warning",
-        "feedback_msg": message,
-        "answer_outcome": "wrong",
-    }
 
 
 def _synthesized_unit_trap(slug: str, misconception: str, message: str) -> EvalResult:
@@ -77,14 +121,9 @@ def _synthesized_unit_trap(slug: str, misconception: str, message: str) -> EvalR
     making 22 Geometria generators author every wrong Unit would be combinatorial
     work to state something already general.
     """
-    return {
-        "lock_answer": True,
-        "feedback_type": "warning",
-        "feedback_msg": message,
-        "answer_outcome": "trap",
-        "trap_slug": slug,
-        "misconception_slug": misconception,
-    }
+    result = _trap(slug, message)
+    result["misconception_slug"] = misconception
+    return result
 
 
 def _grade_with_unit(
@@ -103,19 +142,14 @@ def _grade_with_unit(
     if student_val is None:
         # A number that is not a number is a notation Soft Error, and stays one
         # here. Only the Unit half of the answer is exempt from Soft Errors.
-        return {
-            "lock_answer": False,
-            "feedback_type": "info",
-            "feedback_msg": "Niepoprawny zapis matematyczny.",
-            "answer_outcome": "syntax_error",
-        }
+        return _soft_error("syntax_error", _SYNTAX_ERROR_MESSAGE)
 
     if raw_unit is None:
-        return _unit_wrong(config.MISSING_UNIT_MESSAGE)
+        return _wrong(config.MISSING_UNIT_MESSAGE)
 
     unit = normalize_unit(raw_unit)
     if unit is None:
-        return _unit_wrong(config.UNKNOWN_UNIT_MESSAGE)
+        return _wrong(config.UNKNOWN_UNIT_MESSAGE)
 
     correct_val = parse_to_fraction(str(problem["correct"]))
     converted = convert(student_val, unit, expected_unit)
@@ -144,14 +178,7 @@ def _grade_with_unit(
             config.WRONG_SCALE_UNIT_MESSAGE,
         )
 
-    return {
-        "lock_answer": True,
-        "feedback_type": "warning",
-        "feedback_msg": problem.get("messages", {}).get(
-            FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
-        ),
-        "answer_outcome": "wrong",
-    }
+    return _wrong(_message_for(problem, FILLER_SLUG))
 
 
 def grade(
@@ -167,29 +194,14 @@ def grade(
 
     # --- 1. RADIO MODE ---
     if input_mode == "radio" and "options" in problem and len(problem["options"]) > 0:
-        is_correct = options_map.get(user_input) == "correct"
-        if is_correct:
+        option_type = options_map.get(user_input)
+        if option_type == "correct":
             return _correct()
-
-        msg_key = options_map.get(user_input)
-        msg_text = problem.get("messages", {}).get(
-            msg_key or FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
-        )
-        if msg_key is None:
-            outcome = "wrong"
-        elif msg_key == FILLER_SLUG:
-            outcome = "wrong"
-        else:
-            outcome = "trap"
-        eval_outcome: EvalResult = {
-            "lock_answer": True,
-            "feedback_type": "warning",
-            "feedback_msg": msg_text,
-            "answer_outcome": outcome,
-        }
-        if outcome == "trap":
-            eval_outcome["trap_slug"] = msg_key
-        return eval_outcome
+        # An option absent from `options_map` is as unanticipated as a Filler, so
+        # both grade as Wrong; any other option type names a Trap.
+        if option_type is None or option_type == FILLER_SLUG:
+            return _wrong(_message_for(problem, FILLER_SLUG))
+        return _trap(option_type, _message_for(problem, option_type))
 
     # --- 2. TYPING MODE ---
     expected_unit = problem.get("expected_unit")
@@ -205,22 +217,12 @@ def grade(
     correct_val = parse_to_fraction(problem["correct"])
 
     if student_val is None:
-        return {
-            "lock_answer": False,
-            "feedback_type": "info",
-            "feedback_msg": "Niepoprawny zapis matematyczny.",
-            "answer_outcome": "syntax_error",
-        }
+        return _soft_error("syntax_error", _SYNTAX_ERROR_MESSAGE)
 
     if student_val == correct_val:
         format_warning = check_format_mismatch(user_input, problem["correct"])
         if format_warning:
-            return {
-                "lock_answer": False,
-                "feedback_type": "info",
-                "feedback_msg": format_warning,
-                "answer_outcome": "format_mismatch",
-            }
+            return _soft_error("format_mismatch", format_warning)
 
         # `exact_match_only` deliberately returns nothing here: on those Levels
         # the requested form is part of the answer, so a value-equal answer in
@@ -228,24 +230,14 @@ def grade(
         if policy == "equivalent_accepted":
             return _correct()
         if policy == "standard":
-            return {
-                "lock_answer": False,
-                "feedback_type": "info",
-                "feedback_msg": "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
-                "answer_outcome": "unsimplified",
-            }
+            return _soft_error(
+                "unsimplified",
+                "Wynik jest poprawny matematycznie, ale zapisz go w najprostszej postaci (bez zbędnych zer lub skrócony)!",
+            )
 
     # --- 3. TEXT MODE TRAP SCANNER ---
     trap_result = _match_trap_feedback(user_input, student_val, problem)
     if trap_result:
         return trap_result
 
-    msg_text = problem.get("messages", {}).get(
-        FILLER_SLUG, config.DEFAULT_WRONG_MESSAGE
-    )
-    return {
-        "lock_answer": True,
-        "feedback_type": "warning",
-        "feedback_msg": msg_text,
-        "answer_outcome": "wrong",
-    }
+    return _wrong(_message_for(problem, FILLER_SLUG))

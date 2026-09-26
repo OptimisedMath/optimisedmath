@@ -162,10 +162,8 @@ def test_log_telemetry_persists_entry():
         user_input="1/2",
         answer_form="1/2",
         correct_form="1/2",
-        answer_value_num=1,
-        answer_value_den=2,
-        correct_value_num=1,
-        correct_value_den=2,
+        answer_value=(1, 2),
+        correct_value=(1, 2),
         answer_outcome="trap",
         trap_slug="t1",
         time_spent_ms=1500,
@@ -453,6 +451,35 @@ def test_init_db_drops_deconstruction_steps_table_with_stale_attempts_column():
         count = conn.execute("SELECT COUNT(*) FROM deconstruction_steps").fetchone()[0]
     assert "attempts" not in columns
     assert count == 0
+
+
+def test_init_db_drops_a_stale_deconstruction_header_its_step_rows_still_reference():
+    """#258: a stale `deconstructions` table is dropped with the step and attempt rows
+    keyed to it — dropping the header first would fail the foreign key and leave
+    `init_db` raising instead of rebuilding."""
+    db.save_user("alice", _sample_state())
+    deconstruction_id = db.create_deconstruction(
+        session_id="sess-stale-header",
+        username="alice",
+        problem_id="p-1",
+        misconception_slug="test_misconception",
+        chapter_name="Chapter",
+        topic_name="Topic",
+        level_number=1,
+    )
+    db.create_deconstruction_steps(deconstruction_id, 1)
+    with db.get_connection() as conn:
+        conn.execute("ALTER TABLE deconstructions DROP COLUMN ended_at")
+        conn.commit()
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(deconstructions)")}
+        headers = conn.execute("SELECT COUNT(*) FROM deconstructions").fetchone()[0]
+        steps = conn.execute("SELECT COUNT(*) FROM deconstruction_steps").fetchone()[0]
+    assert "ended_at" in columns
+    assert (headers, steps) == (0, 0)
 
 
 def test_create_deconstruction_attempt_assigns_sequential_attempt_index():

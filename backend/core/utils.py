@@ -139,8 +139,9 @@ def _in_lowest_terms(numerator: int, denominator: int) -> bool:
 def _answer_shape(value: str) -> str:
     """Which shape the Filler rule reads `value` as, or "unrecognized" (ADR-0009).
 
-    Not the Answer form of `answer_form` below: this is the kind of number `value` is
-    written as, the thing a Filler has to preserve, not the notation itself.
+    Not the Answer form of `answer_form` below, which is one answer's own notation.
+    This is the family that notation belongs to — mixed, fraction, slash, decimal or
+    whole — which is what a Filler has to keep.
     """
     if _MIXED_RE.fullmatch(value):
         return "mixed"
@@ -575,7 +576,8 @@ def answer_form(raw: str) -> str:
 
     Mode-independent by construction, so a Radio option and the same answer typed
     become one Answer form; never fails, so comparison operators and unparseable
-    input still return a string.
+    input still return a string. Spacing is standardized along with the LaTeX, since
+    `1/2` and `1 / 2` are the same notation typed two ways.
     """
     return _standardize_spacing(clean_latex(raw))
 

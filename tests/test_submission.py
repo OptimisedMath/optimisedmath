@@ -394,7 +394,7 @@ def test_correct_answer_updates_session_and_logs_telemetry(
 
     result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
-    assert result.get("is_correct") is True
+    assert result.get("answer_outcome") == "correct"
     _assert_session(
         state,
         ExpectedSession(
@@ -453,7 +453,7 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
 
     result = _submit(state, problem, "3", "radio", fixture_curriculum, _STUDENT)
 
-    assert result.get("is_correct") is not True
+    assert result.get("answer_outcome") != "correct"
     _assert_session(
         state,
         ExpectedSession(
@@ -509,7 +509,7 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
 
     result = _submit(state, problem, "2/4", "typing", fixture_curriculum, _STUDENT)
 
-    assert result.get("is_correct") is None
+    assert result.get("answer_outcome") != "correct"
     _assert_session(
         state,
         ExpectedSession(
@@ -761,7 +761,7 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
 
     result = _submit(state, problem, "1/3", "typing", fixture_curriculum, _STUDENT)
 
-    assert result.get("is_correct") is None
+    assert result.get("answer_outcome") != "correct"
     _assert_session(
         state,
         ExpectedSession(
@@ -826,7 +826,7 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
 
     result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
-    assert result.get("is_correct") is True
+    assert result.get("answer_outcome") == "correct"
     _assert_session(
         state,
         ExpectedSession(
@@ -884,7 +884,7 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
 
     result = _submit(state, problem, "2", "radio", fixture_curriculum, _STUDENT)
 
-    assert result.get("is_correct") is True
+    assert result.get("answer_outcome") == "correct"
     _assert_session(
         state,
         ExpectedSession(
@@ -966,7 +966,7 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
 
     result = _submit(state, problem, "2", "radio", fixture_curriculum, _ADMIN)
 
-    assert result.get("is_correct") is True
+    assert result.get("answer_outcome") == "correct"
     assert "XP" in (state.feedback_msg or "")
     assert _telemetry_count(state.session_id) == telemetry_before + 1
     _assert_session(
@@ -1108,7 +1108,7 @@ def test_admin_mastery_unlocks_next_level_regardless_of_stored_frontier(
         state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN
     )
 
-    assert result.get("is_correct") is True
+    assert result.get("answer_outcome") == "correct"
     assert state.streak == 0
     assert state.flawless_eligible is True
     assert state.xp == config.XP_REWARDS[1] + config.FLAWLESS_LEVEL_BONUS
@@ -1138,7 +1138,7 @@ def test_admin_mastery_at_last_topic_completes_topic_without_next_topic(
         state, _correct_problem(), "2", "radio", fixture_curriculum, _ADMIN
     )
 
-    assert result.get("is_correct") is True
+    assert result.get("answer_outcome") == "correct"
     assert state.streak == 0
     assert state.flawless_eligible is True
     assert state.xp == config.XP_REWARDS[1] + config.FLAWLESS_LEVEL_BONUS
