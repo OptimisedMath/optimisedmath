@@ -131,7 +131,7 @@ How many Distinct Problems a Level can draw. The whole space the generator can r
 _Avoid_: variety, problem count, sample size
 
 **Trap**:
-An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps reference a Misconception; a Trap whose error is a slip rather than a believed rule references none, and still carries its own prose. An answer matching no Trap is Wrong too, but unanticipated.
+An authored wrong answer for one Level — anticipated by a person, and carrying its own targeted feedback explaining the specific error. Most Traps belong to a Trap family; a Trap whose error is a slip belongs to none, and still carries its own prose. An answer matching no Trap is Wrong too, but unanticipated.
 _Avoid_: distractor, diagnostic answer, "wrong" as a Trap's identity (a Trap may grade as Wrong; and w1/w2 were Fillers, never Traps)
 
 **Trap slug**:
@@ -139,20 +139,20 @@ The name a Trap is known by within one generator — one slug per wrong rule tha
 _Avoid_: t1, t2, t3 (positional slots, not identities)
 
 **Filler**:
-A wrong option that exists only to fill a radio button when fewer of a Problem's Traps can be offered than there are slots — an arbitrary near miss with no anticipated rule behind it, so it carries no prose and no Misconception. It grades as Wrong with the generic message, exactly as an unanticipated answer does. Once we can say how the mistake was made, it is a Trap, not a Filler.
+A wrong option that exists only to fill a radio button when fewer of a Problem's Traps can be offered than there are slots — an arbitrary near miss with no anticipated rule behind it, so it carries no prose and belongs to no Trap family. It grades as Wrong with the generic message, exactly as an unanticipated answer does. Once we can say how the mistake was made, it is a Trap, not a Filler.
 _Avoid_: w1, w2 (positional slots), padding option
 
-**Misconception**:
-A wrong rule a Student believes and applies — a named, recurring error in their mathematical thinking (e.g. operating on only one part of a fraction), independent of any single Problem or Level. The belief is what makes it a Misconception: an error with no false rule behind it, such as misreading a symbol, is a slip, and the Trap carrying it references none. Which entry a Trap references, and whether it earns one at all, is decided by the rules in [misconceptions.yaml](backend/data/misconceptions.yaml).
-_Avoid_: error pattern, bug, trap type, entry, catalogue entry, t1/t2 (positional slots, not identities)
+**Trap family**:
+A named group of Traps, across any Levels and Chapters, that one Deconstruction would fix — whether or not that Deconstruction has been written yet. What joins a family is the shared remedy, not a shared wrong belief: different wrong rules fixed by the same walkthrough — even one that takes a different path for a different Problem shape, so long as every path teaches one idea — are one family, and families are kept as coarse as that allows ([ADR-0020](docs/adr/0020-trap-families-group-by-remedy.md)). A slip, such as misreading a symbol, belongs to no family, because a walkthrough fired on it would tell a Student who knows the rule that they do not. Which family a Trap joins is decided by the rules in [misconceptions.yaml](backend/data/misconceptions.yaml).
+_Avoid_: Misconception (the old name, which invites reading a family as one believed rule), error pattern, bug, trap type, entry, catalogue entry
 
-**Misconception slug**:
-The name a Misconception is known by in the catalogue — a stable, human-readable English key, not a database id. Telemetry records it alongside a Trap's own Trap slug.
-_Avoid_: misconception_id, misconception number
+**Trap family slug**:
+The name a Trap family is known by in the catalogue — a stable, human-readable English key, not a database id. Telemetry records it alongside a Trap's own Trap slug.
+_Avoid_: misconception slug, misconception_id, family number
 
-**Misconception hit**:
-One Submission whose answer matched a Trap referencing that Misconception. Counted per Misconception for the whole Session, wherever in the Curriculum it happened, and carried back by a Resume — the second hit fires that Misconception's Deconstruction, once per Session ([ADR-0014](docs/adr/0014-deconstruction-trigger-counts-per-session.md)). A Trap carrying no Misconception, and a Filler, are not hits; a hit made on a Deconstruction's discounted retry counts like any other.
-_Avoid_: strike, offence, error count, repeat mistake
+**Trap family hit**:
+One Submission whose answer matched a Trap in that Trap family. Counted per family for the whole Session, wherever in the Curriculum it happened, and carried back by a Resume — the second hit fires that family's Deconstruction, once per Session ([ADR-0014](docs/adr/0014-deconstruction-trigger-counts-per-session.md)). A Trap in no family, and a Filler, are not hits; a hit made on a Deconstruction's discounted retry counts like any other.
+_Avoid_: Misconception hit, strike, offence, error count, repeat mistake
 
 **Wrong**:
 An incorrect answer that matched no declared Trap — unanticipated, so it carries only the generic message. Typically a slip, where the Student's rules were sound but their execution was not. Also covers a mathematically equivalent answer given in the wrong form on a Topic that requires an exact form, since there the form is part of the answer. Wrong and Trap are exclusive: an anticipated answer grades as a Trap even where no Misconception sits behind it.
@@ -204,7 +204,7 @@ _Avoid_: nav state, navigation model, snapshot (unqualified)
 One Problem lifecycle within a Session: served → answered (Submission) → Feedback → Next problem.
 
 **Deconstruction**:
-A guided walkthrough that takes over when a Student hits the same Misconception a second time in a Session, breaking the Problem in front of them into steps they answer themselves before returning them to that same Problem. It is not a Submission — see [ADR-0004](docs/adr/0004-deconstruction-outside-submission-cycle.md).
+A guided walkthrough that takes over when a Student hits the same Trap family a second time in a Session, breaking the Problem in front of them into steps they answer themselves before returning them to that same Problem. It is not a Submission — see [ADR-0004](docs/adr/0004-deconstruction-outside-submission-cycle.md).
 _Avoid_: speed bump, intervention, hint mode, tutorial
 
 **Abandonment**:
@@ -216,7 +216,7 @@ One question within a Deconstruction, derived from the Problem's parameters rath
 _Avoid_: sub-problem, micro-step
 
 **Working line**:
-The single line of maths shown above a Deconstruction step — the expression as it stands at that point in the walkthrough. Each step's replaces the last rather than adding to a thread, so the sequence reads as one expression collapsing. Authored per step and legitimately absent where a Misconception has no expression to transform. Not the Problem's own question, which stays on screen throughout a Deconstruction on its own.
+The single line of maths shown above a Deconstruction step — the expression as it stands at that point in the walkthrough. Each step's replaces the last rather than adding to a thread, so the sequence reads as one expression collapsing. Authored per step and legitimately absent where a Trap family has no expression to transform. Not the Problem's own question, which stays on screen throughout a Deconstruction on its own.
 _Avoid_: scratchpad, working, running total, step expression
 
 **Reveal**:
@@ -243,7 +243,7 @@ One play session: Selected chapter/topic/level, Streak, active Problem, and Feed
 _Avoid_: GameState (code name)
 
 **Resume**:
-Continuing an existing Session rather than starting a new one. Everything the Session owns comes back whole — Streak, Flawless, Misconception hit counts, the deconstructed set, the active Problem and its Feedback — while XP and the Frontier are re-read from the profile that owns them ([ADR-0019](docs/adr/0019-refresh-resumes-the-session.md)). A page load resumes when the browser holds the id of a Session that is not Stale.
+Continuing an existing Session rather than starting a new one. Everything the Session owns comes back whole — Streak, Flawless, Trap family hit counts, the deconstructed set, the active Problem and its Feedback — while XP and the Frontier are re-read from the profile that owns them ([ADR-0019](docs/adr/0019-refresh-resumes-the-session.md)). A page load resumes when the browser holds the id of a Session that is not Stale.
 _Avoid_: rehydrate, session restore, reconnect
 
 **Stale Session**:

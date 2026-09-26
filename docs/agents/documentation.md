@@ -11,7 +11,7 @@ Delete it: would a reader plausibly make a **wrong decision** the code alone wou
 1. **One home per fact.** State it in exactly one doc; everywhere else links. Two docs describing the same ownership will drift.
 2. **Pointers carry a trigger.** `[import-rules.md](...) when adding imports or new modules` — the condition under which to read it, never a summary of it. No limit on how deep pointers nest.
 3. **ADRs are a dated record.** Amend one when a rule elaborates the decision it already owns; never trim one for length.
-4. **`CONTEXT.md` defines words, not behaviour.** One or two sentences per term plus `_Avoid_`; what it IS, not what it does. Behaviour belongs in an ADR or in code. Exception: Trap, Filler, Wrong, Misconception, and Soft Error are defined by their boundaries with each other, so those entries run longer.
+4. **`CONTEXT.md` defines words, not behaviour.** One or two sentences per term plus `_Avoid_`; what it IS, not what it does. Behaviour belongs in an ADR or in code. Exception: Trap, Filler, Wrong, Trap family, and Soft Error are defined by their boundaries with each other, so those entries run longer.
 
 ## Docstrings
 
