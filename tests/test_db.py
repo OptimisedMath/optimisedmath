@@ -159,8 +159,13 @@ def test_log_telemetry_persists_entry():
         streak_before_answer=1,
         flawless_eligible=True,
         frontier_relation="at_frontier",
-        is_correct=False,
         user_input="1/2",
+        answer_form="1/2",
+        correct_form="1/2",
+        answer_value_num=1,
+        answer_value_den=2,
+        correct_value_num=1,
+        correct_value_den=2,
         answer_outcome="trap",
         trap_slug="t1",
         time_spent_ms=1500,
@@ -193,7 +198,9 @@ def test_log_telemetry_trap_source_defaults_to_null():
         streak_before_answer=1,
         flawless_eligible=True,
         frontier_relation="at_frontier",
-        is_correct=True,
+        answer_outcome="correct",
+        answer_form="1/2",
+        correct_form="1/2",
     )
 
     with db.get_connection() as conn:
@@ -221,7 +228,8 @@ def test_log_telemetry_persists_trap_source():
         streak_before_answer=1,
         flawless_eligible=True,
         frontier_relation="at_frontier",
-        is_correct=False,
+        answer_form="84",
+        correct_form="84",
         answer_outcome="trap",
         trap_slug="answers_in_the_wrong_dimension",
         trap_source="synthesized",
@@ -272,5 +280,221 @@ def test_log_telemetry_requires_existing_user():
             streak_before_answer=0,
             flawless_eligible=True,
             frontier_relation="at_frontier",
-            is_correct=True,
+            answer_outcome="correct",
+            answer_form="1",
+            correct_form="1",
         )
+
+
+def test_telemetry_schema_has_no_is_correct_column():
+    """#253: `is_correct` duplicated `answer_outcome IS NULL` and is gone."""
+    with db.get_connection() as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(telemetry_logs)")}
+
+    assert "is_correct" not in columns
+    assert "answer_outcome" in columns
+
+
+def test_telemetry_answer_outcome_column_is_not_null():
+    """#253: the outcome is total, so the column rejects a row that omits it."""
+    db.save_user("alice", _sample_state())
+
+    with pytest.raises(sqlite3.IntegrityError):
+        with db.get_connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO telemetry_logs (
+                    session_id, username, play_mode, chapter_id, chapter,
+                    topic_id, topic, level_number, input_mode,
+                    streak_before_answer, flawless_eligible, frontier_relation,
+                    answer_outcome
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+                """,
+                (
+                    "sess-null-outcome",
+                    "alice",
+                    "student",
+                    10,
+                    "Ułamki",
+                    20,
+                    "Dodawanie",
+                    2,
+                    "typing",
+                    0,
+                    True,
+                    "at_frontier",
+                ),
+            )
+
+
+def test_init_db_is_idempotent_on_a_matching_telemetry_table():
+    """A table already the declared shape survives `init_db`, rows included."""
+    db.save_user("alice", _sample_state())
+    db.log_telemetry(
+        session_id="sess-keep",
+        username="alice",
+        play_mode="student",
+        chapter_id=10,
+        chapter_name="Ułamki",
+        topic_id=20,
+        topic_name="Dodawanie",
+        level_number=2,
+        input_mode="typing",
+        streak_before_answer=1,
+        flawless_eligible=True,
+        frontier_relation="at_frontier",
+        answer_outcome="correct",
+        answer_form="1",
+        correct_form="1",
+    )
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        count = conn.execute(
+            "SELECT COUNT(*) FROM telemetry_logs WHERE session_id = ?",
+            ("sess-keep",),
+        ).fetchone()[0]
+    assert count == 1
+
+
+def test_init_db_drops_telemetry_table_missing_a_required_column():
+    """A table too narrow to INSERT into is dropped and rebuilt, rows and all."""
+    with db.get_connection() as conn:
+        conn.execute("DROP TABLE telemetry_logs")
+        conn.execute("""
+            CREATE TABLE telemetry_logs (
+                log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("INSERT INTO telemetry_logs (session_id) VALUES ('stale-row')")
+        conn.commit()
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(telemetry_logs)")}
+        count = conn.execute(
+            "SELECT COUNT(*) FROM telemetry_logs WHERE session_id = 'stale-row'"
+        ).fetchone()[0]
+    assert "answer_outcome" in columns
+    assert count == 0
+
+
+def test_init_db_drops_telemetry_table_with_a_stale_extra_column():
+    """#253: a pre-#253 table is dropped for its leftover `is_correct` alone, even
+    though it still holds every column `log_telemetry` writes today."""
+    with db.get_connection() as conn:
+        conn.execute("DROP TABLE telemetry_logs")
+        conn.execute("""
+            CREATE TABLE telemetry_logs (
+                log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                username TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                play_mode TEXT NOT NULL,
+                chapter_id INTEGER NOT NULL,
+                chapter TEXT NOT NULL,
+                topic_id INTEGER NOT NULL,
+                topic TEXT NOT NULL,
+                level_number INTEGER NOT NULL,
+                input_mode TEXT NOT NULL,
+                streak_before_answer INTEGER NOT NULL,
+                flawless_eligible BOOLEAN NOT NULL,
+                frontier_relation TEXT NOT NULL,
+                answer_outcome TEXT,
+                misconception_slug TEXT,
+                trap_slug TEXT,
+                trap_source TEXT,
+                is_correct BOOLEAN NOT NULL,
+                user_input TEXT,
+                time_spent_ms INTEGER,
+                problem_snapshot TEXT,
+                problem_id TEXT
+            )
+        """)
+        conn.commit()
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(telemetry_logs)")}
+    assert "is_correct" not in columns
+
+
+def test_init_db_drops_deconstruction_steps_table_with_stale_attempts_column():
+    """#258: a pre-#258 `deconstruction_steps` table still carrying `attempts`
+    is dropped and rebuilt, the same exact-match rule telemetry uses."""
+    with db.get_connection() as conn:
+        conn.execute("DROP TABLE deconstruction_steps")
+        conn.execute("""
+            CREATE TABLE deconstruction_steps (
+                deconstruction_id INTEGER NOT NULL,
+                step_index INTEGER NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                revealed BOOLEAN NOT NULL DEFAULT 0,
+                PRIMARY KEY (deconstruction_id, step_index)
+            )
+        """)
+        conn.execute(
+            "INSERT INTO deconstruction_steps (deconstruction_id, step_index) "
+            "VALUES (1, 0)"
+        )
+        conn.commit()
+
+    db.init_db()
+
+    with db.get_connection() as conn:
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(deconstruction_steps)")
+        }
+        count = conn.execute("SELECT COUNT(*) FROM deconstruction_steps").fetchone()[0]
+    assert "attempts" not in columns
+    assert count == 0
+
+
+def test_create_deconstruction_attempt_assigns_sequential_attempt_index():
+    """#258: `attempt_index` is assigned from what is already persisted for that
+    step, not tracked separately — so it stays correct across three writes."""
+    db.save_user("alice", _sample_state())
+    deconstruction_id = db.create_deconstruction(
+        session_id="sess-attempts",
+        username="alice",
+        problem_id="p-1",
+        misconception_slug="test_misconception",
+        chapter_name="Chapter",
+        topic_name="Topic",
+        level_number=1,
+    )
+    db.create_deconstruction_steps(deconstruction_id, 1)
+
+    for user_input, outcome in (
+        ("wrong-1", "wrong"),
+        ("wrong-2", "wrong"),
+        ("5", "correct"),
+    ):
+        db.create_deconstruction_attempt(
+            deconstruction_id,
+            0,
+            user_input=user_input,
+            answer_form=user_input,
+            answer_value=None,
+            outcome=outcome,
+            time_spent_ms=100,
+        )
+
+    with db.get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT attempt_index, user_input, outcome FROM deconstruction_attempts
+            WHERE deconstruction_id = ? ORDER BY attempt_index
+            """,
+            (deconstruction_id,),
+        ).fetchall()
+    assert rows == [
+        (1, "wrong-1", "wrong"),
+        (2, "wrong-2", "wrong"),
+        (3, "5", "correct"),
+    ]

@@ -31,6 +31,7 @@ _ADMIN = AdminPlayMode()
 
 _TELEMETRY_STRIP_KEYS = frozenset(
     {
+        "correct",
         "image_html",
         "messages",
         "options",
@@ -67,8 +68,9 @@ class ExpectedTelemetry:
     lets `_assert_telemetry` check the row by name instead of by position.
     """
 
-    is_correct: bool
     user_input: str
+    answer_form: str
+    correct_form: str
     chapter_id: int
     chapter: str
     topic_id: int
@@ -79,7 +81,11 @@ class ExpectedTelemetry:
     streak_before_answer: int
     flawless_eligible: bool
     frontier_relation: FrontierRelation
-    answer_outcome: str | None = None
+    answer_outcome: str
+    answer_value_num: int | None = None
+    answer_value_den: int | None = None
+    correct_value_num: int | None = None
+    correct_value_den: int | None = None
     misconception_slug: str | None = None
     trap_slug: str | None = None
     trap_source: TrapSource | None = None
@@ -216,6 +222,40 @@ def _soft_error_problem() -> dict[str, Any]:
     }
 
 
+def _exact_match_violation_problem() -> dict[str, Any]:
+    """`exact_match_only`, value-equal but not the exact string, no Trap declared —
+    ADR-0016's `exact_match_violation` row, which telemetry records as `wrong`."""
+    return {
+        "problem_id": "p-exact-match-violation",
+        "question": "q",
+        "correct": "1/2",
+        "grading_policy": "exact_match_only",
+    }
+
+
+def _format_mismatch_problem() -> dict[str, Any]:
+    """Correct written as a decimal, so a value-equal common fraction is the
+    grader's `format_mismatch`, which collapses to `soft_error`."""
+    return {
+        "problem_id": "p-format-mismatch",
+        "question": "q",
+        "correct": "0,5",
+    }
+
+
+def _fraction_radio_problem() -> dict[str, Any]:
+    """A Radio problem whose correct option is written in LaTeX, so tapping it and
+    typing the slash equivalent are two Raw strings for one Answer form (#256)."""
+    return {
+        "problem_id": "p-fraction-radio",
+        "question": "q",
+        "correct": "1/2",
+        "options": ["\\frac{1}{2}", "\\frac{1}{3}"],
+        "options_map": {"\\frac{1}{2}": "correct", "\\frac{1}{3}": "t2"},
+        "messages": {"t2": "Try again"},
+    }
+
+
 def _unit_dimension_trap_problem() -> dict[str, Any]:
     """A Geometria-shaped problem whose wrong-dimension answer the grader itself
     turns into a Trap (ADR-0005) — no `options_map`/`messages` needed, since the
@@ -297,7 +337,6 @@ def _assert_telemetry(
     for key in _TELEMETRY_STRIP_KEYS:
         assert key not in stored
     assert stored["question"] == problem["question"]
-    assert stored["correct"] == problem["correct"]
     for column, value in asdict(expected).items():
         # SQLite stores the boolean columns as 0/1, which compare equal to False/True.
         assert row[column] == value, f"telemetry column {column}"
@@ -377,8 +416,14 @@ def test_correct_answer_updates_session_and_logs_telemetry(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -430,8 +475,13 @@ def test_penalized_mistake_decrements_streak_and_forfeits_flawless(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="3",
+            answer_form="3",
+            correct_form="2",
+            answer_value_num=3,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -481,8 +531,13 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="2/4",
+            answer_form="2/4",
+            correct_form="1/2",
+            answer_value_num=1,
+            answer_value_den=2,
+            correct_value_num=1,
+            correct_value_den=2,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -493,9 +548,139 @@ def test_soft_error_preserves_streak_and_flawless(fixture_curriculum: Curriculum
             streak_before_answer=2,
             flawless_eligible=True,
             frontier_relation="at_frontier",
-            answer_outcome="unsimplified",
+            answer_outcome="soft_error",
         ),
     )
+
+
+# --- Answer outcome collapse (#253) ---
+#
+# The grader's finer-grained outcomes collapse to telemetry's four buckets on
+# the way in (ADR-0016). `trap` and the plain `wrong` fallthrough are already
+# proven above, through the trap and penalized-mistake tests; these three
+# prove the remaining collapsed leaves reach their bucket through a real
+# Submission, not just through `grade()` directly.
+
+
+def test_exact_match_violation_collapses_to_wrong(fixture_curriculum: Curriculum):
+    """An `exact_match_only` violation is logged as `wrong`, not as a Soft Error."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _exact_match_violation_problem()
+
+    _submit(state, problem, "2/4", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="2/4",
+            answer_form="2/4",
+            correct_form="1/2",
+            answer_value_num=1,
+            answer_value_den=2,
+            correct_value_num=1,
+            correct_value_den=2,
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="wrong",
+        ),
+    )
+
+
+def test_syntax_error_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    """An unparseable answer is logged as `soft_error`, like every other Soft Error."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _soft_error_problem()
+
+    _submit(state, problem, "abc", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="abc",
+            answer_form="abc",
+            correct_form="1/2",
+            correct_value_num=1,
+            correct_value_den=2,
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="soft_error",
+        ),
+    )
+
+
+def test_format_mismatch_collapses_to_soft_error(fixture_curriculum: Curriculum):
+    """A value-equal answer in the wrong number format is logged as `soft_error`."""
+    state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
+    problem = _format_mismatch_problem()
+
+    _submit(state, problem, "1/2", "typing", fixture_curriculum, _STUDENT)
+
+    _assert_telemetry(
+        state.session_id,
+        problem,
+        ExpectedTelemetry(
+            user_input="1/2",
+            answer_form="1/2",
+            correct_form="0,5",
+            answer_value_num=1,
+            answer_value_den=2,
+            correct_value_num=1,
+            correct_value_den=2,
+            chapter_id=CHAPTER_ALPHA,
+            chapter="Chapter Alpha",
+            topic_id=TOPIC_MULTI,
+            topic="Multi Level Topic",
+            level_number=1,
+            input_mode="typing",
+            play_mode="student",
+            streak_before_answer=2,
+            flawless_eligible=True,
+            frontier_relation="at_frontier",
+            answer_outcome="soft_error",
+        ),
+    )
+
+
+# --- Answer form (#256) ---
+
+
+def test_radio_tap_and_typed_equivalent_produce_same_answer_form(
+    fixture_curriculum: Curriculum,
+):
+    """Acceptance: a Radio tap on the LaTeX option and the typed slash equivalent
+    are two Raw strings for one Answer form, proven through two real Submissions —
+    Raw itself stays exactly what each one sent."""
+    problem = _fraction_radio_problem()
+
+    radio_state = _student_state_at(fixture_curriculum)
+    _submit(radio_state, problem, "\\frac{1}{2}", "radio", fixture_curriculum, _STUDENT)
+    radio_row = _latest_telemetry(radio_state.session_id)
+
+    typed_state = _student_state_at(fixture_curriculum)
+    _submit(typed_state, problem, "1/2", "typing", fixture_curriculum, _STUDENT)
+    typed_row = _latest_telemetry(typed_state.session_id)
+
+    assert radio_row["user_input"] == "\\frac{1}{2}"
+    assert typed_row["user_input"] == "1/2"
+    assert radio_row["answer_form"] == typed_row["answer_form"] == "1/2"
 
 
 # --- Trap source (#257) ---
@@ -525,7 +710,9 @@ def test_synthesized_unit_trap_logs_trap_source_synthesized(
     fixture_curriculum: Curriculum,
 ):
     """Acceptance: the synthesized route is reachable via a wrong-dimension Unit
-    on a Geometria Level, and the stored row is proven directly."""
+    on a Geometria Level, and the stored row is proven directly. `"84 cm"` also
+    doubles as the non-numeric-answer case (#256): it gets an Answer form but no
+    Answer value, since a unit suffix is not something `parse_to_fraction` reads."""
     state = _student_state_at(fixture_curriculum, streak=2, flawless_eligible=True)
     problem = _unit_dimension_trap_problem()
     telemetry_before = _telemetry_count(state.session_id)
@@ -539,8 +726,11 @@ def test_synthesized_unit_trap_logs_trap_source_synthesized(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="84 cm",
+            answer_form="84 cm",
+            correct_form="84",
+            correct_value_num=84,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -593,8 +783,13 @@ def test_trap_answer_sets_warning_feedback_and_logs_answer_outcome(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="1/3",
+            answer_form="1/3",
+            correct_form="1/2",
+            answer_value_num=1,
+            answer_value_den=3,
+            correct_value_num=1,
+            correct_value_den=2,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -652,8 +847,14 @@ def test_level_completion_unlocks_frontier_and_awards_flawless_bonus(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -704,8 +905,14 @@ def test_topic_completion_moves_frontier_to_next_topic(fixture_curriculum: Curri
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,
@@ -782,8 +989,14 @@ def test_admin_correct_increments_session_streak_without_profile_writes(
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=True,
+            answer_outcome="correct",
             user_input="2",
+            answer_form="2",
+            correct_form="2",
+            answer_value_num=2,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=selected_topic_id,
@@ -834,8 +1047,13 @@ def test_admin_penalized_mistake_decrements_session_streak_without_profile_write
         state.session_id,
         problem,
         ExpectedTelemetry(
-            is_correct=False,
             user_input="3",
+            answer_form="3",
+            correct_form="2",
+            answer_value_num=3,
+            answer_value_den=1,
+            correct_value_num=2,
+            correct_value_den=1,
             chapter_id=CHAPTER_ALPHA,
             chapter="Chapter Alpha",
             topic_id=TOPIC_MULTI,

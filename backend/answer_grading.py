@@ -29,6 +29,11 @@ class EvalResult(TypedDict, total=False):
     misconception_slug: str
 
 
+def _correct() -> EvalResult:
+    """The Correct verdict — the one place every path that reaches one names it."""
+    return {"is_correct": True, "lock_answer": True, "answer_outcome": "correct"}
+
+
 def _match_trap_feedback(
     user_input: str, student_val: Fraction, problem: ProblemDict
 ) -> EvalResult | None:
@@ -116,7 +121,7 @@ def _grade_with_unit(
     converted = convert(student_val, unit, expected_unit)
 
     if converted is not None and converted == correct_val:
-        return {"is_correct": True, "lock_answer": True}
+        return _correct()
 
     # The number decides which Trap it is (#229), and it is matched *after*
     # conversion, so a Trap number typed in a legal other Unit still names its
@@ -155,7 +160,8 @@ def grade(
     """Grade a submission against a generated problem.
 
     Handles Radio mode (options_map), Typing mode (parse + grading_policy),
-    trap/wrong feedback, and format-mismatch soft errors.
+    trap/wrong feedback, and format-mismatch soft errors. Every path sets
+    `answer_outcome` — it is total, never absent (ADR-0016).
     """
     options_map = problem.get("options_map", {})
 
@@ -163,7 +169,7 @@ def grade(
     if input_mode == "radio" and "options" in problem and len(problem["options"]) > 0:
         is_correct = options_map.get(user_input) == "correct"
         if is_correct:
-            return {"is_correct": True, "lock_answer": True}
+            return _correct()
 
         msg_key = options_map.get(user_input)
         msg_text = problem.get("messages", {}).get(
@@ -193,7 +199,7 @@ def grade(
     policy = problem.get("grading_policy", "standard")
 
     if check_text_answer(problem["correct"], user_input):
-        return {"is_correct": True, "lock_answer": True}
+        return _correct()
 
     student_val = parse_to_fraction(str(user_input))
     correct_val = parse_to_fraction(problem["correct"])
@@ -220,7 +226,7 @@ def grade(
         # the requested form is part of the answer, so a value-equal answer in
         # another form is Wrong and falls through to section 3 (#312).
         if policy == "equivalent_accepted":
-            return {"is_correct": True, "lock_answer": True}
+            return _correct()
         if policy == "standard":
             return {
                 "lock_answer": False,

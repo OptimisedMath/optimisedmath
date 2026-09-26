@@ -77,6 +77,7 @@ class TestMultipleChoiceGrading:
         result = grade("1", _sample_problem(), input_mode="radio")
         assert result["is_correct"] is True
         assert result["lock_answer"] is True
+        assert result["answer_outcome"] == "correct"
 
     def test_trap_answer(self):
         result = grade(r"\frac{2}{4}", _sample_problem(), input_mode="radio")
@@ -96,6 +97,7 @@ class TestTextGrading:
     def test_exact_text_match(self):
         result = grade("1", _sample_problem(), input_mode="typing")
         assert result["is_correct"] is True
+        assert result["answer_outcome"] == "correct"
 
     def test_syntax_error(self):
         result = grade("abc", _sample_problem(), input_mode="typing")
@@ -115,6 +117,7 @@ class TestTextGrading:
         )
         result = grade("2/4", problem, input_mode="typing")
         assert result["is_correct"] is True
+        assert result["answer_outcome"] == "correct"
 
     def test_exact_match_only_policy(self):
         """Value-equal in the wrong form is Wrong with the generic message, never a Soft Error (#312)."""

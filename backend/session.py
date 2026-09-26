@@ -429,9 +429,10 @@ def submit_problem(request: ProblemSubmissionRequest) -> SubmissionResponse:
 def get_deconstruction_step(session_id: str) -> DeconstructionStepResponse:
     """Return the Student's current Deconstruction step — mirrors `next_problem()`."""
     state = get_session(session_id)
+    play_mode = resolve_play_mode(state.username)
     curriculum = resolve_curriculum()
     try:
-        return deconstruction_step.next_step_response(state, curriculum)
+        return deconstruction_step.next_step_response(state, curriculum, play_mode)
     except deconstruction_step.DeconstructionNotRunningError as exc:
         raise SessionError("No Deconstruction is running for this session") from exc
 
