@@ -137,11 +137,6 @@ function unwired(operation: string) {
   };
 }
 
-/** The `unwired()` default for `wireArenaFlow`'s `onSubmit`, which grades synchronously. */
-function unwiredSubmission(): never {
-  throw new Error('Unhandled submitAnswer');
-}
-
 /**
  * The in-memory SessionClient adapter — the one fake for frontend tests.
  * Tests supply handlers for the operations a scenario exercises; every
@@ -221,7 +216,7 @@ export function wireDeconstructionTriggerFlow({
 export function wireArenaFlow({
   session = baseSession(),
   problem = baseProblem(),
-  onSubmit = unwiredSubmission,
+  onSubmit,
   ...handlers
 }: {
   session?: SessionResponse;
@@ -231,7 +226,9 @@ export function wireArenaFlow({
   return createFakeSessionClient({
     startSession: async () => session,
     getNextProblem: async () => servedProblem(session, problem),
-    submitAnswer: async () => onSubmit(),
+    // `onSubmit` grades synchronously, so it cannot be an `unwired()` default of
+    // its own; a scenario that grades nothing falls back to the shared one.
+    submitAnswer: onSubmit ? async () => onSubmit() : unwired('submitAnswer'),
     ...handlers,
   });
 }

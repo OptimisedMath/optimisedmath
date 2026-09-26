@@ -264,10 +264,10 @@ def _resume_session(request: SessionStartRequest) -> SessionState | None:
 
     All three declines fall back to a fresh start via the same branch (#378) —
     unrecognised, Stale and someone else's are indistinguishable to the Student,
-    so none is worth telling apart here. The Stale case additionally deletes the
-    row: the browser's stored id is about to be overwritten, so nothing could
-    ever reach it again. A mismatched-Username row is left alone — it still
-    belongs to its rightful owner.
+    so none is worth telling apart here. A failed lookup also deletes the row (a
+    no-op for an id that was never there): the browser's stored id is about to be
+    overwritten, so nothing could ever reach a Stale row again. A mismatched-Username
+    row is left alone — it still belongs to its rightful owner.
     """
     if not request.session_id:
         return None

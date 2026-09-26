@@ -20,7 +20,6 @@ from backend.models import (
     ChapterFrontier,
     DeconstructionState,
     DeconstructionStep,
-    SessionResetRequest,
     SessionState,
 )
 from backend.play_mode import AdminPlayMode, StudentPlayMode
@@ -2841,7 +2840,7 @@ def test_reset_clears_misconception_hit_count_so_one_hit_does_not_deconstruct(
     _submit_trap(state, "p-first-hit")
     assert state.deconstruction is None
 
-    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
 
     _submit_trap(state, "p-post-reset-first-hit")
     assert state.deconstruction is None
@@ -2860,7 +2859,7 @@ def test_reset_clears_deconstructed_set_so_misconception_deconstructs_again(
     state = make_state(_trap_problem("p-already-deconstructed"), input_mode="radio")
     state.deconstructed = [_UNLIKE_FRACTIONS_MISCONCEPTION]
 
-    run(main.session_reset(SessionResetRequest(session_id=state.session_id)))
+    run(main.session_reset(main.SessionResetRequest(session_id=state.session_id)))
 
     _submit_trap(state, "p-post-reset-first-hit")
     assert state.deconstruction is None
