@@ -15,12 +15,15 @@ interface UseSessionBootstrapOptions {
 }
 
 /**
- * A resumed session can come back mid-Deconstruction, and `/problem/next` is
- * shut while one runs — asking anyway only buys a 403 and an error banner over
- * the takeover that is about to arm off `deconstruction_running`.
+ * A resumed session already carries its active Problem, and asking for a next
+ * one would discard exactly what the Resume recovered (#378). The
+ * `deconstruction_running` half is redundant — a running Deconstruction always
+ * has an active Problem — and kept anyway: `/problem/next` is shut while one
+ * runs, and mirroring that backend rule explicitly is cheaper than relying on
+ * the two facts staying in sync by coincidence (ADR-0002).
  */
 function shouldFetchProblem(session: SessionResponse): boolean {
-  return !session.deconstruction_running;
+  return !session.deconstruction_running && !session.current_problem;
 }
 
 /**
@@ -50,11 +53,15 @@ export function useSessionBootstrap({
       }
 
       try {
-        // The stored Username and nothing else (#377): the profile owns Selected
-        // chapter/topic/level (ADR-0006), so a chapter id here would read as
-        // Navigation on the backend, moving the Student off the Chapter they were
-        // playing and resetting Streak.
-        const sessionResponse = await client.startSession({ username: storedUsername });
+        // The stored Username and session id, nothing else (#377): the profile
+        // owns Selected chapter/topic/level (ADR-0006), so a chapter id here
+        // would read as Navigation on the backend, moving the Student off the
+        // Chapter they were playing and resetting Streak. The session id is
+        // what lets the backend resume rather than start over (#378).
+        const sessionResponse = await client.startSession({
+          username: storedUsername,
+          session_id: storedSessionId,
+        });
         if (!isMounted) return;
 
         setStoredSessionId(sessionResponse.session_id);

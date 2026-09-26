@@ -13,14 +13,18 @@ describe('session bootstrap', () => {
   /**
    * #377: the backend reads a chapter id on a start request as Navigation, which
    * moves the Student off the Chapter their profile holds and resets Streak.
+   * #378: the stored session id rides along so the backend can resume it.
    */
-  it('starts a session with only the stored username, no chapter id', async () => {
+  it('starts a session with the stored username and session id, no chapter id', async () => {
     const client = wireArenaFlow({ session: baseSession(), problem: baseProblem() });
 
     renderArena(client);
 
     await waitFor(() => {
-      expect(client.startSession).toHaveBeenCalledWith({ username: STORED_USERNAME });
+      expect(client.startSession).toHaveBeenCalledWith({
+        username: STORED_USERNAME,
+        session_id: 'sess-test',
+      });
     });
   });
 

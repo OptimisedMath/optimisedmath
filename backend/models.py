@@ -309,6 +309,7 @@ class SessionStartRequest(BaseModel):
 
     username: str
     selected_chapter_id: Optional[int] = None
+    session_id: Optional[str] = None
 
 
 class SessionNavigateRequest(BaseModel):

@@ -258,9 +258,36 @@ def _build_started_state(
     return state, curriculum, play_mode
 
 
+def _resume_session(request: SessionStartRequest) -> SessionState | None:
+    """Look up the Session ``request.session_id`` names, declining an unknown id
+    or a stored Username that doesn't match the request's.
+
+    Both declines fall back to a fresh start via the same branch (ADR-0019) —
+    an unrecognised id and someone else's Session are indistinguishable to the
+    Student, so neither is worth telling apart here.
+    """
+    if not request.session_id:
+        return None
+    stored = db.load_session(request.session_id)
+    if stored is None or stored.username != request.username:
+        return None
+    return stored
+
+
 def start_session(request: SessionStartRequest) -> SessionResponse:
-    """Create a session, load user progress, and return SessionResponse with navigation."""
-    state, curriculum, play_mode = _build_started_state(request)
+    """Resume the Session ``request.session_id`` names, or start a fresh one,
+    and return SessionResponse with navigation.
+
+    A Resume revives the stored state whole — no healing, no re-persist, and
+    the Problem start clock stays as served (ADR-0019).
+    """
+    resumed = _resume_session(request)
+    if resumed is not None:
+        state = resumed
+        curriculum = resolve_curriculum()
+        play_mode = resolve_play_mode(state.username)
+    else:
+        state, curriculum, play_mode = _build_started_state(request)
     ACTIVE_SESSIONS[state.session_id] = state
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode

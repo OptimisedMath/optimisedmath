@@ -82,6 +82,7 @@ export interface Problem {
 export interface SessionStartRequest {
   username: string;
   selected_chapter_id?: number;
+  session_id?: string;
 }
 
 export interface SessionNavigateRequest {
