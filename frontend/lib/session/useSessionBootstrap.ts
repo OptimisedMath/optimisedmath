@@ -15,19 +15,18 @@ interface UseSessionBootstrapOptions {
 }
 
 /**
- * A resumed session already carries its active Problem, and asking for a next
+ * A resumed Session already carries its active Problem, and asking for a next
  * one would discard exactly what the Resume recovered (#378). The
  * `deconstruction_running` half is redundant — a running Deconstruction always
- * has an active Problem — and kept anyway: `/problem/next` is shut while one
- * runs, and mirroring that backend rule explicitly is cheaper than relying on
- * the two facts staying in sync by coincidence (ADR-0002).
+ * has an active Problem — but mirrors the backend's rule that `/problem/next`
+ * is shut while one runs, rather than leaving that to coincidence (ADR-0002).
  */
 function shouldFetchProblem(session: SessionResponse): boolean {
   return !session.deconstruction_running && !session.current_problem;
 }
 
 /**
- * Reads stored credentials and starts a session on mount. Internal to
+ * Reads stored credentials and starts a Session on mount. Internal to
  * lib/session/ — composed by useSession().
  */
 export function useSessionBootstrap({

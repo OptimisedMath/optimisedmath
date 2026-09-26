@@ -262,8 +262,8 @@ def _resume_session(request: SessionStartRequest) -> SessionState | None:
     """Look up the Session ``request.session_id`` names, declining an unknown id
     or a stored Username that doesn't match the request's.
 
-    Both declines fall back to a fresh start via the same branch (#378) — an
-    unrecognised id and someone else's Session are indistinguishable to the
+    Both declines return ``None`` so the caller falls back to a fresh start —
+    an unrecognised id and someone else's Session are indistinguishable to the
     Student, so neither is worth telling apart here. ADR-0019's third decline,
     a Session gone Stale after 12 hours untouched, is #380 and not yet checked.
     """
@@ -282,24 +282,14 @@ def _build_resumed_state(
     left exactly as it was served — but healed against the current Curriculum
     and re-read against the profile (ADR-0019).
 
-    XP and the Chapter Frontiers are re-read from the profile that owns them
-    (ADR-0006), overwriting whatever this Session row held, so a tab refreshed
-    hours after another device played does not write a stale figure back over
-    the newer one. A profile-less username (never persisted, e.g. Admin) leaves
-    the Session's own copies alone rather than wiping them — there is nothing to
-    re-read. Selected chapter/topic/level is deliberately not re-read: ADR-0006
-    seeds it from the profile only at Session *start*. Frontier seeding and the
-    Selected-level clamp then run exactly as a fresh start runs them, so a
-    Chapter added or a Topic renumbered under a long-lived Session cannot raise
-    on its next Submission (#214, reopened by ADR-0019). The Submission-cycle
-    reset never runs here — it would wipe Streak, Flawless and the active
-    Problem and undo #378.
+    Frontier seeding and the Selected-level clamp run exactly as a fresh start
+    runs them, so a Chapter added or a Topic renumbered under a long-lived
+    Session cannot raise on its next Submission (#214, reopened by ADR-0019).
+    The Submission-cycle reset never runs here — it would wipe Streak, Flawless
+    and the active Problem and undo #378.
     """
     curriculum = resolve_curriculum()
-    user_data = db.load_user(stored.username)
-    if user_data is not None:
-        stored.xp = user_data["xp"]
-        stored.chapter_frontiers = user_data["chapter_frontiers"]
+    session_state.reread_profile_progress(stored)
     session_state.seed_chapter_frontiers(stored, curriculum)
     navigation_resolve.clamp_selected_level(stored, curriculum)
     return stored, curriculum, resolve_play_mode(stored.username)
@@ -309,10 +299,10 @@ def start_session(request: SessionStartRequest) -> SessionResponse:
     """Resume the Session ``request.session_id`` names, or start a fresh one, and
     return SessionResponse with navigation."""
     resumed = _resume_session(request)
-    if resumed is None:
-        state, curriculum, play_mode = _build_started_state(request)
-    else:
+    if resumed is not None:
         state, curriculum, play_mode = _build_resumed_state(resumed)
+    else:
+        state, curriculum, play_mode = _build_started_state(request)
     ACTIVE_SESSIONS[state.session_id] = state
     nav_snapshot = navigation_snapshot.build_navigation_snapshot(
         state, curriculum, play_mode

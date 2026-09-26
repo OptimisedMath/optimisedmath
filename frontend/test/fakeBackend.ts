@@ -137,7 +137,10 @@ function unwired(operation: string) {
   };
 }
 
-/** The `unwired()` default for `wireArenaFlow`'s `onSubmit`, which grades synchronously. */
+/**
+ * `unwired`'s counterpart for `wireArenaFlow`'s `onSubmit`, which hands back a
+ * graded response rather than a Promise and so cannot reuse the async default.
+ */
 function unwiredSubmission(): never {
   throw new Error('Unhandled submitAnswer');
 }

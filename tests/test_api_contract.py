@@ -1377,6 +1377,8 @@ def test_resume_seeds_a_frontier_for_a_chapter_added_since_the_session_was_saved
     curriculum = resolve_curriculum()
     new_chapter_id = list(curriculum.chapter_ids())[-1]
     assert new_chapter_id != state.selected_chapter_id
+    # Dropping the record stands in for a Chapter added after the Session was
+    # saved: either way the stored Session holds no Frontier for that Chapter.
     del state.chapter_frontiers[new_chapter_id]
     db.save_session(state.session_id, state.username, state)
 
@@ -1393,6 +1395,8 @@ def test_resume_seeds_a_frontier_for_a_chapter_added_since_the_session_was_saved
     resumed_state.problem_answered = False
     resumed_state.problem_start_time = 0
 
+    # Completing without raising is the assertion — this Submission raised on the
+    # missing Frontier record before the Resume seeded one.
     run(
         main.problem_submit(
             main.ProblemSubmissionRequest(

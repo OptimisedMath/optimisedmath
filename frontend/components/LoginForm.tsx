@@ -39,9 +39,11 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const staleSessionId = getStoredSessionId();
-      if (staleSessionId) {
-        await client.endSession({ session_id: staleSessionId });
+      // Logging in ends whatever Session was stored before minting its
+      // replacement, so the row it leaves behind is not unreachable (ADR-0019).
+      const previousSessionId = getStoredSessionId();
+      if (previousSessionId) {
+        await client.endSession({ session_id: previousSessionId });
       }
       const sessionResponse = await client.startSession({ username: username.trim() });
       setSessionCredentials(username.trim(), sessionResponse.session_id);
