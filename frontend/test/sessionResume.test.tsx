@@ -1,6 +1,12 @@
 import { screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { baseProblem, baseSession, createFakeSessionClient, withProblem } from './fakeBackend';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  baseProblem,
+  baseSession,
+  createFakeSessionClient,
+  wireArenaFlow,
+  withProblem,
+} from './fakeBackend';
 import { renderArena, waitForArenaReady } from './renderArena';
 import { resetStoredSession, seedStoredSession } from './testSession';
 
@@ -13,16 +19,17 @@ describe('resuming a session (#378)', () => {
   it('renders the revived Problem and Feedback without asking for a next Problem', async () => {
     const problem = baseProblem({ question: 'Resumed question' });
     const resumed = withProblem(
-      { ...baseSession(), can_submit: false, can_next_problem: true, feedback_type: 'success', feedback_msg: 'Resumed feedback' },
+      baseSession({
+        can_submit: false,
+        can_next_problem: true,
+        feedback_type: 'success',
+        feedback_msg: 'Resumed feedback',
+      }),
       problem
     );
-    const getNextProblem = vi.fn(async () => {
-      throw new Error('Next problem should not be requested on a resume with an active Problem');
-    });
-    const client = createFakeSessionClient({
-      startSession: async () => resumed,
-      getNextProblem,
-    });
+    // No `getNextProblem` handler: the fake throws on an unwired operation, so
+    // asking for one would fail the render rather than quietly serve a Problem.
+    const client = createFakeSessionClient({ startSession: async () => resumed });
 
     renderArena(client);
 
@@ -30,17 +37,11 @@ describe('resuming a session (#378)', () => {
       expect(client.startSession).toHaveBeenCalled();
     });
     await screen.findByText('Resumed feedback');
-    expect(getNextProblem).not.toHaveBeenCalled();
+    expect(client.getNextProblem).not.toHaveBeenCalled();
   });
 
   it('still requests a Problem when the resumed Session has none', async () => {
-    const client = createFakeSessionClient({
-      startSession: async () => baseSession(),
-      getNextProblem: async () => ({
-        problem: baseProblem(),
-        state: { ...withProblem(baseSession(), baseProblem()), can_submit: true, can_next_problem: false },
-      }),
-    });
+    const client = wireArenaFlow();
 
     renderArena(client);
 

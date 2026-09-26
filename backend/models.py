@@ -305,7 +305,12 @@ class SessionResponse(BaseModel):
 
 
 class SessionStartRequest(BaseModel):
-    """Start or resume a session for a username."""
+    """Start or resume a session for a username.
+
+    ``session_id`` names the Session to resume; an id the backend cannot revive,
+    or one belonging to another Username, starts a fresh Session instead
+    (ADR-0019).
+    """
 
     username: str
     selected_chapter_id: Optional[int] = None

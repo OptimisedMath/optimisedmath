@@ -110,7 +110,7 @@ async def curriculum_index() -> CurriculumResponse:
 
 @app.post("/session/start", response_model=SessionResponse, tags=["Session"])
 async def session_start(request: SessionStartRequest) -> SessionResponse:
-    """Create a session, load user progress, and return SessionResponse with navigation."""
+    """Resume the session the request names, or start a fresh one, and return it with navigation."""
     try:
         return start_session(request)
     except SessionError as exc:

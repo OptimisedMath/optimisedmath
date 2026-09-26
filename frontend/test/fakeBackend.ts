@@ -120,6 +120,17 @@ export function withProblem(session: SessionResponse, problem: Problem): Session
   return { ...session, current_problem: problem };
 }
 
+/**
+ * The next-Problem response the backend serves: the Problem active on the
+ * Session, answerable, with the Next-problem gate shut behind it.
+ */
+function servedProblem(session: SessionResponse, problem: Problem): ProblemResponse {
+  return {
+    problem,
+    state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
+  };
+}
+
 function unwired(operation: string) {
   return async () => {
     throw new Error(`Unhandled ${operation}`);
@@ -191,10 +202,7 @@ export function wireDeconstructionTriggerFlow({
 
   return createFakeSessionClient({
     startSession: async () => session,
-    getNextProblem: async () => ({
-      problem,
-      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
-    }),
+    getNextProblem: async () => servedProblem(session, problem),
     submitAnswer: async () => ({
       is_correct: false,
       feedback: TRAP_FEEDBACK,
@@ -222,10 +230,7 @@ export function wireArenaFlow({
 } & Partial<SessionClient> = {}): SessionClient {
   return createFakeSessionClient({
     startSession: async () => session,
-    getNextProblem: async (): Promise<ProblemResponse> => ({
-      problem,
-      state: { ...withProblem(session, problem), can_submit: true, can_next_problem: false },
-    }),
+    getNextProblem: async () => servedProblem(session, problem),
     submitAnswer: async () => onSubmit(),
     ...handlers,
   });
