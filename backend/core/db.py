@@ -239,7 +239,9 @@ def delete_session(session_id: str) -> None:
         conn.commit()
 
 
-def load_resumable_session(session_id: str, max_age_seconds: float) -> SessionState | None:
+def load_resumable_session(
+    session_id: str, max_age_seconds: float
+) -> SessionState | None:
     """Loads a session only if it exists and was updated within `max_age_seconds` ago.
 
     Not found and found-but-Stale return the same `None` — the age comparison runs
