@@ -18,7 +18,6 @@ from backend.models import InputMode
 
 
 class EvalResult(TypedDict, total=False):
-    is_correct: bool
     lock_answer: bool
     feedback_type: str
     feedback_msg: str
@@ -31,7 +30,7 @@ class EvalResult(TypedDict, total=False):
 
 def _correct() -> EvalResult:
     """The Correct verdict — the one place every path that reaches one names it."""
-    return {"is_correct": True, "lock_answer": True, "answer_outcome": "correct"}
+    return {"lock_answer": True, "answer_outcome": "correct"}
 
 
 def _match_trap_feedback(

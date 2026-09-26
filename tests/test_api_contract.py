@@ -189,7 +189,7 @@ def test_wrong_unit_submit_reveals_a_united_answer_that_then_grades_correct():
 
     retyped = grade(revealed["correct_answer"], problem, input_mode="typing")
 
-    assert retyped.get("is_correct") is True
+    assert retyped.get("answer_outcome") == "correct"
 
 
 def test_wrong_text_submit_reveals_correct_answer():

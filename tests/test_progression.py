@@ -28,7 +28,7 @@ def _ctx(
 
 def test_correct_increments_streak_without_unlock():
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True}, _ctx(streak=1)
+        {"answer_outcome": "correct", "lock_answer": True}, _ctx(streak=1)
     )
 
     assert outcome.new_streak == 2
@@ -41,7 +41,7 @@ def test_correct_increments_streak_without_unlock():
 
 def test_correct_at_frontier_reaching_max_streak_unlocks_next_level():
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
+        {"answer_outcome": "correct", "lock_answer": True},
         _ctx(streak=2, selected_level=1, topic_max_level=3),
     )
 
@@ -55,7 +55,7 @@ def test_correct_at_frontier_reaching_max_streak_unlocks_next_level():
 
 def test_flawless_bonus_on_level_unlock():
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
+        {"answer_outcome": "correct", "lock_answer": True},
         _ctx(streak=2, flawless_eligible=True),
     )
 
@@ -66,7 +66,7 @@ def test_flawless_bonus_on_level_unlock():
 
 def test_no_flawless_bonus_when_not_eligible():
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
+        {"answer_outcome": "correct", "lock_answer": True},
         _ctx(streak=2, flawless_eligible=False),
     )
 
@@ -76,7 +76,7 @@ def test_no_flawless_bonus_when_not_eligible():
 
 def test_correct_completes_topic_at_max_level():
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
+        {"answer_outcome": "correct", "lock_answer": True},
         _ctx(
             streak=2,
             selected_level=3,
@@ -94,7 +94,7 @@ def test_correct_completes_topic_at_max_level():
 
 def test_topic_complete_without_next_topic():
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
+        {"answer_outcome": "correct", "lock_answer": True},
         _ctx(
             streak=2,
             selected_level=3,
@@ -149,7 +149,7 @@ def test_not_at_frontier_reaching_max_streak_caps_without_unlock():
     """Not At the Frontier: Streak still caps at Mastery, but nothing else fires —
     no Level/Topic completion and no Frontier field written."""
     outcome = resolve_submission_outcome(
-        {"is_correct": True, "lock_answer": True},
+        {"answer_outcome": "correct", "lock_answer": True},
         _ctx(streak=2, at_frontier=False),
     )
 

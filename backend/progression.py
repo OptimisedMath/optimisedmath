@@ -49,7 +49,7 @@ def resolve_submission_outcome(
     eval_result: EvalResult, ctx: SubmissionContext
 ) -> SubmissionOutcome:
     """Apply progression rules given a grading result and session context."""
-    is_correct = eval_result.get("is_correct", False)
+    is_correct = eval_result.get("answer_outcome") == "correct"
     feedback_type = eval_result.get("feedback_type")
     is_soft_error = feedback_type == "info"
 

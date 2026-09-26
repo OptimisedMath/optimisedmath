@@ -404,7 +404,7 @@ def _submit_active_problem(
     )
     return SubmissionResponse(
         state=build_session_response(state, play_mode, nav_snapshot),
-        is_correct=eval_result.get("is_correct", False),
+        is_correct=eval_result.get("answer_outcome") == "correct",
         feedback=state.feedback_msg,
     )
 

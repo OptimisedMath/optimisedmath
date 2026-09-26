@@ -133,7 +133,7 @@ def _apply_discounted_retry_outcome(
     """
     feedback_type = eval_result.get("feedback_type")
     feedback_msg = eval_result.get("feedback_msg", "")
-    if eval_result.get("is_correct"):
+    if eval_result.get("answer_outcome") == "correct":
         base_xp = config.XP_REWARDS.get(state.selected_level, config.DEFAULT_XP_REWARD)
         discounted_xp = round(base_xp * config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER)
         state.xp += discounted_xp
