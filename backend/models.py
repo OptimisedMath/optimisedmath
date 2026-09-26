@@ -109,7 +109,7 @@ class DeconstructionState(BaseModel):
     )
     deconstruction_id: Optional[int] = Field(
         default=None,
-        description="Row id of the `deconstructions` header, for updating deconstruction_steps",
+        description="Row id of the `deconstructions` header, for writing its step and attempt rows",
     )
 
 

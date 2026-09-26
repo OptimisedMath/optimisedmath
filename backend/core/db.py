@@ -54,6 +54,7 @@ def init_db() -> None:
     with get_connection() as conn:
         conn.execute("PRAGMA journal_mode=WAL")
         cursor = conn.cursor()
+        _drop_stale_tables(cursor)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
@@ -72,7 +73,6 @@ def init_db() -> None:
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        _drop_stale_table(cursor, "telemetry_logs")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS telemetry_logs (
                 log_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,7 +118,6 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_telemetry_problem_id ON telemetry_logs(problem_id)"
         )
-        _drop_stale_table(cursor, "deconstructions")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstructions (
                 deconstruction_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,7 +140,6 @@ def init_db() -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_deconstructions_problem_id ON deconstructions(problem_id)"
         )
-        _drop_stale_table(cursor, "deconstruction_steps")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstruction_steps (
                 deconstruction_id INTEGER NOT NULL,
@@ -151,7 +149,6 @@ def init_db() -> None:
                 FOREIGN KEY (deconstruction_id) REFERENCES deconstructions(deconstruction_id)
             )
         """)
-        _drop_stale_table(cursor, "deconstruction_attempts")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS deconstruction_attempts (
                 deconstruction_id INTEGER NOT NULL,
@@ -209,12 +206,12 @@ _INSERT_TELEMETRY_SQL = (
     f"VALUES ({', '.join('?' * len(_TELEMETRY_COLUMNS))})"
 )
 
-# The full column set each `CREATE TABLE` above declares — `_drop_stale_table`'s
-# reference for what a pre-existing table has to match. Spelled out rather than
-# derived from the DDL, so it also names the columns SQLite fills in by itself: an
-# autoincrement key and a default timestamp are never part of an INSERT, but they
-# are part of the shape a table is matched against. A table changing shape means
-# editing its `CREATE TABLE` and its column set here, and nowhere else.
+# The full column set each `CREATE TABLE` above declares — `_is_stale`'s reference for
+# what a pre-existing table has to match. Spelled out rather than derived from the DDL,
+# so it also names the columns SQLite fills in by itself: an autoincrement key and a
+# default timestamp are never part of an INSERT, but they are part of the shape a table
+# is matched against. A table changing shape means editing its `CREATE TABLE` and its
+# column set here, and nowhere else.
 _TABLE_COLUMNS = {
     "telemetry_logs": frozenset(_TELEMETRY_COLUMNS) | {"log_id", "timestamp"},
     "deconstructions": frozenset(
@@ -250,31 +247,53 @@ _TABLE_COLUMNS = {
 }
 
 
-def _drop_stale_table(cursor: sqlite3.Cursor, table_name: str) -> None:
-    """Drop `table_name` unless its columns are exactly what `_TABLE_COLUMNS` declares.
+# Tables that are dropped and recreated together, each group listed children before
+# parents. One stale table takes its whole group with it: `PRAGMA foreign_keys=ON`
+# refuses to drop a parent while a child row still references it, and a child row that
+# outlived its parent would point at a `deconstruction_id` the recreated header table
+# is free to hand out again.
+_TABLE_GROUPS = (
+    ("telemetry_logs",),
+    ("deconstruction_attempts", "deconstruction_steps", "deconstructions"),
+)
 
-    Pre-existing rows are dropped, not migrated, when a table's schema changes
-    shape — adding, renaming or removing a column is what makes that happen. An
-    exact match rather than a subset check, so a column that stops being written
+
+def _is_stale(cursor: sqlite3.Cursor, table_name: str) -> bool:
+    """Whether `table_name` exists with columns other than `_TABLE_COLUMNS` declares.
+
+    An exact match rather than a subset check, so a column that stops being written
     (like `is_correct` in #253, or `deconstruction_steps.attempts` in #258) also
-    forces the drop instead of being left behind as dead state a future INSERT
-    can't satisfy. Acceptable pre-launch, while these tables have no production
-    readers; past launch, a schema change needs a real migration instead of a
-    silent drop.
+    counts as stale instead of being left behind as dead state a future INSERT
+    can't satisfy.
 
     Raises `KeyError` for a table `_TABLE_COLUMNS` does not declare — looked up
-    before the name reaches SQL, since `PRAGMA` and `DROP TABLE` cannot take it
-    as a bound parameter.
+    before the name reaches SQL, since `PRAGMA` cannot take it as a bound parameter.
     """
     expected_columns = _TABLE_COLUMNS[table_name]
     table_exists = cursor.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
     ).fetchone()
     if not table_exists:
-        return
+        return False
     columns = {row[1] for row in cursor.execute(f"PRAGMA table_info({table_name})")}
-    if columns != expected_columns:
-        cursor.execute(f"DROP TABLE {table_name}")
+    return columns != expected_columns
+
+
+def _drop_stale_tables(cursor: sqlite3.Cursor) -> None:
+    """Drop every `_TABLE_GROUPS` group holding a table whose shape has changed.
+
+    Pre-existing rows are dropped, not migrated, when a table's schema changes
+    shape — adding, renaming or removing a column is what makes that happen.
+    Acceptable pre-launch, while these tables have no production readers; past
+    launch, a schema change needs a real migration instead of a silent drop.
+    Runs before every `CREATE TABLE IF NOT EXISTS` in `init_db`, which is what
+    puts the new shape back.
+    """
+    for group in _TABLE_GROUPS:
+        if not any(_is_stale(cursor, table_name) for table_name in group):
+            continue
+        for table_name in group:
+            cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
 
 
 # --- Sessions ---
@@ -398,6 +417,17 @@ def save_user(username: str, state: SessionState) -> None:
 # --- Telemetry ---
 
 
+def _value_columns(
+    answer_value: tuple[int, int] | None,
+) -> tuple[int | None, int | None]:
+    """Split an Answer value into its two integer columns, NULL when there is none.
+
+    Storing a rational as a numerator and a denominator is this layer's detail, so
+    callers hand over the Answer value whole — an absent one included (ADR-0016).
+    """
+    return answer_value if answer_value is not None else (None, None)
+
+
 def log_telemetry(
     *,
     session_id: str,
@@ -416,10 +446,8 @@ def log_telemetry(
     answer_form: str,
     correct_form: str,
     user_input: str | None = None,
-    answer_value_num: int | None = None,
-    answer_value_den: int | None = None,
-    correct_value_num: int | None = None,
-    correct_value_den: int | None = None,
+    answer_value: tuple[int, int] | None = None,
+    correct_value: tuple[int, int] | None = None,
     misconception_slug: str | None = None,
     trap_slug: str | None = None,
     trap_source: str | None = None,
@@ -430,8 +458,11 @@ def log_telemetry(
     """Record one answer attempt for analytics and debugging.
 
     Keyword-only: the row is too wide, and too many of its columns share a type,
-    for a positional call to be readable or safe at the call site.
+    for a positional call to be readable or safe at the call site. Both Answer
+    values arrive as the rationals they are — see `_value_columns`.
     """
+    answer_value_num, answer_value_den = _value_columns(answer_value)
+    correct_value_num, correct_value_den = _value_columns(correct_value)
     row: dict[str, object] = {
         "session_id": session_id,
         "username": username,
@@ -583,10 +614,8 @@ def create_deconstruction_attempt(
     is actually persisted, not a second counter that could drift from it.
     Every submit gets a row, soft errors included, so the Reveal-threshold
     count stays recoverable as this table's rows excluding `soft_error`.
-    The Answer value arrives as the rational it is; splitting it across two
-    integer columns is this layer's storage detail, not the caller's.
     """
-    value_num, value_den = answer_value if answer_value is not None else (None, None)
+    value_num, value_den = _value_columns(answer_value)
     with get_connection() as conn:
         cursor = conn.cursor()
         next_index = cursor.execute(

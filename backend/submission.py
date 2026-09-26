@@ -8,7 +8,7 @@ import time
 from typing import Literal
 
 import backend.config as config
-from backend.answer_grading import EvalResult, grade, is_correct
+from backend.answer_grading import EvalResult, GradedOutcome, grade, is_correct
 from backend.core import db
 from backend.core.utils import ProblemDict, answer_form, answer_value
 from backend.curriculum import Curriculum
@@ -54,7 +54,7 @@ _TELEMETRY_STRIP_KEYS = frozenset(
 # way into telemetry — nothing upstream of this reads the collapsed form. Total
 # over what `grade()` can return, so an outcome missing here raises rather than
 # being logged as something it isn't.
-_TELEMETRY_OUTCOME_BUCKETS: dict[str, AnswerOutcome] = {
+_TELEMETRY_OUTCOME_BUCKETS: dict[GradedOutcome, AnswerOutcome] = {
     "correct": "correct",
     "trap": "trap",
     "wrong": "wrong",
@@ -223,8 +223,6 @@ def _log_submission_telemetry(
     )
 
     correct_raw = str(problem["correct"])
-    answer_num, answer_den = answer_value(user_input) or (None, None)
-    correct_num, correct_den = answer_value(correct_raw) or (None, None)
 
     db.log_telemetry(
         session_id=state.session_id,
@@ -242,11 +240,9 @@ def _log_submission_telemetry(
         answer_outcome=_telemetry_answer_outcome(eval_result),
         user_input=user_input,
         answer_form=answer_form(user_input),
-        answer_value_num=answer_num,
-        answer_value_den=answer_den,
+        answer_value=answer_value(user_input),
         correct_form=answer_form(correct_raw),
-        correct_value_num=correct_num,
-        correct_value_den=correct_den,
+        correct_value=answer_value(correct_raw),
         misconception_slug=misconception_slug,
         trap_slug=eval_result.get("trap_slug"),
         trap_source=trap_source,
