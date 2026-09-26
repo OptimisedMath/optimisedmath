@@ -1,8 +1,13 @@
 import { screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { baseProblem, baseSession, createFakeSessionClient, wireArenaFlow } from './fakeBackend';
+import { createFakeSessionClient, wireArenaFlow } from './fakeBackend';
 import { renderArena } from './renderArena';
-import { resetStoredSession, seedStoredSession, STORED_USERNAME } from './testSession';
+import {
+  resetStoredSession,
+  seedStoredSession,
+  STORED_SESSION_ID,
+  STORED_USERNAME,
+} from './testSession';
 
 describe('session bootstrap', () => {
   beforeEach(() => {
@@ -13,14 +18,18 @@ describe('session bootstrap', () => {
   /**
    * #377: the backend reads a chapter id on a start request as Navigation, which
    * moves the Student off the Chapter their profile holds and resets Streak.
+   * #378: the stored session id rides along so the backend can resume it.
    */
-  it('starts a session with only the stored username, no chapter id', async () => {
-    const client = wireArenaFlow({ session: baseSession(), problem: baseProblem() });
+  it('starts a session with the stored username and session id, no chapter id', async () => {
+    const client = wireArenaFlow();
 
     renderArena(client);
 
     await waitFor(() => {
-      expect(client.startSession).toHaveBeenCalledWith({ username: STORED_USERNAME });
+      expect(client.startSession).toHaveBeenCalledWith({
+        username: STORED_USERNAME,
+        session_id: STORED_SESSION_ID,
+      });
     });
   });
 
