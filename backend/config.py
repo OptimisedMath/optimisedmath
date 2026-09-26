@@ -33,6 +33,12 @@ DECONSTRUCTION_REVEAL_THRESHOLD = 3
 # untouched by that attempt — only XP scores, and at a discount.
 DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER = 0.5
 
+# --- GAME MECHANICS: SESSION LIFECYCLE ---
+# Seconds since a Session's stored last-updated timestamp — written on every
+# persist, so this measures the last Submission or Navigation, not when the
+# Session started — before a Resume declines it as Stale.
+SESSION_STALE_AFTER_SECONDS = 12 * 60 * 60
+
 # --- GAME MECHANICS: REWARDS ---
 # XP (Experience Points) awarded for correct answers by level
 XP_REWARDS = {
