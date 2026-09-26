@@ -75,13 +75,11 @@ class TestRegistryCollision:
 class TestMultipleChoiceGrading:
     def test_correct_answer(self):
         result = grade("1", _sample_problem(), input_mode="radio")
-        assert result["is_correct"] is True
         assert result["lock_answer"] is True
         assert result["answer_outcome"] == "correct"
 
     def test_trap_answer(self):
         result = grade(r"\frac{2}{4}", _sample_problem(), input_mode="radio")
-        assert "is_correct" not in result
         assert result["answer_outcome"] == "trap"
         assert result["trap_slug"] == "t1"
         assert result["feedback_msg"] == "Trap one"
@@ -96,7 +94,6 @@ class TestMultipleChoiceGrading:
 class TestTextGrading:
     def test_exact_text_match(self):
         result = grade("1", _sample_problem(), input_mode="typing")
-        assert result["is_correct"] is True
         assert result["answer_outcome"] == "correct"
 
     def test_syntax_error(self):
@@ -116,7 +113,6 @@ class TestTextGrading:
             grading_policy="equivalent_accepted",
         )
         result = grade("2/4", problem, input_mode="typing")
-        assert result["is_correct"] is True
         assert result["answer_outcome"] == "correct"
 
     def test_exact_match_only_policy(self):
@@ -153,7 +149,6 @@ class TestTextGrading:
         assert result["answer_outcome"] == "trap"
         assert result["trap_slug"] == "t1"
         assert result["feedback_msg"] == "Partially simplified trap"
-        assert "is_correct" not in result
 
     def test_text_trap_match(self):
         problem = _sample_problem(correct="1")
@@ -194,4 +189,4 @@ class TestFormatMismatch:
         )
         result = grade("1/2", problem, input_mode="typing")
         assert result.get("answer_outcome") != "format_mismatch"
-        assert result["is_correct"] is True
+        assert result["answer_outcome"] == "correct"

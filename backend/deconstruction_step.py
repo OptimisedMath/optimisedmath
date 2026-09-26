@@ -16,6 +16,7 @@ from backend.core import db
 from backend.core.utils import answer_form, answer_value
 from backend.curriculum import Curriculum
 from backend.models import (
+    AnswerOutcome,
     DeconstructionState,
     DeconstructionStep,
     DeconstructionStepResponse,
@@ -24,21 +25,6 @@ from backend.models import (
 )
 from backend.play_mode import PlayMode
 from backend.step_grading import StepEvalResult, grade_ordering_step, grade_step
-
-
-def _attempt_outcome(eval_result: StepEvalResult) -> str:
-    """The Answer Outcome one graded step is recorded under (ADR-0016, #259).
-
-    Collapses the step grader's is_correct/soft_error pair into the same
-    four-value vocabulary the Submission table uses. Trap is unreachable here —
-    a step has no `options_map` — but the column keeps the full domain per
-    #244's rule that no query learns two dialects.
-    """
-    if eval_result.get("is_correct"):
-        return "correct"
-    if eval_result.get("soft_error"):
-        return "soft_error"
-    return "wrong"
 
 
 class DeconstructionNotRunningError(Exception):
@@ -146,6 +132,21 @@ def next_step_response(
         input_type=step.input_type,
         items=step.items,
     )
+
+
+def _attempt_outcome(eval_result: StepEvalResult) -> AnswerOutcome:
+    """The Answer Outcome one graded step is recorded under (ADR-0016, #259).
+
+    Collapses the step grader's is_correct/soft_error pair into the same
+    four-value vocabulary the Submission table uses. Trap is unreachable here —
+    a step has no `options_map` — but the column keeps the full domain per
+    #244's rule that no query learns two dialects.
+    """
+    if eval_result.get("is_correct"):
+        return "correct"
+    if eval_result.get("soft_error"):
+        return "soft_error"
+    return "wrong"
 
 
 def submit_step(

@@ -189,7 +189,7 @@ def test_wrong_unit_submit_reveals_a_united_answer_that_then_grades_correct():
 
     retyped = grade(revealed["correct_answer"], problem, input_mode="typing")
 
-    assert retyped.get("is_correct") is True
+    assert retyped.get("answer_outcome") == "correct"
 
 
 def test_wrong_text_submit_reveals_correct_answer():
@@ -1863,6 +1863,7 @@ def _submit_step(state, user_input):
 
 
 def _fetch_deconstruction_step_rows(deconstruction_id):
+    """Every step row for one Deconstruction, in step order."""
     with sqlite3.connect(main.db.DB_PATH) as conn:
         return conn.execute(
             """
@@ -1875,8 +1876,11 @@ def _fetch_deconstruction_step_rows(deconstruction_id):
 
 
 def _fetch_deconstruction_attempt_rows(deconstruction_id):
-    """Every attempt row for one Deconstruction, keyed by column name — the row is
-    too wide for positional reads to stay legible."""
+    """Every attempt row for one Deconstruction, keyed by column name.
+
+    Keyed rather than positional: the row is too wide for positional reads to
+    stay legible.
+    """
     with sqlite3.connect(main.db.DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         return [
@@ -2531,6 +2535,7 @@ def test_navigation_abandons_running_deconstruction_and_writes_outcome(monkeypat
 
 
 def _fetch_last_deconstruction_ended_at(session_id):
+    """`ended_at` on the Session's most recently created Deconstruction header row."""
     with sqlite3.connect(main.db.DB_PATH) as conn:
         return conn.execute(
             """
@@ -2580,6 +2585,7 @@ def test_ended_at_is_written_on_abandon_via_control(monkeypatch):
 
 
 def test_ended_at_is_written_on_abandon_via_navigation(monkeypatch):
+    """Issue #258: the Navigation door stamps `ended_at` too, not just the control."""
     _map_traps_to_misconceptions(monkeypatch, {"t1": _UNLIKE_FRACTIONS_MISCONCEPTION})
     state = make_state(_trap_problem("p-first-hit"), input_mode="radio")
     _submit_trap(state, "p-first-hit")

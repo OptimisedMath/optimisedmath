@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import backend.answer_grading as answer_grading
 import backend.config as config
 import backend.navigation_resolve as navigation_resolve
 import backend.navigation_snapshot as navigation_snapshot
@@ -404,7 +405,7 @@ def _submit_active_problem(
     )
     return SubmissionResponse(
         state=build_session_response(state, play_mode, nav_snapshot),
-        is_correct=eval_result.get("is_correct", False),
+        is_correct=answer_grading.is_correct(eval_result),
         feedback=state.feedback_msg,
     )
 

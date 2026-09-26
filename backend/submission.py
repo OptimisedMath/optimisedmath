@@ -8,12 +8,13 @@ import time
 from typing import Literal
 
 import backend.config as config
-from backend.answer_grading import EvalResult, grade
+from backend.answer_grading import EvalResult, GradedOutcome, grade, is_correct
 from backend.core import db
 from backend.core.utils import ProblemDict, answer_form, answer_value
 from backend.curriculum import Curriculum
 import backend.deconstruction as deconstruction
 from backend.models import (
+    AnswerOutcome,
     DeconstructionState,
     DeconstructionStep,
     InputMode,
@@ -53,7 +54,7 @@ _TELEMETRY_STRIP_KEYS = frozenset(
 # way into telemetry — nothing upstream of this reads the collapsed form. Total
 # over what `grade()` can return, so an outcome missing here raises rather than
 # being logged as something it isn't.
-_TELEMETRY_OUTCOME_BUCKETS = {
+_TELEMETRY_OUTCOME_BUCKETS: dict[GradedOutcome, AnswerOutcome] = {
     "correct": "correct",
     "trap": "trap",
     "wrong": "wrong",
@@ -63,7 +64,7 @@ _TELEMETRY_OUTCOME_BUCKETS = {
 }
 
 
-def _telemetry_answer_outcome(eval_result: EvalResult) -> str:
+def _telemetry_answer_outcome(eval_result: EvalResult) -> AnswerOutcome:
     """Collapse the grader's outcome to the bucket telemetry records it under."""
     return _TELEMETRY_OUTCOME_BUCKETS[eval_result["answer_outcome"]]
 
@@ -133,7 +134,7 @@ def _apply_discounted_retry_outcome(
     """
     feedback_type = eval_result.get("feedback_type")
     feedback_msg = eval_result.get("feedback_msg", "")
-    if eval_result.get("is_correct"):
+    if is_correct(eval_result):
         base_xp = config.XP_REWARDS.get(state.selected_level, config.DEFAULT_XP_REWARD)
         discounted_xp = round(base_xp * config.DECONSTRUCTION_DISCOUNTED_XP_MULTIPLIER)
         state.xp += discounted_xp
@@ -222,8 +223,6 @@ def _log_submission_telemetry(
     )
 
     correct_raw = str(problem["correct"])
-    answer_num, answer_den = answer_value(user_input) or (None, None)
-    correct_num, correct_den = answer_value(correct_raw) or (None, None)
 
     db.log_telemetry(
         session_id=state.session_id,
@@ -241,11 +240,9 @@ def _log_submission_telemetry(
         answer_outcome=_telemetry_answer_outcome(eval_result),
         user_input=user_input,
         answer_form=answer_form(user_input),
-        answer_value_num=answer_num,
-        answer_value_den=answer_den,
+        answer_value=answer_value(user_input),
         correct_form=answer_form(correct_raw),
-        correct_value_num=correct_num,
-        correct_value_den=correct_den,
+        correct_value=answer_value(correct_raw),
         misconception_slug=misconception_slug,
         trap_slug=eval_result.get("trap_slug"),
         trap_source=trap_source,
